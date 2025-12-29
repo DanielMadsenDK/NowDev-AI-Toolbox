@@ -26,6 +26,3 @@ yarn-error.log*
 # System Files
 .DS_Store
 Thumbs.db
-
-# Temporary Scripts
-migrate_agents.py

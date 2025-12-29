@@ -1,9 +1,9 @@
 # NowDev AI Toolbox
 
 <div align="center">
-  <img src="media/agent-icon.svg" width="120" height="120" alt="NowDev AI Toolbox Logo" />
+  <img src="media/agent-icon.png" width="120" height="120" alt="NowDev AI Toolbox Logo" />
   <br><br>
-  
+
   ![Version](https://img.shields.io/badge/version-0.1.0-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.93+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
