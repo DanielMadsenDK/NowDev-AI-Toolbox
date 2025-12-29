@@ -5,11 +5,11 @@
   "version": "0.1.0",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
-  "icon": "media/agent-icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DanielMadsenDK/NowDev-AI-Toolbox.git"
+    "url": "https://github.com/DanielMadsenDK/NowDev-AI-Toolbox"
   },
+  "icon": "media/agent-icon.png",
   "engines": {
     "vscode": "^1.93.0"
   },
@@ -18,7 +18,8 @@
     "Chat"
   ],
   "extensionDependencies": [
-    "github.copilot-chat"
+    "github.copilot-chat",
+    "upstash.context7-mcp"
   ],
   "activationEvents": [
     "onLanguageModelChat:copilot"

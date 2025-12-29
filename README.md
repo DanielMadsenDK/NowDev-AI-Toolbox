@@ -1,8 +1,6 @@
 # NowDev AI Toolbox
 
 <div align="center">
-  <img src="media/agent-icon.png" width="120" height="120" alt="NowDev AI Toolbox Logo" />
-  <br><br>
 
   ![Version](https://img.shields.io/badge/version-0.1.0-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.93+-blue)
@@ -22,15 +20,8 @@ NowDev AI Toolbox is a Visual Studio Code extension that provides specialized AI
 ### Prerequisites
 - Visual Studio Code 1.93 or later
 - GitHub Copilot Chat extension
-- **[Context7 MCP Server](https://github.com/upstash/context7)** - Required for agents to access ServiceNow documentation and best practices
 
-  **Setup Instructions:**
-  1. Visit the [Context7 GitHub repository](https://github.com/upstash/context7)
-  2. Follow the installation instructions for your platform
-  3. Configure Context7 to provide access to ServiceNow documentation
-  4. Ensure Context7 is running before using the NowDev AI agents
-
-  *Context7 enables the AI agents to reference official ServiceNow documentation and verified best practices during development.*
+*Context7 MCP Server is automatically included as an extension dependency and will be installed when you install NowDev AI Toolbox. Context7 enables the AI agents to reference official ServiceNow documentation and verified best practices during development.*
 
 ### Quick Start
 
@@ -51,29 +42,6 @@ All agents are automatically available in every workspace once the extension is 
 - Ensure all work follows ServiceNow best practices
 
 You can also use specialized agents directly for specific tasks, but starting with the orchestrator ensures proper planning and coordination.
-
-#### Development Workflow Diagram
-
-```mermaid
-flowchart TD
-    A[User] --> B[NowDev-AI-Orchestrator]
-    B --> C[Analyze Requirements<br/>Create Plan]
-    C --> D[User Approval]
-    D --> E[Delegate Tasks to<br/>Specialized Agents]
-
-    E --> F[Script Developer]
-    E --> G[Business Rule Developer]
-    E --> H[Client Developer]
-
-    F --> I[Quality Review<br/>by Reviewer Agent]
-    G --> I
-    H --> I
-
-    I --> J[Testing & Debugging<br/>by Debugger Agent]
-    J --> K[Release & Deployment<br/>by Release Expert]
-
-    K --> L[Complete Implementation]
-```
 
 ### Example Usage
 Open GitHub Copilot Chat, select "NowDev-AI-Orchestrator" from the agent dropdown, and type:
