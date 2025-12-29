@@ -1,0 +1,70 @@
+{
+  "name": "nowdev-toolbox",
+  "displayName": "NowDev AI Toolbox",
+  "description": "ServiceNow AI Agents for VS Code Copilot",
+  "version": "0.1.0",
+  "publisher": "DanielMadsenDK",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "extensionDependencies": [
+    "github.copilot-chat"
+  ],
+  "activationEvents": [
+    "onLanguageModelChat:copilot"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "chatAgents": [
+      {
+        "name": "NowDev-AI-Orchestrator",
+        "path": "./agents/github-copilot/NowDev-AI-Orchestrator.agent.md",
+        "description": "Solution Architecture & Workflow Management for ServiceNow development"
+      },
+      {
+        "name": "NowDev-AI-Script-Developer",
+        "path": "./agents/github-copilot/NowDev-AI-Script-Developer.agent.md",
+        "description": "Server-side libraries & GlideAjax development"
+      },
+      {
+        "name": "NowDev-AI-BusinessRule-Developer",
+        "path": "./agents/github-copilot/NowDev-AI-BusinessRule-Developer.agent.md",
+        "description": "Database triggers & automation logic"
+      },
+      {
+        "name": "NowDev-AI-Client-Developer",
+        "path": "./agents/github-copilot/NowDev-AI-Client-Developer.agent.md",
+        "description": "Browser-side UI & interaction development"
+      },
+      {
+        "name": "NowDev-AI-Reviewer",
+        "path": "./agents/github-copilot/NowDev-AI-Reviewer.agent.md",
+        "description": "Code Review, Security & Compliance analysis"
+      },
+      {
+        "name": "NowDev-AI-Debugger",
+        "path": "./agents/github-copilot/NowDev-AI-Debugger.agent.md",
+        "description": "Diagnostics, Logs & Performance Analysis"
+      },
+      {
+        "name": "NowDev-AI-Release-Expert",
+        "path": "./agents/github-copilot/NowDev-AI-Release-Expert.agent.md",
+        "description": "Update Sets, XML Data & Deployment management"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.93.0",
+    "typescript": "^5.3.3"
+  }
+}

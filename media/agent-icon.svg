@@ -1,0 +1,46 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Definitions for Gradients and Glows -->
+  <defs>
+    <!-- Robot Body Gradient: BRIGHTER ServiceNow Look -->
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#81B5A1;stop-opacity:1" /> 
+      <stop offset="100%" style="stop-color:#293E40;stop-opacity:1" /> 
+    </linearGradient>
+    
+    <!-- Code Glow Effect -->
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- LAYER 1: Antenna (Drawn BEHIND the head to fix the overlap issue) -->
+  <line x1="64" y1="32" x2="64" y2="15" stroke="#1C2B2D" stroke-width="4" stroke-linecap="round"/>
+  <!-- Antenna Tip -->
+  <circle cx="64" cy="12" r="6" fill="#CDDC39" stroke="#1C2B2D" stroke-width="2"/>
+
+  <!-- LAYER 2: Robot Head Silhouette -->
+  <!-- Main Head Shape -->
+  <rect x="24" y="30" width="80" height="70" rx="16" fill="url(#bodyGrad)" stroke="#1C2B2D" stroke-width="2"/>
+  
+  <!-- LAYER 3: Robot "Face" (The Terminal Screen) -->
+  <rect x="34" y="45" width="60" height="40" rx="8" fill="#152021" stroke="#000" stroke-width="1"/>
+
+  <!-- LAYER 4: The Code (The "Language" of the Bot) -->
+  <g stroke="#00ff41" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#neonGlow)">
+    <!-- Left Bracket < -->
+    <path d="M 46 58 L 38 65 L 46 72" />
+    <!-- Slash / -->
+    <line x1="68" y1="56" x2="56" y2="74" stroke="#00ff41" />
+    <!-- Right Bracket > -->
+    <path d="M 80 58 L 88 65 L 80 72" />
+  </g>
+  
+  <!-- LAYER 5: Ear Nodes (Hardware) -->
+  <rect x="18" y="55" width="6" height="20" rx="2" fill="#81B5A1" stroke="#1C2B2D" stroke-width="1"/>
+  <rect x="104" y="55" width="6" height="20" rx="2" fill="#81B5A1" stroke="#1C2B2D" stroke-width="1"/>
+
+</svg>
