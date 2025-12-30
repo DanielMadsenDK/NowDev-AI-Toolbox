@@ -1,8 +1,8 @@
 {
-  "name": "nowdev-toolbox",
+  "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "repository": {
@@ -18,8 +18,7 @@
     "Chat"
   ],
   "extensionDependencies": [
-    "github.copilot-chat",
-    "upstash.context7-mcp"
+    "github.copilot-chat"
   ],
   "activationEvents": [
     "onLanguageModelChat:copilot"

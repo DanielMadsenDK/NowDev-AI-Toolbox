@@ -2,7 +2,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.1.0-blue)
+  ![Version](https://img.shields.io/badge/version-0.1.1-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.93+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-MIT-green)
@@ -21,7 +21,11 @@ NowDev AI Toolbox is a Visual Studio Code extension that provides specialized AI
 - Visual Studio Code 1.93 or later
 - GitHub Copilot Chat extension
 
-*Context7 MCP Server is automatically included as an extension dependency and will be installed when you install NowDev AI Toolbox. Context7 enables the AI agents to reference official ServiceNow documentation and verified best practices during development.*
+The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development.
+
+<a href="vscode:mcp/by-name/io.github.upstash/context7" style="background-color: #007acc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Install Context7 in VS Code</a>
+
+Click the button above to install the Context7 MCP server plugin in VS Code.
 
 ### Quick Start
 
