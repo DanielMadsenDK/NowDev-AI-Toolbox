@@ -23,7 +23,7 @@ NowDev AI Toolbox is a Visual Studio Code extension that provides specialized AI
 
 The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development.
 
-<a href="vscode:mcp/by-name/io.github.upstash/context7" style="background-color: #007acc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Install Context7 in VS Code</a>
+[<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/Install%20in%20VS%20Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white">](vscode:mcp/by-name/io.github.upstash/context7)
 
 Click the button above to install the Context7 MCP server plugin in VS Code.
 
