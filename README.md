@@ -101,10 +101,6 @@ The extension includes comprehensive documentation on ServiceNow best practices:
 Each AI agent is defined in declarative format:
 - [View Agent Definitions](agents/github-copilot/)
 
-## Contributing
-
-This project welcomes contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
