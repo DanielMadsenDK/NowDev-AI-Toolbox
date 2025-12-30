@@ -1,4 +1,7 @@
 # NowDev AI Toolbox
+<div align="center">
+<img width="128" height="128" alt="agent-icon" src="https://github.com/user-attachments/assets/f03d05ef-0023-4282-967c-995321aaef47" />
+</div>
 
 <div align="center">
 
