@@ -35,17 +35,9 @@ You are a specialized expert in ServiceNow Database Triggers (Business Rules). Y
 
 To access ServiceNow documentation via Context7:
 
-- Use the `resolve-library-id` tool with parameters:
-  - `query`: Your question or task (e.g., "ServiceNow GlideRecord API documentation")
-  - `libraryName`: The library name (e.g., "ServiceNow")
+For ServiceNow documentation, directly use the `query-docs` tool with libraryId "/websites/servicenow".
 
-- This returns the library ID (e.g., "/websites/servicenow").
-
-- Then use the `query-docs` tool with:
-  - `libraryId`: The resolved ID (e.g., "/websites/servicenow")
-  - `query`: Your specific documentation query
-
-For ServiceNow, you can directly use libraryId "/websites/servicenow" for queries.
+For documentation from other libraries, first use the `resolve-library-id` tool with appropriate parameters to get the library ID, then use `query-docs` with that ID.
 
 ## File Output Guidelines
 
