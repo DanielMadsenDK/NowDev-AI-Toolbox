@@ -64,7 +64,7 @@
     ],
     "chatSkills": [
       {
-        "path": "./skills/servicenow-scripting"
+        "path": "./skills/servicenow-script-server-logic"
       },
       {
         "path": "./skills/servicenow-business-rules"
@@ -74,6 +74,24 @@
       },
       {
         "path": "./skills/servicenow-deployment"
+      },
+      {
+        "path": "./skills/servicenow-flow-designer"
+      },
+      {
+        "path": "./skills/servicenow-http-integrations"
+      },
+      {
+        "path": "./skills/servicenow-manipulate-data"
+      },
+      {
+        "path": "./skills/servicenow-server-date-time"
+      },
+      {
+        "path": "./skills/servicenow-server-security"
+      },
+      {
+        "path": "./skills/servicenow-ui-forms"
       }
     ]
   },

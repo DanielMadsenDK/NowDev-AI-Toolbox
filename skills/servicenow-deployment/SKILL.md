@@ -1,18 +1,57 @@
 ---
 name: servicenow-deployment
-description: Best practices for ServiceNow Update Sets and deployments. Covers naming conventions, batching (vs merging), and capturing rules. Use when preparing for release or migration.
+description: Deploy ServiceNow configuration changes safely using Update Sets with proper naming, parent/child batching, and preview validation. Use when managing releases, migrating between instances, or orchestrating complex deployments with multiple Update Sets.
 ---
 
-# ServiceNow Deployment & Update Set Standards
+# ServiceNow Deployment
 
-Standards for capturing and moving configuration changes.
+## Quick start
 
-## Core Rules
+**Update Set naming convention**:
 
-1.  **Naming:** `[App] - [Story ID] - [Desc]`. Mandatory description.
-2.  **Batching:** Use **Update Set Batches** (Parent/Child). Merging is destructive and forbidden.
-3.  **Preview:** Must resolve all errors (Accept Remote/Skip) before Commit.
+```
+[App Name] - [Story ID] - [Brief Description]
 
-## Advanced Patterns
+Example:
+ITIL - STORY-1234 - Add approval routing for high-priority incidents
+```
 
-For capture lists (what moves vs what stays) and batching details, see [REFERENCES.md](references/REFERENCES.md).
+**Batching strategy** (parent/child pattern):
+
+```
+Parent Update Set (orchestrates order)
+├── Child Update Set 1 (dependencies)
+├── Child Update Set 2 (main logic)
+└── Child Update Set 3 (cleanup)
+```
+
+## Deployment process
+
+1. **Capture phase**: Select only objects needed; use filters to exclude system changes
+2. **Preview phase**: Resolve all errors:
+   - Accept Remote: Keep target system changes
+   - Skip: Ignore conflicting source changes
+3. **Commit phase**: Only after preview succeeds
+4. **Verify phase**: Test functionality on target instance
+
+## Critical rules
+
+| Rule | Reason |
+|------|--------|
+| Use Parent/Child batches | Maintains deployment order; enables rollback |
+| Never merge sets | Destructive; loses change history |
+| Preview before commit | Catches conflicts early |
+| Unique naming | Enables audit trail and troubleshooting |
+
+## Best practices
+
+- Keep Update Sets focused (one feature per set)
+- Document customizations in the Description field
+- Test on sub-production before production
+- Create parent sets for new applications
+- Version track all custom objects
+- Backup production before large deployments
+
+## Reference
+
+For capture lists, what moves vs what stays, and batching patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
