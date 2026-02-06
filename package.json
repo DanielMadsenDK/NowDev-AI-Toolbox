@@ -27,9 +27,8 @@
   "contributes": {
     "chatAgents": [
       {
-        "name": "NowDev-AI-Agent",
+        "name": "NowDev AI Agent",
         "path": "./agents/github-copilot/NowDev-AI.agent.md",
-        "fullName": "NowDev AI Agent",
         "description": "Solution Architecture & Workflow Management for ServiceNow development"
       },
       {
@@ -61,6 +60,20 @@
         "name": "NowDev-AI-Release-Expert",
         "path": "./agents/github-copilot/NowDev-AI-Release-Expert.agent.md",
         "description": "Update Sets, XML Data & Deployment management"
+      }
+    ],
+    "chatSkills": [
+      {
+        "path": "./skills/servicenow-scripting"
+      },
+      {
+        "path": "./skills/servicenow-business-rules"
+      },
+      {
+        "path": "./skills/servicenow-client-scripts"
+      },
+      {
+        "path": "./skills/servicenow-deployment"
       }
     ]
   },

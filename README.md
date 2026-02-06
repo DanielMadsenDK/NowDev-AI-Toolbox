@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.1.3-blue)
+  ![Version](https://img.shields.io/badge/version-0.1.4-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.93+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-MIT-green)
@@ -16,7 +16,16 @@
 
 ## Overview
 
-NowDev AI Toolbox is a Visual Studio Code extension that provides specialized AI agents for ServiceNow development within GitHub Copilot Chat. These agents are designed specifically for ServiceNow best practices and development workflows, offering targeted assistance for different aspects of ServiceNow development.
+NowDev AI Toolbox is a Visual Studio Code extension that provides specialized AI agents for ServiceNow development within GitHub Copilot Chat. Acting as a Lead Architect, the system orchestrates specialized sub-agents to plan, build, review, and deploy full-stack solutions.
+
+The extension integrates ServiceNow Best Practice Skills directly into GitHub Copilot, ensuring generated code adheres to strict performance and security standards. It features an AI Orchestrator that breaks down requirements, visualizes architecture with Mermaid diagrams, and delegates tasks to specialized agents for scripting, business logic, and deployment.
+
+### Key Features
+
+*   **AI Orchestrator**: A master agent that breaks down requirements and delegates tasks to specialized sub-agents.
+*   **Built-in Agent Skills**: Automatically equips GitHub Copilot with verified knowledge of ServiceNow best practices.
+*   **Automated Governance**: Reviewer agents check artifacts against architectural standards.
+*   **Interactive Workflow**: Uses interactive tools to clarify requirements and validate designs.
 
 ## Installation & Usage
 
@@ -75,30 +84,17 @@ The extension provides 7 specialized AI agents, each focused on different aspect
 The extension integrates specialized AI agents directly into VS Code through GitHub Copilot Chat's agent system. Each agent is a declarative Copilot Agent with defined capabilities and expertise areas.
 
 ### Agent Capabilities
-- **Specialized Knowledge**: Each agent contains deep expertise in specific ServiceNow domains
-- **Best Practices**: Agents follow ServiceNow development best practices and guidelines
-- **Inter-Agent Communication**: Agents can hand off tasks and collaborate on complex projects
-- **Context Awareness**: Agents understand your workspace and can reference existing code
+- **Specialized Knowledge**: Deep expertise in specialized ServiceNow domains.
+- **Native Skills**: "Mounts" verified Best Practice documentation directly into the agent's context window.
+- **Orchestration**: Seamlessly hands off tasks between Planning, Development, and Review agents.
 
-### Core Logic Framework
-The agents are built on a comprehensive framework of ServiceNow best practices covering:
-- Business Rules development
-- Client-side scripting
-- Server-side scripting
-- Debugging and performance optimization
-- Release management and deployment
+## Included Skills
 
-## Documentation & Resources
-
-### Core Logic Framework
-The extension includes comprehensive documentation on ServiceNow best practices:
-- [Business Rules Best Practices](core-logic/BusinessRulesBestPractices.md)
-- [Client Script Best Practices](core-logic/ClientScriptBestPractices.md)
-- [Script Include Best Practices](core-logic/ScriptBestPractices.md)
-- [Debugging Best Practices](core-logic/DebuggingBestPractices.md)
-- [Update Set Best Practices](core-logic/UpdateSetBestPractices.md)
-- [XML Data Best Practices](core-logic/XmlBestPractices.md)
-- [Log Analysis Best Practices](core-logic/LogsBestPractices.md)
+These best practice modules are now natively registered as Copilot Skills:
+- **ServiceNow Scripting**: Naming conventions, `GlideAggregate` vs `GlideRecord`, and forbidden patterns (`eval`).
+- **Business Rules**: Execution timing (`before`/`after`/`async`), recursion prevention, and IIFE wrapping.
+- **Client Scripts**: `GlideAjax` patterns, performance optimization, and `g_scratchpad` usage.
+- **Deployment**: Update Set hygiene, batching strategies, and XML migration rules.
 
 ### Agent Definitions
 Each AI agent is defined in declarative format:
