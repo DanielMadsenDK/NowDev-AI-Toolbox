@@ -1,11 +1,11 @@
 ---
 name: NowDev-AI-Debugger
+user-invokable: false
 description: specialized agent for debugging ServiceNow scripts, logs, and performance issues
 tools: ['read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'agent', 'todo']
-infer: true
 handoffs:
   - label: Back to Architect
-    agent: NowDev-AI-Orchestrator
+    agent: NowDev AI Agent
     prompt: I have completed the debugging analysis. Please guide me to the next step.
     send: true
 ---

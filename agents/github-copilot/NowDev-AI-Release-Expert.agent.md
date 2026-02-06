@@ -1,11 +1,11 @@
 ---
 name: NowDev-AI-Release-Expert
+user-invokable: false
 description: specialized agent for ServiceNow Update Sets, XML migration, and release planning
 tools: ['read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'agent', 'todo']
-infer: true
 handoffs:
   - label: Back to Architect
-    agent: NowDev-AI-Orchestrator
+    agent: NowDev AI Agent
     prompt: I have completed the release planning. Please guide me to the next step.
     send: true
 ---
