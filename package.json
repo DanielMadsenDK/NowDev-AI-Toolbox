@@ -64,34 +64,34 @@
     ],
     "chatSkills": [
       {
-        "path": "./skills/servicenow-script-server-logic"
+        "path": "./agents/skills/servicenow-script-server-logic/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-business-rules"
+        "path": "./agents/skills/servicenow-business-rules/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-client-scripts"
+        "path": "./agents/skills/servicenow-client-scripts/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-deployment"
+        "path": "./agents/skills/servicenow-deployment/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-flow-designer"
+        "path": "./agents/skills/servicenow-flow-designer/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-http-integrations"
+        "path": "./agents/skills/servicenow-http-integrations/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-manipulate-data"
+        "path": "./agents/skills/servicenow-manipulate-data/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-server-date-time"
+        "path": "./agents/skills/servicenow-server-date-time/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-server-security"
+        "path": "./agents/skills/servicenow-server-security/SKILL.md"
       },
       {
-        "path": "./skills/servicenow-ui-forms"
+        "path": "./agents/skills/servicenow-ui-forms/SKILL.md"
       }
     ]
   },
