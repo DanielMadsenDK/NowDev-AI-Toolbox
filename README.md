@@ -44,7 +44,7 @@ Click the button above to install the Context7 MCP server plugin in VS Code.
 1. **Download the VSIX** from the [Releases](https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/releases) section
 2. **Install the extension** in VS Code: `Extensions → Install from VSIX...`
 3. **Open GitHub Copilot Chat** in VS Code
-4. **Select "NowDev-AI-Orchestrator"** from the dropdown menu
+4. **Select "NowDev AI Agent"** from the dropdown menu
 5. **Start chatting** to plan and coordinate your ServiceNow development tasks
 
 All agents are automatically available in every workspace once the extension is installed.
@@ -60,7 +60,7 @@ All agents are automatically available in every workspace once the extension is 
 You can also use specialized agents directly for specific tasks, but starting with the orchestrator ensures proper planning and coordination.
 
 ### Example Usage
-Open GitHub Copilot Chat, select "NowDev-AI-Orchestrator" from the agent dropdown, and type:
+Open GitHub Copilot Chat, select "NowDev AI Agent" from the agent dropdown, and type:
 ```
 I need to create a custom ServiceNow application for managing IT assets with approval workflows
 ```
