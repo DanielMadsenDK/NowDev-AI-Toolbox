@@ -87,6 +87,8 @@ var dueDate = calc.calculateDueDate(startDate, duration);
 - Use GlideDuration for time spans and calculations
 - Test date calculations with different timezones
 - Remember: GlideDateTime automatically handles DST
+- Use appropriate granularity (Date vs DateTime vs Time)
+- Consider user timezone when displaying dates
 
 ## Key APIs
 

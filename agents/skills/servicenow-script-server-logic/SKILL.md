@@ -91,6 +91,8 @@ var randomInt = GlideSecureRandomUtil.getRandomInt(1, 100);
 - Log important actions for audit trails
 - Use domain context for multi-tenant operations
 - Queue async work instead of waiting for results
+- Follow IIFE pattern for Script Includes
+- Test thoroughly on sub-production first
 
 ## Key APIs
 

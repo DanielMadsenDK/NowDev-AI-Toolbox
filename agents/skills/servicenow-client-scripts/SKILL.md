@@ -73,6 +73,17 @@ g_form.setValue('ref_field', id, displayValue);
 - Avoid global variables; scope to specific tables
 - Test with all form layouts before production
 
+## Key APIs
+
+| API | Purpose |
+|-----|---------|
+| GlideAjax | Async server communication |
+| g_form | Form field manipulation |
+| g_scratchpad | Server-to-client data passing |
+| g_user | Current user context |
+| GlideRecord | NEVER use client-side (blocks browser) |
+| GlideModal | Display modal dialogs |
+
 ## Reference
 
 For GlideAjax templates, g_scratchpad patterns, and examples, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)

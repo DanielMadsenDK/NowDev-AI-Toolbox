@@ -80,14 +80,15 @@ var hash = digest.hexDigest('input_string');
 ## Best practices
 
 - Use credentials stored in discovery_credentials table
-- Never hardcode credentials or API keys
+- Never hardcode credentials or API keys in scripts
 - Use KMF for new cryptography needs
 - Validate SSL certificates in production
 - Rotate OAuth tokens before expiration
 - Use HMAC for message integrity verification
-- Test authentication flows on sub-production
+- Test authentication flows on sub-production first
 - Log security operations for audit trails
 - Always use HTTPS for outbound requests
+- Follow principle of least privilege for credentials
 
 ## Authentication patterns
 

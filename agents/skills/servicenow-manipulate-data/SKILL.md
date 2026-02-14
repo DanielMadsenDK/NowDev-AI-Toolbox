@@ -68,14 +68,15 @@ gr.query();
 ## Best practices
 
 - Use `GlideQuery` for new code (modern, fluent)
-- Use `GlideRecord` for complex queries
-- Never iterate to count; use `GlideAggregate`
+- Use `GlideRecord` for complex queries and CRUD operations
+- Never iterate to count; use `GlideAggregate` instead
 - Use `getValue()` instead of dot-walking for performance
 - Use `GlideRecordSecure` when ACLs matter
 - Use `setLimit(1)` for existence checks
 - Copy `encodedQuery` from list views for complex filters
 - Test queries on sub-production before production
 - Refactor repeated query logic into Script Includes
+- Always check if record exists with `next()` before accessing
 
 ## Key APIs
 

@@ -64,6 +64,8 @@ var success = result.wasSuccessful();
 - Always check `wasSuccessful()` before accessing outputs
 - Domain execution runs as System User in that domain
 - Avoid async BR calls; use scheduled jobs instead
+- Pass all required inputs explicitly
+- Handle flow failures gracefully with error checking
 
 ## Key APIs
 

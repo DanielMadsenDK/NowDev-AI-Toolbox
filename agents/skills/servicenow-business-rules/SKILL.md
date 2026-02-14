@@ -51,6 +51,17 @@ if (current.u_start_date > current.u_end_date) {
 - Test recursion prevention on sub-production first
 - Use Condition builder in the UI when possible
 
+## Key APIs
+
+| API | Purpose |
+|-----|---------|
+| current | GlideRecord object being processed |
+| previous | GlideRecord snapshot before changes |
+| gs | GlideSystem for logging and system operations |
+| g_scratchpad | Pass data to Display Business Rules |
+| current.setAbortAction() | Cancel database transaction |
+| current.setWorkflow() | Control workflow execution |
+
 ## Reference
 
 For complete execution matrix and advanced patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)

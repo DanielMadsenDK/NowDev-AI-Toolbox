@@ -62,11 +62,13 @@ var authedData = authRequest.getAuthorizedRequest();
 
 - Always check response status codes before parsing
 - Use RESTMessageV2 for complex REST integrations
-- Handle OAuth token expiration and refresh
+- Handle OAuth token expiration and refresh gracefully
 - Validate SSL certificates in production
 - Use SOAP messages for legacy integrations
 - Test timeouts on slow connections
 - Encrypt sensitive credentials using standard providers
+- Implement retry logic for transient failures
+- Log integration errors for troubleshooting
 
 ## Response handling
 

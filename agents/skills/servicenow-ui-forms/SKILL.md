@@ -148,6 +148,19 @@ function onSubmit() {
 - Validate user input client-side before submission
 - Log form submissions for debugging
 
+## Key APIs
+
+| API | Purpose |
+|-----|---------|
+| g_form | Primary form manipulation API |
+| g_scratchpad | Server-to-client data passing |
+| g_user | Current user information |
+| GlideModal | Modal dialog management |
+| GlideAjax | Async server communication |
+| onChange | Field value change handler |
+| onLoad | Form initialization handler |
+| onSubmit | Form submission validation |
+
 ## Reference
 
 For g_form field manipulation, form event patterns, and performance optimization, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)

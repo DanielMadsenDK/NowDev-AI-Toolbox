@@ -51,6 +51,18 @@ Parent Update Set (orchestrates order)
 - Create parent sets for new applications
 - Version track all custom objects
 - Backup production before large deployments
+- Review all preview errors before committing
+- Use descriptive names with story/ticket IDs
+
+## Key concepts
+
+| Concept | Description |
+|---------|-------------|
+| Update Set | Container for configuration changes |
+| Parent Update Set | Orchestrates multiple child sets |
+| Preview | Validation step before commit |
+| Remote Update Set | Update Set on target instance |
+| Collision | Conflicting changes between instances |
 
 ## Reference
 
