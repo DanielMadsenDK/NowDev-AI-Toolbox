@@ -2,7 +2,7 @@
 name: NowDev-AI-Release-Expert
 user-invokable: false
 description: specialized agent for ServiceNow Update Sets, XML migration, and release planning
-tools: ['read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'agent', 'todo']
+tools: ['read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'todo']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent

@@ -1,5 +1,6 @@
 ---
 name: servicenow-deployment
+user-invokable: false
 description: Deploy ServiceNow configuration changes safely using Update Sets with proper naming, parent/child batching, and preview validation. Use when managing releases, migrating between instances, or orchestrating complex deployments with multiple Update Sets.
 ---
 

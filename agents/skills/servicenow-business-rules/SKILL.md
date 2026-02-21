@@ -1,5 +1,6 @@
 ---
 name: servicenow-business-rules
+user-invokable: false
 description: Create server-side database triggers with proper execution timing, recursion prevention, and validation patterns. Use when implementing Before/After/Async business rules, preventing recursive rule execution, or enforcing data validation on database operations.
 ---
 

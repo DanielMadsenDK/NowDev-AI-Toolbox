@@ -1,5 +1,6 @@
 ---
 name: servicenow-server-date-time
+user-invokable: false
 description: Perform date arithmetic, time calculations, and schedule management using server-side APIs. Covers GlideDateTime, GlideDate, GlideDuration, and scheduling operations. Use when handling date calculations, working with timezones, managing scheduled tasks, or implementing time-based business logic.
 ---
 

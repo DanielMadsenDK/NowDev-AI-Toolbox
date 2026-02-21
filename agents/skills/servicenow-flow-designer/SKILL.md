@@ -1,5 +1,6 @@
 ---
 name: servicenow-flow-designer
+user-invokable: false
 description: Execute custom scripts and logic within Flow Designer and IntegrationHub workflows. Covers FlowAPI methods, flow execution, and subprocess orchestration. Use when building workflow automations, executing flows programmatically from server scripts, or triggering subflows conditionally.
 ---
 

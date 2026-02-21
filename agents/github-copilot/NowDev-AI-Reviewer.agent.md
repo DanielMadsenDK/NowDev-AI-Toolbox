@@ -2,7 +2,7 @@
 name: NowDev-AI-Reviewer
 user-invokable: false
 description: specialized agent for reviewing ServiceNow code and artifacts against best practices
-tools: ['read/readFile', 'agent', 'io.github.upstash/context7/*', 'search', 'web', 'todo']
+tools: ['read/readFile', 'io.github.upstash/context7/*', 'search', 'web', 'todo']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent

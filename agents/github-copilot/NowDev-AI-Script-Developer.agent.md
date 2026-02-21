@@ -2,7 +2,7 @@
 name: NowDev-AI-Script-Developer
 user-invokable: false
 description: specialized agent for creating and optimizing ServiceNow Script Includes and GlideAjax
-tools: ['read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'agent', 'todo']
+tools: ['read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'todo']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent

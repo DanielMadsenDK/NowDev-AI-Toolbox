@@ -1,5 +1,6 @@
 ---
 name: servicenow-server-security
+user-invokable: false
 description: Secure outbound requests, encrypt sensitive data, and manage authentication credentials. Covers request signing, OAuth authentication, certificate encryption, key management, and cryptographic operations. Use when securing API communications, encrypting sensitive information, managing credentials, implementing OAuth flows, or performing cryptographic operations.
 ---
 

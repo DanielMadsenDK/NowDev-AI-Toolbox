@@ -1,5 +1,6 @@
 ---
 name: servicenow-script-server-logic
+user-invokable: false
 description: General server-side operations including system interactions, user session management, event queuing, and utility functions. Covers GlideSystem (gs) methods, logging, system properties, and background job coordination. Use for system-level tasks, user context operations, event publishing, or when performing administrative functions not specific to data manipulation, flows, or security.
 ---
 

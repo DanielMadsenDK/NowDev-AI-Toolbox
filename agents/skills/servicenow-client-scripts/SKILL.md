@@ -1,5 +1,6 @@
 ---
 name: servicenow-client-scripts
+user-invokable: false
 description: Implement browser-side client scripts with GlideAjax patterns, UI Policies, and g_form APIs. Covers performance optimization, preventing browser blocking, and safe DOM access. Use for OnChange/OnLoad/OnSubmit scripts, UI Policies, and client-side field validation.
 ---
 

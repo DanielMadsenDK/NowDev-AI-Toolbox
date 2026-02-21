@@ -1,5 +1,6 @@
 ---
 name: servicenow-ui-forms
+user-invokable: false
 description: Manipulate form fields, sections, and user interactions using GlideForm. Covers field updates, validation, visibility control, and form state management. Use for client-side form customization, OnChange/OnLoad scripts, field validation, and dynamic UI behavior.
 ---
 

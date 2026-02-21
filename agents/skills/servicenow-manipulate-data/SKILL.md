@@ -1,5 +1,6 @@
 ---
 name: servicenow-manipulate-data
+user-invokable: false
 description: Query, insert, update, and delete records in the ServiceNow database with emphasis on performance and security. Covers GlideRecord, GlideQuery, GlideAggregate, and secure data access patterns. Use when working with database records, aggregating data, or implementing data-driven logic.
 ---
 
