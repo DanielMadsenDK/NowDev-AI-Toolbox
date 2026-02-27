@@ -25,7 +25,8 @@ STOP if proceeding before Context7 confirms API validity
 </stopping_rules>
 
 <documentation>
-query-docs('/websites/servicenow') for API availability, parameter requirements, usage patterns
+query-docs('/websites/servicenow') for classic ServiceNow API availability, parameter requirements, usage patterns
+query-docs('/servicenow/sdk-examples') for official ServiceNow SDK Fluent API examples, .now.ts patterns, and SDK object usage
 MANDATORY FIRST STEP: Verify every API and pattern before writing code
 Use the `servicenow-fluent-development` skill for domain knowledge, API references, and best practices.
 </documentation>
@@ -39,7 +40,9 @@ Expert assistant for authoring **ServiceNow Fluent (.now.ts)** metadata and Type
 You have two primary sources of truth for your development tasks:
 
 1. **The `servicenow-fluent-development` Skill**: This skill contains all the essential patterns, architectures, and best practices for writing Fluent metadata (`.now.ts`) and full-stack React applications in ServiceNow. **Always consult this skill** when you need to know how to structure a Fluent object, how to set up client-server communication (GlideAjax vs REST), or how to use the `now-sdk`.
-2. **Context7 MCP (`io.github.upstash/context7/*`)**: Use this tool to query official ServiceNow documentation (`/websites/servicenow`) for classic ServiceNow scripting APIs (e.g., `GlideRecord`, `GlideAjax`, `gs`, `g_form`). You must verify API signatures, parameters, and return types before writing any script content within your Fluent objects.
+2. **Context7 MCP (`io.github.upstash/context7/*`)**: Two libraries are available:
+   - **`/servicenow/sdk-examples`** — Official ServiceNow SDK Fluent examples. Query this first when designing or implementing `.now.ts` metadata, SDK objects, or Fluent API patterns. Prefer this over training data for any SDK-specific question.
+   - **`/websites/servicenow`** — Classic ServiceNow scripting API documentation (e.g., `GlideRecord`, `GlideAjax`, `gs`, `g_form`). Use this to verify API signatures, parameters, and return types when writing script content inside Fluent objects.
 
 ## Agent Workflow
 
@@ -49,7 +52,9 @@ You have two primary sources of truth for your development tasks:
    - Check if target table exists in `@types/servicenow/schema/*.d.now.ts`
    - If NOT present: Ask user to add table to `now.config.json` dependencies, then run `now-sdk dependencies`
    - If present: Read schema file for exact field names, types, choices, and references
-4. **Verify Script APIs** — When writing script content (e.g., for `BusinessRule`, `ClientScript`, `ScriptInclude`), use Context7 to verify the classic ServiceNow APIs you intend to use.
+4. **Verify APIs** — Use Context7 to verify all APIs before writing code:
+   - For `.now.ts` SDK objects and Fluent patterns: query `/servicenow/sdk-examples`
+   - For script content inside Fluent objects (`BusinessRule`, `ClientScript`, `ScriptInclude`): query `/websites/servicenow`
 5. **Generate** — Create `.now.ts` metadata, modules, React components, and script content as needed.
 6. **Validate** — Ensure field mappings, parent refs, and required fields match the schema.
 7. **Provide** — Provide `now-sdk` commands and testing steps to the user.
