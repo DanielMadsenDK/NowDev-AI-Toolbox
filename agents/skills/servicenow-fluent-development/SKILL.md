@@ -81,6 +81,8 @@ src/client/components/*.tsx             → UI components
 src/client/global.d.ts                  → declare global { Window.g_ck, GlideAjax }
 ```
 
+**Third-party npm libraries** (component kits, icons, charts, etc.) are supported — install via npm, import normally in client code, and Rollup bundles them automatically. See [references/third-party-libraries.md](references/third-party-libraries.md) for the full setup guide including CSS imports, context providers, and build-warning suppression.
+
 ## GlideAjax vs REST API — Decision Guide
 
 | Requirement | GlideAjax | REST API |
@@ -125,3 +127,4 @@ Load these files when you need detailed guidance on specific topics:
 - **[references/advanced-patterns.md](references/advanced-patterns.md)** — Record() usage, cross-scope module pattern, server-side logging, common ServiceNow script APIs (GlideRecord, g_form, gs, GlideAggregate)
 - **[references/flow-api.md](references/flow-api.md)** — Flow API: triggers, actions, flow logic, data pills
 - **[references/service-catalog.md](references/service-catalog.md)** — Service Catalog: CatalogItem, VariableSet, variable types, CatalogUIPolicy, CatalogClientScript, CatalogItemRecordProducer
+- **[references/third-party-libraries.md](references/third-party-libraries.md)** — Adding npm packages to Fluent React apps: `package.json` layout, Rollup prebuild script, CSS imports, context providers, TypeScript declarations, build-warning suppression, and a full checklist
