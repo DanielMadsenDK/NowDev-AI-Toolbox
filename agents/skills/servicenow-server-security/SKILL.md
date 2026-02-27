@@ -1,7 +1,7 @@
 ---
 name: servicenow-server-security
 user-invokable: false
-description: Secure outbound requests, encrypt sensitive data, and manage authentication credentials. Covers request signing, OAuth authentication, certificate encryption, key management, and cryptographic operations. Use when securing API communications, encrypting sensitive information, managing credentials, implementing OAuth flows, or performing cryptographic operations.
+description: Secure data and credentials using cryptographic operations, encryption, and authentication primitives. Covers GlideDigest (hashing), GlideCertificateEncryption, KMFCryptoOperation, OAuth credential lifecycle, and request signing. Use when encrypting sensitive data, managing cryptographic keys, signing requests, verifying certificates, performing hash operations, or managing stored credentials. For setting up outbound HTTP API connections to external systems, use the servicenow-http-integrations skill.
 ---
 
 # Server Security

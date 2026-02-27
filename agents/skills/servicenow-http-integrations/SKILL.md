@@ -1,7 +1,7 @@
 ---
 name: servicenow-http-integrations
 user-invokable: false
-description: Establish secure outbound integration connections using REST, SOAP, and HTTP protocols. Covers RESTMessageV2, OAuth token management, request signing, and response parsing. Use when integrating with external systems, implementing API clients, consuming REST/SOAP services, or managing OAuth authentication.
+description: Establish outbound HTTP connections to external systems using REST, SOAP, and HTTP protocols. Covers RESTMessageV2, SOAPMessageV2, OAuth token retrieval as part of API flows, and response parsing. Use when making outbound API calls to external or third-party systems, consuming REST/SOAP services, or handling full HTTP request/response flows. For encrypting data, managing cryptographic keys, certificate operations, or security primitives, use the servicenow-server-security skill.
 ---
 
 # HTTP Integrations (REST/SOAP)

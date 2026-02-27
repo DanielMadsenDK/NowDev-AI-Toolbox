@@ -2,9 +2,10 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/DanielMadsenDK/NowDev-AI-Toolbox"
@@ -61,6 +62,11 @@
         "name": "NowDev-AI-Release-Expert",
         "path": "./agents/github-copilot/NowDev-AI-Release-Expert.agent.md",
         "description": "Update Sets, XML Data & Deployment management"
+      },
+      {
+        "name": "NowDev-AI-Fluent-Developer",
+        "path": "./agents/github-copilot/NowDev-AI-Fluent-Developer.agent.md",
+        "description": "Specialized agent for developing solutions using Fluent and the ServiceNow SDK"
       }
     ],
     "chatSkills": [
@@ -93,6 +99,9 @@
       },
       {
         "path": "./agents/skills/servicenow-ui-forms/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/servicenow-fluent-development/SKILL.md"
       }
     ]
   },

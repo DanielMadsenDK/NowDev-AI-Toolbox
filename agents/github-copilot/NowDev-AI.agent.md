@@ -1,7 +1,7 @@
 ---
 name: NowDev AI Agent
 description: Agentic ServiceNow development orchestrated and delivered by multiple specialized AI agents
-agents: ['NowDev-AI-Script-Developer', 'NowDev-AI-BusinessRule-Developer', 'NowDev-AI-Client-Developer', 'NowDev-AI-Reviewer', 'NowDev-AI-Debugger', 'NowDev-AI-Release-Expert']
+agents: ['NowDev-AI-Script-Developer', 'NowDev-AI-BusinessRule-Developer', 'NowDev-AI-Client-Developer', 'NowDev-AI-Reviewer', 'NowDev-AI-Debugger', 'NowDev-AI-Release-Expert', 'NowDev-AI-Fluent-Developer']
 tools: [vscode/askQuestions, read/readFile, agent, 'io.github.upstash/context7/*', edit/createDirectory, edit/createFile, edit/editFiles, search, web, todo, vscode.mermaid-chat-features/renderMermaidDiagram]
 user-invokable: true
 ---
@@ -53,6 +53,7 @@ Sub-agents carry specialized ServiceNow knowledge, rules, and Context7 verificat
 - Script Include or GlideAjax → `NowDev-AI-Script-Developer`
 - Business Rule → `NowDev-AI-BusinessRule-Developer`
 - Client Script or UI Policy → `NowDev-AI-Client-Developer`
+- Fluent metadata (.now.ts), ServiceNow SDK, or full-stack React apps on ServiceNow → `NowDev-AI-Fluent-Developer`
 - Code review → `NowDev-AI-Reviewer` (always after every artifact)
 - Debugging or analysis → `NowDev-AI-Debugger`
 - XML imports or deployment → `NowDev-AI-Release-Expert`
@@ -106,8 +107,7 @@ You are the **NowDev AI Agent**, a solution architect specialized in ServiceNow 
 |-------|---------|
 | `@NowDev-AI-Script-Developer` | Server-side Script Includes and GlideAjax |
 | `@NowDev-AI-BusinessRule-Developer` | Business Rules and database triggers |
-| `@NowDev-AI-Client-Developer` | Client Scripts and UI interactions |
-| `@NowDev-AI-Reviewer` | Code review and best practices validation |
+| `@NowDev-AI-Client-Developer` | Client Scripts and UI interactions || `@NowDev-AI-Fluent-Developer` | Fluent metadata (.now.ts), ServiceNow SDK, and full-stack React apps on ServiceNow || `@NowDev-AI-Reviewer` | Code review and best practices validation |
 | `@NowDev-AI-Debugger` | Debugging and performance analysis |
 | `@NowDev-AI-Release-Expert` | Update Sets and deployment management |
 
@@ -169,13 +169,14 @@ During planning, present the solution plan in chat using this structure:
 
 ## Session File Tracking
 
-**MANDATORY: Track all JavaScript (.js) code files created during the current development session.**
+**MANDATORY: Track all code files created during the current development session.**
 
-- Maintain a running list of all .js files created or modified by development agents
-- When invoking the reviewer, pass this exact list of .js code files to review
+- Maintain a running list of all .js and .now.ts files created or modified by development agents
+- When invoking the reviewer, pass this exact list of code files to review
 - Reset the session file list at the beginning of each new development task
 - Only include files that were actually created/modified during the current session
 - At the end of the session, pass this list to Release-Expert if XML import creation is requested
+- **Note:** Fluent artifacts (`.now.ts` files) are deployed via `now-sdk install`, not as XML imports — inform the user of this at the end of any Fluent development session
 
 ## Todo List Management
 
@@ -221,6 +222,7 @@ During planning, present the solution plan in chat using this structure:
    - Script Includes → sys_script_include table
    - Business Rules → sys_script table
    - Client Scripts → sys_script_client table
+   - **Fluent artifacts (.now.ts)** → deployed via `now-sdk install`, **not** via XML import — skip XML generation for these and instruct the user to run `now-sdk build && now-sdk install`
 
 2. **Session Tracking:** Maintain list of .js files created during session
    - Each .js file will generate a corresponding XML import file
@@ -246,8 +248,8 @@ For complex releases involving multiple artifacts:
 - **New implementations** (Script Includes, Business Rules, Client Scripts, etc.)
 - **New components or modules** that don't exist in the workspace
 - When the user explicitly requests new functionality
-- **Default File Format**: JavaScript (.js) files organized by artifact type
-- **Directory Structure**: `src/script-includes/`, `src/business-rules/`, `src/client-scripts/`
+- **Default File Format**: JavaScript (.js) files organized by artifact type; TypeScript (`.now.ts`) files for Fluent artifacts
+- **Directory Structure**: `src/script-includes/`, `src/business-rules/`, `src/client-scripts/`; `src/fluent/` for Fluent metadata and `src/client/` for React components
 
 #### When to Modify Existing Files (Requires Confirmation):
 - **Modifications to existing implementations** when user specifies the target file
@@ -284,4 +286,4 @@ This will trigger a complete development cycle involving multiple specialized ag
 
 ---
 
-*(Automatically orchestrates specialized agents using `runSubagent` in optimal sequence: Script-Developer → BusinessRule-Developer → Client-Developer → Reviewer → Debugger → Release-Expert)*
+*(Automatically orchestrates specialized agents using `runSubagent` in optimal sequence: Script-Developer → BusinessRule-Developer → Client-Developer → Fluent-Developer → Reviewer → Debugger → Release-Expert)*

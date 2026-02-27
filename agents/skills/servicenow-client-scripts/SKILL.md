@@ -1,7 +1,7 @@
 ---
 name: servicenow-client-scripts
 user-invokable: false
-description: Implement browser-side client scripts with GlideAjax patterns, UI Policies, and g_form APIs. Covers performance optimization, preventing browser blocking, and safe DOM access. Use for OnChange/OnLoad/OnSubmit scripts, UI Policies, and client-side field validation.
+description: Implement browser-side client scripts using GlideAjax for async server communication, UI Policies, and performance-safe scripting patterns. Covers GlideAjax, preventing browser blocking, g_scratchpad, and safe DOM access. Use for OnChange/OnLoad/OnSubmit scripts that make async server calls, UI Policies, or event-driven logic requiring data from the server. For pure g_form field state operations (mandatory, read-only, hidden, validation messages) with no server calls, use the servicenow-ui-forms skill.
 ---
 
 # ServiceNow Client Scripting

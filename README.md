@@ -8,7 +8,7 @@
   ![Version](https://img.shields.io/badge/version-0.1.5-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.109+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
-  ![License](https://img.shields.io/badge/License-MIT-green)
+  ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
   <br>
   ![GitHub Copilot](https://img.shields.io/badge/AI-GitHub%20Copilot-black)
   ![Status](https://img.shields.io/badge/Status-Active-success)
@@ -67,7 +67,7 @@ I need to create a custom ServiceNow application for managing IT assets with app
 
 ## Specialized Agents
 
-The extension provides 7 specialized AI agents, each focused on different aspects of ServiceNow development:
+The extension provides 8 specialized AI agents, each focused on different aspects of ServiceNow development:
 
 | Agent | Description | Use Case |
 |-------|-------------|----------|
@@ -75,6 +75,7 @@ The extension provides 7 specialized AI agents, each focused on different aspect
 | NowDev-AI-Script-Developer | Server-side libraries & GlideAjax | Creating Script Includes and server-side logic |
 | NowDev-AI-BusinessRule-Developer | Database triggers & automation logic | Implementing Business Rules and workflows |
 | NowDev-AI-Client-Developer | Browser-side UI & interaction | Client Scripts and UI customizations |
+| NowDev-AI-Fluent-Developer | ServiceNow Fluent SDK & TypeScript | Building full-stack applications with the Fluent SDK |
 | NowDev-AI-Reviewer | Code Review, Security & Compliance | Quality assurance and best practices validation |
 | NowDev-AI-Debugger | Diagnostics, Logs & Performance Analysis | Troubleshooting and performance optimization |
 | NowDev-AI-Release-Expert | Update Sets, XML Data & Deployment | Release management and deployment |
@@ -102,7 +103,7 @@ Each AI agent is defined in declarative format:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Author
 
