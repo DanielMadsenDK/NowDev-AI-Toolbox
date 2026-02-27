@@ -1,5 +1,6 @@
 ---
 name: servicenow-fluent-development
+user-invokable: false
 description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK. Use this skill when developing full-stack React applications, creating tables, business rules, script includes, or other ServiceNow metadata using the Fluent API.
 ---
 
