@@ -121,7 +121,7 @@ src/client/global.d.ts                  → declare global { Window.g_ck, GlideA
 Load these files when you need detailed guidance on specific topics:
 
 - **[references/client-server-patterns.md](references/client-server-patterns.md)** — Full GlideAjax and REST implementation code, React entry patterns, navigation module
-- **[references/api-reference.md](references/api-reference.md)** — All Fluent API objects: Table, BusinessRule, ClientScript, ScriptInclude, RestApi, UiPage, SPWidget, ATF Test, UiPolicy, ImportSet, EmailNotification, Workspace, Sla, and helpers
+- **[references/api-reference.md](references/api-reference.md)** — All Fluent API objects: Table, BusinessRule, ClientScript, ScriptInclude, RestApi, UiPage, SPWidget, ATF Test, UiPolicy, ImportSet, EmailNotification, Workspace, Sla, helpers; **ApplicationMenu + sys_app_module** navigation modules with full link-type field matrix and examples
 - **[references/build-workflow.md](references/build-workflow.md)** — now-sdk commands, `now-sdk dependencies`, tsconfig setup, `#now:` import alias, `trustedModules`, build behaviour, verification checklist
 - **[references/troubleshooting.md](references/troubleshooting.md)** — Common issues, GlideAjax error diagnosis, instance verification steps
 - **[references/advanced-patterns.md](references/advanced-patterns.md)** — Record() usage, cross-scope module pattern, server-side logging, common ServiceNow script APIs (GlideRecord, g_form, gs, GlideAggregate)

@@ -57,12 +57,123 @@ export const myTable = Table({
 
 ---
 
-## ApplicationMenu
+## ApplicationMenu and Navigation Modules
+
+Navigation is defined in its own file, typically `src/fluent/navigation.now.ts`, and exported
+from `src/fluent/index.now.ts`.
+
+### ApplicationMenu
+
+Creates the top-level entry in the ServiceNow application navigator sidebar.
 
 ```ts
+import '@servicenow/sdk/global'
+import { ApplicationMenu, Record } from '@servicenow/sdk/core'
+
 export const menu = ApplicationMenu({
-  $id: Now.ID['app.menu'], title: 'My Application', hint: 'Application description'
+  $id: Now.ID['app.menu'],
+  title: 'My Application',
+  hint: 'Short description shown as a tooltip in the navigator',
 })
+```
+
+`$id` must be exported and referenced by any `sys_app_module` records that belong to this menu.
+
+---
+
+### sys_app_module — Navigation Modules
+
+Each module is a `Record()` call targeting the `sys_app_module` table.
+The `application` field **must** reference `menu.$id` — never use `Now.ID[...]` directly here.
+
+#### Required fields on every module
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | String | Label shown in the navigator |
+| `application` | Reference | `menu.$id` — points to the parent ApplicationMenu |
+| `active` | Boolean | `true` to show in navigator |
+| `link_type` | String | Controls what happens when the user clicks the module (see below) |
+| `order` | Number | Sort order within the menu; lower numbers appear first |
+| `hint` | String | Tooltip description |
+
+#### Link type field matrix
+
+| `link_type` | Extra required fields | Use case |
+|---|---|---|
+| `'LIST'` | `name` — target table name (e.g. `myTable.name`) | Opens a list view of a table |
+| `'NEW'` | `name` — target table name | Opens a new-record form for a table |
+| `'DIRECT'` | `query` — UI page endpoint (e.g. `'x_scope_page.do'`) | Opens a custom UI page directly |
+
+> **`LIST` / `NEW`:** use the `name` field (set it to the table name).  
+> **`DIRECT`:** use the `query` field (set it to the page endpoint); do **not** set `name`.
+
+---
+
+### Full Example
+
+```ts
+// src/fluent/navigation.now.ts
+import '@servicenow/sdk/global'
+import { ApplicationMenu, Record } from '@servicenow/sdk/core'
+import { myTable } from './tables/MyTable.now.js'
+
+export const menu = ApplicationMenu({
+  $id: Now.ID['app.menu'],
+  title: 'My Application',
+  hint: 'Manage My Application records',
+})
+
+// Opens a list of all records
+Record({
+  $id: Now.ID['module.list'],
+  table: 'sys_app_module',
+  data: {
+    title: 'All Records',
+    application: menu.$id,
+    active: true,
+    link_type: 'LIST',
+    name: myTable.name,
+    order: 100,
+    hint: 'View all My Application records',
+  },
+})
+
+// Opens a blank new-record form
+Record({
+  $id: Now.ID['module.new'],
+  table: 'sys_app_module',
+  data: {
+    title: 'New Record',
+    application: menu.$id,
+    active: true,
+    link_type: 'NEW',
+    name: myTable.name,
+    order: 200,
+    hint: 'Create a new My Application record',
+  },
+})
+
+// Opens a custom UI page
+Record({
+  $id: Now.ID['module.dashboard'],
+  table: 'sys_app_module',
+  data: {
+    title: 'Dashboard',
+    application: menu.$id,
+    active: true,
+    link_type: 'DIRECT',
+    query: 'x_scope_my_dashboard.do',
+    order: 300,
+    hint: 'Open the custom dashboard',
+  },
+})
+```
+
+Export from `src/fluent/index.now.ts`:
+
+```ts
+export { menu } from './navigation.now.js'
 ```
 
 ---
