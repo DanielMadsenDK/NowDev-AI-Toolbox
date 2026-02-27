@@ -157,6 +157,51 @@ var defaultGroup = gs.getProperty('incident.default_assignment_group');
 4. Rollback capability statement
 ```
 
+## What Update Sets Capture vs. Skip
+
+### Captured (Configuration)
+- Business Rules, Client Scripts, UI Policies, UI Actions
+- Script Includes, Scheduled Jobs (definition only, not execution history)
+- Forms, Views, Fields, Table definitions
+- System Properties (only if explicitly added to the set)
+- Workflows, Flows, Catalog Items
+
+### NOT Captured (Data — use XML Import)
+- Data records (Incidents, Users, Groups)
+- Scheduled Job **execution history**
+- Dashboards and Reports (sometimes — verify)
+- Assignment Group members (`sys_user_grmember`)
+
+### Field Dictionary Dependency
+If your script references a **new custom field**, the Field Dictionary entry for that field **must also be in the Update Set** (or a parent batch). A script referencing a field that doesn't exist on the target instance will fail silently or throw errors.
+
+## XML Import Details
+
+### Import Behavior
+*   XML Import **does NOT trigger** Business Rules (`before`, `after`, `async`) or update lifecycle hooks.
+*   `sys_updated_on` and `sys_updated_by` are **preserved from the source instance** — they are not reset to the import timestamp.
+*   **Implication:** If a Business Rule normally calculates a derived field on insert, that calculation will **NOT** happen during XML import.
+
+### Relational Integrity (Orphan Risk)
+Exporting a record does **not** export its relationships. Export related tables separately in dependency order:
+
+```text
+1. sys_user (Users)
+2. sys_user_group (Groups)
+3. sys_user_grmember (Group Memberships)
+4. sys_user_role / sys_user_has_role (Roles)
+```
+
+### Migration Order (Combined Deployments)
+When releasing both configuration and data:
+
+```text
+1. Commit Update Set (schema changes, scripts, fields)
+2. Import XML (data records that depend on the new schema)
+```
+
+Never import data before its schema exists on the target.
+
 ## Testing Update Sets
 
 ### Pre-Deployment Checklist

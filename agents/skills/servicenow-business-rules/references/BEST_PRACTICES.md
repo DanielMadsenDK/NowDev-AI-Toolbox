@@ -132,6 +132,37 @@ gr.setLimit(100);
 gr.query();
 ```
 
+## Conditions & Filters
+
+### Always Use the Filter Conditions Builder
+- **MANDATORY:** Use the **Filter Conditions** UI builder for simple field checks (e.g., `state = assigned`).
+- **MANDATORY:** If scripting is needed, put the condition in the `Condition` field—don't rely on an `if` statement inside the script body alone.
+- **Reason:** The script engine is never loaded when the Condition field fails, reducing system overhead.
+
+```text
+✓ CORRECT: Condition field = "state=assigned^priority<=2"
+           (Script engine skipped entirely if condition is false)
+
+✗ WRONG:   Condition field = (empty)
+           Script body contains: if (current.state == 'assigned') { ... }
+           (Script engine loads even when rule shouldn't fire)
+```
+
+## Anti-Pattern: Global Business Rules
+
+**NEVER** use Global Business Rules (rules where Table = "Global").
+- **Problem:** They fire on every single table write—massive performance impact.
+- **Alternative:** Move shared logic into a **Script Include** and call it from table-specific rules.
+
+```javascript
+// ✗ BAD - Global BR fires on every table
+// Table: Global
+
+// ✓ CORRECT - Reusable Script Include
+var utils = new IncidentUtils();
+utils.calculateRisk(current);
+```
+
 ## Performance Optimization
 
 ### Use `getValue()` Instead of Dot-Walk
