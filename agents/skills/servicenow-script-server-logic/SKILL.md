@@ -82,6 +82,25 @@ var random = GlideSecureRandomUtil.getRandomString(16);
 var randomInt = GlideSecureRandomUtil.getRandomInt(1, 100);
 ```
 
+**User preferences** (per-user key-value store, no custom table needed):
+
+```javascript
+// Save a preference for the current user
+var user = gs.getUser();
+user.savePreference('my_app.my_key', JSON.stringify({ lastTable: 'incident' }));
+
+// Read it back
+var raw = user.getPreference('my_app.my_key');
+var pref = raw ? JSON.parse(raw) : null;
+
+// Remove a preference
+user.savePreference('my_app.my_key', null);
+```
+
+> **Naming:** Prefix the key with your app scope (`x_scope.key_name`) to avoid collisions.
+> Values are stored as strings — serialize objects with `JSON.stringify` / `JSON.parse`.
+> Preferences are stored in `sys_user_preference` and are scoped to the current user.
+
 ## Best practices
 
 - Use descriptive variable names (`grIncident` for GlideRecord)
@@ -100,7 +119,7 @@ var randomInt = GlideSecureRandomUtil.getRandomInt(1, 100);
 | API | Purpose |
 |-----|---------|
 | GlideSystem (gs) | Core system operations |
-| GlideUser (gs.getUser()) | Current user context |
+| GlideUser (gs.getUser()) | Current user context + preference storage |
 | GlideLocale | Locale and formatting |
 | GlideScopedEvaluator | Safe script evaluation |
 | GlideImpersonate | Admin user context switching |

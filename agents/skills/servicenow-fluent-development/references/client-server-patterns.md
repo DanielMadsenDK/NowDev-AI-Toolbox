@@ -202,3 +202,99 @@ Record({
   }
 })
 ```
+
+---
+
+## Lazy / On-Demand GlideAjax Fetching
+
+Not all data needs to be loaded upfront. For expensive or rarely-needed fields (e.g. large script
+bodies, long descriptions), fetch them only when the user actually requests them. This keeps
+initial load fast and avoids transferring data that may never be viewed.
+
+### Pattern: fast bulk load + deferred detail fetch
+
+**Server side — two separate methods:**
+
+```js
+// MyClass.server.js
+var MyClass = Class.create();
+MyClass.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+
+  // Fast: returns lightweight list (omits heavy fields)
+  getItems: function() {
+    var items = [];
+    var gr = new GlideRecord('my_table');
+    gr.query();
+    while (gr.next()) {
+      items.push({
+        sys_id:  gr.getUniqueValue(),
+        name:    gr.getValue('name'),
+        active:  gr.getValue('active') === '1',
+      });
+    }
+    return JSON.stringify(items);
+  },
+
+  // Deferred: fetches one heavy field by sys_id
+  getDetail: function() {
+    var sysId = this.getParameter('sysparm_sys_id');
+    var gr = new GlideRecord('my_table');
+    if (!gr.get(sysId)) return JSON.stringify({ error: 'Not found' });
+    return JSON.stringify({ detail: gr.getValue('large_field') });
+  },
+
+  type: 'MyClass'
+});
+```
+
+**Client side — React with `useEffect` keyed on selection:**
+
+```ts
+// services/MyService.ts
+const SI = 'x_scope.MyClass'
+
+export async function getItems(): Promise<Item[]> {
+  return new Promise((resolve, reject) => {
+    const ga = new GlideAjax(SI)
+    ga.addParam('sysparm_name', 'getItems')
+    ga.getXMLAnswer(r => { try { resolve(JSON.parse(r)) } catch { reject(new Error('Parse error')) } })
+  })
+}
+
+export async function getDetail(sysId: string): Promise<{ detail: string }> {
+  return new Promise((resolve, reject) => {
+    const ga = new GlideAjax(SI)
+    ga.addParam('sysparm_name', 'getDetail')
+    ga.addParam('sysparm_sys_id', sysId)
+    ga.getXMLAnswer(r => { try { resolve(JSON.parse(r)) } catch { reject(new Error('Parse error')) } })
+  })
+}
+```
+
+```tsx
+// In a React component — fetch detail only when a row is selected
+const [detail, setDetail] = useState<string | null>(null)
+const [loading, setLoading] = useState(false)
+const [error, setError]   = useState<string | null>(null)
+
+useEffect(() => {
+  setDetail(null)
+  setError(null)
+  if (!selectedId) return          // nothing selected — skip
+
+  setLoading(true)
+  getDetail(selectedId)
+    .then(data => setDetail(data.detail))
+    .catch(err => setError(err instanceof Error ? err.message : 'Failed to load'))
+    .finally(() => setLoading(false))
+}, [selectedId])               // re-runs only when the selected item changes
+```
+
+### When to use this pattern
+
+| Condition | Recommendation |
+|---|---|
+| Field is large (script body, HTML, long text) | Always defer |
+| Field is needed on every item in a list | Include in bulk load |
+| User may never open the detail view | Always defer |
+| Initial page load performance matters | Split bulk + deferred |
