@@ -4,8 +4,11 @@ Fluent provides first-class support for Service Catalog artifacts. All catalog A
 
 ```ts
 import {
-  CatalogItem, CatalogClientScript, CatalogUIPolicy,
-  VariableSet, CatalogItemRecordProducer
+  CatalogItem,
+  CatalogItemRecordProducer,
+  CatalogClientScript,
+  CatalogUiPolicy,
+  VariableSet,
 } from '@servicenow/sdk/core'
 ```
 
@@ -13,70 +16,167 @@ import {
 
 ## CatalogItem
 
-Creates a `sc_cat_item` record. References `ApplicationCategory` (for `catalogs`) and `sc_category` (for `categories`).
+Creates a `sc_cat_item` record.
 
 Key properties:
-- `name`, `shortDescription`, `description` — display text
-- `catalogs` — array of catalog references (e.g., the Service Catalog)
-- `categories` — array of category references
-- `variableSets` — ordered list of `{ variableSet: ref, order: number }` pairs
-- `executionPlan` — sys_id of the workflow or flow that fulfils the request
-- `availableFor` — array of user criteria references controlling visibility
-- `hideSaveAsDraft`, `mandatoryAttachment`, `hideAttachment` — submission controls
+
+| Property | Description |
+|----------|-------------|
+| `name`, `shortDescription`, `description` | Display text |
+| `catalogs` | Array of catalog sys_ids or `Record` constants |
+| `categories` | Array of category sys_ids or `Record` constants |
+| `variableSets` | Ordered list of `{ variableSet: ref, order: number }` pairs |
+| `variables` | Inline variable definitions (alternative to a separate VariableSet) |
+| `flow` | Reference to a `Flow` constant for fulfillment automation |
+| `executionPlan` | sys_id of a workflow/flow if not using a Fluent `Flow` constant |
+| `availability` | `'both'` \| `'desktop'` \| `'mobile'` |
+| `fulfillmentAutomationLevel` | `'semiAutomated'` \| `'fullyAutomated'` \| `'manual'` |
+| `cost`, `pricingDetails` | Pricing config; pricingDetails is an array of `{ amount, currencyType, field }` |
+| `recurringFrequency`, `billable` | Recurring billing settings |
+| `requestMethod` | `'order'` \| `'checkout'` |
+| `hideAddToCart`, `hideQuantitySelector` | Cart controls |
+| `visibleBundle`, `visibleGuide`, `visibleStandalone` | Visibility contexts |
+| `roles` | Array of `Role` constants controlling access |
+| `availableFor`, `notAvailableFor` | User criteria refs for fine-grained visibility |
+| `assignedTopics` | Array of knowledge topic `Record` constants or sys_ids |
+| `meta` | Array of tag strings |
+| `accessType` | `'public'` \| `'restricted'` |
+| `mandatoryAttachment`, `hideAttachment`, `hideSaveAsDraft` | Submission controls |
+
+> **Linking a Flow:** Prefer passing a Fluent `Flow` constant directly to the `flow` property rather than a raw `executionPlan` sys_id. This keeps the flow and catalog item in the same codebase and allows programmatic reference.
 
 ---
 
 ## VariableSet
 
-Creates a `item_option_new_set` record grouping related catalog variables together.
+Creates an `item_option_new_set` record grouping related catalog variables together.
 
 Key properties:
-- `title`, `internalName`, `description`
-- `type` — `'singleRow'` (one set per request) or `'multiRow'` (repeating)
-- `order`
 
-Variables are defined separately and associated with the set. A variable set can be shared across multiple catalog items.
+| Property | Description |
+|----------|-------------|
+| `title`, `internalName`, `description` | Display and internal identifiers |
+| `type` | `'singleRow'` (one set per request) or `'multiRow'` (repeating) |
+| `layout` | `'normal'` \| `'2across'` \| `'3across'` |
+| `displayTitle` | Whether to show the section header |
+| `order` | Sort order on the form |
+| `readRoles` | Array of `Role` constants that can view this set |
+| `variables` | Object of named variable definitions |
 
----
-
-## Catalog Variables (31 types)
-
-Variables are defined using type-specific functions and attached to a `VariableSet`.
-Common variable types include:
-
-| Category | Types |
-|----------|-------|
-| **Text** | `TextField`, `MultiLineTextField`, `Label`, `Macro`, `MacroWithLabel` |
-| **Selection** | `SelectBox`, `CheckBox`, `RadioButton`, `YesNoField`, `MultipleChoiceField` |
-| **Date/Time** | `DateField`, `DateTimeField` |
-| **Reference** | `ReferenceField`, `LookupSelectBox`, `LookupMultipleChoice` |
-| **Data** | `NumberField`, `IPAddressField`, `URLField`, `EmailField` |
-| **File** | `AttachmentField` |
-| **Layout** | `ContainerStart`, `ContainerEnd`, `SplitField`, `BreakField` |
-| **Custom** | `CustomFieldType` |
-
-Each variable function accepts at minimum a `name`, `questionText`, and `order`. Additional type-specific options apply (e.g., `referenceTable` for `ReferenceField`, `choices` for `SelectBox`).
-
-To reference a variable in a `CatalogUIPolicy` condition or action, use the `variables` property on the `VariableSet` constant:
+Variables are defined using type-specific functions inside the `variables` object.
+A variable set can be shared across multiple catalog items — export it and import it wherever needed.
 
 ```ts
-// Access the variable name reference via the set constant
-variableSet.variables.myVariableName
+export const contactInfoVarSet = VariableSet({
+  $id: Now.ID['contact_info_varset'],
+  title: 'Contact Information',
+  internalName: 'contact_info_varset',
+  type: 'singleRow',
+  layout: '2across',
+  displayTitle: true,
+  order: 100,
+  variables: {
+    full_name: SingleLineTextVariable({ question: 'Full Name', order: 100, mandatory: true }),
+    email_addr: EmailVariable({ question: 'Email Address', order: 200, mandatory: true }),
+  },
+})
+```
+
+To reference a variable name in `CatalogUiPolicy` conditions or actions:
+```ts
+contactInfoVarSet.variables.full_name   // type-safe variable name reference
 ```
 
 ---
 
-## CatalogUIPolicy
+## Catalog Variable Types
+
+All variable types are imported from `@servicenow/sdk/core`. Common type-specific options are listed below:
+
+| Category | Types |
+|----------|-------|
+| **Text** | `SingleLineTextVariable`, `MultiLineTextVariable`, `MaskedVariable` |
+| **Selection** | `SelectBoxVariable`, `MultipleChoiceVariable`, `CheckboxVariable`, `YesNoVariable` |
+| **Reference** | `ReferenceVariable`, `ListCollectorVariable` |
+| **Date/Time** | `DateVariable`, `DateTimeVariable` |
+| **Numeric** | `NumericScaleVariable` |
+| **Data** | `EmailVariable`, `URLVariable`, `IPAddressVariable` |
+| **File** | `AttachmentVariable` |
+| **Layout** | `ContainerStartVariable`, `ContainerSplitVariable`, `ContainerEndVariable` |
+| **Special** | `RequestedForVariable` |
+
+Common options shared by most variable types:
+
+| Option | Description |
+|--------|-------------|
+| `question` | Label shown to the user |
+| `order` | Sort order on the form |
+| `mandatory` | Whether the field is required |
+| `tooltip` | Help text |
+| `defaultValue` | Pre-filled value |
+
+Type-specific options:
+- `SelectBoxVariable` / `MultipleChoiceVariable`: `choices` object `{ key: { label: string } }`, `includeNone`, `choiceDirection`
+- `ReferenceVariable`: `referenceTable`, `useReferenceQualifier`, `referenceQualCondition`
+- `ListCollectorVariable`: `listTable`, `referenceQual`
+- `MaskedVariable`: `useConfirmation`
+- `NumericScaleVariable`: `scaleMin`, `scaleMax`
+- `SingleLineTextVariable`: `validateRegex`
+- Variables that map to record fields: `mapToField: true`, `field: 'field_name'`
+
+Layout containers group variables visually:
+```ts
+variables: {
+  section_start: ContainerStartVariable({ question: 'Section Title', displayTitle: true, layout: '2across', order: 100 }),
+  field_a: SingleLineTextVariable({ question: 'Field A', order: 110 }),
+  section_split: ContainerSplitVariable({ order: 120 }),
+  field_b: SingleLineTextVariable({ question: 'Field B', order: 130 }),
+  section_end: ContainerEndVariable({ order: 140 }),
+}
+```
+
+---
+
+## CatalogUiPolicy
 
 Creates a `catalog_ui_policy` record. Controls variable visibility, mandatory state, and read-only state based on conditions.
 
 Key properties:
-- `shortDescription`, `catalogCondition` — human label and encoded condition string
-- `variableSet` — the variable set this policy applies to
-- `appliesTo` — `'set'` (the whole set) or `'item'` (a specific catalog item)
-- `actions` — array of `{ variableName, mandatory?, visible?, readOnly?, order }` objects
 
-Use `variableSet.variables.fieldName` to reference variable names safely.
+| Property | Description |
+|----------|-------------|
+| `shortDescription` | Human-readable label |
+| `catalogCondition` | Encoded query string; interpolate variable refs with template literals |
+| `catalogItem` | Reference to a `CatalogItem` or `CatalogItemRecordProducer` constant |
+| `variableSet` | Reference to a `VariableSet` constant |
+| `appliesTo` | `'item'` (specific catalog item) or `'set'` (whole variable set) |
+| `active`, `onLoad` | Whether the policy runs and evaluates on page load |
+| `reverseIfFalse` | Reverse the action when condition is false |
+| `appliesOnCatalogItemView` | Run on the catalog item form |
+| `appliesOnRequestedItems` | Run on `sc_req_item` records |
+| `order` | Evaluation order |
+| `actions` | Array of `{ variableName, mandatory?, visible?, readOnly?, order? }` |
+
+Use `catalogItem.variables.fieldName` or `variableSet.variables.fieldName` for type-safe variable references:
+
+```ts
+export const hideSectionPolicy = CatalogUiPolicy({
+  $id: Now.ID['hide_section_policy'],
+  shortDescription: 'Hide optional section unless checkbox is ticked',
+  catalogItem: myItem,
+  appliesTo: 'item',
+  active: true,
+  onLoad: true,
+  reverseIfFalse: true,
+  catalogCondition: `${myItem.variables.show_extra}=true`,
+  appliesOnCatalogItemView: true,
+  appliesOnRequestedItems: true,
+  order: 100,
+  actions: [
+    { variableName: myItem.variables.extra_field, visible: true },
+  ],
+})
+```
 
 ---
 
@@ -85,33 +185,97 @@ Use `variableSet.variables.fieldName` to reference variable names safely.
 Creates a `catalog_script_client` record. Mirrors the standard `ClientScript` API but targets catalog forms.
 
 Key properties:
-- `name`, `script`, `type` — same as `ClientScript` (`'onLoad'`, `'onChange'`, `'onSubmit'`)
-- `catalogItem` — reference to the `CatalogItem` constant
-- `appliesOnRequestedItems` — apply on Request Items (`sc_req_item`)
-- `appliesOnCatalogTasks` — apply on Catalog Tasks (`sc_task`)
-- `appliesOnTargetRecord` — apply on the target record (for record producers)
-- `vaSupported` — whether the script runs in the Virtual Agent portal
 
-The `script` property contains standard ServiceNow JavaScript (not TypeScript). Use `g_form` APIs as normal.
+| Property | Description |
+|----------|-------------|
+| `name` | Script name |
+| `type` | `'onLoad'` \| `'onChange'` \| `'onSubmit'` |
+| `catalogItem` | Reference to a `CatalogItem` or `CatalogItemRecordProducer` constant |
+| `variableSet` | Reference to a `VariableSet` constant (when `appliesTo: 'set'`) |
+| `appliesTo` | `'item'` or `'set'` |
+| `variableName` | Variable that triggers `onChange` (use `catalogItem.variables.fieldName`) |
+| `script` | Standard ServiceNow JavaScript — use `g_form` APIs as normal |
+| `active`, `uiType` | Whether active; `'all'` \| `'mobile'` \| `'desktop'` |
+| `appliesOnCatalogItemView` | Run on the catalog item form |
+| `appliesOnRequestedItems` | Run on `sc_req_item` records |
+| `appliesOnCatalogTasks` | Run on `sc_task` records |
+| `appliesOnTargetRecord` | Run on the target record (record producers) |
+
+The `script` property contains standard ServiceNow JavaScript (not TypeScript).
+Use `Now.include('./script.client.js')` to load an external `.js` file instead of an inline string.
+
+```ts
+export const clearDependentFieldScript = CatalogClientScript({
+  $id: Now.ID['clear_dependent_field_script'],
+  name: 'Clear dependent field when category changes',
+  catalogItem: myItem,
+  type: 'onChange',
+  variableName: myItem.variables.category,
+  active: true,
+  uiType: 'all',
+  appliesOnCatalogItemView: true,
+  script: `
+function onChange(control, oldValue, newValue, isLoading) {
+  if (isLoading || newValue === oldValue) return;
+  g_form.setValue('sub_category', '');
+  g_form.clearMessages();
+}`,
+})
+```
 
 ---
 
 ## CatalogItemRecordProducer
 
-Creates a `sc_cat_item_producer` record. A record producer looks like a catalog item but creates a record in a target table instead of a request.
+Creates a `sc_cat_item_producer` record. Looks like a catalog item but writes to a target table instead of creating a request.
 
-Key properties:
-- Same top-level fields as `CatalogItem` (`name`, `shortDescription`, `description`, `catalogs`, `categories`, `variableSets`, `availableFor`)
-- `table` — the target table that will be populated (e.g., `'incident'`)
-- `hideSaveAsDraft`, `mandatoryAttachment`, `hideAttachment` — submission controls
+Key properties (in addition to those shared with `CatalogItem`):
+
+| Property | Description |
+|----------|-------------|
+| `table` | Target table to create a record in (can be a Fluent `Table` constant's `.name` or a string) |
+| `redirectUrl` | `'generatedRecord'` to redirect to the created record after submission |
+| `canCancel` | Whether the user can cancel the submission |
+| `state` | `'published'` \| `'draft'` |
+| `variables` | Inline variable definitions; support `mapToField: true` + `field` to auto-populate target table fields |
+
+```ts
+export const accessRequestProducer = CatalogItemRecordProducer({
+  $id: Now.ID['access_request_producer'],
+  name: 'Request System Access',
+  shortDescription: 'Use this form to request access to a business application',
+  table: accessRequestTable.name,   // reference a Fluent Table constant
+  state: 'published',
+  availability: 'both',
+  redirectUrl: 'generatedRecord',
+  canCancel: true,
+  variables: {
+    application_name: SingleLineTextVariable({
+      question: 'Application name',
+      order: 100,
+      mandatory: true,
+      mapToField: true,
+      field: 'application',
+    }),
+    justification: MultiLineTextVariable({
+      question: 'Business justification',
+      order: 200,
+      mandatory: true,
+      mapToField: true,
+      field: 'justification',
+    }),
+  },
+})
+```
 
 ---
 
 ## Key Guidelines
 
-- Always export catalog constants so they can be referenced by `CatalogUIPolicy`, `CatalogClientScript`, and `CatalogItemRecordProducer`
-- Share `VariableSet` definitions across multiple items by exporting and re-importing them
-- Use `variableSet.variables.fieldName` for type-safe variable references in conditions and actions
-- `CatalogClientScript.script` is standard ServiceNow JavaScript — use `g_form` and catalog APIs as usual
-- Set `appliesOnRequestedItems: true` and `appliesOnCatalogTasks: true` on catalog client scripts to ensure they run in the full order lifecycle
-- For the `executionPlan` on a `CatalogItem`, provide the sys_id of the flow or workflow; consider creating the flow in Fluent so it can be referenced programmatically
+- Always export catalog constants — `CatalogUiPolicy` and `CatalogClientScript` reference the parent item/set by constant
+- Share `VariableSet` definitions across multiple items by exporting and importing them
+- Use `variableSet.variables.fieldName` and `catalogItem.variables.fieldName` for type-safe references in conditions and actions
+- `CatalogClientScript.script` is standard ServiceNow JavaScript — use `g_form` APIs as normal
+- Reference a Fluent `Flow` constant via the `flow` property on `CatalogItem` rather than using a raw `executionPlan` sys_id
+- For record producers, set `mapToField: true` on variables to automatically populate target table fields on submission
+- Use `appliesOnRequestedItems: true` and `appliesOnCatalogTasks: true` on client scripts to ensure they run through the full order lifecycle

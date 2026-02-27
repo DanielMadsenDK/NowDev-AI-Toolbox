@@ -9,7 +9,7 @@ import { UiPolicy, ImportSet, RestApi, script } from '@servicenow/sdk/core'
 import { Duration, Time, FieldList, TemplateValue } from '@servicenow/sdk/core' // helpers
 import { EmailNotification, Workspace, Sla } from '@servicenow/sdk/core'
 import { Role, Applicability, UxListMenuConfig, Dashboard } from '@servicenow/sdk/core'
-import { CatalogItem, CatalogClientScript, CatalogUIPolicy, VariableSet } from '@servicenow/sdk/core'
+import { CatalogItem, CatalogClientScript, CatalogUiPolicy, VariableSet } from '@servicenow/sdk/core'
 import { CatalogItemRecordProducer } from '@servicenow/sdk/core'
 import { Flow, wfa, trigger, action } from '@servicenow/sdk/automation' // Flow API
 import { gs, GlideRecord } from '@servicenow/glide'                 // Server-side SN APIs
@@ -123,15 +123,15 @@ ScriptInclude({
 
 ```ts
 RestApi({
-  $id: Now.ID['api'], name: 'My API', serviceId: 'my_api', consumes: 'application/json',
+  $id: Now.ID['api'], name: 'My API', service_id: 'my_api', consumes: 'application/json',
   routes: [{
     $id: Now.ID['route.get'], name: 'get', method: 'GET',
-    script: script`(function(request, response) { response.setBody({ok:true}) })(request, response)`
+    script: script`(function process(request, response) { response.setBody({ ok: true }) })(request, response)`
   }]
 })
 ```
 
-Endpoint: `/api/<scope>/<serviceId>` — `serviceId` must be unique within namespace.
+Endpoint: `/api/<scope>/<service_id>` — `service_id` must be unique within the application scope.
 
 ---
 
@@ -165,14 +165,29 @@ SPWidget({
 
 ```ts
 Test({ $id: Now.ID['test'], active: true, name: 'Test Name', description: 'Desc' }, (atf) => {
-  atf.server.impersonate({ $id: '1', user: 'admin' })
-  atf.server.recordInsert({ $id: '2', table: 'incident', fields: { short_description: 'Test' } })
-  atf.form.openNewForm({ $id: '3', table: 'incident', view: 'itil' })
-  atf.form.setFieldValue({ $id: '4', field: 'urgency', value: '2' })
-  const submit = atf.form.submitForm({ $id: '5' })
-  atf.rest.sendRestRequest({ $id: '6', method: 'GET', url: `/api/now/table/incident/${submit.record_id}` })
-  atf.rest.assertStatusCode({ $id: '7', request: '6', statusCode: 200 })
-  atf.rest.assertJsonResponsePayloadElement({ $id: '8', request: '6', jsonPath: '$.result.urgency', expectedValue: '2' })
+  atf.server.impersonate({ $id: 'step1', user: 'admin' })
+  atf.server.recordInsert({
+    $id: 'step2', table: 'incident', assert: 'record_successfully_inserted',
+    enforceSecurity: false,
+    fieldValues: { short_description: 'Test Incident', urgency: '2' },
+  })
+  atf.form.openNewForm({ $id: 'step3', table: 'incident', formUI: 'standard_ui' })
+  atf.form.setFieldValue({
+    $id: 'step4', table: 'incident', formUI: 'standard_ui',
+    fieldValues: { urgency: '2', category: 'software' },
+  })
+  atf.form.submitForm({ $id: 'step5', formUI: 'standard_ui', assert: '' })
+  atf.rest.sendRestRequest({
+    $id: 'step6', method: 'get',
+    path: "/api/now/v2/table/incident/{{step['step2'].record_id}}",
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: '', queryParameters: {},
+  })
+  atf.rest.assertStatusCode({ $id: 'step7', operation: 'equals', statusCode: 200 })
+  atf.rest.assertJsonResponsePayloadElement({
+    $id: 'step8', operation: 'equals',
+    elementName: '/result/urgency', elementValue: '2',
+  })
 })
 ```
 

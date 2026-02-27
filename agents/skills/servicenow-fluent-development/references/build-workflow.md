@@ -114,7 +114,7 @@ Acl({
 
 For full generic `GlideRecord<'tablename'>` support in `src/server/` TypeScript modules:
 
-1. Update `package.json`: `"@servicenow/glide": "27.0.3"`
+1. Add `"@servicenow/glide"` to `package.json` dependencies (check the current SDK release notes for the matching version)
 2. Run `now-sdk dependencies`
 3. Add to `src/server/tsconfig.json`:
    ```json
