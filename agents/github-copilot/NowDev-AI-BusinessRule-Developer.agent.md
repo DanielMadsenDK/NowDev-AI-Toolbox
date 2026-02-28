@@ -2,7 +2,7 @@
 name: NowDev-AI-BusinessRule-Developer
 user-invokable: false
 description: specialized agent for creating and optimizing ServiceNow Business Rules
-tools: ['read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'todo']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent

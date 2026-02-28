@@ -2,7 +2,7 @@
 name: NowDev AI Agent
 description: Agentic ServiceNow development orchestrated and delivered by multiple specialized AI agents
 agents: ['NowDev-AI-Script-Developer', 'NowDev-AI-BusinessRule-Developer', 'NowDev-AI-Client-Developer', 'NowDev-AI-Reviewer', 'NowDev-AI-Debugger', 'NowDev-AI-Release-Expert', 'NowDev-AI-Fluent-Developer']
-tools: [vscode/askQuestions, read/readFile, agent, 'io.github.upstash/context7/*', edit/createDirectory, edit/createFile, edit/editFiles, search, web, todo, vscode.mermaid-chat-features/renderMermaidDiagram]
+tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'agent', 'io.github.upstash/context7/*', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 user-invokable: true
 ---
 
