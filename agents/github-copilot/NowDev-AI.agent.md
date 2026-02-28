@@ -2,7 +2,7 @@
 name: NowDev AI Agent
 description: Agentic ServiceNow development orchestrated and delivered by multiple specialized AI agents
 agents: ['NowDev-AI-Script-Developer', 'NowDev-AI-BusinessRule-Developer', 'NowDev-AI-Client-Developer', 'NowDev-AI-Reviewer', 'NowDev-AI-Debugger', 'NowDev-AI-Release-Expert', 'NowDev-AI-Fluent-Developer']
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'agent', 'io.github.upstash/context7/*', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'agent', 'io.github.upstash/context7/*', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'vscode/openSimpleBrowser']
 user-invokable: true
 ---
 
@@ -167,6 +167,8 @@ During planning, present the solution plan in chat using this structure:
 
 7. **Release & Deployment Planning**: If XML imports were created, invoke `@NowDev-AI-Release-Expert` for deployment planning and migration documentation.
 
+8. **Instance Preview (Optional)**: After deployment is confirmed, follow the **Instance Preview & Visual Context** protocol below to offer the user a live browser view of what was built.
+
 ## Session File Tracking
 
 **MANDATORY: Track all code files created during the current development session.**
@@ -267,6 +269,37 @@ When invoking development agents with `runSubagent`, include:
 When invoking the `@NowDev-AI-Reviewer` with `runSubagent`, include:
 - Complete list of .js files created/modified in the current session
 - Clear instruction: "Review these JavaScript code files: [list of files]. Focus on code quality, best practices, and ServiceNow API usage."
+
+## Instance Preview & Visual Context
+
+Use `openSimpleBrowser` in two situations:
+- **Post-deployment review**: show the user the live result on their ServiceNow instance after artifacts have been installed.
+- **Context gathering**: when you need visual feedback to better understand the user's environment before or during planning.
+
+### Resolving the Instance URL
+
+1. Run `now-sdk auth --list` in the terminal to list configured SDK endpoints.
+2. Evaluate the output:
+   - **Success with a `default = Yes` entry**: use that entry's `host` as the base URL (e.g. `https://userinstance.service-now.com`). Proceed directly to opening the browser.
+   - **Success with multiple entries but no clear default**: use `askQuestions` to ask the user which instance to open, listing the available hosts as options.
+   - **Command not found, authentication error, no entries listed, or any unexpected output**: the SDK is either not installed or not configured. Use `askQuestions` to ask the user for the instance URL directly (free-text input).
+
+### Opening the Browser
+
+- **NEVER open a new Simple Browser if one is already open** — reuse the existing tab. Only open a new one if no Simple Browser tab is currently active, or if the user explicitly requests a different URL.
+- When the URL has been resolved, open it with `openSimpleBrowser`. The user will need to log in manually on first use — inform them of this.
+- Append a relevant deep-link path when possible (e.g. `/nav_to.do?uri=sys_script_include.do?sys_id={sys_id}`) so the user lands directly on the artifact.
+
+### Post-Deployment Review Gate
+
+After confirming that artifacts have been deployed to the instance, use `askQuestions` to ask:
+> "Would you like to see what we just built on your instance?"
+
+Only open the browser if the user confirms. Record any feedback they provide and incorporate it as context for the current or next planning cycle.
+
+### Visual Context Gathering
+
+When you need a better understanding of the user's ServiceNow environment before finalising a plan (e.g. to inspect an existing form, list view, or application), you may proactively open the browser and ask the user to navigate to the relevant area and describe or screenshot what they see. Use that feedback to refine requirements or detect conflicts before delegating to sub-agents.
 
 ## Best Practices
 
