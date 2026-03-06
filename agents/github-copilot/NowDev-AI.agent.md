@@ -262,7 +262,9 @@ After opening the browser for post-deployment review or visual debugging, use au
 
 **Login Verification Checkpoint (MANDATORY)**
 
-Before using ANY browser interaction tools (`readPage`, `clickElement`, `screenshotPage`, etc.):
+**SHARED SESSION SHORT-CIRCUIT:** If the user's message already contains an active browser page attachment (listed in the session context with a page ID and URL), the session is already authenticated. Skip straight to `screenshotPage` using that page ID — do NOT open a new tab, do NOT ask the login question, proceed immediately with browser interaction tools.
+
+Only apply the full checkpoint below when NO shared page is present in context (i.e., you need to open a fresh tab):
 
 1. Open the browser with `browser/openBrowserPage` to your desired URL (e.g., form, list, or detail page)
    - If user is not logged in, ServiceNow automatically redirects to the login page
@@ -308,7 +310,9 @@ Use when form testing encounters browser dialogs (alerts, confirmations, prompts
 
 **Complex Automation Workflows (`runPlaywrightCode`)**
 
-Use for multi-step verification scenarios that require conditional logic, state tracking, or deep inspection beyond what individual tool calls can achieve. This enables sophisticated end-to-end testing and diagnostics.
+> **⚠️ CRITICAL — Isolated context only:** `runPlaywrightCode` launches a **separate, headless Playwright browser instance**. It has no access to the user's shared VS Code integrated browser tab and its authenticated session. Any `page.goto()` inside this code starts a fresh, unauthenticated context. **Never use `runPlaywrightCode` when a shared browser page is present in context** — use the individual tools (`clickElement`, `typeInPage`, `screenshotPage`) with the shared page ID instead.
+
+Use `runPlaywrightCode` only when no shared session exists AND you need multi-step verification with conditional logic, state tracking, or deep inspection beyond what individual tool calls can achieve.
 
 *When to use:*
 - Testing workflows that depend on dynamic values extracted from the form (e.g., generate incident number, verify it appears in confirmation message)
@@ -362,10 +366,11 @@ console.log(`GlideAjax took ${duration}ms, entries: ${JSON.stringify(networkActi
 ```
 
 *Decision Tree:*
-- **Single tool sufficient?** → Use individual tool calls (`clickElement`, `typeInPage`, `screenshotPage`)
-- **Need to extract data and use it in next step?** → Use `runPlaywrightCode`
-- **Need to wait for async operations (GlideAjax, page redirect)?** → Use `runPlaywrightCode` with `waitFor*` helpers
-- **Need performance metrics or network inspection?** → Use `runPlaywrightCode` with Playwright's timing APIs
+- **Shared browser page in context?** → ALWAYS use individual tool calls with the page ID — never `runPlaywrightCode`
+- **No shared session AND single tool sufficient?** → Use individual tool calls (`clickElement`, `typeInPage`, `screenshotPage`)
+- **No shared session AND need to extract data and use it in next step?** → Use `runPlaywrightCode`
+- **No shared session AND need to wait for async operations (GlideAjax, page redirect)?** → Use `runPlaywrightCode` with `waitFor*` helpers
+- **No shared session AND need performance metrics or network inspection?** → Use `runPlaywrightCode` with Playwright's timing APIs
 - **Scenario is linear (no conditionals)?** → Chain individual tool calls instead of Playwright code
 
 *Best Practices:*
