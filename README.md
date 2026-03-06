@@ -5,8 +5,8 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.1.6-blue)
-  ![VS Code](https://img.shields.io/badge/VS%20Code-1.109+-blue)
+  ![Version](https://img.shields.io/badge/version-0.1.7-blue)
+  ![VS Code](https://img.shields.io/badge/VS%20Code-1.110+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
   <br>
@@ -26,11 +26,12 @@ The extension integrates ServiceNow Best Practice Skills directly into GitHub Co
 *   **Built-in Agent Skills**: Automatically equips GitHub Copilot with verified knowledge of ServiceNow best practices.
 *   **Automated Governance**: Reviewer agents check artifacts against architectural standards.
 *   **Interactive Workflow**: Uses interactive tools to clarify requirements and validate designs.
+*   **Live Instance Preview & Autonomous Verification**: Agents autonomously inspect your ServiceNow instance in real-time—capturing screenshots, reading form field state, validating form behavior, and detecting client-side issues without manual inspection. Perfect for post-deployment verification and debugging client-side problems.
 
 ## Installation & Usage
 
 ### Prerequisites
-- Visual Studio Code 1.109 or later
+- Visual Studio Code 1.110 or later
 - GitHub Copilot Chat extension
 
 The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development.

@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -12,7 +12,7 @@
   },
   "icon": "media/agent-icon.png",
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.110.0"
   },
   "categories": [
     "AI",
@@ -67,6 +67,11 @@
         "name": "NowDev-AI-Fluent-Developer",
         "path": "./agents/github-copilot/NowDev-AI-Fluent-Developer.agent.md",
         "description": "Specialized agent for developing solutions using Fluent and the ServiceNow SDK"
+      },
+      {
+        "name": "NowDev-AI-Assistant",
+        "path": "./agents/github-copilot/NowDev-AI-Assistant.agent.md",
+        "description": "Lightweight Q&A, brainstorming, quick browser exploration, and early discovery"
       }
     ],
     "chatSkills": [
@@ -112,7 +117,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.x",
-    "@types/vscode": "^1.93.0",
+    "@types/vscode": "^1.110.0",
     "typescript": "^5.3.3"
   }
 }
