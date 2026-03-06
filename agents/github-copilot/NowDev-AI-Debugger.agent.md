@@ -2,7 +2,7 @@
 name: NowDev-AI-Debugger
 user-invocable: false
 description: specialized agent for debugging ServiceNow scripts, logs, and performance issues
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'io.github.upstash/context7/*', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'io.github.upstash/context7/*', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
