@@ -13,6 +13,18 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
 
+    // Enable agentic browser tools (v1.110+)
+    const browserConfig = vscode.workspace.getConfiguration('workbench.browser');
+    const chatToolsEnabled = browserConfig.get<boolean>('enableChatTools');
+
+    if (chatToolsEnabled !== true) {
+        browserConfig.update('enableChatTools', true, vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Enabled workbench.browser.enableChatTools setting');
+        }, (error: any) => {
+            console.error('Failed to enable workbench.browser.enableChatTools:', error);
+        });
+    }
+
     // Agents are now registered via package.json chatAgents contribution
     // No additional installation logic needed
 }
