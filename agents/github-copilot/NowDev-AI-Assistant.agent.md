@@ -1,6 +1,6 @@
 ---
 name: NowDev-AI-Assistant
-user-invocable: true
+user-invocable: false
 description: lightweight assistant for single questions, brainstorming, quick browser exploration, and early discovery before full project orchestration
 tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'io.github.upstash/context7/*', 'search', 'web', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'agent']
 handoffs:
