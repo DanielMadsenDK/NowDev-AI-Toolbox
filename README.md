@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.1.8-blue)
+  ![Version](https://img.shields.io/badge/version-0.1.9-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.110+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -45,13 +45,13 @@ Click the button above to install the Context7 MCP server plugin in VS Code.
 If you cannot install the Context7 MCP plugin due to group policy restrictions or other installation issues, you can manually configure the remote Context7 server:
 
 1. Open your VS Code MCP config file:
-   - **Windows**: `%APPDATA%\Code\User\globalStorage\copilot-chat.copilot-chat\mcp.json`
-   - **macOS**: `~/Library/Application Support/Code/User/globalStorage/copilot-chat.copilot-chat/mcp.json`
-   - **Linux**: `~/.config/Code/User/globalStorage/copilot-chat.copilot-chat/mcp.json`
+   - **Windows**: `%APPDATA%\Code\User\mcp.json`
+   - **macOS**: `~/Library/Application Support/Code/User/mcp.json`
+   - **Linux**: `~/.config/Code/User/mcp.json`
 
 2. Add the following configuration to the `servers` section:
 ```json
-"context7": {
+"io.github.upstash/context7": {
   "type": "http",
   "url": "https://mcp.context7.com/mcp"
 }
@@ -61,7 +61,7 @@ If you cannot install the Context7 MCP plugin due to group policy restrictions o
 ```json
 {
   "servers": {
-    "context7": {
+    "io.github.upstash/context7": {
       "type": "http",
       "url": "https://mcp.context7.com/mcp"
     }
