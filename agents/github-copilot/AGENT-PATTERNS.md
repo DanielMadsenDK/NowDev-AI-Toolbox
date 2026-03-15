@@ -26,7 +26,7 @@ Use these as templates when creating or modifying agents:
 - **Visualization:** `vscode.mermaid-chat-features/renderMermaidDiagram` (for architecture)
 - **User Interaction:** `vscode/askQuestions`
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal` (for SDK discovery only)
-- **Browser (Instance Preview):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/clickElement`, `browser/typeInPage`, `browser/navigatePage`, `browser/handleDialog`, `browser/runPlaywrightCode`
+- **Browser (Instance Preview):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/clickElement`, `browser/typeInPage`, `browser/hoverElement`, `browser/dragElement`, `browser/navigatePage`, `browser/handleDialog`, `browser/runPlaywrightCode`
 
 ### Development Agents (Script, BusinessRule, Client, Fluent)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
@@ -55,7 +55,7 @@ Use these as templates when creating or modifying agents:
 - **Tracking:** `todo`
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
 - **NO write tools** (debuggers only analyze, never implement fixes)
-- **Browser (Read-Only):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/handleDialog`, `browser/runPlaywrightCode` (for diagnostics only)
+- **Browser (Read-Only & Diagnostic):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/handleDialog`, `browser/runPlaywrightCode` (for diagnostics only; no interactive tools like clickElement, typeInPage, hoverElement, dragElement)
 - **Handoff:** Include handoff back to NowDev AI Agent
 
 ### Release Agent (NowDev-AI-Release-Expert)
@@ -90,6 +90,60 @@ Before using ANY browser interaction tools (`readPage`, `clickElement`, `screens
 
 **Why this checkpoint is critical:** Browser tools fail silently or hang if used on the unauthenticated login page.
 ```
+
+---
+
+## Canonical: Browser Tool Selection Guide
+
+### Tool Reference (All Available Tools)
+
+| Tool | Purpose | When to Use |
+|------|---------|-------------|
+| openBrowserPage | Open a URL in a new integrated browser tab | Opening the first tab; only if no shared page exists in context |
+| screenshotPage | Capture a screenshot of the current page | Visual inspection; confirming UI state; presenting results to user |
+| readPage | Read the DOM content of the current page | Extracting field names, labels, element states, DOM structure |
+| navigatePage | Navigate to a URL or reload | Deep-linking to a ServiceNow record; reloading after state change |
+| clickElement | Click an element | Button press, link navigation, checkbox toggle, dropdown open |
+| typeInPage | Type text or press keys | Form field input; keyboard shortcuts |
+| hoverElement | Hover over an element | Triggering tooltips; hover-dependent UI reveal |
+| dragElement | Drag an element onto another | Drag-and-drop UI interactions |
+| handleDialog | Respond to a browser dialog | Accepting/dismissing browser-native alerts, confirms, and prompts |
+| runPlaywrightCode | Run a Playwright code snippet | LAST RESORT ONLY — see decision tree below |
+
+### Priority Hierarchy (MANDATORY)
+
+Always choose the simplest tool that achieves the goal. Work down this ladder:
+
+1. **Passive inspection first** — `screenshotPage`, `readPage`
+   Use these before touching anything. Capture state, read DOM, confirm what's visible.
+
+2. **Targeted interaction** — `clickElement`, `typeInPage`, `hoverElement`, `dragElement`, `handleDialog`, `navigatePage`
+   Use individual tools for single, well-defined actions.
+
+3. **Playwright — last resort only** — `runPlaywrightCode`
+   Only when individual tools provably cannot achieve the goal (see decision tree).
+
+### Decision Tree for runPlaywrightCode
+
+**BEFORE using `runPlaywrightCode`, answer all of these:**
+
+- Is there a shared browser page in context (page ID + URL visible)? → **STOP. Use individual tools with that page ID. Never use runPlaywrightCode.**
+- Can the scenario be completed with a linear chain of individual tool calls? → **STOP. Use individual tools.**
+- Is this a single action (click, type, screenshot, navigate)? → **STOP. Use the matching individual tool.**
+
+**Only proceed with `runPlaywrightCode` if ALL of the following are true:**
+- No shared browser page exists in context
+- The scenario requires extracting a dynamic value AND using it conditionally in the next step
+- OR the scenario requires waiting for an async operation (GlideAjax, page redirect) that individual tools cannot wait for
+- OR performance metrics or network inspection are explicitly needed
+- The scenario cannot be achieved by chaining individual tool calls
+
+### Anti-Patterns (NEVER DO)
+
+- Using `runPlaywrightCode` to "simplify" a multi-step scenario that individual tools can handle linearly
+- Using `runPlaywrightCode` when a shared browser page is available in context
+- Using `runPlaywrightCode` as the default for any browser task without checking the decision tree
+- Skipping `screenshotPage` after navigation or interaction (always capture state)
 
 ---
 

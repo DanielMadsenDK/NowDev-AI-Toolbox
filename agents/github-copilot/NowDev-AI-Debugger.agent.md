@@ -2,7 +2,7 @@
 name: NowDev-AI-Debugger
 user-invocable: false
 description: specialized agent for debugging ServiceNow scripts, logs, and performance issues
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'io.github.upstash/context7/*', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
@@ -25,7 +25,8 @@ Your role is ANALYSIS ONLY - delegate fixes to development agents
 </stopping_rules>
 
 <documentation>
-query-docs('/websites/servicenow') for expected vs actual behavior, logging mechanisms, diagnostic procedures
+If Context7 is available: query-docs('/websites/servicenow') for expected vs actual behavior, logging mechanisms, diagnostic procedures
+If Context7 is unavailable: reference built-in skills and best practices for diagnostic procedures
 Verify expected behavior before proposing solutions
 </documentation>
 

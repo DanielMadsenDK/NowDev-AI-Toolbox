@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.1.7-blue)
+  ![Version](https://img.shields.io/badge/version-0.1.8-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.110+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -39,6 +39,39 @@ The Context7 MCP Server must be installed manually in VS Code to enable the AI a
 [<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/Install%20in%20VS%20Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white">](https://insiders.vscode.dev/redirect?url=vscode:mcp/by-name/io.github.upstash/context7)
 
 Click the button above to install the Context7 MCP server plugin in VS Code.
+
+#### Manual Context7 Setup (If Plugin Installation is Blocked)
+
+If you cannot install the Context7 MCP plugin due to group policy restrictions or other installation issues, you can manually configure the remote Context7 server:
+
+1. Open your VS Code MCP config file:
+   - **Windows**: `%APPDATA%\Code\User\globalStorage\copilot-chat.copilot-chat\mcp.json`
+   - **macOS**: `~/Library/Application Support/Code/User/globalStorage/copilot-chat.copilot-chat/mcp.json`
+   - **Linux**: `~/.config/Code/User/globalStorage/copilot-chat.copilot-chat/mcp.json`
+
+2. Add the following configuration to the `servers` section:
+```json
+"context7": {
+  "type": "http",
+  "url": "https://mcp.context7.com/mcp"
+}
+```
+
+3. Your `mcp.json` should look like this:
+```json
+{
+  "servers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    }
+  }
+}
+```
+
+4. Restart VS Code for the changes to take effect.
+
+**Note**: If Context7 is unavailable, the agents will automatically fall back to using built-in skills for development guidance and best practices.
 
 ### Quick Start
 
@@ -90,6 +123,18 @@ The extension integrates specialized AI agents directly into VS Code through Git
 - **Native Skills**: "Mounts" verified Best Practice documentation directly into the agent's context window.
 - **Orchestration**: Seamlessly hands off tasks between Planning, Development, and Review agents.
 
+## Code Examples
+
+The project includes comprehensive code examples from the official [ServiceNow SDK Examples Repository](https://github.com/servicenow/sdk-examples) integrated directly into the skills. Each skill in the `agents/skills/` directory includes an `EXAMPLES.md` file with production-ready code examples:
+
+- **[servicenow-fluent-development/references/EXAMPLES.md](agents/skills/servicenow-fluent-development/references/EXAMPLES.md)** — Tables, business rules, REST APIs, ACLs, UI actions, service catalog
+- **[servicenow-business-rules/references/EXAMPLES.md](agents/skills/servicenow-business-rules/references/EXAMPLES.md)** — Before/after/async rules, validation, recursion prevention
+- **[servicenow-http-integrations/references/EXAMPLES.md](agents/skills/servicenow-http-integrations/references/EXAMPLES.md)** — REST APIs, OAuth, error handling, SOAP
+- **[servicenow-client-scripts/references/EXAMPLES.md](agents/skills/servicenow-client-scripts/references/EXAMPLES.md)** — Form initialization, GlideAjax, validation
+- **[servicenow-script-server-logic/references/EXAMPLES.md](agents/skills/servicenow-script-server-logic/references/EXAMPLES.md)** — Script includes, utilities, database queries
+- **[servicenow-flow-designer/references/EXAMPLES.md](agents/skills/servicenow-flow-designer/references/EXAMPLES.md)** — Workflow automation, escalation, approval workflows
+- **[servicenow-ui-forms/references/EXAMPLES.md](agents/skills/servicenow-ui-forms/references/EXAMPLES.md)** — Form field manipulation, UI actions, dynamic behavior
+
 ## Included Skills
 
 These best practice modules are now natively registered as Copilot Skills:
@@ -102,9 +147,17 @@ These best practice modules are now natively registered as Copilot Skills:
 Each AI agent is defined in declarative format:
 - [View Agent Definitions](agents/github-copilot/)
 
+## Included Examples & Attribution
+
+This project integrates production-ready code examples from the [ServiceNow SDK Examples Repository](https://github.com/servicenow/sdk-examples) (MIT License) directly into the agent skills. Each skill's `EXAMPLES.md` file contains working code examples demonstrating best practices.
+
+For details on third-party licenses and attribution, see [THIRD_PARTY.md](THIRD_PARTY.md).
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+Code examples adapted from the ServiceNow SDK Examples Repository are licensed under the MIT License - see [LICENSES/MIT-ServiceNow-SDK.txt](LICENSES/MIT-ServiceNow-SDK.txt) for details.
 
 ## Author
 

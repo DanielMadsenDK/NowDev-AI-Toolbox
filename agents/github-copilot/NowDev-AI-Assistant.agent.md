@@ -2,7 +2,7 @@
 name: NowDev-AI-Assistant
 user-invocable: false
 description: lightweight assistant for single questions, brainstorming, quick browser exploration, and early discovery before full project orchestration
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'io.github.upstash/context7/*', 'search', 'web', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'agent']
+tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'agent', 'io.github.upstash/context7/*']
 handoffs:
   - label: Escalate to Architect
     agent: NowDev AI Agent
@@ -27,7 +27,8 @@ STOP if using runPlaywrightCode for any scenario achievable with individual brow
 </stopping_rules>
 
 <documentation>
-Use Context7 (`query-docs('/websites/servicenow')` and library resolution where relevant) to validate uncertain API usage.
+If Context7 is available: Use `query-docs('/websites/servicenow')` and library resolution where relevant to validate uncertain API usage.
+If Context7 is unavailable: Reference built-in skills and best practices for API validation.
 Prefer concise answers and lightweight discovery unless user explicitly asks for full implementation workflow.
 When creating or editing agent files, read `agents/github-copilot/AGENT-PATTERNS.md` for canonical shared patterns.
 </documentation>

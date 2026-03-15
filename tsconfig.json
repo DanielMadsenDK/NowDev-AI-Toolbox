@@ -4,7 +4,7 @@
     "target": "es2020",
     "outDir": "out",
     "rootDir": "src",
-    "lib": ["es2020"],
+    "lib": ["es2020", "dom"],
     "sourceMap": true,
     "strict": true,
     "moduleResolution": "node"

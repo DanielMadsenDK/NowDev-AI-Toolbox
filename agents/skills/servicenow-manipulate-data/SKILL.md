@@ -1,14 +1,26 @@
 ---
 name: servicenow-manipulate-data
 user-invokable: false
-description: Query, insert, update, and delete records in the ServiceNow database with emphasis on performance and security. Covers GlideRecord, GlideQuery, GlideAggregate, and secure data access patterns. Use when working with database records, aggregating data, or implementing data-driven logic.
+description: Query, insert, update, and delete records in the ServiceNow database with emphasis on performance and security. Covers two approaches: (1) Classic GlideRecord API for existing instances and legacy code, and (2) Modern Fluent SDK (GlideQuery) for new TypeScript projects. Use when working with database records, aggregating data, or implementing data-driven logic. For legacy/existing instances, recommend Classic patterns; for new SDK projects, recommend Fluent patterns.
 ---
 
 # Manipulate ServiceNow Data
 
+## Choosing Your Approach
+
+The skill supports two distinct ServiceNow development patterns:
+
+### **Classic GlideRecord** (for existing instances)
+Use for existing instance scripts, legacy codebases, business rules, and quick scripting. Best for GlideAjax, server-side scripts, and maximum compatibility.
+
+### **Fluent SDK (GlideQuery)** (for new projects)
+Use for new TypeScript-based projects, full-stack applications, and modern development workflows. Better type safety, chainable API, and cleaner code.
+
+---
+
 ## Quick start
 
-**Querying records** (traditional):
+**Classic GlideRecord** - Traditional approach:
 
 ```javascript
 var gr = new GlideRecord('incident');
@@ -22,17 +34,18 @@ while (gr.next()) {
 }
 ```
 
-**Modern fluent queries**:
+**Fluent SDK (GlideQuery)** - Modern approach:
 
-```javascript
-var records = new global.GlideQuery('incident')
-    .where('active', true)
+```typescript
+const records = new GlideQuery('incident')
+    .where('state', 'Open')
     .where('priority', '<=', 2)
-    .select();
+    .orderBy('created_on')
+    .select()
 
-for (var i = 0; i < records.length; i++) {
-    var incident = records[i];
-}
+records.forEach(incident => {
+    gs.info(`Incident: ${incident.number}`)
+})
 ```
 
 **Aggregating data**:
@@ -66,18 +79,29 @@ gr.query();
 | `GlideAggregate` | Count/Sum | Much faster than loop |
 | `addEncodedQuery()` | Complex filters | Copy from list view |
 
-## Best practices
+## Decision Matrix: Which Approach to Use
 
-- Use `GlideQuery` for new code (modern, fluent)
-- Use `GlideRecord` for complex queries and CRUD operations
-- Never iterate to count; use `GlideAggregate` instead
-- Use `getValue()` instead of dot-walking for performance
-- Use `GlideRecordSecure` when ACLs matter
-- Use `setLimit(1)` for existence checks
+| Situation | Classic | Fluent | Rationale |
+|-----------|---------|--------|-----------|
+| Existing instance scripts | ✓ | - | Maximum compatibility, no compilation needed |
+| Legacy business rules | ✓ | - | Business rules run on instances without SDK |
+| GlideAjax server methods | ✓ | - | Proven pattern for async communication |
+| New TypeScript project | - | ✓ | Type safety, better tooling support |
+| Full-stack SDK application | - | ✓ | Fluent API designed for SDK projects |
+| Quick fix/scripting | ✓ | - | Less setup required |
+| Team knows TypeScript | - | ✓ | Leverages team expertise |
+| Team knows legacy JavaScript | ✓ | - | Comfortable patterns |
+
+## Best practices (All approaches)
+
+- Never iterate to count; use `GlideAggregate` (classic) or `.reduce()` (fluent) instead
+- Use `getValue()` (classic) or direct property access (fluent) for field access
+- Use `GlideRecordSecure` (classic) when ACLs matter
+- Use `setLimit()` (classic) or `limit()` (fluent) to restrict large datasets
 - Copy `encodedQuery` from list views for complex filters
 - Test queries on sub-production before production
 - Refactor repeated query logic into Script Includes
-- Always check if record exists with `next()` before accessing
+- Always verify record exists before accessing (`next()` or `selectOne()`)
 
 ## Key APIs
 
@@ -89,6 +113,24 @@ gr.query();
 | GlideRecordSecure | ACL-enforced queries |
 | GlideFilter | Advanced filtering operations |
 
+## Detailed Patterns
+
+Choose the pattern that matches your project type:
+
+- **[CLASSIC.md](references/CLASSIC.md)** — Traditional GlideRecord patterns (JavaScript, existing instances)
+  - Simple and multiple condition queries
+  - Record CRUD operations
+  - GlideAggregate for performance
+  - Bulk operations and complex filtering
+
+- **[FLUENT.md](references/FLUENT.md)** — Modern SDK patterns (TypeScript, new projects)
+  - Type-safe fluent API
+  - GlideQuery chainable methods
+  - Array transformations and aggregations
+  - Full-stack application development
+
+- **[EXAMPLES.md](references/EXAMPLES.md)** — Quick reference showing both approaches side-by-side
+
 ## Reference
 
-For Performance optimization, decision matrices, and anti-patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For performance optimization, decision matrices, and anti-patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)

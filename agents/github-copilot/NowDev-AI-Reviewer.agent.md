@@ -2,7 +2,7 @@
 name: NowDev-AI-Reviewer
 user-invocable: false
 description: specialized agent for reviewing ServiceNow code and artifacts against best practices
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'io.github.upstash/context7/*', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
@@ -25,7 +25,8 @@ STOP if about to review additional files without user permission
 </stopping_rules>
 
 <documentation>
-query-docs('/websites/servicenow') for API validity verification
+If Context7 is available: query-docs('/websites/servicenow') for API validity verification
+If Context7 is unavailable: reference built-in skills and best practices for API verification
 Verify code uses valid, up-to-date APIs only
 </documentation>
 

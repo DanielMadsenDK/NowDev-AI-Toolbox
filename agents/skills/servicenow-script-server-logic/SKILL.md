@@ -1,7 +1,7 @@
 ---
 name: servicenow-script-server-logic
 user-invokable: false
-description: General server-side operations including system interactions, user session management, event queuing, and utility functions. Covers GlideSystem (gs) methods, logging, system properties, and background job coordination. Use for system-level tasks, user context operations, event publishing, or when performing administrative functions not specific to data manipulation, flows, or security.
+description: General server-side operations including Script Includes, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes using ES6 classes for SDK projects. Use for reusable utilities, system-level tasks, user context operations, and event publishing. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns.
 ---
 
 # General Server Logic
@@ -123,6 +123,36 @@ user.savePreference('my_app.my_key', null);
 | GlideLocale | Locale and formatting |
 | GlideScopedEvaluator | Safe script evaluation |
 | GlideImpersonate | Admin user context switching |
+
+## Detailed Patterns
+
+Choose the pattern that matches your implementation context:
+
+- **[CLASSIC.md](references/CLASSIC.md)** — Instance-based Script Includes (JavaScript, Class.create())
+  - Class-based and function-based utilities
+  - Database operations and queries
+  - System operations and logging
+  - Audit trails and error handling
+
+- **[FLUENT.md](references/FLUENT.md)** — SDK-based Script Includes (TypeScript, ES6 classes)
+  - Metadata-driven script definitions
+  - Modern ES6+ syntax
+  - Type-safe utilities
+  - Version-controlled scripts
+
+- **[EXAMPLES.md](references/EXAMPLES.md)** — Quick reference showing both approaches
+
+## Decision Matrix: Which Approach to Use
+
+| Situation | Classic | Fluent | Rationale |
+|-----------|---------|--------|-----------|
+| Existing instance utilities | ✓ | - | No SDK setup needed |
+| New SDK project | - | ✓ | Use modern TypeScript |
+| Need Class.create() | ✓ | - | Legacy pattern |
+| Type safety needed | - | ✓ | TypeScript compiler |
+| Version control | - | ✓ | Git tracking |
+| Quick utility function | ✓ | - | Simple syntax |
+| Team knows TypeScript | - | ✓ | Leverage expertise |
 
 ## Reference
 

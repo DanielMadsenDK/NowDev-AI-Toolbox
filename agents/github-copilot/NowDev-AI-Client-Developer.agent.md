@@ -2,7 +2,7 @@
 name: NowDev-AI-Client-Developer
 user-invocable: false
 description: specialized agent for creating and optimizing ServiceNow Client Scripts
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/readPage', 'browser/screenshotPage']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/readPage', 'browser/screenshotPage', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
@@ -11,23 +11,22 @@ handoffs:
 ---
 
 <workflow>
-1. Context7 verification: query-docs to verify Client Script best practices, GlideAjax usage, UI API patterns
+1. API verification: If Context7 is available, query-docs to verify Client Script best practices, GlideAjax usage, UI API patterns. If unavailable, use built-in best practices knowledge.
 2. Create todo plan outlining user interaction and server data requirements
 3. Implement Client Script with verified patterns
 4. Self-validate code before handoff to orchestrator
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if implementing without Context7 verification
-STOP IMMEDIATELY if using training data for ServiceNow APIs
+STOP IMMEDIATELY if using training data for ServiceNow APIs — always verify with Context7 if available or reference built-in best practices
 STOP IMMEDIATELY if using GlideRecord in client script (massive performance killer)
 STOP if todo plan not documented
-STOP if proceeding before Context7 confirms Client Script validity
 </stopping_rules>
 
 <documentation>
-query-docs('/websites/servicenow') for Client Script best practices, GlideAjax usage, UI API patterns
-MANDATORY FIRST STEP: Verify every API and pattern before writing code
+If Context7 is available: query-docs('/websites/servicenow') for Client Script best practices, GlideAjax usage, UI API patterns
+If Context7 is unavailable: reference the servicenow-client-scripts skill for verified best practices and patterns
+MANDATORY FIRST STEP: Verify every API and pattern using available resources (Context7 or built-in skills)
 </documentation>
 
 # ServiceNow Client Script Developer
