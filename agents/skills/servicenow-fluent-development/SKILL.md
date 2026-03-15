@@ -82,7 +82,7 @@ src/client/components/*.tsx             → UI components
 src/client/global.d.ts                  → declare global { Window.g_ck, GlideAjax }
 ```
 
-**Third-party npm libraries** (component kits, icons, charts, etc.) are supported — install via npm, import normally in client code, and Rollup bundles them automatically. See [references/third-party-libraries.md](references/third-party-libraries.md) for the full setup guide including CSS imports, context providers, and build-warning suppression.
+**Third-party npm libraries** (component kits, icons, charts, etc.) are supported — install via npm, import normally in client code, and Rollup bundles them automatically. See [references/THIRD-PARTY-LIBRARIES.md](references/THIRD-PARTY-LIBRARIES.md) for the full setup guide including CSS imports, context providers, and build-warning suppression.
 
 ## GlideAjax vs REST API — Decision Guide
 
@@ -95,7 +95,7 @@ src/client/global.d.ts                  → declare global { Window.g_ck, GlideA
 | ServiceNow native security | Built-in | Manual |
 | OpenAPI documentation | Limited | Supported |
 
-**Default:** Use **GlideAjax** for internal ServiceNow apps. See [references/client-server-patterns.md](references/client-server-patterns.md) for full implementation examples.
+**Default:** Use **GlideAjax** for internal ServiceNow apps. See [references/CLIENT-SERVER-PATTERNS.md](references/CLIENT-SERVER-PATTERNS.md) for full implementation examples.
 
 ## Development Workflow
 
@@ -117,15 +117,34 @@ src/client/global.d.ts                  → declare global { Window.g_ck, GlideA
 - **Error handling:** `abortAction` for validation failures; `isValidRecord()` after `get()`; `gs.error()` for logging
 - **Types:** Use `GlideRecord<'tablename'>` generics in server modules; run `now-sdk dependencies` for schema files
 
-## References
+## Examples
+
+For code examples covering tables, business rules, REST APIs, ACLs, UI actions, and service catalog items, see [EXAMPLES.md](references/EXAMPLES.md)
+
+## Reference Navigation
+
+The following reference files contain detailed guidance on specific topics. **Scroll this section to find what you need:**
+
+| When You Need... | Read This |
+|---|---|
+| Full GlideAjax & REST code, React patterns, navigation | [CLIENT-SERVER-PATTERNS.md](references/CLIENT-SERVER-PATTERNS.md) |
+| Fluent API object reference (Table, BusinessRule, etc.) | [API-REFERENCE.md](references/API-REFERENCE.md) |
+| Build commands, tsconfig, now-sdk workflows | [BUILD-WORKFLOW.md](references/BUILD-WORKFLOW.md) |
+| Error diagnosis, troubleshooting steps, verification | [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) |
+| Advanced topics: Record() patterns, logging, GlideRecord | [ADVANCED-PATTERNS.md](references/ADVANCED-PATTERNS.md) |
+| Flow API: triggers, actions, data pills | [FLOW-API.md](references/FLOW-API.md) |
+| Service Catalog: CatalogItem, variables, policies | [SERVICE-CATALOG.md](references/SERVICE-CATALOG.md) |
+| Adding npm packages: CSS, context, TypeScript, build | [THIRD-PARTY-LIBRARIES.md](references/THIRD-PARTY-LIBRARIES.md) |
+
+## Detailed References
 
 Load these files when you need detailed guidance on specific topics:
 
-- **[references/client-server-patterns.md](references/client-server-patterns.md)** — Full GlideAjax and REST implementation code, React entry patterns, navigation module
-- **[references/api-reference.md](references/api-reference.md)** — All Fluent API objects: Table, BusinessRule, ClientScript, ScriptInclude, RestApi, UiPage, SPWidget, ATF Test, UiPolicy, ImportSet, EmailNotification, Workspace, Sla, helpers; **ApplicationMenu + sys_app_module** navigation modules with full link-type field matrix and examples
-- **[references/build-workflow.md](references/build-workflow.md)** — now-sdk commands, `now-sdk dependencies`, tsconfig setup, `#now:` import alias, `trustedModules`, build behaviour, verification checklist
-- **[references/troubleshooting.md](references/troubleshooting.md)** — Common issues, GlideAjax error diagnosis, instance verification steps
-- **[references/advanced-patterns.md](references/advanced-patterns.md)** — Record() usage, cross-scope module pattern, server-side logging, common ServiceNow script APIs (GlideRecord, g_form, gs, GlideAggregate)
-- **[references/flow-api.md](references/flow-api.md)** — Flow API: triggers, actions, flow logic, data pills
-- **[references/service-catalog.md](references/service-catalog.md)** — Service Catalog: CatalogItem, VariableSet, variable types, CatalogUIPolicy, CatalogClientScript, CatalogItemRecordProducer
-- **[references/third-party-libraries.md](references/third-party-libraries.md)** — Adding npm packages to Fluent React apps: `package.json` layout, Rollup prebuild script, CSS imports, context providers, TypeScript declarations, build-warning suppression, and a full checklist
+- **[references/CLIENT-SERVER-PATTERNS.md](references/CLIENT-SERVER-PATTERNS.md)** — Full GlideAjax and REST implementation code, React entry patterns, navigation module
+- **[references/API-REFERENCE.md](references/API-REFERENCE.md)** — All Fluent API objects: Table, BusinessRule, ClientScript, ScriptInclude, RestApi, UiPage, SPWidget, ATF Test, UiPolicy, ImportSet, EmailNotification, Workspace, Sla, helpers; **ApplicationMenu + sys_app_module** navigation modules with full link-type field matrix and examples
+- **[references/BUILD-WORKFLOW.md](references/BUILD-WORKFLOW.md)** — now-sdk commands, `now-sdk dependencies`, tsconfig setup, `#now:` import alias, `trustedModules`, build behaviour, verification checklist
+- **[references/TROUBLESHOOTING.md](references/TROUBLESHOOTING.md)** — Common issues, GlideAjax error diagnosis, instance verification steps
+- **[references/ADVANCED-PATTERNS.md](references/ADVANCED-PATTERNS.md)** — Record() usage, cross-scope module pattern, server-side logging, common ServiceNow script APIs (GlideRecord, g_form, gs, GlideAggregate)
+- **[references/FLOW-API.md](references/FLOW-API.md)** — Flow API: triggers, actions, flow logic, data pills
+- **[references/SERVICE-CATALOG.md](references/SERVICE-CATALOG.md)** — Service Catalog: CatalogItem, VariableSet, variable types, CatalogUIPolicy, CatalogClientScript, CatalogItemRecordProducer
+- **[references/THIRD-PARTY-LIBRARIES.md](references/THIRD-PARTY-LIBRARIES.md)** — Adding npm packages to Fluent React apps: `package.json` layout, Rollup prebuild script, CSS imports, context providers, TypeScript declarations, build-warning suppression, and a full checklist

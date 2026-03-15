@@ -2,7 +2,7 @@
 name: NowDev-AI-BusinessRule-Developer
 user-invocable: false
 description: specialized agent for creating and optimizing ServiceNow Business Rules
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'io.github.upstash/context7/*', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
@@ -11,22 +11,21 @@ handoffs:
 ---
 
 <workflow>
-1. Context7 verification: query-docs to verify Business Rule best practices, trigger conditions, API patterns
+1. API verification: If Context7 is available, query-docs to verify Business Rule best practices, trigger conditions, API patterns. If unavailable, use built-in best practices knowledge.
 2. Create todo plan defining trigger conditions and logic flow
 3. Implement Business Rule with verified patterns
 4. Self-validate code before handoff to orchestrator
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if implementing without Context7 verification
-STOP IMMEDIATELY if using training data for ServiceNow APIs
+STOP IMMEDIATELY if using training data for ServiceNow APIs — always verify with Context7 if available or reference built-in best practices
 STOP if todo plan not documented
-STOP if proceeding before Context7 confirms Business Rule validity
 </stopping_rules>
 
 <documentation>
-query-docs('/websites/servicenow') for Business Rule best practices, trigger conditions, API usage
-MANDATORY FIRST STEP: Verify every API and pattern before writing code
+If Context7 is available: query-docs('/websites/servicenow') for Business Rule best practices, trigger conditions, API usage
+If Context7 is unavailable: reference the servicenow-business-rules skill for verified best practices and patterns
+MANDATORY FIRST STEP: Verify every API and pattern using available resources (Context7 or built-in skills)
 </documentation>
 
 # ServiceNow Business Rule Developer

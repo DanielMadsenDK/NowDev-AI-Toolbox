@@ -76,6 +76,10 @@ var success = result.wasSuccessful();
 | ScriptableFlowRunner | Builder for flow execution |
 | ScriptableFlowRunnerResult | Result container and output handler |
 
+## Examples
+
+For working code examples covering incident escalation, approval workflows, and notification patterns, see [EXAMPLES.md](references/EXAMPLES.md)
+
 ## Reference
 
 For complete API documentation and advanced patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)

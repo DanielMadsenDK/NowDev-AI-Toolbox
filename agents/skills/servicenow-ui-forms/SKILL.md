@@ -162,6 +162,10 @@ function onSubmit() {
 | onLoad | Form initialization handler |
 | onSubmit | Form submission validation |
 
+## Examples
+
+For working code examples covering field manipulation, UI actions, dynamic form behavior, and service catalog UI policies, see [EXAMPLES.md](references/EXAMPLES.md)
+
 ## Reference
 
 For g_form field manipulation, form event patterns, and performance optimization, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
