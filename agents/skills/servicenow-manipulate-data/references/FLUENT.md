@@ -2,6 +2,16 @@
 
 Patterns for querying, inserting, updating, and deleting records using the modern ServiceNow SDK Fluent API.
 
+## Key Fluent Language Constructs
+
+When working with Fluent SDK queries, you'll use these language constructs in script includes and business rules:
+
+- **`Now.include('./file.server.js')`** — Reference external script files containing query logic (enables two-way sync)
+- **`Now.ID['query_id']`** — Assign IDs to script includes or other metadata that contain query logic
+- **`Now.ref('sys_user', { email: 'user@example.com' })`** — Reference user or other records from different applications
+
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
+
 ## Table of Contents
 
 1. [Query Patterns](#query-patterns)

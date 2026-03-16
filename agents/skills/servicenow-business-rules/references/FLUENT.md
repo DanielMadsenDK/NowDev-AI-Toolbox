@@ -17,6 +17,14 @@ Patterns for creating business rules in ServiceNow SDK projects using TypeScript
 
 In SDK projects, business rules are defined using `.now.ts` files (metadata) with handler functions in accompanying `.server.js` files.
 
+### Key Fluent Language Constructs
+
+- **`Now.ID['rule_id']`** — Assign a human-readable ID to the business rule (required for `$id`)
+- **`Now.include('./file.server.js')`** — Link to external script file with two-way synchronization (recommended for maintainability)
+- **`Now.ref('sys_user_role', { name: 'role_name' })`** — Reference a role from another application if needed
+
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
+
 ### File Structure
 
 ```
@@ -35,6 +43,10 @@ Run before database save, allowing you to modify the current record.
 
 ### Metadata Definition (.now.ts)
 
+You have multiple options for providing the script and conditions:
+
+**Option 1: Import TypeScript module with filterCondition** (for compiled logic)
+
 ```typescript
 import { BusinessRule } from '@servicenow/sdk/core'
 import { beforeRuleHandler } from '../handlers/incident-before.server.js'
@@ -42,13 +54,56 @@ import { beforeRuleHandler } from '../handlers/incident-before.server.js'
 export default BusinessRule({
     $id: Now.ID['incident_before_rule'],
     name: 'Auto-Set Urgency Based on Priority',
-    active: true,
     table: 'incident',
     when: 'before',
-    filter: "priority=1ORpriority=2", // Condition (optional)
+    action: ['insert', 'update'],
+    filterCondition: 'priority=1^ORpriority=2', // Filter query (optional)
     script: beforeRuleHandler,
+    order: 100,
+    active: true,
+    addMessage: false,
 })
 ```
+
+**Option 2: Use `Now.include()` for ServiceNow JavaScript** (recommended for two-way sync)
+
+```typescript
+import '@servicenow/sdk/global'
+import { BusinessRule } from '@servicenow/sdk/core'
+
+export default BusinessRule({
+    $id: Now.ID['incident_before_rule'],
+    name: 'Auto-Set Urgency Based on Priority',
+    table: 'incident',
+    when: 'before',
+    action: ['insert', 'update'],
+    filterCondition: 'priority=1^ORpriority=2', // Filter query (optional)
+    script: Now.include('./incident-before.server.js'),  // Two-way sync with external file
+    order: 100,
+    active: true,
+})
+```
+
+**Option 3: Use inline condition property** (for JavaScript conditions)
+
+```typescript
+export default BusinessRule({
+    $id: Now.ID['incident_before_rule'],
+    name: 'Auto-Set Urgency Based on Priority',
+    table: 'incident',
+    when: 'before',
+    action: ['insert', 'update'],
+    condition: "current.priority == '1' || current.priority == '2'", // JavaScript condition
+    script: Now.include('./incident-before.server.js'),
+    active: true,
+})
+```
+
+**Key differences:**
+- **`filterCondition`** — ServiceNow encoded query format (string), evaluated efficiently in the database layer
+- **`condition`** — JavaScript conditional statement, evaluated in the application layer
+- **Do NOT use both** — choose one or the other, never both
+- **`Now.include()`** enables two-way synchronization: changes in the UI sync back to your source file, and edits to your `.server.js` file sync back to the instance
 
 ### Handler Implementation (.server.js)
 
@@ -77,7 +132,7 @@ export default BusinessRule({
 })(current, previous);
 ```
 
-### Complex Validation
+### Before Rule with Validation and Message
 
 ```typescript
 import { BusinessRule } from '@servicenow/sdk/core'
@@ -85,9 +140,14 @@ import { BusinessRule } from '@servicenow/sdk/core'
 export default BusinessRule({
     $id: Now.ID['incident_validation_rule'],
     name: 'Complex Incident Validation',
-    active: true,
     table: 'incident',
     when: 'before',
+    action: ['insert', 'update'],
+    addMessage: true,
+    message: '<p>Please ensure all required fields are properly filled.</p>',
+    abortAction: false, // Set to true if you want to block invalid records
+    order: 50,
+    active: true,
     script: (current, previous) => {
         const errors = [];
 
@@ -121,12 +181,60 @@ export default BusinessRule({
         // Apply validations
         if (errors.length > 0) {
             errors.forEach(error => gs.addErrorMessage(error));
-            current.setAbortAction(true);
+            // Uncomment next line to prevent save if validation fails
+            // current.setAbortAction(true);
             return;
         }
 
         gs.info('Validation passed for incident');
     }
+})
+```
+
+### Before Rule with Role Conditions
+
+```typescript
+import { BusinessRule } from '@servicenow/sdk/core'
+
+export default BusinessRule({
+    $id: Now.ID['incident_role_specific_rule'],
+    name: 'Admin-Only Field Validation',
+    table: 'incident',
+    when: 'before',
+    action: ['update'],
+    roleConditions: [admin, auditor], // Only runs if user has these roles
+    filterCondition: 'type=incident', // Apply to specific records
+    script: `
+        (function executeRule(current, previous) {
+            if (current.se_impersonated) {
+                gs.addErrorMessage('Security: Cannot modify sensitive fields');
+                current.setAbortAction(true);
+            }
+        })(current, previous);
+    `,
+    order: 75,
+    active: true,
+})
+```
+
+### Before Rule with Field Value Setting
+
+```typescript
+import { BusinessRule } from '@servicenow/sdk/core'
+
+export default BusinessRule({
+    $id: Now.ID['incident_auto_assign_rule'],
+    name: 'Auto-Assign High Priority Incidents',
+    table: 'incident',
+    when: 'before',
+    action: ['insert', 'update'],
+    filterCondition: 'priority=1^ORpriority=2', // Only high/medium priority
+    setFieldValue: 'assignment_group=critical_support^urgency=1',
+    script: Now.include('./auto-assign.server.js'),
+    description: 'Automatically assigns critical incidents to the appropriate support group',
+    protectionPolicy: 'read', // Prevent instance-level modifications
+    order: 25,
+    active: true,
 })
 ```
 
@@ -144,10 +252,14 @@ import { BusinessRule } from '@servicenow/sdk/core'
 export default BusinessRule({
     $id: Now.ID['incident_after_rule'],
     name: 'Update Related Change Request',
-    active: true,
     table: 'incident',
     when: 'after',
+    action: ['insert', 'update', 'delete'],
     script: afterRuleHandler,
+    order: 100,
+    active: true,
+    addMessage: false,
+    description: 'Updates related change requests when incident status changes',
 })
 ```
 
@@ -206,11 +318,15 @@ import { BusinessRule } from '@servicenow/sdk/core'
 export default BusinessRule({
     $id: Now.ID['incident_async_rule'],
     name: 'Send Notification on High Priority',
-    active: true,
     table: 'incident',
     when: 'async',
-    filter: "priority=1", // Only run for critical incidents
+    action: ['insert', 'update'],
+    filterCondition: 'priority=1', // Only run for critical incidents
     script: asyncRuleHandler,
+    order: 100,
+    active: true,
+    addMessage: false,
+    description: 'Sends notifications to managers for critical priority incidents',
 })
 ```
 
@@ -276,10 +392,14 @@ import { BusinessRule } from '@servicenow/sdk/core'
 export default BusinessRule({
     $id: Now.ID['incident_display_rule'],
     name: 'Load Related Information',
-    active: true,
     table: 'incident',
     when: 'display',
+    action: ['query'], // Display rules typically use 'query' action
     script: displayRuleHandler,
+    order: 50,
+    active: true,
+    addMessage: false,
+    description: 'Prepares related information for display on incident forms',
 })
 ```
 
@@ -314,32 +434,55 @@ export default BusinessRule({
 
 ## Best Practices
 
-✓ **Separate metadata from logic** - `.now.ts` file defines; `.server.js` implements
-✓ **Use filters in metadata** - Add conditions in the rule definition to avoid unnecessary executions
-✓ **Handle errors gracefully** - Use try-catch, log to system, don't break user workflow
-✓ **Prevent recursion** - Check if field actually changed before modifying related records
-✓ **Use g_scratchpad for display** - Pass data from business rule to client scripts
-✓ **Call update() in After rules** - Changes won't persist without explicit `update()` call
-✓ **Keep logic focused** - Complex business logic should live in Script Includes
-✓ **Log operations** - Use `gs.info()` and `gs.error()` for debugging and audit trails
-✓ **Test thoroughly** - Validate rule execution on sub-production before production
+✓ **Separate metadata from logic** — `.now.ts` file defines; `.server.js` implements
+✓ **Use filters in metadata** — Add `filterCondition` or `condition` to avoid unnecessary executions
+✓ **Choose the right condition type** — Use `filterCondition` for database-layer filtering (more efficient), `condition` for app-layer logic
+✓ **Never use both conditions** — `filterCondition` and `condition` cannot be used together
+✓ **Set explicit action array** — Always specify which actions trigger the rule: `['insert']`, `['update']`, `['delete']`, `['query']`
+✓ **Handle errors gracefully** — Use try-catch, log to system, don't break user workflow
+✓ **Prevent recursion** — Check if field actually changed before modifying related records
+✓ **Use g_scratchpad for display** — Pass data from business rule to client scripts in display/after rules
+✓ **Call update() in After rules** — Changes won't persist without explicit `update()` call
+✓ **Use setFieldValue for auto-assignment** — Leverage `setFieldValue` property for automatic field population in before rules
+✓ **Keep logic focused** — Complex business logic should live in Script Includes
+✓ **Log operations** — Use `gs.info()` and `gs.error()` for debugging and audit trails
+✓ **Set order wisely** — Use `order` to control execution sequence when multiple rules apply to the same table
+✓ **Use roleConditions for security** — Restrict rule execution to specific user roles
+✓ **Test thoroughly** — Validate rule execution on sub-production before production
 
 ---
 
 ## Key APIs
 
-| API | Purpose |
-|-----|---------|
-| `BusinessRule()` | SDK function to define a business rule |
-| `$id` | Unique identifier for this rule |
-| `name` | Display name in ServiceNow UI |
-| `table` | Table name this rule applies to |
-| `when` | Execution timing: 'before', 'after', 'async', 'display' |
-| `filter` | Optional condition for when to run (encoded query format) |
-| `script` | Handler function or imported handler |
-| `current` | GlideRecord being processed |
-| `previous` | Snapshot before changes |
-| `g_scratchpad` | Global object to pass data to client scripts |
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `$id` | String/Number | Yes | Unique ID for the metadata object. Format: `Now.ID['rule_id']` |
+| `name` | String | Yes | Display name in ServiceNow UI |
+| `table` | String | Yes | Table name this rule applies to |
+| `when` | String | Yes | Execution timing: `'before'`, `'after'`, `'async'`, `'display'` |
+| `action` | Array | Yes | Record operations: `['insert']`, `['update']`, `['delete']`, `['query']` — combine as needed |
+| `script` | Function/String | Yes | Handler function, `Now.include()` reference, or inline JavaScript |
+| `order` | Number | No | Execution sequence (lowest to highest). Default: 100 |
+| `active` | Boolean | No | Enable/disable rule. Default: true |
+| `filterCondition` | String | No | Encoded query for filtering (database-layer). Do not use with `condition` |
+| `condition` | String | No | JavaScript conditional statement (app-layer). Do not use with `filterCondition` |
+| `setFieldValue` | String | No | Encoded query for auto-setting field values (e.g., `'field=value^field2=value2'`) |
+| `addMessage` | Boolean | No | Display message when rule runs. Default: false |
+| `message` | String | No | HTML message to display (requires `addMessage: true`) |
+| `abortAction` | Boolean | No | Abort transaction if condition met. Default: false |
+| `roleConditions` | Array | No | List of role IDs/references — rule only runs if user has these roles |
+| `description` | String | No | Description of what the rule does |
+| `protectionPolicy` | String | No | IP protection: `'read'` (readonly on download) or `'protected'` (encrypted) |
+| `$meta` | Object | No | Installation metadata: `{ installMethod: 'demo' \| 'first install' }` |
+
+## Context Objects
+
+| Variable | Purpose |
+|----------|---------|
+| `current` | GlideRecord being processed (can modify in before rules) |
+| `previous` | GlideRecord snapshot before changes (read-only) |
+| `gs` | GlideSystem object for logging and system operations |
+| `g_scratchpad` | Global object to pass data from business rule to client scripts |
 
 ---
 

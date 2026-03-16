@@ -1,7 +1,7 @@
 ---
 name: servicenow-fluent-development
-user-invokable: false
-description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK. Use this skill when developing full-stack React applications, creating tables, business rules, script includes, or other ServiceNow metadata using the Fluent API.
+user-invocable: false
+description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK. Use this skill when developing full-stack React applications, creating tables, records, business rules, ACLs, cross-scope privileges, script includes, or other ServiceNow metadata using the Fluent API.
 ---
 
 # ServiceNow Fluent Development
@@ -13,7 +13,7 @@ Expert knowledge for authoring **ServiceNow Fluent (.now.ts)** metadata and Type
 - Fluent = TypeScript DSL for metadata (`.now.ts` files)
 - Use `now-sdk` for build/sync/install
 - Type definitions in `@types/servicenow` via `now-sdk dependencies`
-- `Now.include()` references external scripts; SDK objects from `@servicenow/sdk/core`
+- **Fluent Language Constructs:** `Now.ID` (define IDs), `Now.ref` (reference external metadata), `Now.include` (external file content), `Now.attach` (image files) — see [API-REFERENCE.md](references/API-REFERENCE.md)
 - Full-stack React apps via `UiPage` with client code in `src/client/`
 - Flow/workflow automation available via `@servicenow/sdk/automation`
 - Service Catalog, Email Notifications, Workspaces, and SLAs all supported as Fluent metadata
@@ -22,8 +22,13 @@ Expert knowledge for authoring **ServiceNow Fluent (.now.ts)** metadata and Type
 
 1. **Verify APIs** — use Context7 to confirm method signatures; never assume
 2. **Match field names exactly** to `@types/servicenow/schema/` (prevents duplicates on install)
-3. **Use parent constant properties** (`parent.$id`, `table.name`) — never `Now.ID[...]` for references
-4. **Script content is not TypeScript** — ServiceNow JavaScript follows its own conventions; do not apply TypeScript validation to it
+3. **Fluent Language Constructs:**
+   - **`Now.ID`** — Define metadata IDs in source code (e.g., `$id: Now.ID['my_rule']`)
+   - **`Now.ref`** — Reference metadata in OTHER applications not in your source code
+   - **`Now.include`** — Link to external script/HTML files with two-way sync (e.g., `script: Now.include('./file.js')`)
+   - **`Now.attach`** — Attach image files to image fields with two-way sync
+4. **Use parent constant properties for references** — `parent.$id`, `table.name` — never `Now.ID[...]` to reference your own metadata
+5. **Script content is not TypeScript** — ServiceNow JavaScript follows its own conventions; do not apply TypeScript validation to it
 
 ## Critical Patterns
 
@@ -128,23 +133,61 @@ The following reference files contain detailed guidance on specific topics. **Sc
 | When You Need... | Read This |
 |---|---|
 | Full GlideAjax & REST code, React patterns, navigation | [CLIENT-SERVER-PATTERNS.md](references/CLIENT-SERVER-PATTERNS.md) |
+| **Fluent Language Constructs** (`Now.ID`, `Now.ref`, `Now.include`, `Now.attach`) **→ Start here** | [API-REFERENCE.md](references/API-REFERENCE.md) |
 | Fluent API object reference (Table, BusinessRule, etc.) | [API-REFERENCE.md](references/API-REFERENCE.md) |
+| **Tables:** Table object, columns (all types), schema, label, licensing, auto-numbering, indexes, access control, dynamic values | [TABLE-API.md](references/TABLE-API.md) |
+| **REST APIs:** RestApi object, routes, parameters, headers, versioning, ACL enforcement, end-to-end examples | [REST-API.md](references/REST-API.md) |
+| **Lists:** List views (sys_ui_list), columns, views, column ordering, examples | [LIST-API.md](references/LIST-API.md) |
+| **Properties:** System properties (sys_properties), configuration, types, role access, cache control, examples | [PROPERTY-API.md](references/PROPERTY-API.md) |
+| **Import Sets:** Transform maps, staging tables, data sources, field mappings, transform scripts, examples | [IMPORT-SETS-API.md](references/IMPORT-SETS-API.md) |
+| **Email Notifications:** EmailNotification object, trigger conditions, recipients, digests, examples | [EMAIL-NOTIFICATION-API.md](references/EMAIL-NOTIFICATION-API.md) |
+| **Automated Test Framework (ATF):** Test object, test steps by category, examples | [ATF-API.md](references/ATF-API.md) |
+| **Dashboards:** Dashboard object, tabs, widgets, permissions, visibilities, dataSources, metrics, trendBy, examples | [DASHBOARD-API.md](references/DASHBOARD-API.md) |
+| **Workspaces:** Workspace object, UxListMenuConfig, categories, lists, Applicability, role-based access, navigation structure, examples | [WORKSPACE-API.md](references/WORKSPACE-API.md) |
+| **Roles:** Role object, properties, role hierarchies, delegation, elevated privileges, examples | [ROLE-API.md](references/ROLE-API.md) |
+| **Access Control Lists (ACLs):** roles, operations, properties, examples | [ACL-API.md](references/ACL-API.md) |
+| **Cross-Scope Privileges:** runtime access tracking, operations, target types, examples | [CROSS-SCOPE-PRIVILEGE-API.md](references/CROSS-SCOPE-PRIVILEGE-API.md) |
+| **Script Actions:** ScriptAction object, event-triggered scripts, conditions, execution order, examples | [SCRIPT-ACTION-API.md](references/SCRIPT-ACTION-API.md) |
+| **Script Includes:** ScriptInclude object, properties, class-based and classless patterns, client-callable via GlideAjax, access control, examples | [SCRIPT-INCLUDE-API.md](references/SCRIPT-INCLUDE-API.md) |
+| **Application Menus & Navigation:** ApplicationMenu and sys_app_module for module navigation | [APPLICATION-MENU-API.md](references/APPLICATION-MENU-API.md) |
 | Build commands, tsconfig, now-sdk workflows | [BUILD-WORKFLOW.md](references/BUILD-WORKFLOW.md) |
 | Error diagnosis, troubleshooting steps, verification | [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) |
 | Advanced topics: Record() patterns, logging, GlideRecord | [ADVANCED-PATTERNS.md](references/ADVANCED-PATTERNS.md) |
 | Flow API: triggers, actions, data pills | [FLOW-API.md](references/FLOW-API.md) |
 | Service Catalog: CatalogItem, variables, policies | [SERVICE-CATALOG.md](references/SERVICE-CATALOG.md) |
+| **Service Portal:** SPWidget, Angular providers, dependencies, CSS/JS includes | [SERVICE-PORTAL-API.md](references/SERVICE-PORTAL-API.md) |
+| **UI Actions:** UiAction object, form/list/client/workspace objects, buttons/links/context menu items, conditions, roles, visibility control, examples | [UI-ACTION-API.md](references/UI-ACTION-API.md) |
+| **UI Policies:** UiPolicy object, field actions (visible/readOnly/mandatory/cleared), related list actions, conditions, script-based behavior, inheritance | [UI-POLICY-API.md](references/UI-POLICY-API.md) |
+| **UI Pages (React):** UiPage object, React app development, index.html with `<sdk:now-ux-globals>`, React entry points, navigation integration, direct property, endpoint configuration, best practices | [UI-PAGE-API.md](references/UI-PAGE-API.md) |
 | Adding npm packages: CSS, context, TypeScript, build | [THIRD-PARTY-LIBRARIES.md](references/THIRD-PARTY-LIBRARIES.md) |
 
 ## Detailed References
 
 Load these files when you need detailed guidance on specific topics:
 
+- **[references/REST-API.md](references/REST-API.md)** — **Scripted REST API:** RestApi object, routes, parameters and headers, versions, ACL enforcement, versioning strategies (single version, backward compatibility), request/response examples, authentication patterns, end-to-end example with handler scripts, error handling, best practices
 - **[references/CLIENT-SERVER-PATTERNS.md](references/CLIENT-SERVER-PATTERNS.md)** — Full GlideAjax and REST implementation code, React entry patterns, navigation module
-- **[references/API-REFERENCE.md](references/API-REFERENCE.md)** — All Fluent API objects: Table, BusinessRule, ClientScript, ScriptInclude, RestApi, UiPage, SPWidget, ATF Test, UiPolicy, ImportSet, EmailNotification, Workspace, Sla, helpers; **ApplicationMenu + sys_app_module** navigation modules with full link-type field matrix and examples
+- **[references/API-REFERENCE.md](references/API-REFERENCE.md)** — All Fluent API objects: Table, BusinessRule, ClientScript, ScriptInclude, RestApi, UiPage, SPWidget, UiPolicy, ImportSet, Workspace, Sla, helpers; **ApplicationMenu + sys_app_module** navigation modules with full link-type field matrix and examples; **Role** (quick reference only — see ROLE-API.md for comprehensive guide); **Acl**; **CrossScopePrivilege**; **List** (quick reference only — see LIST-API.md for comprehensive guide); **ATF Test** (quick reference only — see ATF-API.md for comprehensive guide)
+- **[references/TABLE-API.md](references/TABLE-API.md)** — **Tables:** Complete Table object reference covering all properties (name, schema, extends, label, licensing, access control, actions, audit, indexes), column types and properties, column names and scoping rules, choices object, label object (multilingual support), licensingConfig object (fulfiller/producer models), autoNumber object (prefixes and numbering), dynamic value definitions (calculated values, dependent fields, dynamic defaults, choices from other tables), best practices, and complete working examples
+- **[references/LIST-API.md](references/LIST-API.md)** — **List Views:** List object, table and view properties, columns configuration, column ordering, dot-walking field references, metadata installation control (demo, first install), view configuration (custom views and default view), best practices, troubleshooting, and complete examples
+- **[references/PROPERTY-API.md](references/PROPERTY-API.md)** — **System Properties:** Property object, required and optional properties, type reference (string, integer, boolean, choicelist, color, date_format, image, password, timezone, etc.), role-based access control, cache behavior (ignoreCache), import control (isPrivate), installation metadata ($meta), runtime retrieval via gs.getProperty(), best practices, and complete examples
+- **[references/IMPORT-SETS-API.md](references/IMPORT-SETS-API.md)** — **Import Sets:** Transform maps, staging tables, data sources, field mappings (sourceField, coalesce, sourceScript), transform scripts by stage (onBefore, onAfter, onReject, onStart, onComplete), required setup order, NULL reserved word warning, complete examples
+- **[references/EMAIL-NOTIFICATION-API.md](references/EMAIL-NOTIFICATION-API.md)** — **Email Notifications:** EmailNotification object, properties, triggerConditions (generationType, onRecordInsert, onRecordUpdate, weight, condition, advancedCondition, order), emailContent (subject, messageHtml, messageText, contentType, from, replyTo, importance, forceDelivery), recipientDetails (recipientUsers, recipientGroups, recipientFields, isSubscribableByAllUsers, sendToCreator, eventParm1WithRecipient, eventParm2WithRecipient), digest (allow, default, type, defaultInterval, subject, html, text, separatorHtml, separatorText), best practices, and complete working examples
+- **[references/ATF-API.md](references/ATF-API.md)** — **Automated Test Framework (ATF):** Test object properties, all supported test steps organized by category (Application Navigator, Email, Form, Service Portal, REST, Server, Service Catalog), output variables, complete examples for form testing, REST API testing, server operations, and multi-step tests
+- **[references/DASHBOARD-API.md](references/DASHBOARD-API.md)** — **Dashboards:** Complete Dashboard API reference covering Dashboard object, tabs, widgets, componentProps (dataSources, metrics, groupBy, trendBy), permissions, visibilities, grid positioning, component types (trend, group, simple data), aggregate functions, and full working examples
+- **[references/WORKSPACE-API.md](references/WORKSPACE-API.md)** — **Workspaces:** Complete Workspace API reference covering Workspace object, UxListMenuConfig structure, categories and lists arrays for navigation organization, Applicability object for role-based access control, metadata tables created, URL patterns, ACL requirements, dashboard integration, design best practices for navigation and filtering, and complete ITSM workspace example
+- **[references/ROLE-API.md](references/ROLE-API.md)** — **Roles:** Role object properties, role naming conventions, role hierarchies with `containsRoles`, delegation control (`canDelegate`, `assignableBy`), elevated privileges, application admin roles, non-grantable roles, installation control via `$meta.installMethod`, best practices, role design patterns, and complete working examples
+- **[references/ACL-API.md](references/ACL-API.md)** — **Access Control Lists:** properties, operations, types, script property, condition-based access, field-level security, REST API ACLs, GraphQL ACLs, processor ACLs, client-callable ACLs, deny ACLs, UX data broker ACLs, examples, best practices
+- **[references/CROSS-SCOPE-PRIVILEGE-API.md](references/CROSS-SCOPE-PRIVILEGE-API.md)** — **Cross-Scope Privileges:** runtime access tracking for scripts, status values, operations (read, write, create, delete, execute), target types (tables, script includes, script objects), target scopes, installation metadata, approval workflow, best practices, comparison with ACLs
+- **[references/SCRIPT-ACTION-API.md](references/SCRIPT-ACTION-API.md)** — **Script Actions:** ScriptAction object properties ($id, name, script, eventName, active, description, order, conditionScript, $meta), three script content options (imported functions, Now.include(), inline JavaScript), event-driven automation patterns, multi-step execution, conditional logic, error handling, installation control, best practices, troubleshooting guide, and complete working examples
+- **[references/SCRIPT-INCLUDE-API.md](references/SCRIPT-INCLUDE-API.md)** — **Script Includes:** ScriptInclude object properties ($id, name, script, apiName, description, clientCallable, mobileCallable, sandboxCallable, callerAccess, accessibleFrom, active, protectionPolicy, $meta), class-based and classless patterns, client-callable GlideAjax integration, access control, IP protection, installation metadata, name-matching requirements, best practices, related concepts (ACLs, cross-scope privileges), common patterns, and complete working examples
 - **[references/BUILD-WORKFLOW.md](references/BUILD-WORKFLOW.md)** — now-sdk commands, `now-sdk dependencies`, tsconfig setup, `#now:` import alias, `trustedModules`, build behaviour, verification checklist
 - **[references/TROUBLESHOOTING.md](references/TROUBLESHOOTING.md)** — Common issues, GlideAjax error diagnosis, instance verification steps
 - **[references/ADVANCED-PATTERNS.md](references/ADVANCED-PATTERNS.md)** — Record() usage, cross-scope module pattern, server-side logging, common ServiceNow script APIs (GlideRecord, g_form, gs, GlideAggregate)
 - **[references/FLOW-API.md](references/FLOW-API.md)** — Flow API: triggers, actions, flow logic, data pills
 - **[references/SERVICE-CATALOG.md](references/SERVICE-CATALOG.md)** — Service Catalog: CatalogItem, VariableSet, variable types, CatalogUIPolicy, CatalogClientScript, CatalogItemRecordProducer
+- **[references/UI-PAGE-API.md](references/UI-PAGE-API.md)** — **UI Pages (React):** UiPage object properties ($id, endpoint, html, direct, category, clientScript, processingScript, $meta), React application development patterns with full-stack examples (index.html, main.jsx, app.tsx), `<sdk:now-ux-globals>` tag requirement for ServiceNow globals initialization, navigation integration via ApplicationMenu and sys_app_module modules, one-way HTML synchronization behavior, GlideAjax vs REST API decision guide for server communication, best practices for React development, security and ACL patterns, complete working examples
+- **[references/SERVICE-PORTAL-API.md](references/SERVICE-PORTAL-API.md)** — **Service Portal:** SPWidget object (properties, client/server scripts, option schemas, templates), SPAngularProvider object (directives, factories, services), SPWidgetDependency object (CSS/JS includes, load order, portal targeting), CssInclude and JsInclude objects, complete widget examples, best practices
+- **[references/UI-ACTION-API.md](references/UI-ACTION-API.md)** — **UI Actions:** UiAction object properties ($id, table, name, actionName, active, form, list, client, workspace, script, condition, roles, showInsert/Update/Query/MultipleUpdate), form object (showButton, showLink, showContextMenu, style), list object (showButton, showLink, showContextMenu, style, showListChoice, showBannerButton, showSaveWithFormButton), client object (isClient, isUi11/16Compatible, onClick), workspace object (isConfigurableWorkspace, showFormButtonV2/MenuButtonV2, clientScriptV2), conditional visibility, role-based access, script content options (imports, Now.include(), inline), complete examples with form buttons, list actions, context menus, and workspace-specific behaviors, best practices, troubleshooting
+- **[references/UI-POLICY-API.md](references/UI-POLICY-API.md)** — **UI Policies:** UiPolicy object properties ($id, table, view, shortDescription, active, onLoad, conditions, reverseIfFalse, runScripts, scriptTrue, scriptFalse, uiType, isolateScript, inherit, order), actions array (field, visible, readOnly, mandatory, cleared, value, fieldMessage, fieldMessageType), relatedListActions array (list references, visibility control), field action properties and configuration options, related list visibility controls, complete examples with conditional field behavior, policy inheritance, script isolation, performance optimization (UI Policies vs client scripts), best practices
 - **[references/THIRD-PARTY-LIBRARIES.md](references/THIRD-PARTY-LIBRARIES.md)** — Adding npm packages to Fluent React apps: `package.json` layout, Rollup prebuild script, CSS imports, context providers, TypeScript declarations, build-warning suppression, and a full checklist

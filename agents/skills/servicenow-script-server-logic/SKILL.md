@@ -1,7 +1,7 @@
 ---
 name: servicenow-script-server-logic
-user-invokable: false
-description: General server-side operations including Script Includes, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes using ES6 classes for SDK projects. Use for reusable utilities, system-level tasks, user context operations, and event publishing. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns.
+user-invocable: false
+description: General server-side operations including Script Includes, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes using ES6 classes for SDK projects. Use for reusable utilities, system-level tasks, user context operations, and event publishing via gs.eventQueue(). For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns. For event-triggered automation, see servicenow-fluent-development: SCRIPT-ACTION-API.md.
 ---
 
 # General Server Logic
@@ -38,6 +38,8 @@ gs.eventQueue('my.custom.event', current, oldCurrent, {
 // Publish event for other listeners
 gs.eventQueue('incident.priority.updated', current, oldCurrent);
 ```
+
+> **Related:** Events published via `gs.eventQueue()` trigger **Script Actions** defined in Fluent applications. See servicenow-fluent-development: [SCRIPT-ACTION-API.md](../../../agents/skills/servicenow-fluent-development/references/SCRIPT-ACTION-API.md) for creating event-triggered automation.
 
 **Session management**:
 

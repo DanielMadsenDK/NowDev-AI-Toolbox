@@ -38,10 +38,10 @@ Use for TypeScript projects with `.now.ts` metadata definitions and handler func
 ```typescript
 import { ClientScript } from '@servicenow/sdk/core'
 
-export default ClientScript({
+export const cs = ClientScript({
     $id: Now.ID['incident_onchange'],
     type: 'onChange',
-    element: 'field_name',
+    field: 'field_name',
     table: 'incident',
     script: (oldValue, newValue, isLoading) => {
         if (isLoading || !newValue) return;
@@ -123,10 +123,10 @@ function onChange(control, oldValue, newValue, isLoading) {
 // Version-controlled .now.ts file
 import { ClientScript } from '@servicenow/sdk/core'
 
-export default ClientScript({
+export const cs = ClientScript({
     $id: Now.ID['my_script'],
     type: 'onChange',
-    element: 'field_name',
+    field: 'field_name',
     table: 'incident',
     script: (oldValue, newValue, isLoading) => {
         if (isLoading || !newValue) return;

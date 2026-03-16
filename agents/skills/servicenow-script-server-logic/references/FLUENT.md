@@ -5,15 +5,26 @@ Patterns for server-side Script Includes in ServiceNow SDK projects using TypeSc
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Script Include Patterns](#script-include-patterns)
-3. [Utility Modules](#utility-modules)
-4. [Best Practices](#best-practices)
+2. [ScriptInclude Properties Reference](#scriptinclude-properties-reference)
+3. [Script Include Patterns](#script-include-patterns)
+4. [Utility Modules](#utility-modules)
+5. [Best Practices](#best-practices)
 
 ---
 
 ## Overview
 
 In SDK projects, Script Includes are defined using `.now.ts` files (metadata) with handler implementation in accompanying `.server.js` files.
+
+### Key Fluent Language Constructs
+
+When authoring Script Includes with Fluent SDK, you'll use these language constructs:
+
+- **`Now.ID['script_id']`** — Assign a human-readable ID to the Script Include (required for `$id`)
+- **`Now.include('./file.server.js')`** — Link to external JavaScript file with two-way synchronization (recommended for maintainability and syntax highlighting)
+- **`Now.ref('sys_user', { email: 'admin@example.com' })`** — Reference records from other applications
+
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
 
 ### File Structure
 
@@ -24,6 +35,33 @@ src/
 │   └── handlers/
 │       └── IncidentUtils.server.js      # Implementation
 ```
+
+---
+
+## ScriptInclude Properties Reference
+
+### Required Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$id` | String or Number | Unique ID using `Now.ID['script_id']` format. When built, this ID is hashed into a unique `sys_id`. |
+| `name` | String | The name of the script include. **Must match the class name in the JavaScript implementation.** |
+| `script` | Script or Class | The implementation: a class definition, reference to imported class/function, or `Now.include('./file.server.js')` |
+
+### Optional Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `apiName` | String | `<scope>.<name>` | Internal name for cross-scope calls (e.g., `x_my_app.MyScriptInclude`). Format: `<scope>.<name>` |
+| `description` | String | Empty | Description of the script include's purpose |
+| `active` | Boolean | `true` | Whether the script include is enabled and callable |
+| `clientCallable` | Boolean | `false` | Whether client scripts can call this include via GlideAjax |
+| `mobileCallable` | Boolean | `false` | Whether mobile client scripts can call this include |
+| `sandboxCallable` | Boolean | `false` | Whether sandbox contexts (query conditions, etc.) can call this. **⚠️ Use sparingly for security.** |
+| `callerAccess` | String | (none) | Cross-scope access mode: `'tracking'` (auto-approved) or `'restriction'` (manual approval required) |
+| `accessibleFrom` | String | `'package_private'` | Who can access: `'public'` (all scopes) or `'package_private'` (own scope only) |
+| `protectionPolicy` | String | (none) | IP protection: `'read'` (read-only on download) or `'protected'` (encrypted in memory) |
+| `$meta` | Object | N/A | Installation control: `{ installMethod: 'demo' \| 'first install' }` |
 
 ---
 
@@ -41,7 +79,7 @@ export default ScriptInclude({
     description: 'Utilities for incident management',
     active: true,
     apiName: 'x_my_app.IncidentUtils',
-    client_callable: false,  // Server-side only
+    clientCallable: false,  // Server-side only
     script: IncidentUtils,
 })
 ```
@@ -302,10 +340,80 @@ export default ScriptInclude({
 })
 ```
 
+### Configuration Management with System Properties
+
+```typescript
+import { ScriptInclude } from '@servicenow/sdk/core'
+
+export default ScriptInclude({
+    $id: Now.ID['config_utils'],
+    name: 'ConfigUtils',
+    description: 'System configuration utilities',
+    apiName: 'x_my_app.ConfigUtils',
+    active: true,
+    script: class {
+        /**
+         * Get application configuration from system properties
+         */
+        getConfig() {
+            return {
+                appName: gs.getProperty('x_my_app.application_name'),
+                maxResults: this.getIntProperty('x_my_app.max_query_results'),
+                isFeatureEnabled: this.getBooleanProperty('x_my_app.enable_new_ui'),
+                loggingLevel: gs.getProperty('x_my_app.logging_level'),
+                apiKey: gs.getProperty('x_my_app.external_api_key'),
+                // Add cache invalidation if needed
+                _cached_at: new Date().toISOString()
+            };
+        }
+
+        /**
+         * Retrieve integer property (convert from string)
+         */
+        getIntProperty(propertyName, defaultValue = 0) {
+            const value = gs.getProperty(propertyName);
+            return value ? parseInt(value) : defaultValue;
+        }
+
+        /**
+         * Retrieve boolean property (convert from string)
+         */
+        getBooleanProperty(propertyName, defaultValue = false) {
+            const value = gs.getProperty(propertyName);
+            if (value === null || value === undefined) return defaultValue;
+            return value.toString().toLowerCase() === 'true';
+        }
+
+        /**
+         * Check feature flag
+         */
+        isFeatureEnabled(featureName) {
+            return this.getBooleanProperty(`x_my_app.enable_${featureName}`);
+        }
+
+        /**
+         * Get numeric config with limits
+         */
+        getMaxResults() {
+            const maxResults = this.getIntProperty('x_my_app.max_query_results', 100);
+            // Enforce reasonable limits
+            return Math.min(Math.max(maxResults, 1), 10000);
+        }
+    }
+})
+```
+
+**Key Notes on System Properties:**
+- All property values from `gs.getProperty()` are returned as **strings** — convert explicitly for other types
+- Properties are **cached** — changes take effect after cache flush
+- Use property names prefixed with your app scope (e.g., `x_my_app.property_name`)
+- For comprehensive Property API documentation, see [PROPERTY-API.md](../../servicenow-fluent-development/references/PROPERTY-API.md) in the servicenow-fluent-development skill
+
 ---
 
 ## Best Practices
 
+✓ **Name must match the class** - `name` property must match the class name in the implementation
 ✓ **Use class-based structure** - Modern and type-safe
 ✓ **Use ES6+ syntax** - Arrow functions, const/let, template strings
 ✓ **Always use TypeScript types** - Full type safety
@@ -315,7 +423,9 @@ export default ScriptInclude({
 ✓ **Use Object methods** - `Object.assign()`, `Object.keys()` instead of for-in
 ✓ **Avoid legacy patterns** - No Class.create() needed in SDK
 ✓ **Log operations** - Use gs.getLogger() for debugging
-✓ **Set appropriate client_callable** - Only expose to client if needed
+✓ **Set appropriate clientCallable** - Only expose to client via GlideAjax if needed
+✓ **Restrict sandboxCallable** - Set to `false` (default) unless query conditions absolutely need access
+✓ **Use package_private by default** - Set `accessibleFrom: 'package_private'` unless cross-scope access is intentional
 
 ---
 
@@ -340,10 +450,16 @@ export default ScriptInclude({
 |-----|---------|
 | `ScriptInclude()` | SDK function to define script include |
 | `$id` | Unique identifier for this script include |
-| `name` | Display name in ServiceNow |
-| `apiName` | API call name (e.g., 'x_scope.ClassName') |
-| `client_callable` | Whether accessible from client scripts |
-| `script` | Handler class or function |
+| `name` | Display name in ServiceNow — **must match the class name** |
+| `apiName` | API call name (e.g., `'x_scope.ClassName'`) |
+| `clientCallable` | Whether accessible from client scripts via GlideAjax |
+| `mobileCallable` | Whether accessible from mobile client scripts |
+| `sandboxCallable` | Whether accessible from sandbox contexts (use sparingly) |
+| `callerAccess` | Cross-scope access mode: `'tracking'` or `'restriction'` |
+| `accessibleFrom` | Access scope: `'public'` or `'package_private'` (default) |
+| `protectionPolicy` | IP protection: `'read'` or `'protected'` |
+| `$meta.installMethod` | Installation timing: `'demo'` or `'first install'` |
+| `script` | Handler class or function implementation |
 | `gs.getLogger()` | Get system logger |
 | `gs.info()` / `gs.error()` | Logging methods |
 

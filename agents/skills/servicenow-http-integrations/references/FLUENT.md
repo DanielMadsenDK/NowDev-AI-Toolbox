@@ -2,6 +2,16 @@
 
 Patterns for outbound HTTP integrations in ServiceNow SDK projects.
 
+## Key Fluent Language Constructs
+
+When building HTTP integrations with Fluent SDK, you'll use these language constructs:
+
+- **`Now.ID['api_id']`** — Assign a human-readable ID to REST API definitions
+- **`Now.include('./script.server.js')`** — Link to external JavaScript containing integration logic with two-way sync
+- **`Now.ref('sys_user', { name: 'admin' })`** — Reference users or external system records
+
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
+
 ## Overview
 
 HTTP integrations in the Fluent SDK use similar underlying mechanisms to the classic approach but with modern TypeScript syntax and improved type safety.

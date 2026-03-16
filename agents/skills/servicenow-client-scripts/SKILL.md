@@ -1,6 +1,6 @@
 ---
 name: servicenow-client-scripts
-user-invokable: false
+user-invocable: false
 description: Implement browser-side client scripts using GlideAjax for async server communication. Covers two approaches: (1) Classic client scripts in existing instances, and (2) Fluent SDK TypeScript scripts in .now.ts files. Use for OnChange/OnLoad/OnSubmit scripts that make async server calls or event-driven logic requiring data from the server. For pure g_form field state operations with no server calls, use the servicenow-ui-forms skill. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns.
 ---
 
@@ -33,10 +33,10 @@ Use for TypeScript-based projects with `.now.ts` metadata files and `.client.js`
 ```typescript
 import { ClientScript } from '@servicenow/sdk/core'
 
-export default ClientScript({
+export const cs = ClientScript({
     $id: Now.ID['incident_onchange_script'],
     type: 'onChange',
-    element: 'field_name',
+    field: 'field_name',
     table: 'incident',
     name: 'My Script',
     script: (oldValue, newValue, isLoading) => {
@@ -105,12 +105,37 @@ g_form.setValue('ref_field', id, displayValue);
 - Check `isLoading` before making GlideAjax calls
 - Always use PascalCase for Script Include names
 - Use `setValue(field, id, displayValue)` to avoid queries
-- Use UI Policies for static visibility/mandatory logic
-- Use client scripts only for dynamic/conditional logic
+- **Use UI Policies instead of client scripts when possible** — they load faster and don't require scripting for field visibility, read-only, mandatory, cleared, or static value changes. See [UI Policies](#ui-policies-vs-client-scripts) decision guide below.
+- Use client scripts only for **dynamic/conditional logic** that requires server communication, complex validation, or responsive behavior
 - Test with all form layouts (desktop, mobile, workspace)
 - Use g_scratchpad from Display Business Rules to avoid redundant calls
 - Handle errors gracefully with try-catch
 - Keep scripts focused; move complex logic to Script Includes
+
+## UI Policies vs Client Scripts
+
+**Use UI Policies for:**
+- Controlling field visibility (show/hide)
+- Making fields read-only or editable
+- Marking fields as mandatory or optional
+- Clearing field values
+- Setting static field values
+- Controlling related list visibility
+- Static behavior based on conditions (encoded queries)
+- Performance-critical form behavior (faster load times)
+
+**Use Client Scripts for:**
+- Dynamic logic triggered by user actions (onChange, onLoad, onSubmit)
+- Server communication with GlideAjax
+- Complex conditional logic beyond simple field state
+- Cascading field updates
+- Custom validation with error messages
+- Form manipulation based on data from script includes
+- Responsive interactions (tooltips, confirmations, etc.)
+
+**Performance tip:** If you only need to conditionally show/hide fields or set mandatory flags based on a field value, **always prefer UI Policies over client scripts**. UI Policies are more efficient and don't require async callbacks.
+
+For complete UI Policy documentation, see the **servicenow-fluent-development** skill reference: **UI-POLICY-API.md** — UiPolicy object properties, field actions (visible/readOnly/mandatory/cleared), related list actions, conditions, script-based behavior, and inheritance patterns.
 
 ## Key APIs
 

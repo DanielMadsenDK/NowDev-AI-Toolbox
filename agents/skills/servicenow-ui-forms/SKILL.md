@@ -1,7 +1,7 @@
 ---
 name: servicenow-ui-forms
-user-invokable: false
-description: Manipulate form field state using g_form APIs — no server calls required. Covers field value get/set, mandatory/read-only/hidden control, inline validation and error messages, section and tab visibility, and form state checks. Use when client-side logic only involves updating field state directly on the form. For scripts that require GlideAjax server communication or UI Policies, use the servicenow-client-scripts skill.
+user-invocable: false
+description: Manipulate form field state using g_form APIs — no server calls required. Covers field value get/set, mandatory/read-only/hidden control, inline validation and error messages, section and tab visibility, and form state checks. Use for dynamic/runtime field manipulation triggered by user actions (onChange, onLoad, onSubmit). For static field behavior based on conditions, prefer UI Policies instead — they load faster and don't require scripting. For scripts requiring GlideAjax server communication, use the servicenow-client-scripts skill.
 ---
 
 # Customize UI Forms
@@ -143,11 +143,61 @@ function onSubmit() {
 - Keep OnChange scripts focused and performant
 - Use g_scratchpad to pass data from server without extra calls
 - Always check `isLoading` to prevent redundant operations
-- Use UI Policies for simple visibility/mandatory logic
+- **Use UI Policies for static field behavior** — they load faster and don't require scripting
 - Avoid DOM access; always use g_form API
 - Test with different form layouts before production
 - Validate user input client-side before submission
 - Log form submissions for debugging
+
+## UI Policies vs g_form
+
+**Use UI Policies for:**
+- Conditional field visibility (show/hide) based on another field value
+- Making fields read-only or editable based on conditions
+- Marking fields as mandatory or optional based on conditions
+- Clearing field values automatically
+- Setting static field values
+- Controlling related list visibility
+- Static behavior based on encoded query conditions
+- **Performance-critical scenarios** — UI Policies don't require client-side scripts
+
+**Use g_form for:**
+- Dynamic field manipulation triggered by user actions (onChange, onLoad, onSubmit)
+- Complex logic requiring server communication via GlideAjax
+- Custom validation with specific error messages
+- Responsive behavior that changes based on user interactions
+- Cascading field updates beyond simple conditional logic
+- Form state checks and manipulation
+- Setting field values dynamically from script logic
+
+**Performance tip:** If your logic can be expressed as "if field X equals Y, then show field Z", **always use a UI Policy**. UI Policies are declarative and don't require async callbacks, making them significantly faster than client scripts that call g_form methods.
+
+**Example — Use UI Policy instead of g_form:**
+```javascript
+// ❌ NOT RECOMMENDED: Client script using g_form
+function onChange(control, oldValue, newValue, isLoading) {
+    if (newValue === 'hardware') {
+        g_form.setMandatory('asset_tag', true);
+        g_form.setVisible('serial_number', true);
+    } else {
+        g_form.setMandatory('asset_tag', false);
+        g_form.setVisible('serial_number', false);
+    }
+}
+
+// ✅ RECOMMENDED: UI Policy
+UiPolicy({
+  $id: Now.ID['category_hardware_policy'],
+  table: 'incident',
+  conditions: 'category="hardware"',
+  actions: [
+    { field: 'asset_tag', mandatory: true, visible: true },
+    { field: 'serial_number', visible: true }
+  ]
+})
+```
+
+For complete UI Policy documentation, see the **servicenow-fluent-development** skill: **UI-POLICY-API.md**.
 
 ## Key APIs
 
