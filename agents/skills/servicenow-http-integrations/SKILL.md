@@ -1,6 +1,6 @@
 ---
 name: servicenow-http-integrations
-user-invokable: false
+user-invocable: false
 description: Establish outbound HTTP connections to external systems using REST, SOAP, and HTTP protocols. Covers RESTMessageV2, SOAPMessageV2, OAuth token retrieval as part of API flows, and response parsing. Use when making outbound API calls to external or third-party systems, consuming REST/SOAP services, or handling full HTTP request/response flows. For encrypting data, managing cryptographic keys, certificate operations, or security primitives, use the servicenow-server-security skill.
 ---
 
@@ -29,7 +29,7 @@ if (status === 200) {
 
 ```javascript
 var oauthClient = new sn_auth.GlideOAuthClient();
-oauthClient.setCredentialId('5b61c16f73533300f662cff8faf6a74b');
+oauthClient.setCredentialId(gs.getProperty('my_app.oauth_credential_id'));
 
 var token = oauthClient.getNewAccessToken();
 var accessToken = token.getAccessToken();

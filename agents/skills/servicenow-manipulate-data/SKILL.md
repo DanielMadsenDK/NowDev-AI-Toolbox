@@ -1,6 +1,6 @@
 ---
 name: servicenow-manipulate-data
-user-invokable: false
+user-invocable: false
 description: Query, insert, update, and delete records in the ServiceNow database with emphasis on performance and security. Covers two approaches: (1) Classic GlideRecord API for existing instances and legacy code, and (2) Modern Fluent SDK (GlideQuery) for new TypeScript projects. Use when working with database records, aggregating data, or implementing data-driven logic. For legacy/existing instances, recommend Classic patterns; for new SDK projects, recommend Fluent patterns.
 ---
 

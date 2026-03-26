@@ -239,40 +239,196 @@ export const myItem = CatalogItem({
 
 ## Catalog Variable Types
 
-All variable types are imported from `@servicenow/sdk/core`. Common type-specific options are listed below:
+All variable types are imported from `@servicenow/sdk/core`.
 
 | Category | Types |
 |----------|-------|
-| **Text** | `SingleLineTextVariable`, `MultiLineTextVariable`, `MaskedVariable` |
-| **Selection** | `SelectBoxVariable`, `MultipleChoiceVariable`, `CheckboxVariable`, `YesNoVariable` |
-| **Reference** | `ReferenceVariable`, `ListCollectorVariable` |
-| **Date/Time** | `DateVariable`, `DateTimeVariable` |
-| **Numeric** | `NumericScaleVariable` |
-| **Data** | `EmailVariable`, `URLVariable`, `IPAddressVariable` |
+| **Text** | `SingleLineTextVariable`, `WideSingleLineTextVariable`, `MultiLineTextVariable`, `MaskedVariable`, `HtmlVariable`, `RichTextLabelVariable` |
+| **Selection** | `SelectBoxVariable`, `MultipleChoiceVariable`, `CheckboxVariable`, `YesNoVariable`, `NumericScaleVariable` |
+| **Lookup** | `LookupSelectBoxVariable`, `LookupMultipleChoiceVariable` |
+| **Reference** | `ReferenceVariable`, `ListCollectorVariable`, `RequestedForVariable` |
+| **Date/Time/Duration** | `DateVariable`, `DateTimeVariable`, `DurationVariable` |
+| **Data** | `EmailVariable`, `UrlVariable`, `IpAddressVariable` |
 | **File** | `AttachmentVariable` |
-| **Layout** | `ContainerStartVariable`, `ContainerSplitVariable`, `ContainerEndVariable` |
-| **Special** | `RequestedForVariable` |
+| **Layout** | `LabelVariable`, `BreakVariable`, `ContainerStartVariable`, `ContainerSplitVariable`, `ContainerEndVariable` |
+| **Custom UI** | `CustomVariable`, `CustomWithLabelVariable`, `UIPageVariable` |
 
-Common options shared by most variable types:
+---
 
-| Option | Description |
-|--------|-------------|
-| `question` | Label shown to the user |
-| `order` | Sort order on the form |
-| `mandatory` | Whether the field is required |
-| `tooltip` | Help text |
-| `defaultValue` | Pre-filled value |
+### Common Variable Properties
 
-Type-specific options:
-- `SelectBoxVariable` / `MultipleChoiceVariable`: `choices` object `{ key: { label: string } }`, `includeNone`, `choiceDirection`
-- `ReferenceVariable`: `referenceTable`, `useReferenceQualifier`, `referenceQualCondition`
-- `ListCollectorVariable`: `listTable`, `referenceQual`
-- `MaskedVariable`: `useConfirmation`
-- `NumericScaleVariable`: `scaleMin`, `scaleMax`
-- `SingleLineTextVariable`: `validateRegex`
-- Variables that map to record fields: `mapToField: true`, `field: 'field_name'`
+Most types share the properties from `BaseVariableConfig` and `VariableConfig`. The `mandatory`, `readOnly`, and `hidden` properties are mutually exclusive: you cannot set `mandatory: true` when `hidden` or `readOnly` is `true`.
 
-Layout containers group variables visually:
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `question` | String | — | Label shown to the user. Required for most types |
+| `order` | Number | — | Sort order on the form |
+| `active` | Boolean | `true` | Whether the variable is active |
+| `mandatory` | Boolean | `false` | Field is required. Cannot be `true` when `hidden` or `readOnly` is `true` |
+| `readOnly` | Boolean | `false` | Field is read-only. Cannot be `true` when `mandatory` is `true` |
+| `hidden` | Boolean | `false` | Field is hidden. Cannot be `true` when `mandatory` is `true` |
+| `defaultValue` | Type-specific | — | Pre-filled value |
+| `tooltip` | String | — | Help text shown in a tooltip icon |
+| `showHelp` | Boolean | `false` | Display the help section below the field |
+| `helpTag` | String | — | Title of the help section |
+| `helpText` | String | — | Content of the help section |
+| `instructions` | String | — | Instructions shown above the field |
+| `exampleText` | String | — | Example input shown as placeholder text |
+| `conversationalLabel` | String | — | Label used in Virtual Agent conversations |
+| `width` | Number | — | Column width in percent: `25`, `50`, `75`, or `100` |
+| `attributes` | String | — | Comma-separated additional attributes |
+| `description` | String | — | Internal description of the variable |
+| `mapToField` | Boolean | `false` | Map variable value to a field on the target record (record producers) |
+| `field` | String | — | Target field name when `mapToField: true` |
+| `readRoles` | Array | — | Roles that can **view** the variable |
+| `writeRoles` | Array | — | Roles that can **edit** the variable |
+| `createRoles` | Array | — | Roles that can **create** rows in multi-row sets |
+| `visibleBundle` | Boolean | `true` | Show in bundle views |
+| `visibleGuide` | Boolean | `true` | Show in order guide views |
+| `visibleStandalone` | Boolean | `true` | Show in standalone catalog views |
+| `visibleSummary` | Boolean | — | Show in request summary |
+| `pricingDetails` | Array | — | Pricing associated with the variable: `{ amount, currencyType, field: 'price' \| 'recurring_price' }` |
+| `pricingImplications` | Boolean | — | Whether variable value affects pricing |
+| `useDynamicDefault` | Boolean | — | Use a dynamic default value |
+| `dotWalkPath` | String | — | Dot-walk path for dynamic default field resolution |
+| `dependentQuestion` | String | — | Variable name that this variable's dynamic default depends on |
+| `disableInitialSlotFill` | Boolean | — | Prevent slot filling in Virtual Agent on load |
+| `removeFromConversationalInterfaces` | Boolean | — | Hide from Virtual Agent entirely |
+| `alwaysExpand` | Boolean | — | Always show expanded (not collapsed) |
+| `unique` | Boolean | — | Require a unique value |
+| `readScript` | String | — | Server-side script executed when value is read |
+| `postInsertScript` | String | — | Server-side script executed after variable is inserted |
+
+---
+
+### Type-Specific Options
+
+#### Text Variables
+
+**`SingleLineTextVariable`** / **`WideSingleLineTextVariable`**
+- `validateRegex` — Reference to a `question_regex` record or regex string for validation
+
+**`MultiLineTextVariable`** — No extra options beyond common properties
+
+**`MaskedVariable`** — Masked/password input
+- `useConfirmation` — Show a confirmation field to re-enter the value
+- `useEncryption` — Encrypt the stored value
+
+**`HtmlVariable`** — Rich HTML content field
+- `defaultHTML` — Default HTML content (in addition to `defaultValue`)
+
+**`RichTextLabelVariable`** — Read-only rich text label (no user input)
+- Uses `richText` instead of `question` for the HTML content to display
+- Does not support `mandatory`, `hidden`, or `readOnly`
+
+---
+
+#### Selection Variables
+
+**`SelectBoxVariable`** — Single-select dropdown
+- `choices` — `{ key: { label: string, sequence: number, pricingDetails?: [...] } }` — choice options with optional per-choice pricing
+- `choiceTable` — Table to pull choices from (instead of `choices`)
+- `choiceField` — Field on `choiceTable` to use as choice values
+- `includeNone` — Add a blank "None" option
+- `uniqueValuesOnly` — Restrict to unique values only
+
+**`MultipleChoiceVariable`** — Single-select radio buttons
+- `choices` — Same format as `SelectBoxVariable`
+- `choiceDirection` — `'down'` (vertical list) or `'across'` (horizontal)
+- `includeNone` — Add a blank option
+- `doNotSelectFirstChoice` — Do not auto-select the first choice
+
+**`CheckboxVariable`** — Boolean checkbox (true/false)
+- `selectionRequired` — When `true`, the checkbox must be checked to submit. When `selectionRequired: true`, `mandatory`, `readOnly`, and `hidden` are not supported
+
+**`YesNoVariable`** — Yes/No radio buttons
+- `includeNone` — Add a "None" option in addition to Yes/No
+
+**`NumericScaleVariable`** — Numeric rating scale
+- `scaleMin` — Minimum value
+- `scaleMax` — Maximum value
+- `doNotSelectFirstChoice` — Do not auto-select the minimum value
+
+---
+
+#### Lookup Variables
+
+Lookup variables display choices sourced from a table's field values. Useful when choices should reflect live data from ServiceNow tables.
+
+**`LookupSelectBoxVariable`** — Single-select lookup from table
+- `lookupFromTable` — Table to look up values from
+- `lookupValueField` — Field on the table to use as the stored value
+- `lookupLabelFields` — Array of field names to display as labels
+- `lookupPriceField` — Field to read price from
+- `lookupRecurringPriceField` — Field to read recurring price from
+- `lookupSource` — Set to `'choices'` to use choice field instead of table lookup
+- `choiceTable` — Source table when `lookupSource: 'choices'`
+- `choiceField` — Source field when `lookupSource: 'choices'`
+- `choicesDependOn` — Variable name this lookup depends on (for cascading)
+- `referenceQual` — Filter query for records
+- `choiceDirection` — `'down'` or `'across'`
+- `includeNone` — Add a blank option
+- `uniqueValuesOnly` — Restrict to unique values
+
+**`LookupMultipleChoiceVariable`** — Multi-select lookup (radio buttons from table). Same properties as `LookupSelectBoxVariable`.
+
+---
+
+#### Reference Variables
+
+**`ReferenceVariable`** — Single record reference (reference field)
+- `referenceTable` — **Required.** Table to reference (e.g., `'sys_user_group'`)
+- `useReferenceQualifier` — Filter mode: `'simple'` \| `'dynamic'` \| `'advanced'`
+- `referenceQualCondition` — Encoded filter (only with `'simple'`)
+- `dynamicRefQual` — Dynamic filter record `[sys_filter_option_dynamic]` (only with `'dynamic'`)
+- `referenceQual` — Advanced JavaScript qualifier script (only with `'advanced'`)
+
+**`ListCollectorVariable`** — Multi-record reference (list)
+- `listTable` — **Required.** Table to collect records from
+- `referenceQual` — Filter query
+
+**`RequestedForVariable`** — "Requested For" user reference (pre-wired to `sys_user`)
+- `enableAlsoRequestFor` — Show "Also Request For" additional user field
+- `rolesToUseAlsoRequestFor` — Roles that can see the "Also Request For" field
+- `useReferenceQualifier` — `'simple'` \| `'dynamic'` \| `'advanced'`
+- `referenceQualCondition` — Filter (with `'simple'`)
+- `dynamicRefQual` — Dynamic filter (with `'dynamic'`)
+- `referenceQual` — Advanced qualifier script (with `'advanced'`)
+
+---
+
+#### Custom UI Variables
+
+**`CustomVariable`** — Embeds a custom UI component in the form
+- `macro` — UI macro `[sys_ui_macro]` to render
+- `summaryMacro` — UI macro shown in the request summary
+- `widget` — Service Portal widget `[sp_widget]`
+- `macroponent` — UX macroponent `[sys_ux_macroponent]`
+- `topicBlock` — Virtual Agent topic block `[sys_cs_topic]`
+
+**`CustomWithLabelVariable`** — Same as `CustomVariable` with a visible label. Does not support `mandatory`, `hidden`, or `readOnly`.
+
+**`UIPageVariable`** — Embeds a UI Page in the form
+- `uiPage` — UI Page `[sys_ui_page]` to embed
+
+---
+
+#### Layout Variables
+
+**`LabelVariable`** — Display-only text label (read-only, no input)
+
+**`BreakVariable`** — Horizontal separator line. Only supports `order`, `active`, `disableInitialSlotFill`
+
+**`ContainerStartVariable`** — Starts a collapsible section grouping
+- `question` — Section title (only required when `displayTitle: true`)
+- `displayTitle` — Show section header (default: `false`)
+- `layout` — `'normal'` \| `'2across'` \| `'2down'`
+
+**`ContainerSplitVariable`** — Column split inside a container. Only supports `order`, `active`, `disableInitialSlotFill`
+
+**`ContainerEndVariable`** — Closes a container section. Only supports `order`, `active`, `disableInitialSlotFill`
+
+**Layout container example:**
 ```ts
 variables: {
   section_start: ContainerStartVariable({ question: 'Section Title', displayTitle: true, layout: '2across', order: 100 }),
@@ -280,6 +436,27 @@ variables: {
   section_split: ContainerSplitVariable({ order: 120 }),
   field_b: SingleLineTextVariable({ question: 'Field B', order: 130 }),
   section_end: ContainerEndVariable({ order: 140 }),
+}
+```
+
+---
+
+### ExtendedChoices — Per-Choice Pricing
+
+For `SelectBoxVariable` and `MultipleChoiceVariable`, each choice entry can carry its own pricing:
+
+```ts
+choices: {
+  standard: {
+    label: 'Standard License',
+    sequence: 1,
+    pricingDetails: [{ amount: 99, currencyType: 'USD', field: 'price' }]
+  },
+  enterprise: {
+    label: 'Enterprise License',
+    sequence: 2,
+    pricingDetails: [{ amount: 499, currencyType: 'USD', field: 'price' }]
+  }
 }
 ```
 
@@ -357,7 +534,6 @@ Configures the variable actions `[catalog_ui_policy_action]` that a catalog UI p
 |----------|------|-------------|
 | `variableName` | String | **Required.** The variable to which the action applies. Use `catalogItem.variables.fieldName` or `variableSet.variables.fieldName` |
 | `visible` | Boolean | Make the variable visible (default: `false`) |
-| `disabled` | Boolean | Disable the variable (default: `false`) |
 | `mandatory` | Boolean | Make the variable required (default: `false`) |
 | `readOnly` | Boolean | Make the variable read-only (default: `false`) |
 | `cleared` | Boolean | Clear the variable value when condition is met (default: `false`) |
@@ -366,6 +542,8 @@ Configures the variable actions `[catalog_ui_policy_action]` that a catalog UI p
 | `value` | String | Value to set on the variable (requires `valueAction: 'setValue'`) |
 | `valueAction` | String | Action: `'setValue'` (sets variable to `value` property) \| `'clearValue'` (clears variable) |
 | `order` | Number | Evaluation order relative to other actions (default: `100`) |
+
+> **Note:** The `disabled` property does not exist on actions — use `readOnly` to make a field non-editable.
 
 **Example:**
 
@@ -422,6 +600,7 @@ Creates a `catalog_script_client` record that runs on the client side to control
 | `appliesOnCatalogTasks` | Boolean | Apply to catalog task forms for the item (fulfiller view). Default: `false` |
 | `appliesOnTargetRecord` | Boolean | Apply to records created for task-extended tables via record producers. Default: `false` |
 | `vaSupported` | Boolean | Whether script is supported in Virtual Agent conversations (default: `false`) |
+| `isolateScript` | Boolean | Run script in strict mode — disables direct DOM access, jQuery, prototype, and window (default: `false`) |
 | `publishedRef` | String | sys_id of published catalog item `[sc_cat_item]` or record producer `[sc_cat_item_producer]` this script references |
 | `$meta` | Object | Installation metadata. `{ installMethod: 'demo' \| 'first install' }` |
 

@@ -207,5 +207,5 @@ export const securityIncidentPolicy = UiPolicy({
 
 ## Related APIs
 - [UI Forms and g_form Operations](./UI-FORMS-API.md)
-- [Client Scripts](./CLIENT-SCRIPTS-API.md)
+- [Client Scripts](./CLIENT-SCRIPTS-API.md) — For complex validation, async calls, or logic beyond field state control
 - [Record API - UI Views](./RECORD-API.md)

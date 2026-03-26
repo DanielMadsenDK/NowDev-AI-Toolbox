@@ -53,16 +53,6 @@ export const cs = ClientScript({
 })
 ```
 
-## Critical rules
-
-| Rule | Reason |
-|------|--------|
-| NO GlideRecord | Blocks browser; use GlideAjax |
-| Use `getXMLAnswer` | Async; prevents UI freeze |
-| NO `getXMLWait` | Forbidden; blocks browser |
-| NO document/jQuery | Breaks on Polaris/Next Experience |
-| Use `g_form` API | Safe across all versions |
-
 ## Performance optimization
 
 **Use g_scratchpad** (server → client on load):

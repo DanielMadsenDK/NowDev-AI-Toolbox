@@ -26,3 +26,6 @@ yarn-error.log*
 # System Files
 .DS_Store
 Thumbs.db
+
+#servicenowsdk
+sdk-core/

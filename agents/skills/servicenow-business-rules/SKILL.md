@@ -1,6 +1,6 @@
 ---
 name: servicenow-business-rules
-user-invokable: false
+user-invocable: false
 description: Create server-side database triggers with proper execution timing, recursion prevention, and validation patterns. Covers two approaches: (1) Classic business rules in existing instances, and (2) Fluent SDK TypeScript definitions in .now.ts files. Use when implementing Before/After/Async business rules, preventing recursive rule execution, or enforcing data validation on database operations. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns.
 ---
 
