@@ -8,6 +8,11 @@ handoffs:
     agent: NowDev AI Agent
     prompt: I have completed the Fluent implementation. Please guide me to the next step.
     send: true
+hooks:
+  PostToolUse:
+    - type: command
+      command: node .github/hooks/build-on-save.js
+      timeout: 60
 ---
 
 <workflow>

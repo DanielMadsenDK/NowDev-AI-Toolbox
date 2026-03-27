@@ -4,6 +4,11 @@ description: Agentic ServiceNow development orchestrated and delivered by multip
 agents: ['NowDev-AI-Assistant', 'NowDev-AI-Script-Developer', 'NowDev-AI-BusinessRule-Developer', 'NowDev-AI-Client-Developer', 'NowDev-AI-Reviewer', 'NowDev-AI-Debugger', 'NowDev-AI-Release-Expert', 'NowDev-AI-Fluent-Developer', 'NowDev-AI-Assistant']
 tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'agent', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*']
 user-invocable: true
+hooks:
+  SessionStart:
+    - type: command
+      command: node .github/hooks/check-now-sdk.js
+      timeout: 15
 ---
 
 <workflow>

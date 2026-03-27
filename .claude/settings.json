@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check .github/hooks/check-now-sdk.js)",
+      "Bash(node --check .github/hooks/build-on-save.js)",
+      "Bash(node --check .github/hooks/session-summary.js)",
+      "Bash(node .github/hooks/check-now-sdk.js)",
+      "Bash(node .github/hooks/session-summary.js)",
+      "Bash(node --check .github/hooks/block-non-node-scripts.js)",
+      "Read(//home/daniel/gitprojects/**)",
+      "Bash(node .github/hooks/block-non-node-scripts.js __NEW_LINE_718d8fb566ac40ae__ echo \"--- perl \\(should deny\\) ---\" echo '{\"\"\"\"tool_name\"\"\"\":\"\"\"\"execute/runInTerminal\"\"\"\",\"\"\"\"tool_input\"\"\"\":{\"\"\"\"command\"\"\"\":\"\"\"\"perl migrate.pl\"\"\"\"}}')",
+      "Bash(node .github/hooks/block-non-node-scripts.js __NEW_LINE_718d8fb566ac40ae__ echo \"--- .ps1 file \\(should deny\\) ---\" echo '{\"\"\"\"tool_name\"\"\"\":\"\"\"\"execute/runInTerminal\"\"\"\",\"\"\"\"tool_input\"\"\"\":{\"\"\"\"command\"\"\"\":\"\"\"\"./deploy.ps1\"\"\"\"}}')",
+      "Bash(node .github/hooks/block-non-node-scripts.js __NEW_LINE_718d8fb566ac40ae__ echo \"--- node \\(should allow, no output\\) ---\" echo '{\"\"\"\"tool_name\"\"\"\":\"\"\"\"execute/runInTerminal\"\"\"\",\"\"\"\"tool_input\"\"\"\":{\"\"\"\"command\"\"\"\":\"\"\"\"node .github/hooks/build-on-save.js\"\"\"\"}}')",
+      "Bash(node .github/hooks/block-non-node-scripts.js)",
+      "Bash(cd /home/daniel/gitprojects/NowDev-AI-Toolbox __NEW_LINE_444022769aeeb355__ echo \"--- npx \\(should deny\\) ---\" echo '{\"\"\"\"tool_name\"\"\"\":\"\"\"\"execute/runInTerminal\"\"\"\",\"\"\"\"tool_input\"\"\"\":{\"\"\"\"command\"\"\"\":\"\"\"\"npx ts-node src/index.ts\"\"\"\"}}')",
+      "Bash(node .github/hooks/block-non-node-scripts.js __NEW_LINE_444022769aeeb355__ echo \"--- node \\(should allow\\) ---\" echo '{\"\"\"\"tool_name\"\"\"\":\"\"\"\"execute/runInTerminal\"\"\"\",\"\"\"\"tool_input\"\"\"\":{\"\"\"\"command\"\"\"\":\"\"\"\"node .github/hooks/build-on-save.js\"\"\"\"}}')"
+    ]
+  }
+}
