@@ -402,31 +402,53 @@ wfa.action(
 The following action instances are supported:
 
 **Record Operations:**
-- `action.core.createRecord`
-- `action.core.createOrUpdateRecord`
-- `action.core.deleteRecord`
-- `action.core.lookUpRecord`
-- `action.core.lookUpRecords`
-- `action.core.updateRecord`
-- `action.core.updateMultipleRecords`
+- `action.core.createRecord` — Create a new record on any table
+- `action.core.createOrUpdateRecord` — Create or update a record based on coalesce keys
+- `action.core.deleteRecord` — Delete a single record
+- `action.core.updateRecord` — Update fields on a single record
+- `action.core.updateMultipleRecords` — Update fields on all records matching conditions
+- `action.core.lookUpRecord` — Find a single record by conditions (returns first if multiple)
+- `action.core.lookUpRecords` — Find multiple records by conditions (returns array)
+
+**Attachments:**
+- `action.core.copyAttachment` — Copy an attachment from one record to another
+- `action.core.deleteAttachment` — Delete an attachment
+- `action.core.getAttachmentsOnRecord` — Get all attachments on a record
+- `action.core.lookupAttachment` — Find an attachment by conditions
+- `action.core.lookUpEmailAttachments` — Get email attachments
+- `action.core.moveAttachment` — Move an attachment to a different record
+- `action.core.moveEmailAttachmentsToRecord` — Move email attachments to a record
 
 **Communication:**
-- `action.core.sendNotification`
-- `action.core.sendEmail`
-- `action.core.sendSms`
+- `action.core.sendNotification` — Send a configured notification
+- `action.core.sendEmail` — Send an ad-hoc email
+- `action.core.sendSms` — Send an SMS message
+- `action.core.getEmailHeader` — Retrieve a specific email header from an inbound email
+- `action.core.getLatestResponseTextFromEmail` — Extract latest reply text from email thread
+- `action.core.associateRecordToEmail` — Link a record to an email thread
+- `action.core.waitForEmailReply` — Pause flow until an email reply is received
+- `action.core.waitForMessage` — Pause flow until a specific outbound message is received
 
 **Approvals & Tasks:**
-- `action.core.askForApproval`
-- `action.core.waitForApproval`
-- `action.core.createTask`
+- `action.core.askForApproval` — Create approvals on a record with configurable rule sets
+- `action.core.createTask` — Create a task record
+- `action.core.createCatalogTask` — Create a catalog task for a request item
 
 **Waits & Conditions:**
-- `action.core.waitForCondition`
-- `action.core.waitForMessage`
+- `action.core.waitForCondition` — Pause flow until a record matches a condition
 
-**Other:**
-- `action.core.slaPercentageTimer`
-- `action.core.log`
+**Service Catalog:**
+- `action.core.submitCatalogItemRequest` — Submit a catalog item order
+- `action.core.getCatalogVariables` — Read variables from a catalog request item
+- `action.core.recordProducer` — Submit a Record Producer request
+
+**Events & Work Notes:**
+- `action.core.fireEvent` — Fire a ServiceNow system event
+- `action.core.addWorknoteLinkToContext` — Add a work note link to the flow context
+- `action.core.slaPercentageTimer` — Check SLA percentage elapsed for a record
+
+**Logging:**
+- `action.core.log` — Log a message to the system log
 
 ### Record Actions
 
@@ -864,6 +886,442 @@ wfa.flowLogic.assignSubflowOutputs(
 ```
 
 **Note:** `assignSubflowOutputs` must be called before the subflow body ends if outputs are declared.
+
+---
+
+## wfa.inlineScript Function
+
+Embed an inline TypeScript/JavaScript expression directly inside an action input. Use this when you need to compute a value dynamically at flow runtime instead of using a static data pill.
+
+```ts
+import { wfa } from '@servicenow/sdk/automation'
+
+wfa.action(
+  action.core.createRecord,
+  { $id: Now.ID['create_incident'] },
+  {
+    table_name: 'incident',
+    values: TemplateValue({
+      short_description: wfa.inlineScript(`current.description + ' (auto-created)'`),
+      urgency: wfa.inlineScript(`current.urgency < 2 ? '1' : current.urgency`),
+    }),
+  }
+)
+```
+
+**Note:** `wfa.inlineScript()` accepts a JavaScript expression string. Avoid complex logic — prefer a Script Include for more complex server-side computation.
+
+---
+
+## wfa.approvalRules and wfa.approvalDueDate
+
+Use these helpers to configure the `askForApproval` action with structured rule sets and optional due dates.
+
+### wfa.approvalRules
+
+Build structured approval rules that determine who can approve or reject a flow step. Rules are organized into **rule sets** connected by OR logic, with individual rules within each set connected by AND logic.
+
+```ts
+import { wfa, action } from '@servicenow/sdk/automation'
+
+wfa.action(
+  action.core.askForApproval,
+  { $id: Now.ID['ask_approval'] },
+  {
+    table: 'change_request',
+    record: wfa.dataPill(params.trigger.current.sys_id, 'reference'),
+    approval_conditions: wfa.approvalRules({
+      conditionType: 'OR',
+      ruleSets: [
+        {
+          action: 'Approves',
+          conditionType: 'AND',
+          rules: [
+            {
+              rule_type: 'Any',           // 'Any' | 'All' | 'Res' | 'Count' | 'Percent'
+              users: ['user_sys_id_1'],   // Array of user sys_ids
+              groups: ['group_sys_id_1'], // Array of group sys_ids
+              manual: false,
+            },
+          ],
+        },
+        {
+          action: 'Rejects',
+          conditionType: 'AND',
+          rules: [
+            {
+              rule_type: 'Any',
+              users: [],
+              groups: ['cab_group_sys_id'],
+              manual: false,
+            },
+          ],
+        },
+      ],
+    }),
+  }
+)
+```
+
+**Rule types:**
+- `'Any'` — Any user or group member can approve/reject
+- `'All'` — All users and group members must approve/reject
+- `'Res'` — All responded and anyone approves/rejects
+- `'Count'` — Specific number of approvals required
+- `'Percent'` — Percentage of approvals required
+
+### wfa.approvalDueDate
+
+Set an automatic action when approvals are not responded to by a due date.
+
+```ts
+approval_conditions: wfa.approvalRules({ ... }),
+due_date: wfa.approvalDueDate({
+  action: 'approve',            // 'none' | 'approve' | 'reject' | 'cancel'
+  dateType: 'relative',         // 'actual' | 'relative'
+  duration: 5,
+  durationType: 'days',         // 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'
+  daysSchedule: '',             // Optional: cmn_schedule sys_id for business hours
+})
+
+// Or with an actual date:
+due_date: wfa.approvalDueDate({
+  action: 'reject',
+  dateType: 'actual',
+  date: wfa.dataPill(params.trigger.current.due_date, 'glide_date_time'),
+})
+```
+
+---
+
+## FlowObject and FlowArray (Complex Subflow Types)
+
+For Subflows and custom Actions with complex structured inputs/outputs, use `FlowObject` and `FlowArray` instead of flat Column types.
+
+### FlowObject
+
+Create a complex object type for nested input/output structures:
+
+```ts
+import { FlowObject, FlowArray, StringColumn, IntegerColumn, BooleanColumn } from '@servicenow/sdk/core'
+import { SubflowDefinition as Subflow } from '@servicenow/sdk/automation'
+
+const addressSchema = FlowObject({
+  label: 'Address',
+  fields: {
+    street: StringColumn({ label: 'Street', mandatory: true }),
+    city: StringColumn({ label: 'City', mandatory: true }),
+    zip: StringColumn({ label: 'ZIP Code', maxLength: 10 }),
+  },
+})
+
+export const createUserSubflow = Subflow(
+  {
+    $id: Now.ID['create_user_subflow'],
+    name: 'Create User Subflow',
+    inputs: {
+      name: StringColumn({ label: 'Full Name', mandatory: true }),
+      age: IntegerColumn({ label: 'Age' }),
+      address: addressSchema,
+    },
+    outputs: {
+      created: BooleanColumn({ label: 'Was Created' }),
+      user_sys_id: StringColumn({ label: 'User Sys ID', maxLength: 40 }),
+    },
+  },
+  (params) => {
+    // Access nested inputs:    params.inputs.address.city
+    // Assign outputs:
+    wfa.flowLogic.assignSubflowOutputs(
+      { $id: Now.ID['assign_outputs'] },
+      params.outputs,
+      { created: true, user_sys_id: 'some_sys_id' }
+    )
+  }
+)
+```
+
+### FlowArray
+
+Create an array type for a collection of items in subflow inputs/outputs:
+
+```ts
+import { FlowArray, StringColumn, ReferenceColumn } from '@servicenow/sdk/core'
+
+const incidentListSchema = FlowArray({
+  label: 'Incidents',
+  elementType: ReferenceColumn({
+    label: 'Incident',
+    referenceTable: 'incident',
+  }),
+  childName: 'incident',
+  maxRows: 100,
+})
+
+// Use in Subflow inputs/outputs:
+inputs: {
+  incidents: incidentListSchema,
+}
+```
+
+**Rules:**
+- `FlowArray` elements can be `Column` types or `FlowObject` — but NOT another `FlowArray`
+- `mandatory?: boolean` — marks the array itself as required
+- `maxRows?: number` — maximum rows allowed
+
+---
+
+## FDTransform (Data Transformations)
+
+The `FDTransform` object provides typed data transformation utilities for use in flow expressions and templates. Import it alongside other flow utilities:
+
+```ts
+import { FDTransform } from '@servicenow/sdk/automation'
+```
+
+### String Transformations (`FDTransform.string`)
+
+| Method | Description |
+|--------|-------------|
+| `contains(input, search)` | Returns true if input contains search |
+| `doesNotContain(input, search)` | Returns true if input does not contain search |
+| `startsWith(input, prefix)` | Returns true if input starts with prefix |
+| `endsWith(input, suffix)` | Returns true if input ends with suffix |
+| `substring(input, start, end?)` | Extract a substring |
+| `split(input, delimiter)` | Split string into array |
+| `replaceString(input, search, replacement)` | Replace substring |
+| `trim(input)` | Remove leading/trailing whitespace |
+| `toLowerCase(input)` | Convert to lowercase |
+| `toUpperCase(input)` | Convert to uppercase |
+| `toProperCase(input)` | Convert to title case |
+| `size(input)` | Return string length |
+| `firstCharacter(input)` | Return first character |
+| `lastCharacter(input)` | Return last character |
+| `stringToNumber(input)` | Convert string to number |
+
+### Math Transformations (`FDTransform.math`)
+
+| Method | Description |
+|--------|-------------|
+| `add(a, b)` | Add two numbers |
+| `subtract(a, b)` | Subtract b from a |
+| `multiply(a, b)` | Multiply two numbers |
+| `divide(a, b)` | Divide a by b |
+| `power(base, exp)` | Raise base to exponent |
+| `sqrt(n)` | Square root |
+| `abs(n)` | Absolute value |
+| `round(n, decimals?)` | Round to decimal places |
+| `toFixedValue(n, digits)` | Fixed-point notation |
+| `min(...values)` | Minimum value |
+| `max(...values)` | Maximum value |
+| `sum(...values)` | Sum of values |
+| `average(...values)` | Average of values |
+| `median(...values)` | Median value |
+
+### DateTime Transformations (`FDTransform.dateTime`)
+
+| Method | Description |
+|--------|-------------|
+| `addTime(input, duration)` | Add duration to date |
+| `subtractTime(input, duration)` | Subtract duration from date |
+| `dateDifference(date1, date2)` | Difference between dates |
+| `dateToString(input, format, customFormat?)` | Format a date to string |
+| `stringToDate(input, format, customFormat?)` | Parse a string to date |
+| `year(input)` | Extract year |
+| `month(input)` | Extract month number |
+| `week(input)` | Extract week number |
+| `day(input)` | Extract day of month |
+| `hour(input)` | Extract hour |
+| `minute(input)` | Extract minute |
+| `second(input)` | Extract second |
+| `endOfMonth(input)` | Last day of the month |
+
+**Supported date format tokens:** `'yyyy-MM-dd'`, `'yyyy-MM-dd HH:mm:ss'`, `"yyyy-MM-dd'T'HH:mm:ss'Z'"`, `'EEE, MMM dd, yyyy'`, `'MM/dd/yyyy'`, and more. Use `'Custom'` with `customFormat` for other patterns.
+
+### Utility Transformations (`FDTransform.utilities`)
+
+| Method | Description |
+|--------|-------------|
+| `isBlank(value)` | True if null, undefined, or empty string |
+| `isNotBlank(value)` | True if has content |
+| `isNull(value)` | True if null or undefined |
+| `isTrue(value)` | True if value is truthy |
+| `isFalse(value)` | True if value is falsy |
+| `getFirstItem(array)` | First element of array |
+| `getLastItem(array)` | Last element of array |
+| `getNthItem(array, n)` | Nth element (1-based) |
+| `getItemFromNameValues(pairs, key)` | Get value from name-value pair |
+| `join(array, separator)` | Join array to string |
+| `sort(array)` | Sort array |
+| `unique(array)` | Remove duplicates |
+| `keyValueMap(pairs)` | Convert name-value pairs to map |
+
+### Sanitize Utilities
+
+Prevent injection attacks in SQL queries and shell commands:
+
+```ts
+FDTransform.sanitize.sql.sanitizeSqlIdentifier(input)  // Safe SQL identifier
+FDTransform.sanitize.sql.sanitizeSqlValue(input)        // Safe SQL value
+FDTransform.sanitize.shell.sanitizeBashShellArguments(input)  // Safe shell argument
+```
+
+### Complex Data (`FDTransform.complexData`)
+
+```ts
+FDTransform.complexData.toXml(obj)   // Serialize object to XML string
+```
+
+---
+
+## ActionDefinition (Creating Custom Flow Actions)
+
+Define reusable, installable Flow Actions that appear in Flow Designer's action picker. Custom actions encapsulate structured inputs, outputs, and action steps.
+
+```ts
+import { ActionDefinition } from '@servicenow/sdk/automation'
+import { StringColumn, BooleanColumn, ReferenceColumn, TableNameColumn, DocumentIdColumn } from '@servicenow/sdk/core'
+
+export const enrichIncidentAction = ActionDefinition(
+  {
+    $id: Now.ID['enrich_incident_action'],
+    name: 'Enrich Incident with CMDB Data',
+    description: 'Looks up CMDB CI data and enriches the incident with business service info',
+    access: 'public',
+    inputs: {
+      incident_id: DocumentIdColumn({
+        label: 'Incident',
+        mandatory: true,
+        dependent: 'incident_table',
+      }),
+      incident_table: TableNameColumn({
+        label: 'Table',
+        mandatory: true,
+      }),
+    },
+    outputs: {
+      business_service: StringColumn({ label: 'Business Service', maxLength: 255 }),
+      enriched_count: StringColumn({ label: 'Fields Enriched', maxLength: 10 }),
+    },
+  },
+  (params) => {
+    // Action body — use ActionStep calls here
+    // params.inputs.incident_id, params.outputs.business_service
+  }
+)
+```
+
+### ActionDefinition Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `$id` | String | Yes | Unique metadata ID |
+| `name` | String | Yes | Display name in Flow Designer |
+| `description` | String | No | Visible to flow developers |
+| `access` | String | No | `'public'` or `'package_private'` |
+| `category` | String | No | Groups action in the picker |
+| `protection` | String | No | `'read'` (read-only) or `''` |
+| `inputs` | Object | Yes | Input parameters as Column types |
+| `outputs` | Object | Yes | Output parameters as Column types |
+
+---
+
+## ActionStepDefinition and ActionStep (Custom Action Steps)
+
+Define typed steps within a custom `ActionDefinition` body. Each step corresponds to a platform step type.
+
+```ts
+import { ActionStepDefinition, ActionStep } from '@servicenow/sdk/automation'
+import { StringColumn, ChoiceColumn, IntegerColumn } from '@servicenow/sdk/core'
+
+// Define a custom step type
+const myScriptStep = ActionStepDefinition({
+  $id: Now.ID['my_script_step_def'],
+  name: 'Run Custom Script',
+  category: 'utilities',
+  inputs: {
+    input_value: StringColumn({ label: 'Input', mandatory: true }),
+    retry_count: IntegerColumn({ label: 'Retry Count', default: 3 }),
+  },
+  outputs: {
+    result: StringColumn({ label: 'Result' }),
+    status: ChoiceColumn({
+      label: 'Status',
+      choices: { success: { label: 'Success' }, failed: { label: 'Failed' } },
+    }),
+  },
+})
+
+// Use the step inside an ActionDefinition body:
+ActionDefinition(
+  { $id: Now.ID['my_action'], name: 'My Action', inputs: {}, outputs: {} },
+  (params) => {
+    ActionStep(myScriptStep, { $id: Now.ID['run_script'] }, {
+      input_value: 'hello',
+      retry_count: 2,
+    })
+  }
+)
+```
+
+**Built-in action steps** (use in custom Action bodies):
+
+```ts
+import { actionStep } from '@servicenow/sdk/automation'
+
+// Available: actionStep.log, actionStep.script, actionStep.rest, actionStep.createRecord,
+//            actionStep.updateRecord, actionStep.deleteRecord, actionStep.lookUpRecord,
+//            actionStep.lookUpRecords, actionStep.createOrUpdateRecord, actionStep.updateMultipleRecords,
+//            actionStep.deleteMultipleRecords, actionStep.createTask, actionStep.waitForCondition,
+//            actionStep.waitForEmailReply, actionStep.waitForMessage, actionStep.fireEvent,
+//            actionStep.notification, actionStep.email, actionStep.sms, actionStep.askForApproval,
+//            actionStep.getLatestResponseTextFromEmail, actionStep.createTemplatedObject,
+//            actionStep.createRecordForRemoteTable, actionStep.collectActivityContext,
+//            actionStep.createAppFromPayload
+```
+
+---
+
+## TriggerDefinition (Custom Trigger Types)
+
+Define custom trigger types for Flow Designer. This is advanced usage for platform or ISV development:
+
+```ts
+import { TriggerDefinition } from '@servicenow/sdk/automation'
+import { StringColumn, BooleanColumn } from '@servicenow/sdk/core'
+
+export const myCustomTrigger = TriggerDefinition({
+  $id: Now.ID['my_custom_trigger'],
+  name: 'My Custom Trigger',
+  type: 'rest',
+  inputs: {
+    endpoint: StringColumn({ label: 'Endpoint', mandatory: true }),
+    require_auth: BooleanColumn({ label: 'Require Auth', default: true }),
+  },
+  outputs: {
+    payload: StringColumn({ label: 'Request Payload', maxLength: 65000 }),
+    caller_id: StringColumn({ label: 'Caller ID', maxLength: 40 }),
+  },
+})
+```
+
+**Built-in trigger types** reference (used with `wfa.trigger(trigger.xxx, ...)`):
+
+| Category | Trigger | Type string |
+|----------|---------|-------------|
+| Record | `trigger.record.created` | `'record_create'` |
+| Record | `trigger.record.updated` | `'record_update'` |
+| Record | `trigger.record.createdOrUpdated` | `'record_create_or_update'` |
+| Scheduled | `trigger.scheduled.daily` | `'daily'` |
+| Scheduled | `trigger.scheduled.weekly` | `'weekly'` |
+| Scheduled | `trigger.scheduled.monthly` | `'monthly'` |
+| Scheduled | `trigger.scheduled.repeat` | `'repeat'` |
+| Scheduled | `trigger.scheduled.runOnce` | `'run_once'` |
+| Application | `trigger.application.inboundEmail` | `'email'` |
+| Application | `trigger.application.serviceCatalog` | `'service_catalog'` |
+| Application | `trigger.application.slaTask` | `'sla_task'` |
+| Application | `trigger.application.knowledgeManagement` | `'knowledge_management'` |
+| Application | `trigger.application.remoteTableQuery` | `'remote_table_query'` |
 
 ---
 

@@ -56,7 +56,7 @@ Controls whether the SLA start time is set to a point in the past based on a spe
 | Property | Type | Description |
 |----------|------|-------------|
 | `start` | Boolean | Flag that indicates whether retroactive start is enabled. When enabled, the SLA start time is set to the value of the field specified in `setStartTo` rather than the time when the start condition was first met. Default: `false` |
-| `setStartTo` | String | The field on the task record whose value is used as the SLA start time when retroactive start is enabled. **Required if `start` is `true`.** |
+| `setStartTo` | String | The field on the task record whose value is used as the SLA start time when retroactive start is enabled. **Required if `start` is `true`.** Valid values: `'work_end'` (actual end), `'work_start'` (actual start), `'approval_set'` (approvals set), `'closed_at'` (closed), `'sys_created_on'` (created), `'due_date'` (due date), `'expected_start'` (expected start), `'follow_up'` (follow up). |
 | `pause` | Boolean | Flag that indicates whether retroactive pause is enabled when retroactive start is active. When enabled, any time that the task was in a paused state before the SLA was attached is subtracted from the elapsed time. Default: `true` |
 
 ## conditions Object

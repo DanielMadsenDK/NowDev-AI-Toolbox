@@ -1,5 +1,33 @@
 # Fluent API Quick Reference
 
+## Table of Contents
+
+- [Fluent Language Constructs](#fluent-language-constructs)
+- [Import Patterns](#import-patterns)
+- [Table](#table)
+- [List](#list)
+- [ApplicationMenu and Navigation Modules](#applicationmenu-and-navigation-modules)
+- [BusinessRule](#businessrule)
+- [ClientScript](#clientscript)
+- [ScriptInclude](#scriptinclude)
+- [Record](#record)
+- [REST API](#rest-api)
+- [UiPage](#uipage)
+- [SPWidget](#spwidget)
+- [ATF Test](#atf-test)
+- [UiPolicy](#uipolicy)
+- [ImportSet](#importset)
+- [Utility Helpers](#utility-helpers)
+- [EmailNotification](#emailnotification)
+- [Role](#role)
+- [Acl (Access Control List)](#acl-access-control-list)
+- [CrossScopePrivilege](#crossscopeprivilege)
+- [Applicability](#applicability)
+- [Workspace](#workspace)
+- [Sla](#sla)
+
+---
+
 ## Fluent Language Constructs
 
 ServiceNow Fluent provides specialized language constructs for metadata definition and management. These are built-in helpers that integrate with the Fluent SDK.
@@ -194,20 +222,25 @@ Record({
 ## Import Patterns
 
 ```ts
-import '@servicenow/sdk/global'                                     // Global Now.* helpers
+import '@servicenow/sdk/global'                                     // Global Now.* helpers (Now.ID, Now.ref, Now.include, Now.attach, Now.UNRESOLVED)
 import { Table, BusinessRule, UiPage, ScriptInclude } from '@servicenow/sdk/core'
-import { UiPolicy, ImportSet, RestApi, script } from '@servicenow/sdk/core'
-import { Duration, Time, FieldList, TemplateValue } from '@servicenow/sdk/core' // helpers
+import { UiPolicy, ImportSet, RestApi } from '@servicenow/sdk/core'
 import { EmailNotification, Workspace, Sla } from '@servicenow/sdk/core'
 import { Role, Applicability, UxListMenuConfig, Dashboard } from '@servicenow/sdk/core'
 import { CatalogItem, CatalogClientScript, CatalogUiPolicy, VariableSet } from '@servicenow/sdk/core'
 import { CatalogItemRecordProducer } from '@servicenow/sdk/core'
 import { Acl, CrossScopePrivilege } from '@servicenow/sdk/core'     // Security & Privileges
-import { Flow, wfa, trigger, action } from '@servicenow/sdk/automation' // Flow API
+import { AnnotationType, default_view } from '@servicenow/sdk/core' // Pre-defined UI constants
+import { FlowObject, FlowArray } from '@servicenow/sdk/core'        // Complex flow types
+import { Flow, SubflowDefinition, wfa, trigger, action, actionStep } from '@servicenow/sdk/automation'  // Flow API
+import { ActionDefinition, ActionStepDefinition, ActionStep } from '@servicenow/sdk/automation'  // Custom action definitions
+import { TriggerDefinition, FDTransform } from '@servicenow/sdk/automation'  // Custom triggers & transforms
 import { gs, GlideRecord } from '@servicenow/glide'                 // Server-side SN APIs
 import { role as globalRole } from '#now:global/security'           // instance roles
 import htmlEntry from '../../client/index.html'                     // HTML assets
 import { myFn } from '../server/module.js'                          // TS module functions
+// Duration(), Time(), TemplateValue(), FieldList() are global functions (no import needed)
+// They are declared globally via '@servicenow/sdk/global'
 ```
 
 `#now:` alias requires `"imports": { "#now:*": "./@types/servicenow/fluent/*/index.js" }` in `package.json`.
@@ -251,13 +284,9 @@ export const myTable = Table({
 
 All column types follow the pattern `<Type>Column`. Supported types include:
 
-`StringColumn`, `IntegerColumn`, `BooleanColumn`, `DateColumn`, `DateTimeColumn`, `ReferenceColumn`, `FloatColumn`, `EmailColumn`, `UrlColumn`, `HTMLColumn`, `MultiLineTextColumn`, `JsonColumn`, `GuidColumn`, `Password2Column`, `DurationColumn`, `TimeColumn`, `FieldListColumn`, `SlushBucketColumn`, `NameValuePairsColumn`, `TemplateValueColumn`, `ApprovalRulesColumn`, `ListColumn`, `RadioColumn`, `ChoiceColumn`, `ScriptColumn`, `VersionColumn`, `DomainIdColumn`, `FieldNameColumn`, `TableNameColumn`, `UserRolesColumn`, `BasicImageColumn`, `DocumentIdColumn`, `DomainPathColumn`, `TranslatedTextColumn`, `SystemClassNameColumn`, `TranslatedFieldColumn`, `GenericColumn`, `DecimalColumn`, `ConditionsColumn`, `CalendarDateTime`, `BasicDateTimeColumn`, `DueDateColumn`, `IntegerDateColumn`, `ScheduleDateTimeColumn`, `OtherDateColumn`
+`StringColumn`, `IntegerColumn`, `BooleanColumn`, `DateColumn`, `DateTimeColumn`, `ReferenceColumn`, `FloatColumn`, `EmailColumn`, `UrlColumn`, `HtmlColumn`, `MultiLineTextColumn`, `JsonColumn`, `GuidColumn`, `Password2Column`, `DurationColumn`, `TimeColumn`, `FieldListColumn`, `SlushBucketColumn`, `NameValuePairsColumn`, `TemplateValueColumn`, `ApprovalRulesColumn`, `ListColumn`, `RadioColumn`, `ChoiceColumn`, `ScriptColumn`, `VersionColumn`, `DomainIdColumn`, `DomainPathColumn`, `FieldNameColumn`, `TableNameColumn`, `UserRolesColumn`, `UserImageColumn`, `BasicImageColumn`, `DocumentIdColumn`, `TranslatedTextColumn`, `TranslatedFieldColumn`, `SystemClassNameColumn`, `GenericColumn`, `DecimalColumn`, `ConditionsColumn`, `CalendarDateTimeColumn`, `BasicDateTimeColumn`, `DueDateColumn`, `IntegerDateColumn`, `ScheduleDateTimeColumn`, `OtherDateColumn`, `DayOfWeekColumn`, `DaysOfWeekColumn`, `RecordsColumn`
 
-### Common Column Properties
-
-`label`, `mandatory`, `readOnly`, `active`, `default`, `maxLength`, `dropdown`, `choices`, `referenceTable` (**required** for `ReferenceColumn` and `ListColumn`)
-
-**For complete Table API documentation including all properties, column configurations, licensing models, access control, auto-numbering, indexes, and dynamic values, see [TABLE-API.md](./TABLE-API.md)**
+**For the complete column type quick-reference table (43 column types with descriptions), and full Table API documentation, see [TABLE-API.md](./TABLE-API.md)**
 
 ---
 
@@ -795,15 +824,15 @@ export const customConfig = Record({
 
 ```ts
 RestApi({
-  $id: Now.ID['api'], name: 'My API', service_id: 'my_api', consumes: 'application/json',
+  $id: Now.ID['api'], name: 'My API', serviceId: 'my_api', consumes: 'application/json',
   routes: [{
     $id: Now.ID['route.get'], name: 'get', method: 'GET',
-    script: script`(function process(request, response) { response.setBody({ ok: true }) })(request, response)`
+    script: Now.include('./handler.server.js')
   }]
 })
 ```
 
-Endpoint: `/api/<scope>/<service_id>` — `service_id` must be unique within the application scope.
+Endpoint: `/api/<scope>/<serviceId>` — `serviceId` must be unique within the application scope. For full documentation including versions, parameters, headers, and ACLs see [REST-API.md](./REST-API.md).
 
 ---
 

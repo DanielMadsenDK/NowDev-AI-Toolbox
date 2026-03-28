@@ -6,6 +6,19 @@ A dashboard consists of tabs, widgets, visibilities, and permissions. Each tab c
 
 Dashboards can be used as the home page of a workspace by referring to one or more workspaces from the `visibilities` array of the Dashboard object. To create a workspace, see [Workspace API - ServiceNow Fluent](./API-REFERENCE.md#workspace).
 
+## Table of Contents
+
+- [Dashboard Object](#dashboard-object)
+- [tabs Array](#tabs-array)
+- [widgets Array](#widgets-array)
+- [componentProps Object](#componentprops-object)
+- [permissions Array](#permissions-array)
+- [visibilities Array](#visibilities-array)
+- [Complete Dashboard Example](#complete-dashboard-example)
+- [Best Practices](#best-practices)
+
+---
+
 ## Dashboard Object
 
 Creates a shareable dashboard with data visualizations, filters, tabs, widgets, permissions, and visibility rules.
@@ -17,6 +30,7 @@ Creates a shareable dashboard with data visualizations, filters, tabs, widgets, 
 | `$id` | String or Number | **Required.** A unique ID for the metadata object. Format: `Now.ID['String' or Number]`. When you build the application, this ID is hashed into a unique `sys_id`. |
 | `name` | String | **Required.** A name to display for the dashboard. |
 | `active` | Boolean | Flag that indicates whether the dashboard is active. Default: `true` |
+| `topLayout` | Object | An array of widgets displayed outside of tabs, at the top of the dashboard. See [widgets array](#widgets-array) for widget properties. |
 | `tabs` | Array | A list of tabs to display in the dashboard. See [tabs array](#tabs-array). |
 | `permissions` | Array | A list of user permissions required to access the dashboard. See [permissions array](#permissions-array). |
 | `visibilities` | Array | A list of visibility rules that control which UX experiences display the dashboard. Default: A default visibility rule is used. See [visibilities array](#visibilities-array). |

@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -12,7 +12,7 @@
   },
   "icon": "media/agent-icon.png",
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.112.0"
   },
   "categories": [
     "AI",

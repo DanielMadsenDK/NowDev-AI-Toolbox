@@ -148,7 +148,62 @@ There are many types of columns based on the field type. Column objects use the 
 
 ### Supported Column Types
 
-`StringColumn`, `IntegerColumn`, `BooleanColumn`, `DecimalColumn`, `DateColumn`, `DateTimeColumn`, `CalendarDateTime`, `BasicDateTimeColumn`, `DueDateColumn`, `IntegerDateColumn`, `ScheduleDateTimeColumn`, `OtherDateColumn`, `ListColumn`, `RadioColumn`, `ChoiceColumn`, `ScriptColumn`, `VersionColumn`, `DomainIdColumn`, `FieldNameColumn`, `ReferenceColumn`, `TableNameColumn`, `UserRolesColumn`, `BasicImageColumn`, `DocumentIdColumn`, `DomainPathColumn`, `TranslatedTextColumn`, `SystemClassNameColumn`, `TranslatedFieldColumn`, `GenericColumn`, `Password2Column`, `GuidColumn`, `JsonColumn`, `NameValuePairsColumn`, `UrlColumn`, `EmailColumn`, `HTMLColumn`, `FloatColumn`, `MultiLineTextColumn`, `DurationColumn`, `TimeColumn`, `FieldListColumn`, `SlushBucketColumn`, `TemplateValueColumn`, `ApprovalRulesColumn`
+`StringColumn`, `IntegerColumn`, `BooleanColumn`, `DecimalColumn`, `DateColumn`, `DateTimeColumn`, `CalendarDateTimeColumn`, `BasicDateTimeColumn`, `DueDateColumn`, `IntegerDateColumn`, `ScheduleDateTimeColumn`, `OtherDateColumn`, `ListColumn`, `RadioColumn`, `ChoiceColumn`, `ScriptColumn`, `VersionColumn`, `DomainIdColumn`, `DomainPathColumn`, `FieldNameColumn`, `ReferenceColumn`, `TableNameColumn`, `UserRolesColumn`, `UserImageColumn`, `BasicImageColumn`, `DocumentIdColumn`, `TranslatedTextColumn`, `TranslatedFieldColumn`, `SystemClassNameColumn`, `GenericColumn`, `Password2Column`, `GuidColumn`, `JsonColumn`, `NameValuePairsColumn`, `UrlColumn`, `EmailColumn`, `HtmlColumn`, `FloatColumn`, `MultiLineTextColumn`, `DurationColumn`, `TimeColumn`, `FieldListColumn`, `TemplateValueColumn`, `SlushBucketColumn`, `ApprovalRulesColumn`, `ConditionsColumn`, `DayOfWeekColumn`, `DaysOfWeekColumn`, `RecordsColumn`
+
+**Column type quick reference:**
+
+| Column Type | ServiceNow Field Type | Use For |
+|-------------|----------------------|---------|
+| `StringColumn` | `string` | Short text (≤255 chars shown as single-line) |
+| `MultiLineTextColumn` | `string` | Long text (>255 chars shown as multi-line) |
+| `IntegerColumn` | `integer` | Whole numbers |
+| `FloatColumn` | `float` | Floating-point numbers |
+| `DecimalColumn` | `decimal` | Fixed-precision decimals |
+| `BooleanColumn` | `boolean` | True/false checkbox |
+| `ChoiceColumn` | `string` (choice) | Dropdown with defined choices |
+| `RadioColumn` | `string` (radio) | Radio button selection |
+| `DateColumn` | `glide_date` | Date only (no time) |
+| `DateTimeColumn` | `glide_date_time` | Date and time |
+| `CalendarDateTimeColumn` | `calendar_date_time` | Calendar date/time picker |
+| `ScheduleDateTimeColumn` | `schedule_date_time` | Scheduled date/time |
+| `DueDateColumn` | `due_date` | Due date with business time tracking |
+| `IntegerDateColumn` | `integer_date` | Date stored as integer |
+| `BasicDateTimeColumn` | `glide_date_time` variant | Basic date/time |
+| `OtherDateColumn` | Various date types | Other date variants |
+| `DurationColumn` | `glide_duration` | Time duration (days/hours/minutes) |
+| `TimeColumn` | `glide_time` | Time of day only |
+| `ReferenceColumn` | `reference` | Foreign key reference to another table |
+| `DocumentIdColumn` | `document_id` | Generic document reference (table+sys_id pair) |
+| `TableNameColumn` | `table_name` | Name of a ServiceNow table |
+| `FieldNameColumn` | `field_name` | Name of a field on a table |
+| `FieldListColumn` | `field_list` | Comma-separated list of field names |
+| `ListColumn` | `glide_list` | Multi-value reference list |
+| `TemplateValueColumn` | `template_value` | Key-value field value template |
+| `ConditionsColumn` | `conditions` | Encoded query / filter conditions |
+| `ScriptColumn` | `script` | Server-side script content |
+| `JsonColumn` | `json` | JSON data |
+| `UrlColumn` | `url` | URL string |
+| `EmailColumn` | `email` | Email address |
+| `HtmlColumn` | `html` | HTML content |
+| `Password2Column` | `password2` | Encrypted password field |
+| `GuidColumn` | `GUID` | Globally unique identifier |
+| `VersionColumn` | `version` | Software version string |
+| `DomainIdColumn` | `domain_id` | Domain identifier |
+| `DomainPathColumn` | `domain_path` | Domain path string |
+| `UserRolesColumn` | `user_roles` | User roles list |
+| `UserImageColumn` | `user_image` | User profile image |
+| `BasicImageColumn` | `image` | Basic image attachment |
+| `SystemClassNameColumn` | `system_class_name` | Table class name |
+| `TranslatedTextColumn` | `translated_text` | Translatable text |
+| `TranslatedFieldColumn` | `translated_field` | Field with translations |
+| `GenericColumn` | Various | Generic field with explicit `column_type` attribute |
+| `NameValuePairsColumn` | `name_value_pairs` | Name-value pair storage |
+| `SlushBucketColumn` | `slush_bucket` | Dual-list selector |
+| `ApprovalRulesColumn` | `approval_rules` | Approval rule configuration |
+| `DayOfWeekColumn` | `day_of_week` | Single day of week selection |
+| `DaysOfWeekColumn` | `days_of_week` | Multiple days of week selection |
+| `RecordsColumn` | `records` | Array of record references |
+| `VersionColumn` | `version` | Version string |
 
 ### Properties
 

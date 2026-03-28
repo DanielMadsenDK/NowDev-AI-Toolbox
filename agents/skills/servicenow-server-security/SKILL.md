@@ -109,4 +109,6 @@ var hasAccess = secMgr.canRead(grRecord, true); // true = enforcing
 
 ## Reference
 
+For working code examples covering encryption, hashing, OAuth, and certificate operations, see [EXAMPLES.md](references/EXAMPLES.md)
+
 For OAuth security patterns, encryption best practices, and injection prevention, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)

@@ -2,6 +2,25 @@
 
 Create custom user interface (UI) actions such as buttons, links, and context menu items on forms and lists.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Related Concepts](#related-concepts)
+- [UiAction Properties Reference](#uiaction-properties-reference)
+- [form Object](#form-object)
+- [list Object](#list-object)
+- [client Object](#client-object)
+- [workspace Object](#workspace-object)
+- [Complete Example](#complete-example)
+- [Usage Patterns](#usage-patterns)
+- [Best Practices](#best-practices)
+- [Common Patterns and Examples](#common-patterns-and-examples)
+- [Error Handling](#error-handling)
+- [Related References](#related-references)
+- [Troubleshooting](#troubleshooting)
+
+---
+
 ## Overview
 
 The UI Action API defines custom user interface (UI) actions (`[sys_ui_action]`) that display on forms and lists as buttons, links, and context menu items. UI actions execute client-side or server-side scripts when triggered by users, enabling interactive functionality without page refresh or navigation.

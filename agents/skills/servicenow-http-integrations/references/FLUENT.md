@@ -20,59 +20,55 @@ HTTP integrations in the Fluent SDK use similar underlying mechanisms to the cla
 
 ## REST API Calls
 
+> **Note:** `RESTMessageV2`, `SOAPMessageV2`, and `GlideOAuthClient` are global ServiceNow APIs available in `.server.js` handler files — no import needed. These run as server-side GlideScript, not TypeScript.
+
 ### Basic REST Request with SDK
 
-```typescript
-import { RESTMessageV2 } from '@servicenow/sdk/core'
-
-const rest = new RESTMessageV2('IntegrationName', 'GET');
+```javascript
+// Inside your .server.js handler file
+var rest = new RESTMessageV2('IntegrationName', 'GET');
 rest.setEndpoint('https://api.example.com/v1/users');
 rest.setQueryParameter('page', '1');
 rest.setQueryParameter('limit', '10');
 rest.setHttpTimeout(30000);
 
-const response = rest.execute();
-const statusCode = response.getStatusCode();
+var response = rest.execute();
+var statusCode = response.getStatusCode();
 
-if (statusCode === 200) {
-    const body = response.getBody();
-    const data = JSON.parse(body);
-    gs.info(`Users retrieved: ${data.length}`);
+if (statusCode == 200) {
+    var body = response.getBody();
+    var data = JSON.parse(body);
+    gs.info('Users retrieved: ' + data.length);
 } else {
-    gs.error(`API call failed with status: ${statusCode}`);
+    gs.error('API call failed with status: ' + statusCode);
 }
 ```
 
-### POST Request with Typed Payload
+### POST Request with JSON Payload
 
-```typescript
-interface IncidentPayload {
-    title: string;
-    description: string;
-    priority: number;
-}
-
-async function createIncident(payload: IncidentPayload) {
-    const rest = new RESTMessageV2('ExternalAPI', 'POST');
+```javascript
+// Inside your .server.js handler file
+function createIncident(payload) {
+    var rest = new RESTMessageV2('ExternalAPI', 'POST');
     rest.setEndpoint('https://api.example.com/v1/incidents');
     rest.setRequestHeader('Content-Type', 'application/json');
     rest.setHttpTimeout(30000);
-
     rest.setRequestBody(JSON.stringify(payload));
 
     try {
-        const response = rest.execute();
-        const statusCode = response.getStatusCode();
+        var response = rest.execute();
+        var statusCode = response.getStatusCode();
 
-        if (statusCode === 201) {
-            const result = JSON.parse(response.getBody());
-            gs.info(`Incident created: ${result.id}`);
+        if (statusCode == 201) {
+            var result = JSON.parse(response.getBody());
+            gs.info('Incident created: ' + result.id);
             return result;
         } else {
-            throw new Error(`Failed to create incident: ${statusCode}`);
+            gs.error('Failed to create incident: ' + statusCode);
+            return null;
         }
-    } catch (error) {
-        gs.error(`Error: ${error.message}`);
+    } catch (e) {
+        gs.error('Error: ' + e.message);
         return null;
     }
 }
@@ -84,19 +80,18 @@ async function createIncident(payload: IncidentPayload) {
 
 ### Get OAuth Token with Error Handling
 
-```typescript
-import { GlideOAuthClient } from '@servicenow/sdk/core'
-
-async function getOAuthToken(credentialId: string): Promise<string | null> {
+```javascript
+// Inside your .server.js handler file — GlideOAuthClient is a global API
+function getOAuthToken(credentialId) {
     try {
-        const oauthClient = new GlideOAuthClient();
+        var oauthClient = new GlideOAuthClient();
         oauthClient.setCredentialId(credentialId);
 
-        const token = oauthClient.getNewAccessToken();
-        const accessToken = token.getAccessToken();
-        const expiresIn = token.getExpiresIn();
+        var token = oauthClient.getNewAccessToken();
+        var accessToken = token.getAccessToken();
+        var expiresIn = token.getExpiresIn();
 
-        gs.info(`Token retrieved, expires in: ${expiresIn} seconds`);
+        gs.info('Token retrieved, expires in: ' + expiresIn + ' seconds');
         return accessToken;
     } catch (error) {
         gs.error(`OAuth token retrieval failed: ${error.message}`);
@@ -104,18 +99,18 @@ async function getOAuthToken(credentialId: string): Promise<string | null> {
     }
 }
 
-async function callProtectedAPI(credentialId: string, endpoint: string) {
-    const token = await getOAuthToken(credentialId);
+function callProtectedAPI(credentialId, endpoint) {
+    var token = getOAuthToken(credentialId);
 
     if (!token) {
         return null;
     }
 
-    const rest = new RESTMessageV2('ProtectedAPI', 'GET');
+    var rest = new RESTMessageV2('ProtectedAPI', 'GET');
     rest.setEndpoint(endpoint);
-    rest.setRequestHeader('Authorization', `Bearer ${token}`);
+    rest.setRequestHeader('Authorization', 'Bearer ' + token);
 
-    const response = rest.execute();
+    var response = rest.execute();
     return response.getBody();
 }
 ```
@@ -126,32 +121,30 @@ async function callProtectedAPI(credentialId: string, endpoint: string) {
 
 ### Call SOAP Service
 
-```typescript
-import { SOAPMessageV2 } from '@servicenow/sdk/core'
-import { XMLDocument } from '@servicenow/sdk/core'
-
-function callSoapService(userId: string): string | null {
+```javascript
+// Inside your .server.js handler file \u2014 SOAPMessageV2 and XMLDocument are global APIs
+function callSoapService(userId) {
     try {
-        const soap = new SOAPMessageV2('SoapIntegrationName', 'GetUser');
+        var soap = new SOAPMessageV2('SoapIntegrationName', 'GetUser');
         soap.setEndpoint('https://api.example.com/soap/service');
 
         soap.setParameter('userId', userId);
         soap.setParameter('includeDetails', 'true');
         soap.setHttpTimeout(30000);
 
-        const response = soap.execute();
-        const responseBody = response.getBody();
+        var response = soap.execute();
+        var responseBody = response.getBody();
 
         // Parse SOAP response
-        const xmlDocument = new XMLDocument();
+        var xmlDocument = new XMLDocument();
         xmlDocument.parseXML(responseBody);
 
-        const user = xmlDocument.getDocumentElement().getFirstChild();
-        gs.info(`User retrieved: ${user.getAttribute('name')}`);
+        var user = xmlDocument.getDocumentElement().getFirstChild();
+        gs.info('User retrieved: ' + user.getAttribute('name'));
 
         return responseBody;
-    } catch (error) {
-        gs.error(`SOAP call failed: ${error.message}`);
+    } catch (e) {
+        gs.error('SOAP call failed: ' + e.message);
         return null;
     }
 }
@@ -161,25 +154,15 @@ function callSoapService(userId: string): string | null {
 
 ## Robust Error Handling with Retry
 
-```typescript
-interface ApiCallResult {
-    success: boolean;
-    status?: number;
-    body?: string;
-    error?: string;
-}
-
-async function callExternalAPIWithRetry(
-    endpoint: string,
-    method: string,
-    payload?: object,
-    maxRetries: number = 3
-): Promise<ApiCallResult> {
-    let retries = 0;
+```javascript
+// Inside your .server.js handler file
+function callExternalAPIWithRetry(endpoint, method, payload, maxRetries) {
+    maxRetries = maxRetries || 3;
+    var retries = 0;
 
     while (retries < maxRetries) {
         try {
-            const rest = new RESTMessageV2('ExternalAPI', method);
+            var rest = new RESTMessageV2('ExternalAPI', method);
             rest.setEndpoint(endpoint);
             rest.setRequestHeader('Content-Type', 'application/json');
             rest.setHttpTimeout(30000);
@@ -188,75 +171,56 @@ async function callExternalAPIWithRetry(
                 rest.setRequestBody(JSON.stringify(payload));
             }
 
-            const response = rest.execute();
-            const statusCode = response.getStatusCode();
+            var response = rest.execute();
+            var statusCode = response.getStatusCode();
 
             // Success
             if (statusCode >= 200 && statusCode < 300) {
                 gs.info('API call successful');
-                return {
-                    success: true,
-                    status: statusCode,
-                    body: response.getBody()
-                };
+                return { success: true, status: statusCode, body: response.getBody() };
             }
 
             // Retry on server error
             if (statusCode >= 500) {
                 retries++;
-                gs.warn(`Server error (${statusCode}), retrying...`);
-                await sleep(2000 * retries); // Exponential backoff
+                gs.warn('Server error (' + statusCode + '), retrying...');
                 continue;
             }
 
             // Client error - don't retry
-            gs.error(`Client error (${statusCode}): ${response.getBody()}`);
-            return {
-                success: false,
-                status: statusCode,
-                body: response.getBody()
-            };
+            gs.error('Client error (' + statusCode + '): ' + response.getBody());
+            return { success: false, status: statusCode, body: response.getBody() };
 
-        } catch (error) {
+        } catch (e) {
             retries++;
-            gs.error(`Attempt ${retries} failed: ${error.message}`);
+            gs.error('Attempt ' + retries + ' failed: ' + e.message);
 
             if (retries >= maxRetries) {
-                return {
-                    success: false,
-                    error: error.message
-                };
+                return { success: false, error: e.message };
             }
-
-            await sleep(2000 * retries);
         }
     }
 
-    return {
-        success: false,
-        error: 'Max retries exceeded'
-    };
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return { success: false, error: 'Max retries exceeded' };
 }
 ```
+
+> **Note:** ServiceNow's script engine (Rhino) does not support `async/await` or `Promise`. Use synchronous patterns with loops for retry logic.
 
 ---
 
 ## Best Practices
 
-✓ **Use TypeScript types** - For request/response payloads
 ✓ **Always check status codes** - Before processing responses
-✓ **Implement retry logic** - For transient failures
-✓ **Use async/await patterns** - When possible
+✓ **Implement retry logic** - For transient 5xx failures
+✓ **No async/await in handlers** - ServiceNow Rhino engine is synchronous
 ✓ **Handle errors gracefully** - With try-catch
 ✓ **Log all requests** - For debugging and audit
 ✓ **Validate SSL certificates** - In production
-✓ **Store credentials securely** - Use sys_password table
+✓ **Store credentials securely** - Use sys_password table or Connection & Credential Aliases
 ✓ **Test thoroughly** - On sub-production first
 ✓ **Document API contracts** - External specifications
+✓ **No SDK imports needed** - RESTMessageV2, SOAPMessageV2, GlideOAuthClient are all global APIs in .server.js files
 
 ---
 

@@ -2,6 +2,24 @@
 
 Quick reference guide for creating server-side Script Includes and utilities. This page provides navigation to detailed pattern references organized by approach.
 
+## Table of Contents
+
+- [Choose Your Approach](#choose-your-approach)
+- [Script Include Types](#script-include-types)
+- [Pattern Coverage](#pattern-coverage)
+- [Quick Decision Guide](#quick-decision-guide)
+- [Key Differences at a Glance](#key-differences-at-a-glance)
+- [See Also](#see-also)
+- [Class-Based Script Include](#class-based-script-include)
+- [Utility Functions Library](#utility-functions-library)
+- [Database Query Utilities](#database-query-utilities)
+- [Incident Management Utilities](#incident-management-utilities)
+- [Logging and Error Handling](#logging-and-error-handling)
+- [Best Practices Demonstrated](#best-practices-demonstrated)
+- [Usage Example](#usage-example)
+
+---
+
 ## Choose Your Approach
 
 ### **[CLASSIC.md](CLASSIC.md) — Instance-Based Script Includes**

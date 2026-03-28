@@ -2,6 +2,18 @@
 
 ServiceNow Fluent provides the **Test API** for creating automated tests ([sys_atf_test]) that verify your instance works correctly after making changes.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Test Object](#test-object)
+- [Test Configuration Function](#test-configuration-function)
+- [Supported Test Steps](#supported-test-steps)
+- [Examples](#examples)
+- [Best Practices](#best-practices)
+- [Related Resources](#related-resources)
+
+---
+
 ## Overview
 
 Automated Test Framework (ATF) tests allow you to create step-by-step test sequences that:

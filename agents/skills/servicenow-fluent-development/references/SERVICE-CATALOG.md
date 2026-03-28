@@ -24,6 +24,18 @@ import {
 
 ---
 
+## Table of Contents
+
+- [CatalogItem](#catalogitem)
+- [VariableSet](#variableset)
+- [Catalog Variable Types](#catalog-variable-types)
+- [CatalogUiPolicy](#cataloguipolicy)
+- [CatalogClientScript](#catalogclientscript)
+- [CatalogItemRecordProducer](#catalogitemrecordproducer)
+- [Key Guidelines & Best Practices](#key-guidelines--best-practices)
+
+---
+
 ## CatalogItem
 
 Creates a `sc_cat_item` record that users can request from a service catalog. A catalog item must reference a flow, workflow, or execution plan that defines how the item request is fulfilled.

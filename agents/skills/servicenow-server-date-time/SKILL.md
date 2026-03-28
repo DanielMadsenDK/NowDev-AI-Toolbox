@@ -1,7 +1,7 @@
 ---
 name: servicenow-server-date-time
 user-invocable: false
-description: Perform date arithmetic, time calculations, and schedule management using server-side APIs. Covers GlideDateTime, GlideDate, GlideDuration, and scheduling operations. Use when handling date calculations, working with timezones, managing scheduled tasks, or implementing time-based business logic.
+description: Perform date arithmetic, time calculations, timezone conversions, and schedule management using server-side APIs. Use this skill whenever you need to add or subtract time from dates, compare date ranges, calculate durations, work with business calendars, format dates for display or storage, query scheduled jobs, calculate SLA time windows, handle relative time expressions, or implement any time-based business logic. Covers GlideDateTime, GlideDate, GlideDuration, GlideSchedule, and related scheduling operations.
 ---
 
 # Server Date & Time
@@ -103,5 +103,7 @@ var dueDate = calc.calculateDueDate(startDate, duration);
 | GlideMultiRecurrence | Recurring schedule occurrences |
 
 ## Reference
+
+For working code examples covering date arithmetic, duration calculations, schedule queries, and timezone formatting, see [EXAMPLES.md](references/EXAMPLES.md)
 
 For timezone handling, DST considerations, and advanced patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)

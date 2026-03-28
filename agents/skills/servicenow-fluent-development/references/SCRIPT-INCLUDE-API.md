@@ -8,6 +8,18 @@ import { ScriptInclude } from '@servicenow/sdk/core'
 
 ---
 
+## Table of Contents
+
+- [Important Note](#important-note)
+- [Core Concepts](#core-concepts)
+- [Properties Reference](#properties-reference)
+- [Examples](#examples)
+- [Best Practices](#best-practices)
+- [Related Concepts](#related-concepts)
+- [Common Patterns](#common-patterns)
+
+---
+
 ## Important Note
 
 For **new scripts**, use **JavaScript modules** instead of script includes when possible to support code reuse and using third-party libraries within an application scope. See [JavaScript modules and third-party libraries](https://docs.servicenow.com/bundle/xanadu-application-development/page/build/applications/concept_javascript_modules.html) for more information.

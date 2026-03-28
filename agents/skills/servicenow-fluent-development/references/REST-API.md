@@ -8,6 +8,19 @@ import { RestApi } from '@servicenow/sdk/core'
 
 ---
 
+## Table of Contents
+
+- [Core Concepts](#core-concepts)
+- [RestApi Object](#restapi-object)
+- [routes Object](#routes-object)
+- [parameters and headers objects](#parameters-and-headers-objects)
+- [versions object](#versions-object)
+- [Complete End-to-End Example](#complete-end-to-end-example)
+- [Best Practices](#best-practices)
+- [Related Concepts](#related-concepts)
+
+---
+
 ## Core Concepts
 
 ### When to Use REST APIs

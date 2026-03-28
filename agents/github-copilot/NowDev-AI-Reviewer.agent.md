@@ -80,6 +80,15 @@ You are a specialized expert in **Code Review and Quality Assurance**. Your goal
 *   [ ] Is `GlideAggregate` used for counts?
 *   [ ] Is `current.update()` avoided in Business Rules?
 
+**Fluent (.now.ts):**
+*   [ ] Are own metadata references using `constant.$id` (NOT `Now.ID[...]` in data fields)?
+*   [ ] Is `Now.include('./file.js')` used instead of deprecated `script\`\`` tagged templates?
+*   [ ] Are column names scoped correctly (`x_scope_fieldname` when table lacks scope prefix)?
+*   [ ] Are flow `$id` values unique for every trigger, action, and flowLogic call?
+*   [ ] Are `wfa.approvalRules()` and `wfa.approvalDueDate()` used for askForApproval (not raw strings)?
+*   [ ] Is `assignSubflowOutputs` called before subflow body ends when outputs are declared?
+*   [ ] Are `TemplateValue()` wrappers used for record create/update field values in flows?
+
 **Client-Side:**
 *   [ ] Is `GlideRecord` ABSENT? (Critical).
 *   [ ] Is `GlideAjax` used with `getXMLAnswer`?

@@ -528,7 +528,7 @@ import { RestApi } from '@servicenow/sdk/core'
 export default RestApi({
     $id: Now.ID['simple_rest_api'],
     name: 'Simple Incident API',
-    service_id: 'simple_incident_api',
+    serviceId: 'simple_incident_api',
     consumes: 'application/json',
     produces: 'application/json',
     routes: [
@@ -536,36 +536,14 @@ export default RestApi({
             $id: Now.ID['api_get'],
             name: 'get_incidents',
             method: 'GET',
-            script: `
-                var response = { incidents: [] };
-                var gr = new GlideRecord('incident');
-                gr.setLimit(10);
-                gr.query();
-
-                while (gr.next()) {
-                    response.incidents.push({
-                        number: gr.getValue('number'),
-                        short_description: gr.getValue('short_description')
-                    });
-                }
-
-                return response;
-            `,
+            script: Now.include('./api-handlers/get-incidents.server.js'),
         },
 
         {
             $id: Now.ID['api_create'],
             name: 'create_incident',
             method: 'POST',
-            script: `
-                var incident = new GlideRecord('incident');
-                incident.initialize();
-                incident.short_description = request.body.short_description;
-                incident.category = request.body.category || 'general';
-                var id = incident.insert();
-
-                return { success: true, incident_id: id };
-            `,
+            script: Now.include('./api-handlers/create-incident.server.js'),
         },
     ],
 })
@@ -584,7 +562,7 @@ import { updateIncidentHandler } from '../server/api-handlers/update-incident.js
 export default RestApi({
     $id: Now.ID['modular_rest_api'],
     name: 'Modular Incident API',
-    service_id: 'incident_api',
+    serviceId: 'incident_api',
     consumes: 'application/json',
     produces: 'application/json',
     routes: [

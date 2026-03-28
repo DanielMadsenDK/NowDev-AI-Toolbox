@@ -30,10 +30,13 @@ Create a workspace for managing business entities in a single focused working ar
 | `$id` | String or Number | Yes | A unique ID for the metadata object. When you build the application, this ID is hashed into a unique sys_id. Format: `Now.ID['String' or Number]` |
 | `title` | String | Yes | A name for the workspace that appears in navigation and headers. |
 | `path` | String | Yes | The URL path segment of the workspace. Workspace URLs follow the pattern `/now/<path>/<landingPath>` and use kebab case. |
-| `tables` | Array | Yes | A list of table names to manage in the workspace. Example: `['incident', 'problem', 'change_request']` |
-| `listConfig` | Reference | Yes | The variable identifier of a UxListMenuConfig object that defines the navigation structure of the workspace. |
+| `tables` | Array | No | A list of table names to manage in the workspace. Example: `['incident', 'problem', 'change_request']` |
+| `listConfig` | Reference | No | The variable identifier of a UxListMenuConfig object that defines the navigation structure of the workspace. |
 | `landingPath` | String | No | The URL path segment of the landing page. Workspace URLs follow the pattern `/now/<path>/<landingPath>` and use kebab case. Default: `'home'` |
+| `order` | Number | No | The order in which this workspace appears in the unified navigation. Lower numbers appear first. |
 | `active` | Boolean | No | Flag that indicates whether the workspace is accessible to users. Default: `true` |
+| `defaultRecordOverrides` | Object | No | Overrides for records not tracked by the plugin. A map of record keys to field overrides: `{ [record: string]: { [key: string]: unknown } }` |
+| `$meta` | Object | No | Metadata for installation behavior. `installMethod: 'demo'` (outputs to `metadata/unload.demo`) or `'first install'` (outputs to `metadata/unload`). |
 
 ### Example
 
@@ -182,9 +185,15 @@ List views provide filtered and column-customized displays of table records. Eac
 | `table` | String | Yes | The name of a table to use for the list. |
 | `columns` | String | No | A comma-separated list of column names to display in the list. Example: `'asset_tag,display_name,model_category,assigned_to'` |
 | `condition` | String | No | An encoded query string to filter the records displayed in the list. Example: `'install_status=1'` or `'active=true^EQ'` |
+| `fixedQuery` | String | No | A fixed query that cannot be overridden by users. Applied in addition to `condition`. |
+| `groupByColumn` | String | No | Column name to group records by in the list view. |
+| `view` | String | No | The name of a specific UI view to apply to this list. |
 | `order` | Number | No | A number indicating the position of the list within its category. Lists with lower numbers appear first. |
 | `active` | Boolean | No | Flag that indicates whether the list is visible to users. Default: `true` |
 | `applicabilities` | Array | No | A list of variable identifiers of Applicability objects that control which roles can view the list. See [Applicability object](#applicability-object). |
+| `enableInfiniteScroll` | Boolean | No | Whether to enable infinite scroll instead of pagination. |
+| `roles` | String | No | Comma-separated list of role names that can access this list (alternative to applicabilities). |
+| `hide*` | Boolean | No | Many `hide*` flags are available to control UI element visibility (e.g., `hideHeader`, `hideInlineEditing`, `hidePagination`, `hideColumnSorting`, `hideLinks`, `hideRefreshButton`). |
 
 ### Example
 

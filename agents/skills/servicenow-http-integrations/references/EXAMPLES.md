@@ -2,6 +2,23 @@
 
 Quick reference guide for integrating with external REST and SOAP APIs. This page provides navigation to detailed pattern references organized by approach.
 
+## Table of Contents
+
+- [Choose Your Approach](#choose-your-approach)
+- [Integration Types](#integration-types)
+- [Quick Decision Guide](#quick-decision-guide)
+- [Key Differences at a Glance](#key-differences-at-a-glance)
+- [See Also](#see-also)
+- [Simple REST API - GET/POST](#simple-rest-api---getpost)
+- [Modular REST API with CRUD Operations](#modular-rest-api-with-crud-operations)
+- [OAuth Token Management](#oauth-token-management)
+- [Error Handling and Retries](#error-handling-and-retries)
+- [SOAP Web Service Integration](#soap-web-service-integration)
+- [Best Practices Demonstrated](#best-practices-demonstrated)
+- [Common Patterns](#common-patterns)
+
+---
+
 ## Choose Your Approach
 
 ### **[CLASSIC.md](CLASSIC.md) — Instance-Based HTTP Integrations**
@@ -115,7 +132,7 @@ import { RestApi } from '@servicenow/sdk/core'
 export default RestApi({
     $id: Now.ID['simple_rest_api'],
     name: 'Simple Incident API',
-    service_id: 'simple_incident_api',
+    serviceId: 'simple_incident_api',
     description: 'Basic API for incident operations',
     consumes: 'application/json',
     produces: 'application/json',
@@ -124,68 +141,14 @@ export default RestApi({
             $id: Now.ID['api_get_incidents'],
             name: 'get_incidents',
             method: 'GET',
-            script: `
-                var response = {
-                    status: 'success',
-                    incidents: []
-                };
-
-                var incidentGr = new GlideRecord('incident');
-                incidentGr.addQuery('active', 'true');
-                incidentGr.setLimit(10);
-                incidentGr.query();
-
-                while (incidentGr.next()) {
-                    response.incidents.push({
-                        number: incidentGr.getValue('number'),
-                        short_description: incidentGr.getValue('short_description'),
-                        priority: incidentGr.getValue('priority'),
-                        state: incidentGr.getValue('state')
-                    });
-                }
-
-                return response;
-            `,
+            script: Now.include('./api-handlers/get-incidents.server.js'),
         },
 
         {
             $id: Now.ID['api_create_incident'],
             name: 'create_incident',
             method: 'POST',
-            script: `
-                var response = {
-                    status: 'success',
-                    message: 'Incident created'
-                };
-
-                try {
-                    var body = request.body;
-
-                    // Validate required fields
-                    if (!body.short_description) {
-                        response.status = 'error';
-                        response.message = 'short_description is required';
-                        return response;
-                    }
-
-                    var incident = new GlideRecord('incident');
-                    incident.initialize();
-                    incident.short_description = body.short_description;
-                    incident.description = body.description || '';
-                    incident.category = body.category || 'general';
-                    incident.priority = body.priority || '3';
-                    incident.assignment_group = body.assignment_group;
-
-                    var incidentId = incident.insert();
-                    response.incident_id = incidentId;
-                    response.number = incident.getValue('number');
-                } catch (error) {
-                    response.status = 'error';
-                    response.message = error.message;
-                }
-
-                return response;
-            `,
+            script: Now.include('./api-handlers/create-incident.server.js'),
         },
     ],
 })
@@ -207,7 +170,7 @@ import { deleteIncidentHandler } from '../server/api-handlers/delete-incident.js
 export default RestApi({
     $id: Now.ID['modular_rest_api'],
     name: 'Modular Incident Management API',
-    service_id: 'incident_management_api',
+    serviceId: 'incident_management_api',
     description: 'Complete incident management API with CRUD operations',
     consumes: 'application/json',
     produces: 'application/json',

@@ -25,11 +25,13 @@ See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow
 
 ## Query Patterns
 
+> **Note:** All code in this section runs inside `.server.js` handler files (not `.now.ts` metadata files).
+> `GlideQuery`, `GlideRecord`, and `GlideAggregate` are global ServiceNow APIs — no import needed.
+
 ### Simple Query with Fluent API
 
-```typescript
-import { GlideQuery } from '@servicenow/sdk/core'
-
+```javascript
+// Inside your .server.js handler file
 const incidents = new GlideQuery('incident')
     .where('active', 'true')
     .where('priority', '1')
@@ -83,33 +85,29 @@ return null
 
 ### Insert Record (Fluent)
 
-```typescript
-import { Record } from '@servicenow/sdk/core'
+```javascript
+// Inside your .server.js handler file — use GlideRecord for inserts
+var grIncident = new GlideRecord('incident')
+grIncident.initialize()
+grIncident.short_description = 'New incident'
+grIncident.description = 'Detailed description'
+grIncident.category = 'software'
+grIncident.priority = '3'
+grIncident.insert()
 
-const newIncident = await new GlideQuery('incident')
-    .create({
-        short_description: 'New incident',
-        description: 'Detailed description',
-        category: 'software',
-        priority: '3'
-    })
-    .insert()
-
-return newIncident.sys_id
+return grIncident.getUniqueValue()
 ```
 
 ### Update Record (Fluent)
 
-```typescript
-const incident = new GlideQuery('incident')
-    .where('sys_id', incidentId)
-    .selectOne()
-
-if (incident) {
-    incident.short_description = 'Updated description'
-    incident.priority = '2'
-    incident.assignment_group = groupId
-    incident.update()
+```javascript
+// Inside your .server.js handler file — use GlideRecord for updates
+var grIncident = new GlideRecord('incident')
+if (grIncident.get(incidentId)) {
+    grIncident.short_description = 'Updated description'
+    grIncident.priority = '2'
+    grIncident.assignment_group = groupId
+    grIncident.update()
     return true
 }
 return false
@@ -117,13 +115,11 @@ return false
 
 ### Delete Record
 
-```typescript
-const incident = new GlideQuery('incident')
-    .where('sys_id', incidentId)
-    .selectOne()
-
-if (incident) {
-    incident.delete()
+```javascript
+// Inside your .server.js handler file
+var grIncident = new GlideRecord('incident')
+if (grIncident.get(incidentId)) {
+    grIncident.deleteRecord()
     return true
 }
 return false
@@ -135,48 +131,55 @@ return false
 
 ### Aggregate Operations
 
-```typescript
-const stats = new GlideQuery('incident')
+```javascript
+// Inside your .server.js handler file
+var incidents = new GlideQuery('incident')
     .select()
-    .reduce((acc, incident) => {
-        const priority = incident.priority
-        acc[priority] = (acc[priority] || 0) + 1
-        return acc
-    }, {})
+
+var stats = {}
+for (var incident of incidents) {
+    var priority = incident.priority
+    stats[priority] = (stats[priority] || 0) + 1
+}
 
 return stats
 ```
 
 ### Group and Count
 
-```typescript
-const incidents = new GlideQuery('incident')
+```javascript
+var incidents = new GlideQuery('incident')
     .where('state', '!=', 'closed')
     .select()
 
-const groupedByPriority = incidents.reduce((acc, incident) => {
-    const key = incident.priority
-    if (!acc[key]) acc[key] = []
-    acc[key].push(incident)
-    return acc
-}, {})
+var groupedByPriority = {}
+for (var incident of incidents) {
+    var key = incident.priority
+    if (!groupedByPriority[key]) groupedByPriority[key] = []
+    groupedByPriority[key].push(incident)
+}
 
 return groupedByPriority
 ```
 
 ### Filter and Transform
 
-```typescript
-const activeIncidents = new GlideQuery('incident')
+```javascript
+var allIncidents = new GlideQuery('incident')
     .where('active', 'true')
     .select()
-    .filter(i => i.priority === '1' || i.priority === '2')
-    .map(i => ({
-        number: i.number,
-        shortDescription: i.short_description,
-        priority: i.priority,
-        assignee: i.assigned_to.name
-    }))
+
+var activeIncidents = []
+for (var i of allIncidents) {
+    if (i.priority === '1' || i.priority === '2') {
+        activeIncidents.push({
+            number: i.number,
+            shortDescription: i.short_description,
+            priority: i.priority,
+            assignee: i.assigned_to.name
+        })
+    }
+}
 
 return activeIncidents
 ```
@@ -187,20 +190,23 @@ return activeIncidents
 
 ### Bulk Update
 
-```typescript
-function bulkUpdateIncidents(conditions: Record<string, any>, updateFields: Record<string, any>) {
-    const incidents = new GlideQuery('incident')
+```javascript
+// Inside your .server.js handler file
+function bulkUpdateIncidents(conditions, updateFields) {
+    var incidents = new GlideQuery('incident')
         .where(q => {
-            for (const field in conditions) {
+            for (var field in conditions) {
                 q.where(field, conditions[field])
             }
             return q
         })
         .select()
 
-    let updateCount = 0
-    for (const incident of incidents) {
-        Object.assign(incident, updateFields)
+    var updateCount = 0
+    for (var incident of incidents) {
+        for (var key in updateFields) {
+            incident[key] = updateFields[key]
+        }
         incident.update()
         updateCount++
     }
@@ -208,25 +214,19 @@ function bulkUpdateIncidents(conditions: Record<string, any>, updateFields: Reco
     return updateCount
 }
 
-// Usage:
-const updated = bulkUpdateIncidents(
-    { state: 'in_progress', priority: '1' },
-    { assignment_group: 'Critical Support', escalation_level: '1' }
-)
-```
-
 ### Bulk Delete
 
-```typescript
-const incidents = new GlideQuery('incident')
+```javascript
+// Inside your .server.js handler file
+var incidents = new GlideQuery('incident')
     .where('state', 'closed')
     .where('closed_on', '<', '2024-01-01')
     .limit(1000)
     .select()
 
-let deleteCount = 0
-for (const incident of incidents) {
-    incident.delete()
+var deleteCount = 0
+for (var incident of incidents) {
+    incident.deleteRecord()
     deleteCount++
 }
 
@@ -239,8 +239,9 @@ return deleteCount
 
 ### Complex Conditions with Nesting
 
-```typescript
-const incidents = new GlideQuery('incident')
+```javascript
+// Inside your .server.js handler file
+var incidents = new GlideQuery('incident')
     .where(q => q
         .where('active', 'true')
         .where(q2 => q2
@@ -254,8 +255,8 @@ const incidents = new GlideQuery('incident')
 
 ### Text Search
 
-```typescript
-const incidents = new GlideQuery('incident')
+```javascript
+var incidents = new GlideQuery('incident')
     .where('short_description', 'like', '%network%')
     .orWhere('description', 'like', '%network%')
     .select()
@@ -263,8 +264,8 @@ const incidents = new GlideQuery('incident')
 
 ### Range Queries
 
-```typescript
-const incidents = new GlideQuery('incident')
+```javascript
+var incidents = new GlideQuery('incident')
     .where('created_on', '>=', '2024-01-01')
     .where('created_on', '<', '2024-12-31')
     .where('priority', '<=', '2')
@@ -275,16 +276,15 @@ const incidents = new GlideQuery('incident')
 
 ## Best Practices
 
-✓ **Type-safe access** - Use `incident.number` instead of `getValue()`
-✓ **Use select()** - To execute and get array of records
-✓ **Use selectOne()** - For single record retrieval
+✓ **Use GlideQuery for reads** - Cleaner chainable API compared to GlideRecord query loops
+✓ **Use GlideRecord for writes** - More reliable for insert/update/delete operations
+✓ **Use select()** - To execute and get iterable of records
+✓ **Use selectOne()** - For single record retrieval (returns null if not found)
 ✓ **Chainable API** - Reduce boilerplate with method chaining
-✓ **Better error handling** - TypeScript catches type errors at compile time
-✓ **Modern JavaScript** - Use async/await patterns where applicable
-✓ **Array methods** - Leverage `map()`, `filter()`, `reduce()` for transformations
+✓ **No import needed** - GlideQuery, GlideRecord, GlideAggregate are global APIs in .server.js files
+✓ **Array methods** - Leverage `map()`, `filter()`, `reduce()` for transformations on GlideQuery results
 ✓ **Limit results** - Use `limit()` to restrict large result sets
-✓ **Avoid nested loops** - Use array methods instead of imperative loops
-✓ **Reference fields** - Type-safe access to display_value and other properties
+✓ **Avoid nested loops** - Use GlideAggregate for counts instead of looping
 
 ---
 
@@ -300,10 +300,7 @@ const incidents = new GlideQuery('incident')
 | `limit(count)` | Limit result set |
 | `select()` | Execute query, return array |
 | `selectOne()` | Execute query, return single record or null |
-| `create(data)` | Create new record object |
-| `update()` | Save changes to record |
-| `insert()` | Persist new record |
-| `delete()` | Remove record |
+| `toGlideRecord()` | Convert to GlideRecord for update/delete |
 | `map()` | Transform results (Array method) |
 | `filter()` | Filter results (Array method) |
 | `reduce()` | Aggregate results (Array method) |
