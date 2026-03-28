@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.2.2-blue)
+  ![Version](https://img.shields.io/badge/version-0.2.3-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.112+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -101,11 +101,12 @@ I need to create a custom ServiceNow application for managing IT assets with app
 
 ## Specialized Agents
 
-The extension provides 8 specialized AI agents, each focused on different aspects of ServiceNow development:
+The extension provides 9 specialized AI agents, each focused on different aspects of ServiceNow development:
 
 | Agent | Description | Use Case |
 |-------|-------------|----------|
 | NowDev-AI-Orchestrator | Solution Architecture & Workflow Management | Planning complex ServiceNow implementations |
+| NowDev-AI-Refinement | User Story Refinement & Feasibility Validation | Clarifying requirements and validating ServiceNow feasibility before development |
 | NowDev-AI-Script-Developer | Server-side libraries & GlideAjax | Creating Script Includes and server-side logic |
 | NowDev-AI-BusinessRule-Developer | Database triggers & automation logic | Implementing Business Rules and workflows |
 | NowDev-AI-Client-Developer | Browser-side UI & interaction | Client Scripts and UI customizations |

@@ -67,6 +67,18 @@ Use these as templates when creating or modifying agents:
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
 - **Handoff:** Include handoff back to NowDev AI Agent
 
+### Refinement Agent (NowDev-AI-Refinement)
+- **Read:** `read/readFile`, `read/problems`
+- **User Interaction:** `vscode/askQuestions` (core tool — single batched prompt per round)
+- **Search:** `search`, `web`
+- **Knowledge:** `io.github.upstash/context7/*` (mandatory: validate ServiceNow feasibility before finalizing brief)
+- **Tracking:** `todo`
+- **NO write tools** (refinement agents analyze and interview only — they produce a brief, not code)
+- **NO browser tools** (no instance interaction)
+- **NO execution tools** (no terminal access)
+- **Handoff:** Handoff to `NowDev AI Agent` with the complete Refined Implementation Brief
+- **Invoked when:** User story or implementation request contains vague references (unnamed groups, unspecified URLs, implicit conditions, undefined tables or roles)
+
 ---
 
 ## Canonical: Login Verification Checkpoint
