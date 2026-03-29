@@ -89,6 +89,8 @@ src/client/global.d.ts                  → declare global { Window.g_ck, GlideA
 
 **Third-party npm libraries** (component kits, icons, charts, etc.) are supported — install via npm, import normally in client code, and Rollup bundles them automatically. See [references/THIRD-PARTY-LIBRARIES.md](references/THIRD-PARTY-LIBRARIES.md) for the full setup guide including CSS imports, context providers, and build-warning suppression.
 
+> **UI Components:** When designing any React UI for ServiceNow, **always use the `servicenow-react-ui-components` skill**. It documents the `@servicenow/react-components` package — the official ServiceNow Horizon Design System React components — which includes form components (`RecordProvider`, `FormColumnLayout`, `FormActionBar`, `ActivityStream`, `Attachments`, `RelatedLists`), list components (`NowRecordListConnected`), and a full set of Horizon Design System components (buttons, modals, tabs, inputs, alerts, and more). Using these components guarantees visual consistency with the rest of ServiceNow. Install with `npm install @servicenow/react-components --save`.
+
 ## GlideAjax vs REST API — Decision Guide
 
 | Requirement | GlideAjax | REST API |
@@ -160,6 +162,7 @@ The following reference files contain detailed guidance on specific topics. **Sc
 | **UI Actions:** UiAction object, form/list/client/workspace objects, buttons/links/context menu items, conditions, roles, visibility control, examples | [UI-ACTION-API.md](references/UI-ACTION-API.md) |
 | **UI Policies:** UiPolicy object, field actions (visible/readOnly/mandatory/cleared), related list actions, conditions, script-based behavior, inheritance | [UI-POLICY-API.md](references/UI-POLICY-API.md) |
 | **UI Pages (React):** UiPage object, React app development, index.html with `<sdk:now-ux-globals>`, React entry points, navigation integration, direct property, endpoint configuration, best practices | [UI-PAGE-API.md](references/UI-PAGE-API.md) |
+| **React UI Components:** All `@servicenow/react-components` components — RecordProvider, FormColumnLayout, FormActionBar, ActivityStream, NowRecordListConnected, Horizon Design System (Button, Modal, Tabs, Input, Select, Alert, Card, etc.) | Use the `servicenow-react-ui-components` skill |
 | **Client Scripts:** ClientScript object, script types (onLoad/onChange/onSubmit/onCellEdit), uiType, field targeting, view scoping, isolateScript, messages, examples | [CLIENT-SCRIPTS-API.md](references/CLIENT-SCRIPTS-API.md) |
 | **User Preferences:** UserPreference object, per-user defaults, type values, system-wide defaults, runtime retrieval | [USER-PREFERENCE-API.md](references/USER-PREFERENCE-API.md) |
 | **Sys Attachments:** SysAttachment object, deploying static files as record attachments, MIME types | [SYS-ATTACHMENT-API.md](references/SYS-ATTACHMENT-API.md) |

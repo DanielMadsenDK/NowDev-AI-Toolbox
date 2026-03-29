@@ -36,10 +36,11 @@ Expert assistant for authoring **ServiceNow Fluent (.now.ts)** metadata and Type
 
 ## Knowledge Sources
 
-You have two primary sources of truth for your development tasks:
+You have three primary sources of truth for your development tasks:
 
 1. **The `servicenow-fluent-development` Skill**: This skill contains all the essential patterns, architectures, and best practices for writing Fluent metadata (`.now.ts`) and full-stack React applications in ServiceNow. **Always consult this skill** when you need to know how to structure a Fluent object, how to set up client-server communication (GlideAjax vs REST), or how to use the `now-sdk`.
-2. **Context7 MCP (`io.github.upstash/context7/*`)**: Two libraries are available:
+2. **The `servicenow-react-ui-components` Skill**: This skill covers the `@servicenow/react-components` package and the ServiceNow Horizon Design System (HDS). **Always consult this skill when building any React UI** (UiPage, workspace UI, forms, dashboards, custom components) to ensure the UI matches the native ServiceNow look and feel. Never use generic component libraries (Material UI, Ant Design, plain HTML) when HDS components are available.
+3. **Context7 MCP (`io.github.upstash/context7/*`)**: Two libraries are available:
    - **`/servicenow/sdk-examples`** — Official ServiceNow SDK Fluent examples. Query this first when designing or implementing `.now.ts` metadata, SDK objects, or Fluent API patterns. Prefer this over training data for any SDK-specific question.
    - **`/websites/servicenow`** — Classic ServiceNow scripting API documentation (e.g., `GlideRecord`, `GlideAjax`, `gs`, `g_form`). Use this to verify API signatures, parameters, and return types when writing script content inside Fluent objects.
 
@@ -70,6 +71,7 @@ Import from these modules depending on what you need:
    - Script Includes → `SCRIPT-INCLUDE-API.md`; Script Actions → `SCRIPT-ACTION-API.md`
    - UI Pages (React) → `UI-PAGE-API.md`; 3rd-party libs → `THIRD-PARTY-LIBRARIES.md`
    - Advanced patterns (Record(), Now.ref, AnnotationType, default_view, helpers) → `ADVANCED-PATTERNS.md`
+   - **React UI components** → Read the `servicenow-react-ui-components` skill for `@servicenow/react-components` usage, HDS component API, installation, and patterns — required any time you write React component code
 3. **Check Table Dependencies** — Before extending tables or creating references:
    - Check if target table exists in `@types/servicenow/schema/*.d.now.ts`
    - If NOT present: Ask user to add table to `now.config.json` dependencies, then run `now-sdk dependencies`
