@@ -382,3 +382,281 @@ export const myPortalWidget = SPWidget({
 - **ServiceNow Fluent** — Fluent language constructs (`Now.ID`, `Now.ref`, `Now.include`, `Now.attach`)
 - **AngularJS** — Client-side framework for widget controllers
 - **Fluent Language Constructs** — See [API-REFERENCE.md](API-REFERENCE.md) for `Now.ID`, `Now.ref`, `Now.include`
+
+---
+
+## ServicePortal Object
+
+Create the portal container record (`sp_portal`) that brings together pages, themes, and navigation into a unified self-service experience.
+
+### Required Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$id` | `Now.ID[...]` | Unique metadata identifier |
+| `title` | string | Portal display name shown in the browser tab and header |
+| `urlSuffix` | string | URL path to access the portal (e.g. `'esc'` → `/esc`). Lowercase, may contain hyphens/underscores |
+
+### Key Optional Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `homePage` | `string \| SPPage \| Record<'sp_page'>` | Default landing page when navigating to the portal root |
+| `loginPage` | `string \| SPPage \| Record<'sp_page'>` | Page shown to unauthenticated users |
+| `notFoundPage` | `string \| SPPage \| Record<'sp_page'>` | Page rendered for unmatched routes (404) |
+| `theme` | `string \| SPTheme \| Record<'sp_theme'>` | Light mode theme applied to all pages |
+| `darkTheme` | `string \| SPTheme \| Record<'sp_theme'>` | Dark mode theme |
+| `mainMenu` | `string \| SPMenu \| Record<'sp_instance_menu'>` | Navigation menu in the portal header |
+| `logo` | string | Logo image — sys_id of a `user_image` or `Now.attach()` reference |
+| `catalog` | `string \| Record<'sc_catalog'>` | Default service catalog |
+| `knowledgeBase` | `string \| Record<'kb_knowledge_base'>` | Default knowledge base |
+| `defaultPortal` | boolean | Makes this the portal for `/?id=<pageId>` navigation |
+| `inactive` | boolean | Deactivates the portal; redirects to `alternatePortal` |
+| `enableAiSearch` | boolean | Enables AI-powered search (requires `searchApplication`) |
+| `enableFavorites` | boolean | Enables user-pinned Quick Start favorites |
+| `catalogs` | array | Ordered list of `{ catalog, order, active }` catalog entries |
+| `knowledgeBases` | array | Ordered list of `{ knowledgeBase, order, active }` KB entries |
+
+### Example
+
+```typescript
+import { ServicePortal } from '@servicenow/sdk/core'
+import { employeePortalTheme } from './portal-theme.now'
+import { portalHomePage, loginPage } from './portal-pages.now'
+
+export const employeePortal = ServicePortal({
+    $id: Now.ID['employee_center'],
+    title: 'Employee Center',
+    urlSuffix: 'esc',
+    theme: employeePortalTheme.$id,
+    homePage: portalHomePage.$id,
+    loginPage: loginPage.$id,
+    defaultPortal: true,
+    enableFavorites: true,
+    enableAiSearch: false,
+    logo: Now.attach('./assets/portal-logo.png'),
+    catalogs: [
+        { catalog: 'sys_id_of_it_catalog', order: 100, active: true },
+        { catalog: 'sys_id_of_hr_catalog', order: 200, active: true },
+    ],
+})
+```
+
+---
+
+## SPMenu Object
+
+Create a navigation menu instance (`sp_instance_menu`) with structured menu items for portal header navigation.
+
+### Key Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$id` | `Now.ID[...]` | Unique identifier |
+| `title` | string | Heading text for the menu |
+| `widget` | `string \| SPWidget \| Record<'sp_widget'>` | The widget rendered for this menu |
+| `items` | `SPMenuItem[]` | Array of menu item definitions |
+| `roles` | array | Role names or Role constants restricting menu visibility |
+| `active` | boolean | Whether the menu is rendered. Default: `true` |
+| `order` | number | Sort order within its column |
+
+### Menu Item Structure
+
+Each item in `items` supports:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$id` | `Now.ID[...]` | Unique identifier |
+| `type` | string | Item type: `'page'`, `'kb_topic'`, `'url'`, etc. |
+| `label` | string | Display text |
+| `page` | string | `sp_page.id` or sys_id for `'page'` type items |
+| `url` | string | External URL for `'url'` type items |
+| `order` | number | Sort position within the menu |
+| `active` | boolean | Whether the item is visible |
+| `glyph` | string | FontAwesome icon name (without `fa-` prefix) |
+| `color` | string | Bootstrap color (`'default'`, `'primary'`, `'info'`, etc.) |
+| `childItems` | `SPMenuItem[]` | Nested items for dropdown sub-menus |
+| `roles` | array | Role restrictions for this item |
+
+### Example
+
+```typescript
+import { SPMenu } from '@servicenow/sdk/core'
+
+export const mainPortalMenu = SPMenu({
+    $id: Now.ID['portal_main_menu'],
+    title: 'Employee Center Navigation',
+    widget: 'sys_id_of_menu_widget',
+    roles: ['employee'],
+    active: true,
+    items: [
+        {
+            $id: Now.ID['menu_item_home'],
+            type: 'page',
+            label: 'Home',
+            page: 'index',
+            order: 100,
+            active: true,
+            glyph: 'home',
+        },
+        {
+            $id: Now.ID['menu_item_catalog'],
+            type: 'page',
+            label: 'Request Something',
+            page: 'catalog',
+            order: 200,
+            active: true,
+            childItems: [
+                {
+                    $id: Now.ID['menu_item_it'],
+                    type: 'page',
+                    label: 'IT Services',
+                    page: 'catalog',
+                    order: 100,
+                },
+                {
+                    $id: Now.ID['menu_item_hr'],
+                    type: 'page',
+                    label: 'HR Services',
+                    page: 'hr_catalog',
+                    order: 200,
+                },
+            ],
+        },
+    ],
+})
+```
+
+---
+
+## SPPage Object
+
+Create a portal page (`sp_page`) with a structured layout of containers, rows, columns, and widget instances.
+
+### Key Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `pageId` | string | URL identifier used in routing (`?id=<pageId>`). **Required.** Unique within the portal |
+| `containers` | `SPContainer[]` | Top-level layout sections of the page |
+| `css` | string | Page-scoped CSS |
+| `category` | string | Groups the page in the designer: `'custom'`, `'standard'`, `'kb'`, `'sc'`, etc. |
+
+### Layout Hierarchy
+
+```
+SPPage
+  └── SPContainer[]
+        └── SPRow[]
+              └── SPColumn[]   (size 1–12, Bootstrap grid)
+                    └── SPInstance[]   (widget instances)
+```
+
+### Example
+
+```typescript
+import { SPPage, SPMenu } from '@servicenow/sdk/core'
+
+export const portalHomePage = SPPage({
+    pageId: 'index',
+    category: 'custom',
+    containers: [
+        {
+            $id: Now.ID['home_hero_container'],
+            order: 100,
+            cssClass: 'hero-container',
+            rows: [
+                {
+                    $id: Now.ID['home_hero_row'],
+                    order: 100,
+                    columns: [
+                        {
+                            $id: Now.ID['home_hero_col'],
+                            size: 12,
+                            order: 100,
+                            instances: [
+                                {
+                                    $id: Now.ID['home_hero_widget'],
+                                    widget: 'sys_id_of_hero_widget',
+                                    order: 100,
+                                    active: true,
+                                    widgetParameters: { title: 'Welcome to Employee Center' },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+})
+```
+
+---
+
+## SPTheme Object
+
+Create a portal theme (`sp_theme`) that controls global portal appearance — headers, footers, CSS variables, and included assets.
+
+### Required Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$id` | `Now.ID[...]` | Unique identifier |
+| `name` | string | Display name in the portal designer and theme picker |
+
+### Key Optional Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `customCss` | string | SCSS variable definitions applied globally (e.g. `$nav-color: #333;`) |
+| `header` | `string \| Record<'sp_header_footer'>` | Header widget rendered at the top of every page |
+| `footer` | `string \| Record<'sp_header_footer'>` | Footer widget rendered at the bottom of every page |
+| `fixedHeader` | boolean | Keeps header anchored to top viewport while scrolling. Default: `true` |
+| `fixedFooter` | boolean | Keeps footer anchored to bottom viewport while scrolling. Default: `true` |
+| `logo` | `string \| Image` | Portal logo — sys_id or `Now.attach()` reference |
+| `logoAltText` | string | Accessible alt text for the logo |
+| `icon` | `string \| Image` | Browser favicon |
+| `cssIncludes` | `CssIncludeWithOrder[]` | CSS files loaded on every page using this theme |
+| `jsIncludes` | `JsIncludeWithOrder[]` | JS files loaded on every page using this theme |
+| `matchingNextExperienceTheme` | string | Links to a Next Experience theme for consistent cross-UI branding |
+| `turnOffScssCompilation` | boolean | Disables server-side SCSS — use for plain CSS custom properties. Default: `false` |
+
+### Example
+
+```typescript
+import { SPTheme, CssInclude, JsInclude } from '@servicenow/sdk/core'
+
+const portalStyles = CssInclude({
+    $id: Now.ID['portal_theme_css'],
+    name: 'Employee Center Styles',
+    spCss: 'sys_id_of_custom_css_record',
+})
+
+export const employeePortalTheme = SPTheme({
+    $id: Now.ID['employee_center_theme'],
+    name: 'Employee Center Theme',
+    customCss: '$nav-color: #0070d2; $brand-primary: #0070d2; $brand-primary-dark: #005fb2;',
+    header: 'sys_id_of_header_widget',
+    footer: 'sys_id_of_footer_widget',
+    fixedHeader: true,
+    fixedFooter: false,
+    logoAltText: 'Employee Center',
+    logo: Now.attach('./assets/logo.png'),
+    cssIncludes: [
+        { order: 100, include: portalStyles },
+    ],
+})
+```
+
+### Build Order for Service Portal
+
+When building a complete portal, follow this order:
+
+1. `CssInclude` and `JsInclude` — referenced by SPTheme and SPWidgetDependency
+2. `SPTheme` — referenced by ServicePortal
+3. `SPAngularProvider` and `SPWidgetDependency` — referenced by SPWidget
+4. `SPWidget` — referenced by SPMenu and SPPage instances
+5. `SPMenu` — referenced by ServicePortal `mainMenu`
+6. `SPPage` — referenced by ServicePortal page properties
+7. `ServicePortal` — depends on all of the above

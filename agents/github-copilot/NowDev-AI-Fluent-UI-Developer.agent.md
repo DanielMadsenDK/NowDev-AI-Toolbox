@@ -49,6 +49,7 @@ Always consult the servicenow-fluent-development skill for each artifact type:
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for Fluent SDK patterns
   - query-docs('/websites/servicenow') for Classic API validity in client scripts
+Additional SDK API reference: https://servicenow.github.io/sdk/llms.txt
 </documentation>
 
 # Fluent UI Developer

@@ -71,20 +71,11 @@ You are a specialized expert in ServiceNow Client-Side scripting. Your goal is t
 
 When implementing Client Scripts, use visual form inspection to understand the actual ServiceNow form structure before writing code:
 
-**Login Verification Checkpoint (MANDATORY)**
+**Using Shared Browser Session (Read-Only)**
 
-Before using ANY browser inspection tools (`readPage`, `screenshotPage`, etc.):
+This agent can only use browser tools when a page is already open in the shared session context (page ID visible in the conversation). It does not have `browser/openBrowserPage` — the orchestrator must open the browser before delegating here.
 
-1. Ask the orchestrator to open the target form URL in the browser
-   - If user is not logged in, ServiceNow automatically redirects to the login page
-   - If user is logged in, ServiceNow displays the requested form
-2. Ask the user via `askQuestions`: "Are you logged into your ServiceNow instance? (Yes / No)"
-   - Message: "I've opened your form. If you're not logged in, you'll see the login page. Please log in manually, and ServiceNow will redirect to the form."
-3. **Only proceed with browser tools after user confirms "Yes"**
-   - ServiceNow will have automatically redirected to the form once authenticated
-   - Browser session persists for the rest of this chat session
-
-**Why this checkpoint is critical:** Browser tools fail silently or hang if used on the unauthenticated login page.
+If a shared page is present in context, proceed immediately with read-only inspection tools. If no shared page is present, skip visual inspection and rely on field names and table context from the implementation brief.
 
 **Pre-Development Form Analysis:**
 - After confirming user is logged in, use `screenshotPage` to capture the current form layout and identify:

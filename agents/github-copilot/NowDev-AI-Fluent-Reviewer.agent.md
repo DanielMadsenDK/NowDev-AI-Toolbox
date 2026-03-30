@@ -57,6 +57,7 @@ Reference the correct sub-document for each artifact type:
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for Fluent SDK object patterns
   - query-docs('/websites/servicenow') for Classic API validity inside script content
+Additional SDK API reference: https://servicenow.github.io/sdk/llms.txt
 </documentation>
 
 # ServiceNow Fluent Code Reviewer

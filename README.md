@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.2.6-blue)
+  ![Version](https://img.shields.io/badge/version-0.2.7-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.113+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -117,7 +117,8 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-Assistant | Lightweight Q&A, brainstorming, and early discovery | — |
 | NowDev-AI-Refinement | User story refinement and feasibility validation before development | — |
 | NowDev-AI-Classic-Developer | Classic scripting coordinator — analyzes requirements and delegates to Classic sub-agents | Script, BusinessRule, Client developers |
-| NowDev-AI-Fluent-Developer | Fluent SDK coordinator — analyzes requirements and delegates to Fluent specialists | Schema, Logic, Automation, UI developers |
+| NowDev-AI-Fluent-Developer | Fluent SDK coordinator — analyzes requirements and delegates to Fluent specialists | Schema, Logic, Automation, UI, AI Studio developers |
+| NowDev-AI-AI-Studio-Developer | AI Studio coordinator (SDK 4.5.0+) — routes based on whether request needs an AiAgent/AiAgenticWorkflow or a NowAssist Skill | AI Agent Developer, NowAssist Developer |
 | NowDev-AI-Reviewer | Review router — detects Classic vs Fluent and delegates to the right reviewer | Classic Reviewer, Fluent Reviewer |
 | NowDev-AI-Release-Expert | Release router — detects Classic vs Fluent and delegates to the right release agent | Classic Release, Fluent Release |
 
@@ -128,10 +129,12 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-Script-Developer | Classic-Developer | Server-side Script Includes and GlideAjax |
 | NowDev-AI-BusinessRule-Developer | Classic-Developer | Business Rules and database triggers |
 | NowDev-AI-Client-Developer | Classic-Developer | Client Scripts, UI Policies, and UI Actions |
-| NowDev-AI-Fluent-Schema-Developer | Fluent-Developer | Tables, Roles, ACLs, Properties, Menus, Cross-Scope Privileges |
-| NowDev-AI-Fluent-Logic-Developer | Fluent-Developer | Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs |
+| NowDev-AI-Fluent-Schema-Developer | Fluent-Developer | Tables, Roles, ACLs, Properties, Menus, Cross-Scope Privileges, Form Layouts, Instance Scan Checks |
+| NowDev-AI-Fluent-Logic-Developer | Fluent-Developer | Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs, Scheduled Scripts |
 | NowDev-AI-Fluent-Automation-Developer | Fluent-Developer | Flows, Subflows, custom Action Definitions, custom Trigger Definitions |
 | NowDev-AI-Fluent-UI-Developer | Fluent-Developer | React UI Pages, Client Scripts, UI Policies, Service Catalog, Service Portal, Workspaces, Dashboards |
+| NowDev-AI-AI-Agent-Developer | AI-Studio-Developer | AiAgent definitions with tools, triggers, version management, and AiAgenticWorkflow team orchestration |
+| NowDev-AI-NowAssist-Developer | AI-Studio-Developer | NowAssistSkillConfig — tool graph, LLM prompts, security controls, and deployment settings |
 | NowDev-AI-Classic-Reviewer | Reviewer | Reviews Classic scripts against best practices |
 | NowDev-AI-Fluent-Reviewer | Reviewer | Reviews Fluent SDK artifacts against best practices |
 | NowDev-AI-Classic-Release | Release-Expert | Generates XML Update Set files for Classic deployment |
@@ -151,6 +154,7 @@ graph TD
     ORC --> REF["NowDev-AI-Refinement\n(Story Refinement)"]
     ORC --> CLA["NowDev-AI-Classic-Developer\n(Classic Coordinator)"]
     ORC --> FLU["NowDev-AI-Fluent-Developer\n(Fluent Coordinator)"]
+    ORC --> AIS["NowDev-AI-AI-Studio-Developer\n(AI Studio Coordinator)"]
     ORC --> REV["NowDev-AI-Reviewer\n(Review Router)"]
     ORC --> REL["NowDev-AI-Release-Expert\n(Release Router)"]
 
@@ -158,10 +162,14 @@ graph TD
     CLA --> BRD["NowDev-AI-BusinessRule-Developer\n(Business Rules)"]
     CLA --> CLI["NowDev-AI-Client-Developer\n(Client Scripts)"]
 
-    FLU --> SCH["NowDev-AI-Fluent-Schema-Developer\n(Tables · Roles · ACLs)"]
+    FLU --> SCH["NowDev-AI-Fluent-Schema-Developer\n(Tables · Roles · ACLs · Forms)"]
     FLU --> LOG["NowDev-AI-Fluent-Logic-Developer\n(Business Rules · Script Includes · REST APIs)"]
     FLU --> AUT["NowDev-AI-Fluent-Automation-Developer\n(Flows · Subflows · Actions)"]
     FLU --> UI["NowDev-AI-Fluent-UI-Developer\n(React UI · Catalog · Workspaces)"]
+    FLU --> AIS
+
+    AIS --> AAD["NowDev-AI-AI-Agent-Developer\n(AiAgent · AiAgenticWorkflow)"]
+    AIS --> NAD["NowDev-AI-NowAssist-Developer\n(NowAssistSkillConfig)"]
 
     REV --> CR["NowDev-AI-Classic-Reviewer"]
     REV --> FR["NowDev-AI-Fluent-Reviewer"]

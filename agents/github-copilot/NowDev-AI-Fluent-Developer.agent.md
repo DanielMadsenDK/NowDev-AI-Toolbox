@@ -4,7 +4,7 @@ user-invocable: false
 description: Fluent SDK coordinator — analyzes the implementation brief, sequences work across Schema, Logic, Automation, and UI specialists, and reports back to the orchestrator
 argument-hint: "The refined implementation brief or feature description for what needs to be built — include the business requirements, user story, and any known ServiceNow context (existing tables, scope, instance details). The agent will determine the required Fluent artifacts and delegate to the right specialists."
 tools: ['read/readFile', 'search', 'web', 'todo', 'agent', 'io.github.upstash/context7/*']
-agents: ['NowDev-AI-Fluent-Schema-Developer', 'NowDev-AI-Fluent-Logic-Developer', 'NowDev-AI-Fluent-Automation-Developer', 'NowDev-AI-Fluent-UI-Developer']
+agents: ['NowDev-AI-Fluent-Schema-Developer', 'NowDev-AI-Fluent-Logic-Developer', 'NowDev-AI-Fluent-Automation-Developer', 'NowDev-AI-Fluent-UI-Developer', 'NowDev-AI-AI-Studio-Developer']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
@@ -15,12 +15,13 @@ handoffs:
 <workflow>
 1. Analyze the implementation brief and identify all Fluent artifacts needed across all layers
 2. Plan the delegation sequence: Schema → Logic → Automation → UI (each layer may depend on the previous)
-3. Delegate to NowDev-AI-Fluent-Schema-Developer for all table, role, ACL, menu, and structural foundation work
-4. Delegate to NowDev-AI-Fluent-Logic-Developer for Business Rules, Script Includes, REST APIs, notifications, and SLAs
+3. Delegate to NowDev-AI-Fluent-Schema-Developer for all table, role, ACL, menu, form layouts, instance scan checks, and structural foundation work
+4. Delegate to NowDev-AI-Fluent-Logic-Developer for Business Rules, Script Includes, REST APIs, notifications, SLAs, and Scheduled Scripts
 5. Delegate to NowDev-AI-Fluent-Automation-Developer for Flows, Subflows, and custom automation components
 6. Delegate to NowDev-AI-Fluent-UI-Developer for React UI Pages, Client Scripts, UI Policies, Catalog Items, Workspaces, and Dashboards
-7. Collect the file lists returned by each specialist
-8. Return the complete file list to the orchestrator
+7. Delegate to NowDev-AI-AI-Studio-Developer for AI Agent definitions, Agentic Workflows, and NowAssist Skill configurations
+8. Collect the file lists returned by each specialist
+9. Return the complete file list to the orchestrator
 </workflow>
 
 <stopping_rules>

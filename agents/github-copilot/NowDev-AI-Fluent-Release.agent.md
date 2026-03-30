@@ -31,6 +31,7 @@ STOP if modifying any application code files — this agent deploys only
 <documentation>
 If Context7 is available: query-docs('/servicenow/sdk-examples') for SDK deployment patterns and now-sdk CLI usage
 If Context7 is unavailable: reference BUILD-WORKFLOW.md in the servicenow-fluent-development skill
+Additional SDK API reference: https://servicenow.github.io/sdk/llms.txt
 </documentation>
 
 # ServiceNow Fluent Release Agent

@@ -3,7 +3,7 @@ name: NowDev-AI-Debugger
 user-invocable: false
 description: specialized agent for debugging ServiceNow scripts, logs, and performance issues
 argument-hint: "Description of the issue or error, relevant file paths, any error messages or stack traces, symptoms observed, and the artifact type involved (Script Include, Business Rule, Client Script, Fluent metadata, etc.)"
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*']
+tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
@@ -128,7 +128,9 @@ For client-side issues (Client Scripts, UI Policies, form rendering), use visual
 
 **Login Verification Checkpoint (MANDATORY)**
 
-Before using ANY browser interaction tools (`readPage`, `clickElement`, `screenshotPage`, etc.):
+**SHARED SESSION SHORT-CIRCUIT:** If the user's message already contains an active browser page attachment (listed in the session context with a page ID and URL), the session is already authenticated. Skip straight to `screenshotPage` using that page ID — do NOT open a new tab, do NOT ask the login question, proceed immediately with browser inspection tools.
+
+Only apply the full checkpoint below when NO shared page is present in context (i.e., you need to open a fresh tab):
 
 1. Open the browser with `browser/openBrowserPage` to the URL you want to inspect
    - If user is not logged in, ServiceNow automatically redirects to the login page

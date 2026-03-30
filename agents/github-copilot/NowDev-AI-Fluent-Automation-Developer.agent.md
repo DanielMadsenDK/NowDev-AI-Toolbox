@@ -47,6 +47,7 @@ It covers:
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for Flow and Subflow patterns
   - query-docs('/websites/servicenow') for any Classic API references used in inlineScripts
+Additional SDK API reference: https://servicenow.github.io/sdk/llms.txt
 </documentation>
 
 # Fluent Automation Developer
