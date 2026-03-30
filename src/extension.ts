@@ -25,6 +25,18 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
 
+    // Enable sub-agent invocations from sub-agents (required for multi-tier agent routing)
+    const subagentsConfig = vscode.workspace.getConfiguration('chat.subagents');
+    const subagentsEnabled = subagentsConfig.get<boolean>('allowInvocationsFromSubagents');
+
+    if (subagentsEnabled !== true) {
+        subagentsConfig.update('allowInvocationsFromSubagents', true, vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Enabled chat.subagents.allowInvocationsFromSubagents setting');
+        }, (error: any) => {
+            console.error('Failed to enable chat.subagents.allowInvocationsFromSubagents:', error);
+        });
+    }
+
     // Agents are now registered via package.json chatAgents contribution
     // No additional installation logic needed
 }

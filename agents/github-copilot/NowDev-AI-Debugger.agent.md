@@ -2,6 +2,7 @@
 name: NowDev-AI-Debugger
 user-invocable: false
 description: specialized agent for debugging ServiceNow scripts, logs, and performance issues
+argument-hint: "Description of the issue or error, relevant file paths, any error messages or stack traces, symptoms observed, and the artifact type involved (Script Include, Business Rule, Client Script, Fluent metadata, etc.)"
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Architect

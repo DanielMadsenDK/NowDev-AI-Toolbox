@@ -110,50 +110,13 @@ UiPage({
 })
 ```
 
-#### `clientScript` (Script) — Optional
-Additional JavaScript to run in the browser for client-side initialization or interoperability with ServiceNow APIs.
+#### `clientScript` (Script) — Not Recommended for React
 
-For React applications, most client-side logic should be in your React components. Use this property only for:
-- Initialization scripts that need to run before React mounts
-- Integration with ServiceNow global APIs (e.g., `window.g_ck`)
-- Non-React interoperability code
+**Do not include `clientScript` in React-based UiPage definitions.** Client-side logic belongs in React components. This field is not supported in Fluent for React UI pages and should be omitted entirely.
 
-Supports external file reference via `Now.include('path/to/file')`.
+#### `processingScript` (Script) — Not Recommended for React
 
-**External script reference:**
-```ts
-UiPage({
-  clientScript: Now.include('./page.client.js'),
-  // ...
-})
-```
-
-#### `processingScript` (Script) — Optional
-A script that runs on the server for backend operations. For React applications, prefer using REST APIs or GlideAjax through a ScriptInclude instead of processingScript.
-
-Only use processingScript if you need legacy form submission handling.
-
-Supports:
-- A function from a JavaScript module (imported into the `.now.ts` file)
-- A reference to another file via `Now.include('path/to/file')`
-
-**Imported module function:**
-```ts
-import { handleSubmit } from '../server/form-handler.js'
-
-UiPage({
-  processingScript: handleSubmit,
-  // ...
-})
-```
-
-**External script reference:**
-```ts
-UiPage({
-  processingScript: Now.include('./page.server.js'),
-  // ...
-})
-```
+**Do not include `processingScript` in React-based UiPage definitions.** For server communication, use the Table API via `fetch()` or a ScriptInclude with GlideAjax. This field is not supported in Fluent for React UI pages and should be omitted entirely.
 
 #### `$meta` (Object) — Optional
 Metadata for the application metadata. Use the `installMethod` property to map the application metadata to an output directory that loads only in specific circumstances.
@@ -171,6 +134,36 @@ UiPage({
   // ...
 })
 ```
+
+## HTML File Rules
+
+HTML files for React UI pages have strict constraints:
+
+- **Location**: Place only in `src/client/` — do not nest deeper in subdirectories.
+- **No DOCTYPE**: Omit `<!DOCTYPE html>` declarations entirely.
+- **Valid XHTML**: Use self-closing tags for void elements (`<img />`, `<br />`, `<input />`). All tags must be properly nested and closed.
+- **No Jelly**: Do not use Jelly tags (`<j:...>`) in HTML files.
+- **No ServiceNow script tags**: Use `<script src="..."></script>` instead of `<g:script>` or `<g:include>`.
+- **No CDN scripts**: All dependencies must come from `package.json`, not external CDN URLs.
+- **No inline JavaScript**: Keep HTML clean — load all logic via a single `<script src="main.jsx" type="module"></script>` tag.
+- **No CSS link tags**: Do not use `<link rel="stylesheet">` in HTML. Import CSS through ESM in your JSX/JS files instead.
+
+## CSS Patterns
+
+ServiceNow's build system supports a specific subset of CSS patterns:
+
+**Supported:**
+- Import CSS files from JSX/JS using ESM: `import './ComponentName.css'`
+- Standard class selectors and BEM-style naming conventions
+- Placing CSS files alongside their components in `src/client/components/`
+
+**Not supported:**
+- CSS Modules (`.module.css` files with locally scoped classes)
+- `@import` statements inside CSS files
+- `<link rel="stylesheet">` tags in HTML files
+- Relative CSS-in-CSS imports
+
+Because CSS Modules aren't available, use consistent naming conventions (e.g., BEM) to prevent class name conflicts across components.
 
 ## React Development Patterns
 
@@ -198,11 +191,11 @@ export const incidentManagerPage = UiPage({
 <head>
   <title>Incident Response Manager</title>
 
-  <!-- Initialize globals and Include ServiceNow's required scripts -->
+  <!-- Initialize globals and ServiceNow's required scripts -->
   <sdk:now-ux-globals></sdk:now-ux-globals>
 
-  <!-- Include your React entry point -->
-  <script src="./main.jsx" type="module"></script>
+  <!-- Load React entry point as a module — no inline JS, no CDN scripts -->
+  <script src="main.jsx" type="module"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -233,8 +226,9 @@ export default function App() {
   const fetchIncidents = async () => {
     setLoading(true)
     try {
-      // Use GlideAjax or REST API to fetch data
-      const response = await fetch('/api/x_incident_manager/incidents')
+      const response = await fetch('/api/now/table/incident?sysparm_display_value=all', {
+        headers: { 'Accept': 'application/json', 'X-UserToken': window.g_ck },
+      })
       const data = await response.json()
       setIncidents(data)
     } finally {
@@ -259,9 +253,90 @@ export default function App() {
 ### `<sdk:now-ux-globals>` Tag
 
 The `<sdk:now-ux-globals>` tag initializes ServiceNow global variables and required scripts. Always include this in your HTML for React UI pages to ensure access to:
-- `window.g_ck` — Correlation key for security
-- `window.GlideAjax` — For server communication
+- `window.g_ck` — User token required for authenticating Table API fetch calls
 - ServiceNow styling and utilities
+
+## ServiceNow Field Extraction
+
+When fetching records with `sysparm_display_value=all` (recommended), reference fields, choice fields, and `sys_id` are returned as objects rather than plain strings. React cannot render objects directly — always extract the primitive value before rendering or using in API calls.
+
+```jsx
+// Display value (for rendering text):
+const assignedTo = typeof record.assigned_to === 'object'
+  ? record.assigned_to.display_value
+  : record.assigned_to;
+
+// sys_id (for PATCH/DELETE API calls):
+const sysId = typeof record.sys_id === 'object'
+  ? record.sys_id.value
+  : record.sys_id;
+```
+
+Apply this pattern to every field that could be a reference or choice field. Also note: fields with numeric or boolean types defined in the table schema are returned as **strings** — convert with `Number()` or compare with `String(value) === 'true'` as needed.
+
+## Authentication and Table API Calls
+
+ServiceNow provides a global correlation token at `window.g_ck` when `<sdk:now-ux-globals>` is included. Include this token in all Table API requests to authenticate as the current user:
+
+```javascript
+const response = await fetch(`/api/now/table/${this.tableName}`, {
+  method: 'GET',
+  headers: {
+    'Accept': 'application/json',
+    'X-UserToken': window.g_ck,
+  },
+});
+```
+
+**Client service layer rules:**
+- Use the Fetch API — do not use `GlideRecord` or `GlideAjax` in `src/client/` files
+- Always set `sysparm_display_value=all` when fetching records so display values are available
+- Implement error handling: wrap `fetch` in `try/catch`, check `response.ok`, and still parse JSON (ServiceNow returns error details in the response body even on failure)
+- Handle network failures gracefully with user-friendly messages
+
+**Example error-safe fetch:**
+```javascript
+async function fetchRecords() {
+  try {
+    const response = await fetch('/api/now/table/incident?sysparm_display_value=all', {
+      headers: { 'Accept': 'application/json', 'X-UserToken': window.g_ck },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error?.message || 'Request failed');
+    }
+    return data.result ?? [];
+  } catch (err) {
+    console.error('Failed to fetch incidents:', err);
+    return [];
+  }
+}
+```
+
+## Table Configuration for API Access
+
+For a table to be accessible via the Table API from a UI page, ensure these properties are set in the Fluent table definition:
+
+```ts
+Table({
+  name: 'x_myapp_task',
+  // ...
+  accessible_from: 'public',     // Required for cross-scope access
+  caller_access: 'tracking',     // Enables automatic cross-scope access
+  actions: ['create', 'read', 'update', 'delete'],
+  web_service_access: true,      // Required for Table API access
+})
+```
+
+## Component Structure
+
+Break UI pages into small, focused React components:
+
+- Place components in `src/client/components/`, each in its own `.jsx` file
+- Keep files under ~100 lines; a component should have one responsibility
+- Use `.jsx` extension for any file containing JSX syntax
+- Each component can have a co-located CSS file imported via ESM
+- Use event listeners (`addEventListener`) rather than inline event handlers — inline handlers like `onclick="fn()"` do not work with ES modules
 
 ## Navigation Integration
 
@@ -290,23 +365,41 @@ export const navigationModule = Record({
 })
 ```
 
+## Limitations
+
+React UI pages in Fluent have the following build and runtime constraints:
+
+- **CSS**: No CSS Modules, no `@import` in CSS files, no `<link>` stylesheet tags in HTML
+- **Routing**: Only hash-based routing (e.g., `#/route`) is supported — no browser history API routing
+- **No SSR**: React Server Components and server-side rendering are not available
+- **No media**: Audio, video, and WASM files are not supported
+- **No preloading**: `<link rel="preload">` is not supported
+- **No hashed paths**: Output file paths are deterministic (not content-hashed)
+- **No CDNs**: All dependencies must be declared in `package.json`
+
 ## Best Practices
 
 1. **Always set `direct: true`** — Required for React apps to prevent conflicts with ServiceNow's default page scaffolding.
 
-2. **Include `<sdk:now-ux-globals>` in your HTML** — Ensures global ServiceNow variables (`window.g_ck`, `GlideAjax`) are initialized.
+2. **Include `<sdk:now-ux-globals>` in your HTML** — Ensures global ServiceNow variables (`window.g_ck`) are initialized before React mounts.
 
 3. **Keep HTML definition source-controlled** — One-way synchronization means changes to `index.html` outside source code are lost. Maintain the HTML definition in your Git-tracked `index.html` file.
 
 4. **Separate concerns** — Keep client code in `src/client/`, server logic in `src/fluent/`, and shared utilities in separate modules.
 
-5. **Use GlideAjax for internal ServiceNow APIs** — Preferred for server communication within ServiceNow (see [CLIENT-SERVER-PATTERNS.md](CLIENT-SERVER-PATTERNS.md)).
+5. **Omit `clientScript` and `processingScript`** — These fields are not supported in Fluent React UI pages. Use the Table API or ScriptIncludes instead.
 
-6. **Use REST APIs for external integrations** — Required when integrating with external systems (see [REST-API.md](REST-API.md)).
+6. **Use the Table API from the client** — Call ServiceNow tables via `fetch()` with `X-UserToken: window.g_ck`. Do not use GlideRecord or GlideAjax in `src/client/` files.
 
-7. **Endpoint naming convention** — Follow `<scope>_<descriptor>.do` to avoid naming collisions (e.g., `x_myapp_incident_manager.do`).
+7. **Extract field values before rendering** — Reference/choice/sys_id fields from `sysparm_display_value=all` responses are objects. Always extract `.display_value` or `.value` before use in JSX or API calls.
 
-8. **Server-side validation** — Always validate inputs on the server, even if validated on the client. Protect API calls with ACLs.
+8. **Use event listeners, not inline handlers** — Inline handlers (`onclick="fn()"`) do not fire in ES module context. Use `addEventListener` instead.
+
+9. **Endpoint naming convention** — Follow `<scope>_<descriptor>.do` to avoid naming collisions (e.g., `x_myapp_incident_manager.do`).
+
+10. **Server-side validation** — Always validate inputs on the server, even if validated on the client. Protect API calls with ACLs.
+
+11. **Never modify build tooling** — The ServiceNow IDE handles all build and deployment automatically. Do not create `webpack.config.js`, `vite.config.js`, or similar files. Only write application code.
 
 ## Related Concepts
 

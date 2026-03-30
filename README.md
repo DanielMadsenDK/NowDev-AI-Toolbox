@@ -5,8 +5,8 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.2.5-blue)
-  ![VS Code](https://img.shields.io/badge/VS%20Code-1.112+-blue)
+  ![Version](https://img.shields.io/badge/version-0.3.0-blue)
+  ![VS Code](https://img.shields.io/badge/VS%20Code-1.113+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
   <br>
@@ -24,14 +24,15 @@ The extension integrates ServiceNow Best Practice Skills directly into GitHub Co
 
 *   **AI Orchestrator**: A master agent that breaks down requirements and delegates tasks to specialized sub-agents.
 *   **Built-in Agent Skills**: Automatically equips GitHub Copilot with verified knowledge of ServiceNow best practices.
-*   **Automated Governance**: Reviewer agents check artifacts against architectural standards.
+*   **Automated Governance**: Specialized reviewer agents inspect each artifact, dynamically selecting only the best-practice checks relevant to the artifact types actually present in the solution.
+*   **Multi-Tier Agent Architecture**: The orchestrator delegates to development agents, which hand off to specialized reviewer agents — agents calling agents — enabling deep, context-aware automation at every layer of the development workflow.
 *   **Interactive Workflow**: Uses interactive tools to clarify requirements and validate designs.
 *   **Live Instance Preview & Autonomous Verification**: Agents autonomously inspect your ServiceNow instance in real-time—capturing screenshots, reading form field state, validating form behavior, and detecting client-side issues without manual inspection. Perfect for post-deployment verification and debugging client-side problems.
 
 ## Installation & Usage
 
 ### Prerequisites
-- Visual Studio Code 1.112 or later
+- Visual Studio Code 1.113 or later
 - GitHub Copilot Chat extension
 
 The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development.
@@ -101,28 +102,79 @@ I need to create a custom ServiceNow application for managing IT assets with app
 
 ## Specialized Agents
 
-The extension provides 9 specialized AI agents, each focused on different aspects of ServiceNow development:
+The extension provides a hierarchical system of AI agents spanning three tiers. **Tier 1** agents are invoked directly by the orchestrator. **Tier 2** agents are coordinators and routers that delegate to **Tier 3** specialists. All tiers are wired automatically — you only ever interact with the Tier 1 agents.
 
-| Agent | Description | Use Case |
-|-------|-------------|----------|
-| NowDev-AI-Orchestrator | Solution Architecture & Workflow Management | Planning complex ServiceNow implementations |
-| NowDev-AI-Refinement | User Story Refinement & Feasibility Validation | Clarifying requirements and validating ServiceNow feasibility before development |
-| NowDev-AI-Script-Developer | Server-side libraries & GlideAjax | Creating Script Includes and server-side logic |
-| NowDev-AI-BusinessRule-Developer | Database triggers & automation logic | Implementing Business Rules and workflows |
-| NowDev-AI-Client-Developer | Browser-side UI & interaction | Client Scripts and UI customizations |
-| NowDev-AI-Fluent-Developer | ServiceNow Fluent SDK & TypeScript | Building full-stack applications with the Fluent SDK |
-| NowDev-AI-Reviewer | Code Review, Security & Compliance | Quality assurance and best practices validation |
-| NowDev-AI-Debugger | Diagnostics, Logs & Performance Analysis | Troubleshooting and performance optimization |
-| NowDev-AI-Release-Expert | Update Sets, XML Data & Deployment | Release management and deployment |
+### Tier 1 — Orchestrator
+
+| Agent | Description |
+|-------|-------------|
+| NowDev-AI-Orchestrator | Lead Architect — triages requests, plans solutions, and coordinates all other agents |
+
+### Tier 2 — Domain Coordinators & Routers
+
+| Agent | Description | Routes To |
+|-------|-------------|-----------|
+| NowDev-AI-Assistant | Lightweight Q&A, brainstorming, and early discovery | — |
+| NowDev-AI-Refinement | User story refinement and feasibility validation before development | — |
+| NowDev-AI-Classic-Developer | Classic scripting coordinator — analyzes requirements and delegates to Classic sub-agents | Script, BusinessRule, Client developers |
+| NowDev-AI-Fluent-Developer | Fluent SDK coordinator — analyzes requirements and delegates to Fluent specialists | Schema, Logic, Automation, UI developers |
+| NowDev-AI-Reviewer | Review router — detects Classic vs Fluent and delegates to the right reviewer | Classic Reviewer, Fluent Reviewer |
+| NowDev-AI-Release-Expert | Release router — detects Classic vs Fluent and delegates to the right release agent | Classic Release, Fluent Release |
+
+### Tier 3 — Specialists (internal, invoked by coordinators only)
+
+| Agent | Coordinator | Description |
+|-------|-------------|-------------|
+| NowDev-AI-Script-Developer | Classic-Developer | Server-side Script Includes and GlideAjax |
+| NowDev-AI-BusinessRule-Developer | Classic-Developer | Business Rules and database triggers |
+| NowDev-AI-Client-Developer | Classic-Developer | Client Scripts, UI Policies, and UI Actions |
+| NowDev-AI-Fluent-Schema-Developer | Fluent-Developer | Tables, Roles, ACLs, Properties, Menus, Cross-Scope Privileges |
+| NowDev-AI-Fluent-Logic-Developer | Fluent-Developer | Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs |
+| NowDev-AI-Fluent-Automation-Developer | Fluent-Developer | Flows, Subflows, custom Action Definitions, custom Trigger Definitions |
+| NowDev-AI-Fluent-UI-Developer | Fluent-Developer | React UI Pages, Client Scripts, UI Policies, Service Catalog, Service Portal, Workspaces, Dashboards |
+| NowDev-AI-Classic-Reviewer | Reviewer | Reviews Classic scripts against best practices |
+| NowDev-AI-Fluent-Reviewer | Reviewer | Reviews Fluent SDK artifacts against best practices |
+| NowDev-AI-Classic-Release | Release-Expert | Generates XML Update Set files for Classic deployment |
+| NowDev-AI-Fluent-Release | Release-Expert | Runs `now-sdk build` and `now-sdk install` for Fluent deployment |
 
 ## Architecture
 
 The extension integrates specialized AI agents directly into VS Code through GitHub Copilot Chat's agent system. Each agent is a declarative Copilot Agent with defined capabilities and expertise areas.
 
+### Agent Architecture Diagram
+
+```mermaid
+graph TD
+    ORC["NowDev AI Agent\n(Orchestrator)"]
+
+    ORC --> ASS["NowDev-AI-Assistant\n(Q&A & Discovery)"]
+    ORC --> REF["NowDev-AI-Refinement\n(Story Refinement)"]
+    ORC --> CLA["NowDev-AI-Classic-Developer\n(Classic Coordinator)"]
+    ORC --> FLU["NowDev-AI-Fluent-Developer\n(Fluent Coordinator)"]
+    ORC --> REV["NowDev-AI-Reviewer\n(Review Router)"]
+    ORC --> REL["NowDev-AI-Release-Expert\n(Release Router)"]
+
+    CLA --> SCR["NowDev-AI-Script-Developer\n(Script Includes)"]
+    CLA --> BRD["NowDev-AI-BusinessRule-Developer\n(Business Rules)"]
+    CLA --> CLI["NowDev-AI-Client-Developer\n(Client Scripts)"]
+
+    FLU --> SCH["NowDev-AI-Fluent-Schema-Developer\n(Tables · Roles · ACLs)"]
+    FLU --> LOG["NowDev-AI-Fluent-Logic-Developer\n(Business Rules · Script Includes · REST APIs)"]
+    FLU --> AUT["NowDev-AI-Fluent-Automation-Developer\n(Flows · Subflows · Actions)"]
+    FLU --> UI["NowDev-AI-Fluent-UI-Developer\n(React UI · Catalog · Workspaces)"]
+
+    REV --> CR["NowDev-AI-Classic-Reviewer"]
+    REV --> FR["NowDev-AI-Fluent-Reviewer"]
+
+    REL --> CRR["NowDev-AI-Classic-Release\n(XML Update Sets)"]
+    REL --> FRR["NowDev-AI-Fluent-Release\n(now-sdk build/install)"]
+```
+
 ### Agent Capabilities
 - **Specialized Knowledge**: Deep expertise in specialized ServiceNow domains.
 - **Native Skills**: "Mounts" verified Best Practice documentation directly into the agent's context window.
-- **Orchestration**: Seamlessly hands off tasks between Planning, Development, and Review agents.
+- **Orchestration**: Seamlessly hands off tasks between Planning, Development, Review, and Release agents.
+- **Three-Tier Agent Hierarchy**: The orchestrator delegates to domain coordinators (Classic Developer, Fluent Developer, Reviewer, Release Expert), which in turn delegate to focused specialists (Script Developer, Business Rule Developer, Classic Reviewer, Fluent Release, etc.). Each tier handles only its own concerns — you never need to pick the right specialist manually.
 
 ## Code Examples
 

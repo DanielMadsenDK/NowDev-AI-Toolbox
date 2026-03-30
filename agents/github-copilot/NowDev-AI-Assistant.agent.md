@@ -2,6 +2,7 @@
 name: NowDev-AI-Assistant
 user-invocable: false
 description: lightweight assistant for single questions, brainstorming, quick browser exploration, and early discovery before full project orchestration
+argument-hint: "The user's original question, brainstorming topic, or exploration task — pass verbatim without restructuring"
 tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'agent', 'io.github.upstash/context7/*']
 handoffs:
   - label: Escalate to Architect
