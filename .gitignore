@@ -28,4 +28,5 @@ yarn-error.log*
 Thumbs.db
 
 #servicenowsdk
+
 sdk-core/

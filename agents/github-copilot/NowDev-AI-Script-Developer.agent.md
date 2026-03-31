@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: specialized agent for creating and optimizing ServiceNow Script Includes and GlideAjax
 argument-hint: "The business requirement for the server-side logic to implement — describe what data needs to be accessed, what the logic should do, and how it will be called (server-only or from a client script). The agent will determine the class structure and method design itself."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Classic Developer
     agent: NowDev-AI-Classic-Developer
@@ -13,10 +13,14 @@ handoffs:
 ---
 
 <workflow>
-1. API verification: If Context7 is available, query-docs to verify APIs, parameters, and patterns. If unavailable, use built-in best practices knowledge.
-2. Create todo plan outlining class structure, methods, and logic
-3. Implement Script Include with verified APIs and patterns
-4. Self-validate code before handoff to orchestrator
+1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents in this session
+2. For any dependencies, use `read/readFile` to read the actual source files to get exact method signatures and class structures
+3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+4. API verification: If Context7 is available, query-docs to verify APIs, parameters, and patterns. If unavailable, use built-in best practices knowledge.
+5. Create todo plan outlining class structure, methods, and logic
+6. Implement Script Include with verified APIs and patterns
+7. Self-validate code before handoff to orchestrator
+8. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (class name, method signatures, clientCallable status)
 </workflow>
 
 <stopping_rules>
@@ -152,3 +156,23 @@ var [ClassName] = Class.create();
     type: '[ClassName]'
 });
 ```
+
+## Session Artifact Registry
+
+This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
+
+### On Start
+1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts and their exports
+2. For any dependency with status ✅ Done, **read the actual source file** to get exact method signatures, class structures, and return types
+3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | Script Include | Script-Developer | — | 🏗️ In Progress | {dependencies or —} |
+
+### On Complete
+Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {ClassName} | {relative path} | Script Include | Script-Developer | `ClassName.methodName(params)`, `clientCallable: true/false` | ✅ Done | {dependencies or —} |

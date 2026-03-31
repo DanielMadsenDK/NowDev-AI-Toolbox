@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for workflow automation — Flows, Subflows, custom Action Definitions, custom Trigger Definitions, and FDTransform data manipulation
 argument-hint: "The automation and workflow requirements from the implementation brief — what processes need orchestrating, what approvals or scheduled triggers are needed, and any custom actions or triggers required. Include table names and Script Include names already built by the Schema and Logic developers."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Fluent Developer
     agent: NowDev-AI-Fluent-Developer
@@ -13,12 +13,16 @@ handoffs:
 ---
 
 <workflow>
-1. Analyze the requirements and identify all flow and automation artifacts needed
-2. Build a todo list: triggers → flows/subflows → custom actions/triggers if needed
-3. Verify wfa API, trigger types, built-in actions, and FDTransform usage via Context7 or FLOW-API.md
-4. Implement .now.ts flow files and any linked inline scripts
-5. Self-validate: unique $id for every wfa.trigger/action/flowLogic call, TemplateValue() on field values, assignSubflowOutputs called when outputs declared
-6. Return created file list to the coordinator
+1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially table names and Script Include class names from Schema and Logic developers
+2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names and method signatures
+3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+4. Analyze the requirements and identify all flow and automation artifacts needed
+5. Build a todo list: triggers → flows/subflows → custom actions/triggers if needed
+6. Verify wfa API, trigger types, built-in actions, and FDTransform usage via Context7 or FLOW-API.md
+7. Implement .now.ts flow files and any linked inline scripts
+8. Self-validate: unique $id for every wfa.trigger/action/flowLogic call, TemplateValue() on field values, assignSubflowOutputs called when outputs declared
+9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (subflow/action names)
+10. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
@@ -112,3 +116,23 @@ wfa.flowLogic.assignSubflowOutputs({ $id: Now.ID['assign_out'] }, { result: data
 - Field names must exactly match `@types/servicenow/schema/`
 - Import from `@servicenow/sdk/automation` for all flow objects
 - Import `@servicenow/sdk/global` once per project for `Now.ID`, `TemplateValue`, etc.
+
+## Session Artifact Registry
+
+This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
+
+### On Start
+1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts — especially table names and Script Include class names from Schema and Logic developers
+2. For any dependency with status ✅ Done, **read the actual source file** to get exact class names, method signatures, and table structures
+3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | Flow / Subflow / ActionDefinition / TriggerDefinition | Fluent-Automation-Developer | — | 🏗️ In Progress | {table names, Script Include names, or —} |
+
+### On Complete
+Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | Flow / Subflow / ActionDefinition / TriggerDefinition | Fluent-Automation-Developer | subflow: `MyApprovalSubflow`, action: `SendNotification` | ✅ Done | {table names, Script Include names, or —} |

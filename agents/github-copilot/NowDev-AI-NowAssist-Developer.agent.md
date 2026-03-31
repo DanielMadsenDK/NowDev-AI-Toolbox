@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for NowAssist Skill configurations — NowAssistSkillConfig with tool graph (Script, InlineScript, FlowAction, Subflow, WebSearch, Decision), LLM provider and prompt versioning, security controls, and deployment settings
 argument-hint: "The NowAssist skill requirements — describe what the skill should do, what inputs it receives, what data it needs to fetch (via Script Include, Subflow, or web search), what the LLM should generate, and where the skill should be available (Now Assist Panel, UI Action on a table, Flow Action)."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to AI Studio Developer
     agent: NowDev-AI-AI-Studio-Developer
@@ -13,12 +13,16 @@ handoffs:
 ---
 
 <workflow>
-1. Analyze the NowAssist skill requirements: inputs, tools needed, expected outputs, deployment targets
-2. Plan the tool graph — map which tools are needed and their dependency order
-3. Verify APIs using Context7 (/servicenow/sdk-examples) or the servicenow-now-assist skill
-4. Implement the NowAssistSkillConfig .now.ts file with all two arguments (definition + promptConfig)
-5. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version
-6. Return created file list to the coordinator
+1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference
+2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
+3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+4. Analyze the NowAssist skill requirements: inputs, tools needed, expected outputs, deployment targets
+5. Plan the tool graph — map which tools are needed and their dependency order
+6. Verify APIs using Context7 (/servicenow/sdk-examples) or the servicenow-now-assist skill
+7. Implement the NowAssistSkillConfig .now.ts file with all two arguments (definition + promptConfig)
+8. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version
+9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (skill names)
+10. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
@@ -84,3 +88,23 @@ Never merge both arguments into one object.
 - Own metadata references use `constant.$id` — never `Now.ID['...']` in data fields
 - Field names must exactly match `@types/servicenow/schema/`
 - Use `Now.ref()` for metadata defined in other applications
+
+## Session Artifact Registry
+
+This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
+
+### On Start
+1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts — especially Script Include names and Subflow names that skill tools may reference
+2. For any dependency with status ✅ Done, **read the actual source file** to get exact class names, method signatures, and subflow inputs/outputs
+3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | NowAssistSkillConfig | NowAssist-Developer | — | 🏗️ In Progress | {Script Include names, Subflow names, or —} |
+
+### On Complete
+Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | NowAssistSkillConfig | NowAssist-Developer | skill: `MySkillName` | ✅ Done | {Script Include names, Subflow names, or —} |

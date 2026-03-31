@@ -3,7 +3,7 @@ name: NowDev-AI-Fluent-Reviewer
 user-invocable: false
 disable-model-invocation: true
 description: specialized agent for reviewing ServiceNow Fluent SDK artifacts (.now.ts metadata, TypeScript modules, React components) against best practices sourced from the servicenow-fluent-development skill
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Reviewer
     agent: NowDev-AI-Reviewer
@@ -18,7 +18,8 @@ handoffs:
 4. For each artifact type found, load the relevant reference from the servicenow-fluent-development skill and identify the best practices that apply
 5. Apply universal Fluent language construct rules (always applicable regardless of artifact type)
 6. Review each file against the best practices sourced from the relevant skill references
-7. Generate structured feedback
+7. **Dependency Validation**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) and cross-reference — verify that method signatures, table names, and field names used by dependent artifacts match the actual exports of their dependencies
+8. Generate structured feedback
 </workflow>
 
 <stopping_rules>
@@ -139,6 +140,12 @@ List each artifact type found and which skill reference was consulted for it.
 ### 6. **Files Reviewed:**
 Complete list of files reviewed.
 
-### 7. **Next Steps:**
+### 7. **Dependency Validation:**
+If `/memories/session/artifacts.md` exists (use the `memory` tool to check), cross-reference the registry:
+- For each artifact's `Depends On` column, verify the dependency's `Exports` match the actual usage in the source code (method names, table names, field names, REST paths)
+- Flag mismatches (wrong method name, missing parameters, referencing a non-existent table/field) as **Critical** findings
+- Flag any artifact still showing 🏗️ In Progress status — it may have incomplete exports
+
+### 8. **Next Steps:**
 - If status is PASS: confirm the solution is ready to proceed to deployment via `now-sdk build && now-sdk install --auth <alias>`
 - If status is REQUEST CHANGES or CRITICAL ISSUES: list action items and instruct the orchestrator to re-invoke `NowDev-AI-Fluent-Developer` with the findings as input

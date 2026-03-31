@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for all user-facing artifacts — UI Pages (React), Client Scripts, UI Policies, UI Actions, Service Catalog, Service Portal, Workspaces, and Dashboards
 argument-hint: "The UI and user experience requirements from the implementation brief — forms, pages, catalogs, portals, and workspace features. Include table names, Script Include names (for GlideAjax calls), and role names already built by the Schema and Logic developers."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Fluent Developer
     agent: NowDev-AI-Fluent-Developer
@@ -13,13 +13,17 @@ handoffs:
 ---
 
 <workflow>
-1. Analyze the requirements and identify all UI artifacts needed
-2. Build a todo list by UI layer: metadata (.now.ts) → client scripts → React components
-3. For React UI Pages: verify patterns via UI-PAGE-API.md and CLIENT-SERVER-PATTERNS.md, then scaffold index.html → main.tsx → app.tsx → services → components
-4. Verify all APIs via Context7 (/servicenow/sdk-examples) or the servicenow-fluent-development skill
-5. Implement all artifacts
-6. Self-validate: <sdk:now-ux-globals> in index.html, HDS components used, no GlideRecord in client-side code, CSRF token in REST calls
-7. Return created file list to the coordinator
+1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names (for GlideAjax), REST API paths, table/field names
+2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and API paths
+3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+4. Analyze the requirements and identify all UI artifacts needed
+5. Build a todo list by UI layer: metadata (.now.ts) → client scripts → React components
+6. For React UI Pages: verify patterns via UI-PAGE-API.md and CLIENT-SERVER-PATTERNS.md, then scaffold index.html → main.tsx → app.tsx → services → components
+7. Verify all APIs via Context7 (/servicenow/sdk-examples) or the servicenow-fluent-development skill
+8. Implement all artifacts
+9. Self-validate: <sdk:now-ux-globals> in index.html, HDS components used, no GlideRecord in client-side code, CSRF token in REST calls
+10. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`
+11. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
@@ -98,3 +102,23 @@ src/client/global.d.ts               → declare global { Window.g_ck, GlideAjax
 - Field names must exactly match `@types/servicenow/schema/`
 - Use `Now.include('./file.js')` for script content — never tagged template literals
 - Include CSRF token (`g_ck`) in all mutating REST calls from React
+
+## Session Artifact Registry
+
+This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
+
+### On Start
+1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts — especially Script Include class names (for GlideAjax calls), REST API paths, table/field names
+2. For any dependency with status ✅ Done, **read the actual source file** to get exact class names, method signatures, API paths, and field types
+3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | UI Page / Client Script / UI Policy / Catalog Item / Workspace / Dashboard | Fluent-UI-Developer | — | 🏗️ In Progress | {Script Include names, REST API paths, or —} |
+
+### On Complete
+Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | UI Page / Client Script / UI Policy / Catalog Item / Workspace / Dashboard | Fluent-UI-Developer | — | ✅ Done | {Script Include names, REST API paths, or —} |

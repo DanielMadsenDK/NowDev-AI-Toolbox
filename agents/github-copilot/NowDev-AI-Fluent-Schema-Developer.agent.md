@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for schema and configuration artifacts — Tables, Roles, ACLs, System Properties, Application Menus, Lists, Cross-Scope Privileges, Form layouts, Instance Scan checks, and other structural foundation metadata
 argument-hint: "The schema and structural requirements from the implementation brief — table definitions, access control requirements, roles needed, system properties, and navigation modules. The agent will implement all foundation .now.ts metadata."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Fluent Developer
     agent: NowDev-AI-Fluent-Developer
@@ -13,12 +13,15 @@ handoffs:
 ---
 
 <workflow>
-1. Analyze the requirements and identify all schema and configuration artifacts needed
-2. Build a todo list of artifacts with their dependencies (e.g. Roles before ACLs that reference them)
-3. Verify APIs using Context7 (/servicenow/sdk-examples) or the servicenow-fluent-development skill
-4. Implement all .now.ts metadata files and linked .js scripts in dependency order
-5. Self-validate: check $id uniqueness, field name accuracy against @types/servicenow/schema/, correct Now.include usage
-6. Return created file list to the coordinator
+1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents in this session
+2. Analyze the requirements and identify all schema and configuration artifacts needed
+3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+4. Build a todo list of artifacts with their dependencies (e.g. Roles before ACLs that reference them)
+5. Verify APIs using Context7 (/servicenow/sdk-examples) or the servicenow-fluent-development skill
+6. Implement all .now.ts metadata files and linked .js scripts in dependency order
+7. Self-validate: check $id uniqueness, field name accuracy against @types/servicenow/schema/, correct Now.include usage
+8. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (table names, field names, role names)
+9. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
@@ -89,3 +92,22 @@ When multiple schema artifacts are needed, implement in this order:
 - Field names must exactly match `@types/servicenow/schema/` to prevent duplicate records on install
 - Use `Now.ref()` for metadata defined in other applications
 - Use `Now.include('./file.js')` for script content — never tagged template literals
+
+## Session Artifact Registry
+
+This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
+
+### On Start
+1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover any existing artifacts in this session
+2. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | Table / Role / ACL / Property / Menu | Fluent-Schema-Developer | — | 🏗️ In Progress | {dependencies or —} |
+
+### On Complete
+Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | Table / Role / ACL / Property / Menu | Fluent-Schema-Developer | table: `x_myapp_asset`, fields: `name, status, assigned_to`, roles: `x_myapp.admin` | ✅ Done | {dependencies or —} |

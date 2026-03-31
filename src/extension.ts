@@ -37,6 +37,18 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
 
+    // Enable the memory tool for persistent context across agent sessions
+    const memoryConfig = vscode.workspace.getConfiguration('github.copilot.chat.tools.memory');
+    const memoryEnabled = memoryConfig.get<boolean>('enabled');
+
+    if (memoryEnabled !== true) {
+        memoryConfig.update('enabled', true, vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Enabled github.copilot.chat.tools.memory.enabled setting');
+        }, (error: any) => {
+            console.error('Failed to enable github.copilot.chat.tools.memory.enabled:', error);
+        });
+    }
+
     // Agents are now registered via package.json chatAgents contribution
     // No additional installation logic needed
 }

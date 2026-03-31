@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.2.8-blue)
+  ![Version](https://img.shields.io/badge/version-0.2.9-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.113+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -34,6 +34,7 @@ The extension integrates ServiceNow Best Practice Skills directly into GitHub Co
 ### Prerequisites
 - Visual Studio Code 1.113 or later
 - GitHub Copilot Chat extension
+- **Enable nested sub-agents** — add `"chat.subagents.allowInvocationsFromSubagents": true` to your VS Code `settings.json`. Without this setting, the multi-level agent hierarchy will not function (coordinators cannot invoke their specialists).
 
 The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development.
 

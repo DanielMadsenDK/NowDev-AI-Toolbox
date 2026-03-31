@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for server-side logic artifacts — Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs, and Scheduled Scripts
 argument-hint: "The server-side logic requirements from the implementation brief — what data processing, validation, API endpoints, notifications, or SLAs need to be implemented. Include any table names and role/schema context already built by the Schema Developer."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Fluent Developer
     agent: NowDev-AI-Fluent-Developer
@@ -13,12 +13,16 @@ handoffs:
 ---
 
 <workflow>
-1. Analyze the requirements and identify all server-side logic artifacts needed
-2. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
-3. Verify APIs using Context7 (/servicenow/sdk-examples and /websites/servicenow) or the servicenow-fluent-development skill
-4. Implement .now.ts metadata files and linked .js server scripts in dependency order
-5. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
-6. Return created file list to the coordinator
+1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer
+2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact table structures and field types
+3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+4. Analyze the requirements and identify all server-side logic artifacts needed
+5. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
+6. Verify APIs using Context7 (/servicenow/sdk-examples and /websites/servicenow) or the servicenow-fluent-development skill
+7. Implement .now.ts metadata files and linked .js server scripts in dependency order
+8. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
+9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (class/method names, REST paths)
+10. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
@@ -90,3 +94,23 @@ Scripts inside Fluent objects are **ServiceNow JavaScript**, not TypeScript:
 - Own metadata references use `constant.$id` — never `Now.ID['...']` in data fields
 - Field names must exactly match `@types/servicenow/schema/`
 - Use `Now.ref()` for metadata defined in other applications
+
+## Session Artifact Registry
+
+This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
+
+### On Start
+1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts — especially table names, field names, and role names from the Schema Developer
+2. For any dependency with status ✅ Done, **read the actual source file** to get exact table structures, field types, and role names
+3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | Script Include / Business Rule / REST API / Notification / SLA | Fluent-Logic-Developer | — | 🏗️ In Progress | {table names, role names, or —} |
+
+### On Complete
+Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | Script Include / Business Rule / REST API / Notification / SLA | Fluent-Logic-Developer | `ClassName.methodName(params)`, `clientCallable: true`, REST path: `/api/x_myapp/v1/assets` | ✅ Done | {table names, role names, or —} |

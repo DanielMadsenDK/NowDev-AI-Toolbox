@@ -266,3 +266,129 @@ When creating a new agent (human or AI):
 - **Unclear role boundaries:** Agent attempts to implement when it should only analyze (breaks orchestration pattern)
 - **Overly long SKILL.md files:** Aim for <500 lines; use `<references/>` subdirectories for detailed content
 - **Weak descriptions:** Users/Copilot won't discover your agent if the description doesn't mention when to use it
+
+---
+
+## Critical VS Code Configuration
+
+The NowDev AI Agent system uses a multi-level agent hierarchy (up to 4 levels deep). GitHub Copilot's `chat.subagents.allowInvocationsFromSubagents` setting **must be enabled** for this to work.
+
+**Without this setting, Level 1 coordinators (Classic-Developer, Fluent-Developer) cannot invoke their Level 2 specialists, and the entire hierarchy silently fails.**
+
+Add this to your VS Code `settings.json`:
+
+```json
+{
+  "chat.subagents.allowInvocationsFromSubagents": true
+}
+```
+
+This setting is `false` by default. It must be enabled for any workspace using NowDev AI agents.
+
+---
+
+## Canonical: Session Artifact Registry
+
+When multiple sub-agents work on the same project, they run in **isolated context windows** — each sub-agent receives only the task prompt from its parent and returns only a summary. Siblings cannot see each other's output. This creates a risk of information loss when later agents depend on earlier agents' work (e.g., a Business Rule that calls a Script Include built by a different agent).
+
+The **Session Artifact Registry** uses the built-in `memory` tool's **session scope** (`/memories/session/`) to store a shared artifact dependency graph that all development agents read from and write to. Session memory auto-clears when the conversation ends — no manual cleanup needed.
+
+### How It Works
+
+1. **The root orchestrator** uses the `memory` tool to create `/memories/session/artifacts.md` at the start of every full-project session
+2. **Every development agent** uses the `memory` tool to read the registry before starting work (to discover what sibling agents built)
+3. **Every development agent** uses the `memory` tool to update the registry after completing work
+4. **Coordinator agents** still pass explicit context in prompts — the registry is a safety net, not a replacement
+5. **Session memory auto-clears** when the conversation ends — no cleanup step required
+
+### Registry File Format
+
+Location: `/memories/session/artifacts.md` (via the `memory` tool)
+
+```markdown
+# Session Artifact Registry
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| IncidentUtils | src/script-includes/IncidentUtils.js | Script Include | Script-Developer | `IncidentUtils.getActiveCount(groupSysId)`, `IncidentUtils.reassign(incidentGr, userSysId)` | ✅ Done | — |
+| AutoAssignIncident | src/business-rules/AutoAssignIncident.js | Business Rule (before/insert) | BusinessRule-Developer | — | 🏗️ In Progress | IncidentUtils |
+| x_myapp_asset | src/fluent/tables/x_myapp_asset.now.ts | Table | Fluent-Schema-Developer | fields: name, status, assigned_to, location | ✅ Done | — |
+```
+
+### Column Rules
+
+- **Artifact Name**: short identifier for the artifact (class name, table name, rule name) — used by other agents to reference this artifact in the `Depends On` column
+- **File**: relative path to the created/modified file
+- **Type**: artifact type (Script Include, Business Rule, Client Script, Table, ACL, Flow, UI Page, AiAgent, NowAssistSkillConfig, etc.)
+- **Agent**: which agent created this entry (for traceability)
+- **Exports**: class names, method signatures, field names, role names — anything downstream agents need to reference
+- **Status**: `🏗️ In Progress` when the agent starts work, updated to `✅ Done` when complete
+- **Depends On**: artifact names (from the `Artifact Name` column) that this artifact depends on — used for dependency validation during review
+
+### Memory Tool Operations
+
+The `memory` tool provides these commands for registry management:
+
+| Operation | Memory Tool Command | When to Use |
+|-----------|-------------------|-------------|
+| Create registry | `memory create` with path `/memories/session/artifacts.md` | Root orchestrator initializes the registry |
+| Read registry | `memory view` with path `/memories/session/artifacts.md` | All agents read before starting work |
+| Add entry | `memory insert` at end of file | Leaf agents add 🏗️ In Progress entries |
+| Update status | `memory str_replace` to change `🏗️ In Progress` → `✅ Done` | Leaf agents update after completing work |
+
+### Context Sync Protocol (All Leaf Development Agents)
+
+Every leaf development agent MUST follow this protocol:
+
+1. **Read**: use the `memory` tool to view `/memories/session/artifacts.md` to discover what exists
+2. **Read dependency files**: for each artifact listed in the `Depends On` column of your planned work, use `read/readFile` to read the actual source file to get exact method signatures, class structures, and field names — do not rely solely on the `Exports` summary
+3. **Write 🏗️**: use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before starting implementation
+4. **Implement**: write the code
+5. **Update ✅**: use the `memory` tool `str_replace` to change your entry's status to `✅ Done` and fill in the `Exports` column with accurate method signatures and key identifiers
+
+### Dependency Validation (Reviewer Agents)
+
+Both `NowDev-AI-Classic-Reviewer` and `NowDev-AI-Fluent-Reviewer` MUST cross-reference `/memories/session/artifacts.md` during review:
+
+1. Use the `memory` tool to view the registry and build a dependency graph
+2. For each artifact under review, check its `Depends On` column
+3. Verify that every referenced dependency exists in the registry with `Status: ✅ Done`
+4. Verify that method signatures used in the reviewed code match the `Exports` column of the dependency
+5. Flag any mismatches as **Critical** findings (e.g., calling `IncidentUtils.validate()` when the Script Include exports `IncidentUtils.validatePriority()`)
+
+### Agent Instructions (Copy to Development Agents)
+
+**For leaf development agents** (Script-Developer, BusinessRule-Developer, Client-Developer, Fluent-Schema/Logic/Automation/UI-Developer, AI-Agent-Developer, NowAssist-Developer):
+
+```markdown
+## Session Artifact Registry
+
+**Context Sync (MANDATORY first steps):**
+1. Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents
+2. For each artifact in your `Depends On` list, use `read/readFile` to read the actual source file (not just the registry summary) to get exact method signatures, class names, and field names
+3. Use the `memory` tool to insert your entry to the registry with `Status: 🏗️ In Progress` before writing any code
+
+**After completing implementation**, use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`.
+
+Registry format:
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+| {name} | {relative path} | {artifact type} | {your agent name} | {key exports} | 🏗️ In Progress → ✅ Done | {dependency names or —} |
+```
+
+**For coordinator agents** (Classic-Developer, Fluent-Developer):
+
+```markdown
+## Session Artifact Registry
+
+Before delegating to the first specialist, use the `memory` tool to check if `/memories/session/artifacts.md` exists. If not, use the `memory` tool to create it with this content:
+
+\```markdown
+# Session Artifact Registry
+
+| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
+|---------------|------|------|-------|---------|--------|------------|
+\```
+
+After each specialist completes, use the `memory` tool to verify they updated their status to ✅ Done and filled in Exports. When delegating to the next specialist, include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists. Use `read/readFile` to read the actual source files of your dependencies."
+```
