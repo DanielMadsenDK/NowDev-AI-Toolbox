@@ -117,20 +117,20 @@ gr.query();
 
 Choose the pattern that matches your project type:
 
-- **[CLASSIC.md](references/CLASSIC.md)** — Traditional GlideRecord patterns (JavaScript, existing instances)
+- **[CLASSIC.md](./CLASSIC.md)** — Traditional GlideRecord patterns (JavaScript, existing instances)
   - Simple and multiple condition queries
   - Record CRUD operations
   - GlideAggregate for performance
   - Bulk operations and complex filtering
 
-- **[FLUENT.md](references/FLUENT.md)** — Modern SDK patterns (TypeScript, new projects)
+- **[FLUENT.md](./FLUENT.md)** — Modern SDK patterns (TypeScript, new projects)
   - Type-safe fluent API
   - GlideQuery chainable methods
   - Array transformations and aggregations
   - Full-stack application development
 
-- **[EXAMPLES.md](references/EXAMPLES.md)** — Quick reference showing both approaches side-by-side
+- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches side-by-side
 
 ## Reference
 
-For performance optimization, decision matrices, and anti-patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For performance optimization, decision matrices, and anti-patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)

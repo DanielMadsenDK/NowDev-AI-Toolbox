@@ -109,20 +109,20 @@ if (current.start_date > current.end_date) {
 
 Choose the pattern that matches your implementation context:
 
-- **[CLASSIC.md](references/CLASSIC.md)** — Instance-based business rules (JavaScript, UI-created rules)
+- **[CLASSIC.md](./CLASSIC.md)** — Instance-based business rules (JavaScript, UI-created rules)
   - Field validation and auto-population
   - Before/After/Async/Display execution
   - Recursion prevention strategies
   - Error handling and logging
 
-- **[FLUENT.md](references/FLUENT.md)** — SDK-based business rules (TypeScript, `.now.ts` files)
+- **[FLUENT.md](./FLUENT.md)** — SDK-based business rules (TypeScript, `.now.ts` files)
   - Metadata-driven rule definitions
   - TypeScript handler implementation
   - Version-controlled rules
   - Full IDE support and type safety
 
-- **[EXAMPLES.md](references/EXAMPLES.md)** — Quick reference showing both approaches
+- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
 
 ## Reference
 
-For complete execution matrix and advanced patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For complete execution matrix and advanced patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)

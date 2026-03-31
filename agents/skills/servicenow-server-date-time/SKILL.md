@@ -104,6 +104,6 @@ var dueDate = calc.calculateDueDate(startDate, duration);
 
 ## Reference
 
-For working code examples covering date arithmetic, duration calculations, schedule queries, and timezone formatting, see [EXAMPLES.md](references/EXAMPLES.md)
+For working code examples covering date arithmetic, duration calculations, schedule queries, and timezone formatting, see [EXAMPLES.md](./EXAMPLES.md)
 
-For timezone handling, DST considerations, and advanced patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For timezone handling, DST considerations, and advanced patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)

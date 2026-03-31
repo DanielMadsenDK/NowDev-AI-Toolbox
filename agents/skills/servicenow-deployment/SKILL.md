@@ -67,4 +67,4 @@ Parent Update Set (orchestrates order)
 
 ## Reference
 
-For capture lists, what moves vs what stays, and batching patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For capture lists, what moves vs what stays, and batching patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)

@@ -39,7 +39,7 @@ gs.eventQueue('my.custom.event', current, oldCurrent, {
 gs.eventQueue('incident.priority.updated', current, oldCurrent);
 ```
 
-> **Related:** Events published via `gs.eventQueue()` trigger **Script Actions** defined in Fluent applications. See servicenow-fluent-development: [SCRIPT-ACTION-API.md](../../../agents/skills/servicenow-fluent-development/references/SCRIPT-ACTION-API.md) for creating event-triggered automation.
+> **Related:** Events published via `gs.eventQueue()` trigger **Script Actions** defined in Fluent applications. See servicenow-fluent-development: [SCRIPT-ACTION-API.md](../servicenow-fluent-development/SCRIPT-ACTION-API.md) for creating event-triggered automation.
 
 **Session management**:
 
@@ -130,19 +130,19 @@ user.savePreference('my_app.my_key', null);
 
 Choose the pattern that matches your implementation context:
 
-- **[CLASSIC.md](references/CLASSIC.md)** — Instance-based Script Includes (JavaScript, Class.create())
+- **[CLASSIC.md](./CLASSIC.md)** — Instance-based Script Includes (JavaScript, Class.create())
   - Class-based and function-based utilities
   - Database operations and queries
   - System operations and logging
   - Audit trails and error handling
 
-- **[FLUENT.md](references/FLUENT.md)** — SDK-based Script Includes (TypeScript, ES6 classes)
+- **[FLUENT.md](./FLUENT.md)** — SDK-based Script Includes (TypeScript, ES6 classes)
   - Metadata-driven script definitions
   - Modern ES6+ syntax
   - Type-safe utilities
   - Version-controlled scripts
 
-- **[EXAMPLES.md](references/EXAMPLES.md)** — Quick reference showing both approaches
+- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
 
 ## Decision Matrix: Which Approach to Use
 
@@ -158,4 +158,4 @@ Choose the pattern that matches your implementation context:
 
 ## Reference
 
-For advanced patterns, debugging techniques, and best practices, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For advanced patterns, debugging techniques, and best practices, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)

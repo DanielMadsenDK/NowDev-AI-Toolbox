@@ -142,21 +142,21 @@ For complete UI Policy documentation, see the **servicenow-fluent-development** 
 
 Choose the pattern that matches your implementation context:
 
-- **[CLASSIC.md](references/CLASSIC.md)** — Instance-based client scripts (JavaScript, UI-created)
+- **[CLASSIC.md](./CLASSIC.md)** — Instance-based client scripts (JavaScript, UI-created)
   - Form initialization and validation
   - GlideAjax server communication
   - Dynamic field visibility and cascading updates
   - Event handling and listeners
   - Reusable functions in global scope
 
-- **[FLUENT.md](references/FLUENT.md)** — SDK-based client scripts (TypeScript, `.now.ts` files)
+- **[FLUENT.md](./FLUENT.md)** — SDK-based client scripts (TypeScript, `.now.ts` files)
   - Metadata-driven script definitions
   - TypeScript handler implementation
   - Version-controlled scripts
   - Type-safe form handling
   - Full IDE support
 
-- **[EXAMPLES.md](references/EXAMPLES.md)** — Quick reference showing both approaches
+- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
 
 ## Decision Matrix: Which Approach to Use
 
@@ -172,4 +172,4 @@ Choose the pattern that matches your implementation context:
 
 ## Reference
 
-For GlideAjax templates, g_scratchpad patterns, and detailed API reference, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For GlideAjax templates, g_scratchpad patterns, and detailed API reference, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)

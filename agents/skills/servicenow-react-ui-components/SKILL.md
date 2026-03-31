@@ -66,7 +66,7 @@ These components render ServiceNow record data. They **require a `RecordProvider
 
 ### 3. Horizon Design System Components
 
-See [references/COMPONENTS-REFERENCE.md](references/COMPONENTS-REFERENCE.md) for full details on each component below.
+See [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md) for full details on each component below.
 
 **Layout & Containers:** `Accordion`/`AccordionItem`, `Card`, `Collapse`, `Tabs`, `Modal`
 
@@ -222,7 +222,7 @@ export default function IncidentList() {
 
 ## HDS Component Examples
 
-For complete HDS component documentation with all props, see [references/COMPONENTS-REFERENCE.md](references/COMPONENTS-REFERENCE.md).
+For complete HDS component documentation with all props, see [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md).
 
 Quick examples for common patterns:
 
@@ -266,10 +266,10 @@ Load the relevant reference file for detailed props, examples, and patterns:
 
 | When you need... | Read this |
 |-----------------|-----------|
-| RecordProvider, FormColumnLayout, FormActionBar, ActivityStream, Attachments, RelatedLists, Notifications | [references/FORM-COMPONENTS.md](references/FORM-COMPONENTS.md) |
-| NowRecordListConnected (paginated record list) | [references/LIST-COMPONENTS.md](references/LIST-COMPONENTS.md) |
-| Accordion, Card, Tabs, Modal, Collapse | [references/LAYOUT-COMPONENTS.md](references/LAYOUT-COMPONENTS.md) |
-| Button, ButtonBare, ButtonIconic, ButtonStateful, SplitButton, Dropdown | [references/BUTTON-ACTION-COMPONENTS.md](references/BUTTON-ACTION-COMPONENTS.md) |
-| Input, Textarea, Select, Typeahead, Checkbox, Toggle, RadioButtons, DateTime | [references/INPUT-COMPONENTS.md](references/INPUT-COMPONENTS.md) |
-| Alert, Loader, ProgressBar, Tooltip, Heading, Badge, HighlightedValue, LabelValue, Avatar, Icon, Breadcrumbs, TemplateMessage | [references/FEEDBACK-DISPLAY-COMPONENTS.md](references/FEEDBACK-DISPLAY-COMPONENTS.md) |
-| Full import list and event pattern cheatsheet | [references/COMPONENTS-REFERENCE.md](references/COMPONENTS-REFERENCE.md) |
+| RecordProvider, FormColumnLayout, FormActionBar, ActivityStream, Attachments, RelatedLists, Notifications | [FORM-COMPONENTS.md](./FORM-COMPONENTS.md) |
+| NowRecordListConnected (paginated record list) | [LIST-COMPONENTS.md](./LIST-COMPONENTS.md) |
+| Accordion, Card, Tabs, Modal, Collapse | [LAYOUT-COMPONENTS.md](./LAYOUT-COMPONENTS.md) |
+| Button, ButtonBare, ButtonIconic, ButtonStateful, SplitButton, Dropdown | [BUTTON-ACTION-COMPONENTS.md](./BUTTON-ACTION-COMPONENTS.md) |
+| Input, Textarea, Select, Typeahead, Checkbox, Toggle, RadioButtons, DateTime | [INPUT-COMPONENTS.md](./INPUT-COMPONENTS.md) |
+| Alert, Loader, ProgressBar, Tooltip, Heading, Badge, HighlightedValue, LabelValue, Avatar, Icon, Breadcrumbs, TemplateMessage | [FEEDBACK-DISPLAY-COMPONENTS.md](./FEEDBACK-DISPLAY-COMPONENTS.md) |
+| Full import list and event pattern cheatsheet | [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md) |

@@ -78,8 +78,8 @@ var success = result.wasSuccessful();
 
 ## Examples
 
-For working code examples covering incident escalation, approval workflows, and notification patterns, see [EXAMPLES.md](references/EXAMPLES.md)
+For working code examples covering incident escalation, approval workflows, and notification patterns, see [EXAMPLES.md](./EXAMPLES.md)
 
 ## Reference
 
-For complete API documentation and advanced patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For complete API documentation and advanced patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)

@@ -90,20 +90,20 @@ if (response.getStatusCode() === 200) {
 
 Choose the pattern that matches your implementation context:
 
-- **[CLASSIC.md](references/CLASSIC.md)** — Instance-based HTTP integrations (RESTMessageV2, SOAPMessageV2)
+- **[CLASSIC.md](./CLASSIC.md)** — Instance-based HTTP integrations (RESTMessageV2, SOAPMessageV2)
   - REST API calls with query parameters and headers
   - OAuth token management and refresh
   - SOAP web service integration
   - Error handling and retry logic
 
-- **[FLUENT.md](references/FLUENT.md)** — SDK-based HTTP integrations (TypeScript syntax)
+- **[FLUENT.md](./FLUENT.md)** — SDK-based HTTP integrations (TypeScript syntax)
   - Type-safe REST requests
   - Modern async/await patterns
   - TypeScript types for payloads
   - Full error handling
 
-- **[EXAMPLES.md](references/EXAMPLES.md)** — Quick reference showing both approaches
+- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
 
 ## Reference
 
-For complete API reference, examples, and authentication patterns, see [BEST_PRACTICES.md](references/BEST_PRACTICES.md)
+For complete API reference, examples, and authentication patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
