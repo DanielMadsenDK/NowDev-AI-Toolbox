@@ -1028,21 +1028,140 @@ Creates `sys_transform_map` + `sys_transform_entry` + `sys_transform_script`. Us
 
 ---
 
-## Utility Helpers 
+## Utility Helpers
+
+Global helper functions for creating typed values in `Record()` data fields. All four are available globally via `@servicenow/sdk/global` — **no import needed**.
+
+---
+
+### Duration()
+
+Creates a duration value for `DurationColumn` fields. Serializes to ServiceNow internal format (`'YYYY-MM-DD HH:MM:SS'` relative to epoch).
 
 ```ts
-// Duration() — for DurationColumn fields
 Duration({ days: 1, hours: 6, minutes: 30, seconds: 15 })
+// → '1970-01-02 06:30:15'
+```
 
-// Time() — for TimeColumn fields
-Time({ hours: 9, minutes: 0, seconds: 0 })
-Time({ hours: 9, minutes: 0, seconds: 0 }, 'America/New_York')  // with timezone
+| Property | Type | Description |
+|----------|------|-------------|
+| `days` | Number | Optional. Number of days |
+| `hours` | Number | Optional. Number of hours |
+| `minutes` | Number | Optional. Number of minutes |
+| `seconds` | Number | Optional. Number of seconds |
 
-// FieldList<T>() — for FieldListColumn; dot-walking supported
-FieldList<'sys_user'>(['name', 'company', 'active', 'manager.name'])
+```ts
+import { Record } from '@servicenow/sdk/core'
 
-// TemplateValue() — for TemplateValueColumn; also used in Flow action.core.updateRecord
-TemplateValue({ cost: 100, description: 'Catalog Item', active: true })
+Record({
+    $id: Now.ID['p1-sla'],
+    table: 'contract_sla',
+    data: {
+        name: 'Priority 1 SLA',
+        duration: Duration({ hours: 4 }),
+    },
+})
+```
+
+---
+
+### Time()
+
+Creates a time-of-day value for `TimeColumn` fields. The value is stored in UTC — if a timezone is provided, the given time is converted from that timezone to UTC before storage. Defaults to the system timezone if no timezone is specified.
+
+```ts
+Time({ hours: 14, minutes: 30, seconds: 0 })                       // system timezone
+Time({ hours: 14, minutes: 30, seconds: 0 }, 'America/New_York')   // 14:30 EST → 19:30 UTC
+Time({ hours: 9, minutes: 0, seconds: 0 }, 'UTC')                  // no conversion
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `value.hours` | Number | Optional. Hour (0–23) |
+| `value.minutes` | Number | Optional. Minutes (0–59) |
+| `value.seconds` | Number | Optional. Seconds (0–59) |
+| `timeZone` | String | Optional. IANA timezone (e.g. `'America/New_York'`, `'UTC'`). Defaults to system timezone |
+
+```ts
+Record({
+    $id: Now.ID['daily-job'],
+    table: 'sysauto_script',
+    data: {
+        name: 'Daily Data Processing',
+        run_time: Time({ hours: 9, minutes: 0, seconds: 0 }, 'UTC'),
+    },
+})
+```
+
+---
+
+### TemplateValue()
+
+Creates a template value serialized as a ServiceNow encoded query string. Used with `TemplateValueColumn` fields and `action.core.updateRecord` in flows.
+
+Accepts an optional generic table parameter for type-safe field IntelliSense.
+
+```ts
+// Generic — accepts any key/value pairs
+TemplateValue({ cost: 100, description: 'Item', active: true })
+// → 'cost=100^description=Item^active=true^EQ'
+
+// Table-specific — IntelliSense for sc_cat_item fields
+TemplateValue<'sc_cat_item'>({ cost: 100, description: 'Item', category: 'Hardware' })
+```
+
+```ts
+Record({
+    $id: Now.ID['onboarding-task'],
+    table: 'sc_cat_item',
+    data: {
+        name: 'New Laptop Request',
+        template: TemplateValue<'sc_req_item'>({
+            short_description: 'Laptop setup',
+            priority: 2,
+            assignment_group: 'IT Hardware',
+        }),
+    },
+})
+```
+
+---
+
+### FieldList()
+
+Creates a comma-separated list of field names. Used with `FieldListColumn` and `SlushBucketColumn` fields.
+
+Accepts an optional generic table parameter for type-safe field IntelliSense, including dot-walk paths.
+
+```ts
+// Generic
+FieldList(['name', 'description', 'cost'])
+// → 'name,description,cost'
+
+// Table-specific — IntelliSense + dot-walk support
+FieldList<'sc_cat_item'>(['name', 'description', 'cost', 'category', 'assigned_to.name'])
+```
+
+```ts
+import { Table, FieldListColumn, TableNameColumn, Record } from '@servicenow/sdk/core'
+
+Table({
+    name: 'x_myapp_config',
+    label: 'Config',
+    columns: [
+        TableNameColumn({ name: 'target_table', label: 'Target Table' }),
+        FieldListColumn({ name: 'display_fields', label: 'Display Fields', dependent: 'target_table' }),
+    ],
+})
+
+Record({
+    $id: Now.ID['config-record'],
+    table: 'x_myapp_config',
+    data: {
+        target_table: 'sc_cat_item',
+        display_fields: FieldList<'sc_cat_item'>(['name', 'description', 'cost', 'availability']),
+    },
+})
 ```
 
 ---

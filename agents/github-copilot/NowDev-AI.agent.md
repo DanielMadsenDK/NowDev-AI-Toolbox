@@ -32,18 +32,19 @@ user-invocable: true
 ## Workflow Steps
 
 1. **Triage request intent** as `lightweight`, `debugging`, or `full-project` using the indicators above.
-2. **For `lightweight` requests:** Invoke `NowDev-AI-Assistant` agent directly with the user's question as context. Return synthesized results without further orchestration — do not proceed to steps 3-10.
-   **For `debugging` requests:** Invoke `NowDev-AI-Debugger` directly with the error description, file paths, and context. Return its diagnostic report to the user — do not proceed to steps 3-10.
-3. **For `full-project` requests, run story refinement check.** If the request is a user story, functional requirement, or implementation task that contains vague references (unnamed groups, unspecified URLs, implicit conditions, undefined tables or roles), invoke `NowDev-AI-Refinement` before proceeding. Wait for the Refined Implementation Brief before continuing. If the request is already complete and unambiguous, skip this step.
-4. Run requirements analysis using the refined brief (or original request if no refinement was needed). If Context7 is available, verify feasibility; otherwise, rely on built-in skills and best practices knowledge.
-5. Determine which artifact types are needed and which sub-agents to invoke — ALL implementation is delegated, no exceptions.
-6. Visualize proposed solution using `renderMermaidDiagram` (do not output diagram code in chat).
-7. Present plan summary and diagram to user. PAUSE for approval before proceeding.
-8. Initialize todo list with all sub-agent invocations, review steps, and milestones.
-9. **Initialize the Session Artifact Registry**: Use the `memory` tool to create `/memories/session/artifacts.md` with the header row (see Session Artifact Registry section below).
-10. Delegate to sub-agents in the optimal sequence (parallelize independent artifacts).
-11. Update todo list after each sub-agent completes.
-12. Coordinate review and deployment preparation.
+2. **For `lightweight` requests:** Invoke `NowDev-AI-Assistant` agent directly with the user's question as context. Return synthesized results without further orchestration — do not proceed to steps 3-11.
+   **For `debugging` requests:** Invoke `NowDev-AI-Debugger` directly with the error description, file paths, and context. Return its diagnostic report to the user — do not proceed to steps 3-11.
+3. **Load project configuration.** Read `.vscode/nowdev-ai-config.json` (if it exists) to obtain the user's ServiceNow instance URL, and preferred development style. If the file contains a `customInstructions` field, these are **user-provided directives that MUST be followed with the highest priority**. They override default behavior where applicable. Pass the instance URL, preferred style, and custom instructions as context to ALL sub-agents throughout the entire session.
+4. **For `full-project` requests, run story refinement check.** If the request is a user story, functional requirement, or implementation task that contains vague references (unnamed groups, unspecified URLs, implicit conditions, undefined tables or roles), invoke `NowDev-AI-Refinement` before proceeding. Wait for the Refined Implementation Brief before continuing. If the request is already complete and unambiguous, skip this step.
+5. Run requirements analysis using the refined brief (or original request if no refinement was needed). If Context7 is available, verify feasibility; otherwise, rely on built-in skills and best practices knowledge.
+6. Determine which artifact types are needed and which sub-agents to invoke — ALL implementation is delegated, no exceptions.
+7. Visualize proposed solution using `renderMermaidDiagram` (do not output diagram code in chat).
+8. Present plan summary and diagram to user. PAUSE for approval before proceeding.
+9. Initialize todo list with all sub-agent invocations, review steps, and milestones.
+10. **Initialize the Session Artifact Registry**: Use the `memory` tool to create `/memories/session/artifacts.md` with the header row (see Session Artifact Registry section below).
+11. Delegate to sub-agents in the optimal sequence (parallelize independent artifacts).
+12. Update todo list after each sub-agent completes.
+13. Coordinate review and deployment preparation.
 </workflow>
 
 <stopping_rules>

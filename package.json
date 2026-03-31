@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.2.9",
+  "version": "0.3.0",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -27,6 +27,69 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nowdev-ai-toolbox",
+          "title": "NowDev AI Toolbox",
+          "icon": "media/activitybar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "nowdev-ai-toolbox": [
+        {
+          "id": "nowdev-ai-toolbox.welcome",
+          "name": "NowDev AI Toolbox",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "nowdev-ai-toolbox.openCopilotChat",
+        "title": "Open Copilot Chat",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.refreshStatus",
+        "title": "Refresh Status",
+        "category": "NowDev AI"
+      }
+    ],
+    "configuration": {
+      "title": "NowDev AI Toolbox",
+      "properties": {
+        "nowdev-ai-toolbox.instanceUrl": {
+          "type": "string",
+          "default": "",
+          "description": "ServiceNow instance URL (e.g. https://myinstance.service-now.com)",
+          "order": 1
+        },
+        "nowdev-ai-toolbox.preferredDevelopmentStyle": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "classic",
+            "fluent"
+          ],
+          "enumDescriptions": [
+            "Let agents decide the best approach based on context",
+            "Prefer Classic development (Script Includes, Business Rules, Client Scripts)",
+            "Prefer Fluent SDK development (.now.ts TypeScript metadata)"
+          ],
+          "description": "Preferred ServiceNow development style when agents have a choice",
+          "order": 2
+        },
+        "nowdev-ai-toolbox.customInstructionsFile": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a file (.md or .txt) containing custom instructions for the AI agents. The file content is read and included as high-priority context in every agent session.",
+          "order": 3
+        }
+      }
+    },
     "chatAgents": [
       {
         "path": "./agents/github-copilot/NowDev-AI.agent.md"

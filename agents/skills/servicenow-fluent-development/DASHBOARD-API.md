@@ -375,28 +375,45 @@ At least one of the `user`, `group`, or `role` properties must be specified for 
 
 ### Example
 
+Permissions can reference users, groups, or roles using either raw sys_id strings or `Now.ref` for type-safe lookups:
+
 ```ts
 permissions: [
     {
-        $id: Now.ID['manager-user-permission'],
-        user: 'a8f98bb0eb32010045e1a5115206fe3a',  // sys_id of manager user
+        $id: Now.ID['owner-user-permission'],
+        user: Now.ref('sys_user', { sys_id: 'a8f98bb0eb32010045e1a5115206fe3a' }),
         canRead: true,
         canWrite: true,
+        canShare: true,
         owner: true,
     },
     {
         $id: Now.ID['itil-role-permission'],
-        role: '2831a114c611228501d4ea6c309d626d',  // sys_id of itil role
+        role: Now.ref('sys_user_role', { sys_id: '2831a114c611228501d4ea6c309d626d' }),
         canRead: true,
-        canWrite: false,
+        canWrite: true,
+        canShare: false,
+        owner: false,
     },
     {
         $id: Now.ID['support-group-permission'],
-        group: 'd625dccec0a8016700a222a0f7900d06',  // sys_id of Service Desk group
+        group: Now.ref('sys_user_group', { sys_id: 'd625dccec0a8016700a222a0f7900d06' }),
         canRead: true,
         canWrite: false,
+        canShare: false,
+        owner: false,
     }
 ]
+```
+
+Raw sys_id strings work as well but `Now.ref` is preferred for explicitness:
+
+```ts
+{
+    $id: Now.ID['read-only-role-permission'],
+    role: '2831a114c611228501d4ea6c309d626d',
+    canRead: true,
+}
 ```
 
 ---
@@ -414,11 +431,24 @@ Define visibility rules for which UX experiences display the dashboard.
 
 ### Example
 
+Reference a Workspace object directly (most common):
+
 ```ts
 visibilities: [
   {
-    $id: Now.ID["dashboard_visibility_1"],
-    experience: myWorkspace  // Reference to Workspace object
+    $id: Now.ID['dashboard-visibility'],
+    experience: myWorkspace,
+  }
+]
+```
+
+Or reference an existing UX page registry record by sys_id using `Now.ref`:
+
+```ts
+visibilities: [
+  {
+    $id: Now.ID['dashboard-visibility'],
+    experience: Now.ref('sys_ux_page_registry', { sys_id: 'abc123def456789' }),
   }
 ]
 ```

@@ -38,7 +38,7 @@ Create a workspace for managing business entities in a single focused working ar
 | `defaultRecordOverrides` | Object | No | Overrides for records not tracked by the plugin. A map of record keys to field overrides: `{ [record: string]: { [key: string]: unknown } }` |
 | `$meta` | Object | No | Metadata for installation behavior. `installMethod: 'demo'` (outputs to `metadata/unload.demo`) or `'first install'` (outputs to `metadata/unload`). |
 
-### Example
+### Basic Example
 
 ```ts
 import { Workspace } from '@servicenow/sdk/core';
@@ -49,6 +49,21 @@ const itsmWorkspace = Workspace({
     path: 'itsm',
     tables: ['incident', 'problem', 'change_request', 'user', 'sys_user_group'],
     listConfig: incidentListConfig
+});
+```
+
+### With Landing Path and Active Flag
+
+Use `landingPath` to control the default route and `active: false` to deploy a workspace in a disabled state (useful for staged rollouts or demo configurations):
+
+```ts
+const stagingWorkspace = Workspace({
+    $id: Now.ID['staging-workspace'],
+    title: 'Asset Management',
+    path: 'asset-mgmt',
+    landingPath: 'overview',
+    active: false,
+    tables: ['alm_asset', 'cmdb_ci'],
 });
 ```
 
@@ -265,13 +280,30 @@ const managerApplicability = Applicability({
 });
 ```
 
-### Alternative: Using Role Names
+### Alternative: Using Role Names String
+
+When you don't need typed Role objects, pass a comma-separated string to `roleNames`:
 
 ```ts
-const managerApplicability = Applicability({
-    $id: Now.ID['manager_applicability'],
-    name: 'Managers Only',
-    roleNames: 'x_snc_manager.user,canvas_user'
+const itilApplicability = Applicability({
+    $id: Now.ID['itil_applicability'],
+    name: 'ITIL Users',
+    description: 'Visible to ITIL and admin roles',
+    roleNames: 'itil,admin',
+});
+```
+
+### Alternative: Using String Role Array
+
+You can also pass plain role name strings to the `roles` array without constructing Role objects:
+
+```ts
+const adminApplicability = Applicability({
+    $id: Now.ID['admin_applicability'],
+    name: 'Admin Only Access',
+    description: 'Restricts visibility to admin users',
+    active: true,
+    roles: ['admin'],
 });
 ```
 

@@ -181,7 +181,7 @@ Creates an `item_option_new_set` record grouping related catalog variables toget
 | `readRoles` | Array | Array of `Role` constants or sys_ids that can **view** the variable set |
 | `writeRoles` | Array | Array of `Role` constants or sys_ids that can **modify** variable values in the set |
 | `createRoles` | Array | Array of `Role` constants or sys_ids that can **create row instances** (applies only to `multiRow` sets) |
-| `variables` | Object | **Required.** Object of named variable definitions using type-specific functions |
+| `variables` | Object | Object of named variable definitions using type-specific functions |
 | `name` | String | Optional name for additional identification |
 | `version` | Number | Variable set version (default: `0`) |
 | `$meta` | Object | Installation metadata. `{ installMethod: 'demo' \| 'first install' }` |
@@ -191,7 +191,121 @@ Creates an `item_option_new_set` record grouping related catalog variables toget
 - Within a catalog item, variable names can't duplicate variable set titles or internal names
 - Catalog client scripts and UI policy scripts must refer to the internal name of a variable set, not the title
 
-**Example:**
+**Single-row with checkbox pricing:**
+
+```ts
+import { VariableSet, CheckboxVariable } from '@servicenow/sdk/core'
+
+export const addOnsSet = VariableSet({
+    $id: Now.ID['add_ons_set'],
+    title: 'Add-on Options',
+    variables: {
+        premiumSupport: CheckboxVariable({
+            question: 'Premium Support',
+            order: 1,
+            selectionRequired: true,
+            pricingDetails: [
+                { amount: 100, currencyType: 'USD', field: 'price_if_checked' },
+            ],
+        }),
+        rushDelivery: CheckboxVariable({
+            question: 'Rush Delivery',
+            order: 2,
+            selectionRequired: false,
+        }),
+    },
+})
+```
+
+**Multi-row with checkbox pricing (including recurring):**
+
+`rec_price_if_checked` applies a recurring charge when the checkbox is checked. Multi-row sets allow users to add multiple row instances:
+
+```ts
+export const multiRowAddOns = VariableSet({
+    $id: Now.ID['multi_row_add_ons'],
+    title: 'Multi-Row Add-on Options',
+    type: 'multiRow',
+    variables: {
+        premiumSupport: CheckboxVariable({
+            question: 'Premium Support',
+            order: 1,
+            selectionRequired: true,
+            pricingDetails: [
+                { amount: 100, currencyType: 'USD', field: 'price_if_checked' },
+                { amount: 50, currencyType: 'GBP', field: 'rec_price_if_checked' },
+            ],
+        }),
+        extendedWarranty: CheckboxVariable({
+            question: 'Extended Warranty',
+            order: 2,
+            pricingDetails: [
+                { amount: 200, currencyType: 'EUR', field: 'price_if_checked' },
+            ],
+        }),
+        rushDelivery: CheckboxVariable({
+            question: 'Rush Delivery',
+            order: 3,
+            selectionRequired: false,
+        }),
+    },
+})
+```
+
+**Multi-row with SelectBox — table-sourced and custom choices:**
+
+```ts
+import { VariableSet, SelectBoxVariable } from '@servicenow/sdk/core'
+
+export const supportTierSet = VariableSet({
+    $id: Now.ID['support_tier_set'],
+    title: 'Support Tiers',
+    type: 'multiRow',
+    variables: {
+        // Choices driven from an existing table field
+        priorityLevel: SelectBoxVariable({
+            question: 'Priority (from table)',
+            order: 1,
+            choiceTable: 'incident',
+            choiceField: 'priority',
+        }),
+        // Manual choices with per-choice pricing
+        supportLevel: SelectBoxVariable({
+            question: 'Support Level',
+            order: 2,
+            choices: {
+                basic: {
+                    label: 'Basic Support',
+                    sequence: 1,
+                    inactive: false,
+                    pricingDetails: [{ field: 'misc', amount: 50, currencyType: 'USD' }],
+                },
+                standard: {
+                    label: 'Standard Support',
+                    sequence: 2,
+                    inactive: false,
+                },
+                premium: {
+                    label: 'Premium Support',
+                    sequence: 3,
+                    inactive: false,
+                },
+            },
+        }),
+        deliveryMethod: SelectBoxVariable({
+            question: 'Delivery Method',
+            order: 3,
+            choices: {
+                email: { label: 'Email', sequence: 1, inactive: false },
+                download: { label: 'Download', sequence: 2, inactive: false },
+                physical: { label: 'Physical Media', sequence: 3, inactive: false },
+            },
+        }),
+    },
+})
+```
+
+**Single-row with layout and roles:**
 
 ```ts
 import {
@@ -299,7 +413,7 @@ Most types share the properties from `BaseVariableConfig` and `VariableConfig`. 
 | `visibleGuide` | Boolean | `true` | Show in order guide views |
 | `visibleStandalone` | Boolean | `true` | Show in standalone catalog views |
 | `visibleSummary` | Boolean | — | Show in request summary |
-| `pricingDetails` | Array | — | Pricing associated with the variable: `{ amount, currencyType, field: 'price' \| 'recurring_price' }` |
+| `pricingDetails` | Array | — | Pricing associated with the variable: `{ amount, currencyType, field }`. `field` values: `'price'` (one-time price), `'recurring_price'` (recurring), `'price_if_checked'` (checkbox activation price), `'rec_price_if_checked'` (recurring checkbox price), `'misc'` (miscellaneous one-time), `'rec_misc'` (miscellaneous recurring) |
 | `pricingImplications` | Boolean | — | Whether variable value affects pricing |
 | `useDynamicDefault` | Boolean | — | Use a dynamic default value |
 | `dotWalkPath` | String | — | Dot-walk path for dynamic default field resolution |
@@ -352,6 +466,7 @@ Most types share the properties from `BaseVariableConfig` and `VariableConfig`. 
 
 **`CheckboxVariable`** — Boolean checkbox (true/false)
 - `selectionRequired` — When `true`, the checkbox must be checked to submit. When `selectionRequired: true`, `mandatory`, `readOnly`, and `hidden` are not supported
+- `pricingDetails` — Array of `{ amount, currencyType, field }` pricing entries applied when the checkbox is checked. Use `field: 'price_if_checked'` for one-time price on check
 
 **`YesNoVariable`** — Yes/No radio buttons
 - `includeNone` — Add a "None" option in addition to Yes/No
@@ -478,7 +593,7 @@ choices: {
 
 Creates a `catalog_ui_policy` record that controls variable behavior on catalog item forms based on conditions. Catalog UI policies can make variables mandatory, read-only, visible, or hidden. For validation, calculations, or asynchronous calls, use catalog client scripts instead.
 
-**Required properties:** `$id`, `shortDescription`, and either `catalogItem` or `variableSet`
+**Required properties:** `$id`, `shortDescription`
 
 **All properties:**
 
@@ -486,12 +601,13 @@ Creates a `catalog_ui_policy` record that controls variable behavior on catalog 
 |----------|------|-------------|
 | `$id` | String or Number | **Required.** Unique ID. Format: `Now.ID['policy_id']` |
 | `shortDescription` | String | **Required.** Short description of what the policy does |
-| `catalogItem` | Reference or String | **Required if variableSet not used.** Reference to `CatalogItem` or `CatalogItemRecordProducer` constant, or sys_id of catalog item `[sc_cat_item]` or record producer `[sc_cat_item_producer]` |
-| `variableSet` | Reference or String | **Required if catalogItem not used.** Reference to `VariableSet` constant, or sys_id of variable set `[item_option_new_set]` |
+| `description` | String | Detailed description of the policy |
+| `catalogItem` | Reference or String | Reference to `CatalogItem` or `CatalogItemRecordProducer` constant, or sys_id of catalog item `[sc_cat_item]` or record producer `[sc_cat_item_producer]`. Mutually exclusive with `variableSet`. |
+| `variableSet` | Reference or String | Reference to `VariableSet` constant, or sys_id of variable set `[item_option_new_set]`. Mutually exclusive with `catalogItem`. |
 | `appliesTo` | String | Scope: `'item'` (specific catalog item) or `'set'` (whole variable set). Default: `'item'` |
 | `catalogCondition` | String | Encoded query conditions based on variable values. Example: ``${item.variables.priority}=high^EQ`` |
 | `active` | Boolean | Whether the policy is active (default: `true`) |
-| `global` | Boolean | Whether the policy runs on all views of the table (default: `true`) |
+| `global` | Boolean | Whether the policy applies globally across all catalog contexts (default: `false`) |
 | `onLoad` | Boolean | Whether the policy runs when the form loads. If `false`, applies only on variable changes (default: `true`) |
 | `reverseIfFalse` | Boolean | Reverse UI actions when condition evaluates to false (default: `true`) |
 | `inherit` | Boolean | Whether the policy is inherited (default: `false`) |
@@ -506,10 +622,72 @@ Creates a `catalog_ui_policy` record that controls variable behavior on catalog 
 | `runScriptsInUiType` | String | UI types where scripts run: `'desktop'` \| `'mobileOrServicePortal'` \| `'all'`. Default: `'desktop'` |
 | `vaSupported` | Boolean | Whether policy is supported in Virtual Agent conversations (default: `false`) |
 | `order` | Number | Evaluation order relative to other policies |
-| `actions` | Array | **Required.** List of variable actions to perform when condition is met. See actions array section |
+| `actions` | Array | List of variable actions to perform when condition is met. See actions array section |
 | `$meta` | Object | Installation metadata. `{ installMethod: 'demo' \| 'first install' }` |
 
-**Example:**
+**Minimal policy (no condition or actions):**
+
+```ts
+import { CatalogUiPolicy } from '@servicenow/sdk/core'
+
+export const basicPolicy = CatalogUiPolicy({
+    $id: Now.ID['basic_catalog_policy'],
+    catalogItem: 'my-catalog-item',
+    shortDescription: 'Basic catalog UI policy',
+})
+```
+
+**Policy with variable actions:**
+
+`variableMessage` + `variableMessageType` display inline feedback. `valueAction: 'setValue'` sets a default value on trigger:
+
+```ts
+export const actionsPolicy = CatalogUiPolicy({
+    $id: Now.ID['catalog_ui_policy_with_actions'],
+    catalogItem: 'my-catalog-item',
+    shortDescription: 'Policy with field actions',
+    actions: [
+        {
+            variableName: 'var_description',
+            visible: true,
+            readOnly: true,
+            mandatory: true,
+        },
+        {
+            variableName: 'var_urgency',
+            visible: true,
+            mandatory: true,
+            variableMessageType: 'error',
+            variableMessage: 'This field is required',
+            valueAction: 'setValue',
+            value: 'default urgency value',
+            order: 200,
+        },
+    ],
+})
+```
+
+**Policy with conditional scripts:**
+
+Set `runScripts: true` to enable `executeIfTrue`/`executeIfFalse`. Use `runScriptsInUiType` to limit which UI surfaces run the scripts. Scripts must use the `function onCondition() {}` wrapper:
+
+```ts
+export const scriptedPolicy = CatalogUiPolicy({
+    $id: Now.ID['catalog_ui_policy_with_scripts'],
+    catalogItem: 'my-catalog-item',
+    shortDescription: 'Policy with conditional scripts',
+    runScripts: true,
+    runScriptsInUiType: 'mobileOrServicePortal',
+    executeIfTrue: 'function onCondition() { g_form.addErrorMessage("Condition met"); }',
+    executeIfFalse: 'function onCondition() { g_form.clearMessages(); }',
+    catalogCondition: 'var_short_descriptionENDSWITH^EQ',
+    global: true,
+    reverseIfFalse: true,
+    isolateScript: true,
+})
+```
+
+**Policy with condition and catalog item reference:**
 
 ```ts
 import { CatalogUiPolicy } from "@servicenow/sdk/core";
@@ -590,7 +768,7 @@ actions: [
 
 Creates a `catalog_script_client` record that runs on the client side to control catalog item form behavior. Use client scripts to validate user input, auto-populate fields, or display alerts. For simple show/hide, mandatory, and read-only logic, use catalog UI policies instead.
 
-**Required properties:** `$id`, `name`, `script`, `type`, and either `catalogItem` or `variableSet`
+**Required properties:** `$id`, `name`, `script`
 
 **All properties:**
 
@@ -599,10 +777,10 @@ Creates a `catalog_script_client` record that runs on the client side to control
 | `$id` | String or Number | **Required.** Unique ID. Format: `Now.ID['script_id']` |
 | `name` | String | **Required.** Unique name for the catalog client script |
 | `script` | Script | **Required.** Client-side script code. Standard ServiceNow JavaScript (not TypeScript). Use `g_form` APIs. Use `Now.include('./file.js')` to reference external file |
-| `type` | String | **Required.** Event type: `'onLoad'` (runs when form loads, setup/defaults) \| `'onChange'` (runs on variable change, include `if (isLoading) return;` guard) \| `'onSubmit'` (runs on submission, return `false` to block) |
-| `catalogItem` | Reference or String | **Required if variableSet not used.** Reference to `CatalogItem` or `CatalogItemRecordProducer` constant, or sys_id of catalog item `[sc_cat_item]` or record producer `[sc_cat_item_producer]` |
-| `variableSet` | Reference or String | **Required if catalogItem not used.** Reference to `VariableSet` constant, or sys_id of variable set `[item_option_new_set]` |
-| `variableName` | String | **Required if type is 'onChange'.** Variable that triggers script. Use `catalogItem.variables.fieldName` |
+| `type` | String | Event type: `'onLoad'` (runs when form loads, setup/defaults) \| `'onChange'` (runs on variable change, include `if (isLoading) return;` guard) \| `'onSubmit'` (runs on submission, return `false` to block) |
+| `catalogItem` | Reference or String | Reference to `CatalogItem` or `CatalogItemRecordProducer` constant, or sys_id of catalog item `[sc_cat_item]` or record producer `[sc_cat_item_producer]`. Mutually exclusive with `variableSet`. |
+| `variableSet` | Reference or String | Reference to `VariableSet` constant, or sys_id of variable set `[item_option_new_set]`. Mutually exclusive with `catalogItem`. |
+| `variableName` | String | Variable that triggers script. Only applies when `type` is `'onChange'`. Use `catalogItem.variables.fieldName` for type-safe references |
 | `appliesTo` | String | Scope: `'item'` (specific catalog item) or `'set'` (whole variable set). Default: `'item'` |
 | `uiType` | String | UI interface: `'desktop'` (desktop interface) \| `'mobileOrServicePortal'` (mobile/Service Portal) \| `'all'` (all interfaces). Default: `'desktop'` |
 | `active` | Boolean | Whether the client script is enabled (default: `true`) |
@@ -621,48 +799,91 @@ Creates a `catalog_script_client` record that runs on the client side to control
 - **onChange:** Include `if (isLoading) return;` guard. Avoid long operations
 - **onSubmit:** Return `false` to block submission. Avoid GlideAjax due to async issues — use server-side business rules instead
 
-**Example:**
+**onLoad — show a welcome message on form load:**
 
 ```ts
-import { CatalogClientScript } from "@servicenow/sdk/core";
+import { CatalogClientScript } from '@servicenow/sdk/core'
 
-export const laptopOnLoadScript = CatalogClientScript({
-  $id: Now.ID["laptop_onload"],
-  name: "Laptop Request - OnLoad",
-  script: Now.include("../../client/laptop-onload.js"),
-  type: "onLoad",
-  catalogItem: laptopRequest,
-  active: true,
-  uiType: 'all',
-  appliesOnCatalogItemView: true
-});
-
-export const categoryChangeScript = CatalogClientScript({
-  $id: Now.ID["category_change"],
-  name: "Clear dependent field when category changes",
-  catalogItem: myItem,
-  type: "onChange",
-  variableName: myItem.variables.category,
-  script: `
-function onChange(control, oldValue, newValue, isLoading) {
-  if (isLoading || newValue === oldValue) return;
-  g_form.setValue('subcategory', '');
-  g_form.clearMessages();
-}`,
-  active: true,
-  uiType: 'all',
-  appliesOnCatalogItemView: true
-});
+export const welcomeScript = CatalogClientScript({
+    $id: Now.ID['onload_welcome'],
+    name: 'Show Welcome Message',
+    type: 'onLoad',
+    script: `function onLoad() { g_form.addInfoMessage('Welcome to this catalog item') }`,
+    catalogItem: 'test-catalog-item',
+    uiType: 'all',
+})
 ```
 
-**Referenced file example** (`laptop-onload.js`):
+**onLoad — using an external file:**
+
+```ts
+export const laptopOnLoadScript = CatalogClientScript({
+    $id: Now.ID['laptop_onload'],
+    name: 'Laptop Request - OnLoad',
+    script: Now.include('../../client/laptop-onload.js'),
+    type: 'onLoad',
+    catalogItem: laptopRequest,
+    active: true,
+    uiType: 'all',
+    appliesOnCatalogItemView: true,
+})
+```
+
 ```js
+// laptop-onload.js
 function onLoad() {
-  // Set initial field states
-  g_form.setReadOnly("estimated_cost", true);
-  g_form.setValue("estimated_cost", "$0");
-  g_form.setMandatory("justification", true);
+    g_form.setReadOnly('estimated_cost', true)
+    g_form.setValue('estimated_cost', '$0')
+    g_form.setMandatory('justification', true)
 }
+```
+
+**onChange — clear a dependent field when another changes:**
+
+```ts
+export const categoryChangeScript = CatalogClientScript({
+    $id: Now.ID['category_change'],
+    name: 'Clear dependent field when category changes',
+    catalogItem: myItem,
+    type: 'onChange',
+    variableName: myItem.variables.category,
+    script: `
+function onChange(control, oldValue, newValue, isLoading) {
+    if (isLoading || newValue === oldValue) return;
+    g_form.setValue('subcategory', '');
+    g_form.clearMessages();
+}`,
+    active: true,
+    uiType: 'all',
+    appliesOnCatalogItemView: true,
+})
+```
+
+**onSubmit — validate a variable set before submission:**
+
+Use `variableSet` + `appliesTo: 'set'` when the script belongs to a reusable variable set rather than a specific catalog item. Return `false` to block submission:
+
+```ts
+export const validateOnSubmit = CatalogClientScript({
+    $id: Now.ID['onsubmit_validation'],
+    name: 'Validate on Submit',
+    type: 'onSubmit',
+    script: `function onSubmit() {
+    if (!g_form.getValue('description')) {
+        g_form.addErrorMessage('Please provide a description');
+        return false;
+    }
+    return true;
+}`,
+    variableSet: 'my-variable-set-name',
+    appliesTo: 'set',
+    uiType: 'mobileOrServicePortal',
+    active: true,
+    appliesOnCatalogItemView: true,
+    appliesOnRequestedItems: false,
+    appliesOnCatalogTasks: false,
+    appliesOnTargetRecord: false,
+})
 ```
 
 ---
@@ -673,7 +894,7 @@ Creates a `sc_cat_item_producer` record that looks like a catalog item but write
 
 You can create record producers for tables and database views in the same scope, or for tables that allow create access from applications in other scopes.
 
-**Required properties:** `$id`, `name`, `table`, `view`
+**Required properties:** `$id`, `name`, `table`
 
 **All properties (in addition to CatalogItem properties):**
 
@@ -682,7 +903,8 @@ You can create record producers for tables and database views in the same scope,
 | `$id` | String or Number | **Required.** Unique ID. Format: `Now.ID['producer_id']` |
 | `name` | String | **Required.** Display name in the catalog |
 | `table` | Reference or String | **Required.** Target table where records are created. Can be Fluent `Table` constant's `.name` or table name string (e.g., `'incident'`) |
-| `view` | Reference or String | **Required.** UI view `[sys_ui_view]` to apply. Must import `default_view` from `'@servicenow/sdk/core'` for default view |
+| `view` | Reference or String | UI view `[sys_ui_view]` to apply. Use `default_view` constant (imported from `'@servicenow/sdk/core'`) for the default view |
+| `model` | Reference or String | CMDB model `[cmdb_model]` associated with the producer |
 | `shortDescription` | String | Short description displayed in catalog search and title bar |
 | `description` | String | Detailed description shown when user selects item. Can embed videos, images, KB links, and documentation |
 | `state` | String | Publication state: `'draft'` or `'published'` |
@@ -727,12 +949,153 @@ You can create record producers for tables and database views in the same scope,
 | `showVariableHelpOnLoad` | Boolean | Display variable help by default (default: `false`) |
 | `$meta` | Object | Installation metadata. `{ installMethod: 'demo' \| 'first install' }` |
 
-**Script context:** Both `script` and `postInsertScript` have access to:
-- `current` — GlideRecord of the created record
-- `producer.var1` — Access variables (replace `var1` with variable name)
-- `cat_item` — Reference to the Record Producer itself
+**Script context:**
+- `script(producer, current)` — runs before record creation. `producer.var_name` accesses variables. Do NOT call `current.update()` or `current.insert()`
+- `postInsertScript(producer, current, cat_item)` — runs after insertion. Safe to call `current.update()`. `cat_item` is the Record Producer definition
+- `saveScript(producer, current, cat_item)` — runs at each Catalog Builder step save, before `script`
 
-**Example:**
+**Example — checkbox pricing:**
+
+```ts
+import { CatalogItemRecordProducer, CheckboxVariable } from '@servicenow/sdk/core'
+
+export const checkboxPricingProducer = CatalogItemRecordProducer({
+    $id: Now.ID['checkbox_pricing_rp'],
+    name: 'Laptop Request with Add-ons',
+    table: 'task',
+    shortDescription: 'Request a laptop with optional add-ons',
+    catalogs: ['e0d08b13c3330100c8b837659bba8fb4'],
+    variables: {
+        premiumSupport: CheckboxVariable({
+            question: 'Add Premium Support',
+            order: 1,
+            selectionRequired: false,
+            pricingDetails: [
+                { amount: 100, currencyType: 'USD', field: 'price_if_checked' },
+            ],
+        }),
+        rushDelivery: CheckboxVariable({
+            question: 'Rush Delivery',
+            order: 2,
+            selectionRequired: false,
+        }),
+    },
+})
+```
+
+**Example — SelectBox from table and with per-choice pricing:**
+
+```ts
+import { CatalogItemRecordProducer, SelectBoxVariable } from '@servicenow/sdk/core'
+
+export const supportTierProducer = CatalogItemRecordProducer({
+    $id: Now.ID['support_tier_rp'],
+    name: 'Support Plan Selection',
+    table: 'task',
+    shortDescription: 'Choose a support tier',
+    catalogs: ['e0d08b13c3330100c8b837659bba8fb4'],
+    variables: {
+        // Choices sourced from an existing table and field
+        priorityLevel: SelectBoxVariable({
+            question: 'Priority (from table)',
+            order: 1,
+            choiceTable: 'task',
+            choiceField: 'priority',
+        }),
+        // Custom choices with per-choice pricing
+        supportLevel: SelectBoxVariable({
+            question: 'Support Level',
+            order: 2,
+            choices: {
+                basic: {
+                    label: 'Basic Support',
+                    sequence: 1,
+                    inactive: false,
+                    pricingDetails: [{ field: 'misc', amount: 50, currencyType: 'USD' }],
+                },
+                standard: {
+                    label: 'Standard Support',
+                    sequence: 2,
+                    inactive: false,
+                    pricingDetails: [
+                        { field: 'misc', amount: 100, currencyType: 'USD' },
+                        { field: 'rec_misc', amount: 25, currencyType: 'USD' },
+                    ],
+                },
+                premium: {
+                    label: 'Premium Support',
+                    sequence: 3,
+                    inactive: false,
+                },
+            },
+        }),
+    },
+})
+```
+
+**Example — comprehensive variable showcase:**
+
+```ts
+import {
+    CatalogItemRecordProducer,
+    CheckboxVariable,
+    DateVariable,
+    DateTimeVariable,
+    EmailVariable,
+    ListCollectorVariable,
+    MaskedVariable,
+    MultiLineTextVariable,
+    ReferenceVariable,
+    SelectBoxVariable,
+    SingleLineTextVariable,
+    UrlVariable,
+    YesNoVariable,
+} from '@servicenow/sdk/core'
+
+export const softwareInstallProducer = CatalogItemRecordProducer({
+    $id: Now.ID['software_install_rp'],
+    name: 'Software Installation Request',
+    table: 'task',
+    shortDescription: 'Request software installation on your company device',
+    meta: ['software', 'installation', 'IT'],
+    variables: {
+        agreedToTerms: CheckboxVariable({ question: 'Agree to Terms', order: 1 }),
+        preferredDate: DateVariable({ question: 'Preferred Date', order: 2 }),
+        scheduledDateTime: DateTimeVariable({ question: 'Scheduled Date/Time', order: 3 }),
+        contactEmail: EmailVariable({ question: 'Contact Email', order: 4 }),
+        notifyUsers: ListCollectorVariable({
+            question: 'Notify Users',
+            order: 5,
+            listTable: 'sys_user',
+            referenceQual: 'active=true',
+        }),
+        licenseKey: MaskedVariable({
+            question: 'License Key',
+            order: 6,
+            useConfirmation: false,
+            useEncryption: true,
+        }),
+        additionalNotes: MultiLineTextVariable({ question: 'Additional Notes', order: 7 }),
+        assignedTo: ReferenceVariable({
+            question: 'Assigned To',
+            order: 8,
+            referenceTable: 'sys_user',
+            referenceQualCondition: 'active=true^EQ',
+        }),
+        taskState: SelectBoxVariable({
+            question: 'Priority',
+            order: 9,
+            choiceTable: 'task',
+            choiceField: 'state',
+        }),
+        softwareName: SingleLineTextVariable({ question: 'Software Name', order: 10 }),
+        downloadUrl: UrlVariable({ question: 'Download URL', order: 11 }),
+        isUrgent: YesNoVariable({ question: 'Is this urgent?', includeNone: true, order: 12 }),
+    },
+})
+```
+
+**Example — scripts and fulfillment:**
 
 ```ts
 import {

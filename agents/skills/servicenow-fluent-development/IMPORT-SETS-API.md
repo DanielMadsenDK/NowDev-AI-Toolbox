@@ -240,21 +240,71 @@ Transform scripts run at different stages of the import process for advanced pro
 | `onReject` | When a row is rejected | Log rejection reasons, cleanup |
 | `onComplete` | After all rows processed | Generate reports, cleanup, final validation |
 
+### Script Value Forms
+
+The `script` property on both `ImportSet` (top-level) and entries in `scripts` accepts three forms:
+
+| Form | When to use |
+|------|-------------|
+| Plain string | Inline scripts without IDE type support |
+| `script` tagged template | Inline scripts with IDE syntax highlighting |
+| Imported function | Shared logic defined in a separate module |
+
+**Plain string:**
+```ts
+script: `(function runTransformScript(source, map, log, target) {
+    // ...
+})(source, map, log, target);`
+```
+
+**`script` tagged template (preferred for inline):**
+```ts
+import { script } from '@servicenow/sdk/core'
+
+script: script`(function runTransformScript(source, map, log, target) {
+    // ...
+})(source, map, log, target);`
+```
+
+**Imported function:**
+```ts
+import { validateUserData } from './user-validation'
+
+script: validateUserData
+```
+
 ### Transform Script Examples
 
-**Validation script:**
+**Validation script with row skipping:**
+
+Use `ignore = true` inside an `onBefore` script to discard a row without rejecting it. Note that `target` is `undefined` in `onBefore` — it is only available from `onAfter` onwards:
+
+```ts
+import { script } from '@servicenow/sdk/core'
+
+scripts: [
+    {
+        $id: Now.ID['validate-required-fields'],
+        when: 'onBefore',
+        script: script`(function runTransformScript(source, map, log, target /*undefined until onAfter*/) {
+            if (!source.first_name || !source.last_name) {
+                ignore = true;
+                log.error('Missing required name fields');
+            }
+        })(source, map, log, target);`,
+    }
+]
+```
+
+**Post-processing in onAfter:**
 ```ts
 scripts: [
     {
-        $id: Now.ID['validate-email'],
-        active: true,
-        order: 100,
-        when: 'onBefore',
+        $id: Now.ID['post-process-user'],
+        when: 'onAfter',
         script: `(function runTransformScript(source, map, log, target) {
-            if (!source.u_email_address || source.u_email_address.indexOf('@') === -1) {
-                log.error('Invalid email address: ' + source.u_email_address);
-                return;
-            }
+            // target is available here
+            target.setValue('vip', source.employee_level === 'EXEC');
         })(source, map, log, target);`
     }
 ]

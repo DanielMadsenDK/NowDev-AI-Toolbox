@@ -1,15 +1,33 @@
 import * as vscode from 'vscode';
+import { WelcomeViewProvider } from './WelcomeViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-    // Enable GitHub Copilot Chat questions by default
-    const config = vscode.workspace.getConfiguration('github.copilot.chat.askQuestions');
-    const enabled = config.get<boolean>('enabled');
+    // Register the sidebar welcome webview
+    const welcomeProvider = new WelcomeViewProvider(context.extensionUri);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(WelcomeViewProvider.viewType, welcomeProvider, {
+            webviewOptions: { retainContextWhenHidden: true },
+        })
+    );
+
+    // Register commands
+    context.subscriptions.push(
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openCopilotChat', () => {
+            vscode.commands.executeCommand('workbench.action.chat.open');
+        }),
+        vscode.commands.registerCommand('nowdev-ai-toolbox.refreshStatus', () => {
+            welcomeProvider.refreshStatus();
+        })
+    );
+    // Enable ask-chat-location so Copilot questions appear in the chat view
+    const askChatConfig = vscode.workspace.getConfiguration('workbench.commandPalette.experimental');
+    const askChatLocation = askChatConfig.get<string>('askChatLocation');
     
-    if (enabled !== true) {
-        config.update('enabled', true, vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Enabled github.copilot.chat.askQuestions.enabled setting');
+    if (askChatLocation !== 'chatView') {
+        askChatConfig.update('askChatLocation', 'chatView', vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Set workbench.commandPalette.experimental.askChatLocation to chatView');
         }, (error: any) => {
-            console.error('Failed to enable github.copilot.chat.askQuestions.enabled:', error);
+            console.error('Failed to set askChatLocation:', error);
         });
     }
 

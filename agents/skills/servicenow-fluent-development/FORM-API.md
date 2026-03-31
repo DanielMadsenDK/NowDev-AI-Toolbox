@@ -149,13 +149,13 @@ Elements within a layout block define what appears on the form:
 | `type` | Description |
 |--------|-------------|
 | `'table_field'` | A standard table column field — provide `field` with the column name |
-| `'annotation'` | Informational text block — requires `annotationId` and `text` |
-| `'formatter'` | Platform formatter widget (Activity Log, Attachments, etc.) — provide `uiMacroName` |
-| `'related_list'` | Related list displayed within the form section — provide `relatedTable` and `relatedField` |
+| `'annotation'` | Informational text block — requires `annotationId`, `text`, and optionally `annotationType` |
+| `'formatter'` | Platform formatter widget (Activity Log, Attachments, etc.) — provide `formatterRef` |
+| `'list'` | Related list within the form — provide `listType` and `listRef` |
 | `'split'` | Horizontal separator between elements |
 | `'end_split'` | Closes a split section |
 
-### Annotation Example
+### Annotation Element
 
 ```typescript
 {
@@ -165,17 +165,88 @@ Elements within a layout block define what appears on the form:
             type: 'annotation',
             annotationId: Now.ID['notice_annotation'],
             text: 'Review all required fields before submitting.',
+            isPlainText: true,               // true = plain text, false = HTML
+            annotationType: 'Info_Box_Blue', // built-in type or Record<'sys_ui_annotation_type'>
         },
         { field: 'short_description', type: 'table_field' },
     ],
 }
 ```
 
-### Formatter Example
+Use a `Record()` for a custom annotation type instead of a built-in string:
 
 ```typescript
-{ type: 'formatter', uiMacroName: 'activity_formatter' }
-{ type: 'formatter', uiMacroName: 'attachment_formatter' }
+const warningBanner = Record({
+    $id: Now.ID['custom_warning_banner'],
+    table: 'sys_ui_annotation_type',
+    data: {
+        name: 'Custom Warning Banner',
+        active: true,
+        style: 'background-color: #fff3cd; border: 1px solid #ffc107; padding: 12px;',
+    },
+})
+
+{
+    type: 'annotation',
+    annotationId: Now.ID['custom_notice'],
+    text: '<b>Warning:</b> Custom styled annotation.',
+    isPlainText: false,
+    annotationType: warningBanner,
+}
+```
+
+### Formatter Element
+
+`formatterRef` accepts three forms:
+
+```typescript
+// 1. Predefined key — formatterName auto-derived
+{ type: 'formatter', formatterRef: 'Activities_Filtered' }
+
+// 2. Custom Record — formatterName derived from the record's `formatter` field
+const breadcrumbFormatter = Record({
+    $id: Now.ID['parent_breadcrumb_formatter'],
+    table: 'sys_ui_formatter',
+    data: {
+        name: 'parent_breadcrumb',
+        formatter: 'parent_crumbs.xml',
+        table: 'sn_my_app_task',
+        active: true,
+    },
+})
+{ type: 'formatter', formatterRef: breadcrumbFormatter }
+
+// 3. Raw GUID — formatterName must be provided explicitly
+{
+    type: 'formatter',
+    formatterRef: 'aabbccdd11223344aabbccdd11223344',
+    formatterName: 'custom_formatter.xml',
+}
+```
+
+### List (Related List) Element
+
+`listType` controls the relationship kind; `listRef` identifies the relationship:
+
+```typescript
+// One-to-many (12M) — listRef is '<related_table>.<field>'
+{ type: 'list', listType: '12M', listRef: 'task_sla.task' }
+
+// Many-to-many (M2M) — listRef is '<m2m_table>.<field>'
+{ type: 'list', listType: 'M2M', listRef: 'm2m_task_project.task_ref' }
+
+// Custom relationship — listRef is a Record<'sys_relationship'>
+const incidentToProblem = Record({
+    $id: Now.ID['inc_to_problem'],
+    table: 'sys_relationship',
+    data: {
+        name: 'Incident to Problem',
+        basic_apply_to: 'sn_my_app_task',
+        basic_query_from: 'problem',
+        reference_field: 'problem_id',
+    },
+})
+{ type: 'list', listType: 'custom', listRef: incidentToProblem }
 ```
 
 ---
@@ -250,18 +321,31 @@ export const taskDetailForm = Form({
                             type: 'annotation',
                             annotationId: Now.ID['task_notice'],
                             text: 'Complete all required fields before setting state to In Progress.',
+                            isPlainText: true,
+                            annotationType: 'Info_Box_Blue',
                         },
                     ],
                 },
             ],
         },
         {
-            caption: 'Work Notes',
+            caption: 'Activity',
             content: [
                 {
                     layout: 'one-column',
                     elements: [
-                        { type: 'formatter', uiMacroName: 'activity_formatter' },
+                        { type: 'formatter', formatterRef: 'Activities_Filtered' },
+                    ],
+                },
+            ],
+        },
+        {
+            caption: 'Related SLAs',
+            content: [
+                {
+                    layout: 'one-column',
+                    elements: [
+                        { type: 'list', listType: '12M', listRef: 'task_sla.task' },
                     ],
                 },
             ],
@@ -300,6 +384,8 @@ export const taskMobileForm = Form({
 | Use `default_view` constant — never the string `'default'` directly | The `default_view` export handles the correct value |
 | `Form` belongs in the **Schema layer** — define it after the `Table()` it references | The table must exist before form layout references it |
 | `annotation` elements need a unique `annotationId: Now.ID['...']` | Required for stable `sys_ui_annotation` record identity |
+| Formatter elements use `formatterRef`, not `uiMacroName` | `uiMacroName` is not a valid property on formatter elements |
+| Raw GUID `formatterRef` requires explicit `formatterName` | The build cannot derive `formatterName` from a plain sys_id |
 
 ---
 
