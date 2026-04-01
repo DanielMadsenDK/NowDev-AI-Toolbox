@@ -29,7 +29,7 @@ Create a workspace for managing business entities in a single focused working ar
 |------|------|----------|-------------|
 | `$id` | String or Number | Yes | A unique ID for the metadata object. When you build the application, this ID is hashed into a unique sys_id. Format: `Now.ID['String' or Number]` |
 | `title` | String | Yes | A name for the workspace that appears in navigation and headers. |
-| `path` | String | Yes | The URL path segment of the workspace. Workspace URLs follow the pattern `/now/<path>/<landingPath>` and use kebab case. |
+| `path` | String | Yes | The URL path segment of the workspace. Workspace URLs follow the pattern `/now/<path>/<landingPath>` and use kebab case. **For custom scoped apps, the URL pattern is different — see note below.** |
 | `tables` | Array | No | A list of table names to manage in the workspace. Example: `['incident', 'problem', 'change_request']` |
 | `listConfig` | Reference | No | The variable identifier of a UxListMenuConfig object that defines the navigation structure of the workspace. |
 | `landingPath` | String | No | The URL path segment of the landing page. Workspace URLs follow the pattern `/now/<path>/<landingPath>` and use kebab case. Default: `'home'` |
@@ -199,18 +199,24 @@ List views provide filtered and column-customized displays of table records. Eac
 | `title` | String | Yes | A title for the list to display in the navigation menu. |
 | `table` | String | Yes | The name of a table to use for the list. |
 | `columns` | String | No | A comma-separated list of column names to display in the list. Example: `'asset_tag,display_name,model_category,assigned_to'` |
-| `condition` | String | No | An encoded query string to filter the records displayed in the list. Example: `'install_status=1'` or `'active=true^EQ'` |
-| `fixedQuery` | String | No | A fixed query that cannot be overridden by users. Applied in addition to `condition`. |
-| `groupByColumn` | String | No | Column name to group records by in the list view. |
+| `condition` | String | No | An encoded query string shown in the condition builder as the initial filter. Users can modify this filter. Example: `'install_status=1'` or `'active=true^EQ'` |
+| `fixedQuery` | String | No | A permanent invisible filter applied in **addition** to `condition`. Users cannot see or remove it. Use this to enforce data scoping the user should never bypass (e.g. `'company=current_company^EQ'`). |
+| `groupByColumn` | String | No | Column name to group list rows by field value with an expand/collapse UI. Example: `'priority'` |
+| `enableInfiniteScroll` | Boolean | No | Replaces pagination with continuous scroll. Default: `false` |
+| `highlightContentPattern` | String | No | A regex pattern matched against cell values. Matching cells are highlighted. Example: `'^1 - Critical$'` |
+| `highlightContentColor` | String | No | Colour for highlighted cells when `highlightContentPattern` matches. Example: `'#ff0000'` |
+| `hideColumnGrouping` | Boolean | No | Removes the column grouping UI (column header group rows). Default: `false` |
+| `wordWrap` | Boolean | No | Controls cell text wrapping. Default: `false` |
 | `view` | String | No | The name of a specific UI view to apply to this list. |
 | `order` | Number | No | A number indicating the position of the list within its category. Lists with lower numbers appear first. |
 | `active` | Boolean | No | Flag that indicates whether the list is visible to users. Default: `true` |
 | `applicabilities` | Array | No | A list of variable identifiers of Applicability objects that control which roles can view the list. See [Applicability object](#applicability-object). |
-| `enableInfiniteScroll` | Boolean | No | Whether to enable infinite scroll instead of pagination. |
 | `roles` | String | No | Comma-separated list of role names that can access this list (alternative to applicabilities). |
 | `hide*` | Boolean | No | Many `hide*` flags are available to control UI element visibility (e.g., `hideHeader`, `hideInlineEditing`, `hidePagination`, `hideColumnSorting`, `hideLinks`, `hideRefreshButton`). |
 
-### Example
+> **`condition` vs `fixedQuery`:** `condition` is the initial encoded query shown in the condition builder — users can modify it. `fixedQuery` is an additional invisible permanent filter users cannot see or remove. Use both together when you need a default user-editable filter plus a permanent scoping constraint.
+
+### Basic Example
 
 ```ts
 lists: [
@@ -241,6 +247,37 @@ lists: [
             {
                 $id: Now.ID["assets_all_applicability"],
                 applicability: assetApplicability
+            }
+        ]
+    }
+]
+```
+
+### Advanced Feature Flags Example
+
+All confirmed working feature flags used together:
+
+```ts
+lists: [
+    {
+        $id: Now.ID["incidents_open_rich"],
+        title: "Open — by Priority",
+        order: 10,
+        table: "incident",
+        columns: "number,short_description,priority,state,assigned_to",
+        condition: "active=true",                    // user-editable initial filter
+        fixedQuery: "category=software",             // invisible permanent filter; user cannot remove
+        groupByColumn: "priority",                   // groups rows with expand/collapse UI
+        enableInfiniteScroll: true,                  // replaces pagination with continuous scroll
+        highlightContentPattern: "^1 - Critical$",   // highlights matching cell values
+        highlightContentColor: "#ff4444",            // colour for highlighted cells
+        hideColumnGrouping: true,                    // hides column header group rows
+        wordWrap: false,                             // disable cell text wrapping
+        active: true,
+        applicabilities: [
+            {
+                $id: Now.ID["incidents_open_rich_applicability"],
+                applicability: itilApplicability
             }
         ]
     }
@@ -449,13 +486,27 @@ const itsmWorkspace = Workspace({
 
 ### Filtering
 - Use encoded query strings for consistent filtering across environments
+- Use `condition` for the user-visible initial filter (users can modify it in the condition builder)
+- Use `fixedQuery` for permanent invisible scoping constraints the user should never bypass
+- Both `condition` and `fixedQuery` are applied — they are additive, not alternatives
 - Test queries before deployment to ensure they return expected results
-- Document complex query logic in list titles or descriptions
+
+### List UX Enhancement Flags
+- `groupByColumn` — groups list rows by a field value with expand/collapse UI; great for priority or state grouping
+- `enableInfiniteScroll` — replaces pagination with continuous scroll; best for long lists users browse sequentially
+- `highlightContentPattern` + `highlightContentColor` — highlight cells matching a regex; use to draw attention to critical values (e.g. `'^1 - Critical$'`)
+- `hideColumnGrouping` — hides column header group rows for a cleaner look
+- `wordWrap` — controls cell text wrapping; disable for dense operational views
 
 ### URL Paths
 - Use kebab-case for workspace and landing page paths
 - Ensure paths are descriptive and align with user mental models
-- Follow the pattern `/now/<path>/<landingPath>` for consistent URLs
+- Platform workspaces (ITSM, Asset, etc.) use: `/now/<path>/<landingPath>`
+- **Custom scoped app workspaces use a different URL pattern: `/x/{numericScopeId}/{path}/{landingPath}`**
+
+> **Scoped App URL Pattern:** The numeric scope ID used in workspace URLs (e.g. `1118332`) can be extracted from the `scope` field in `now.config.json`. A scope like `"x_1118332_userpuls"` follows the pattern `{prefix}_{numericId}_{appName}`. The NowDev AI Toolbox automatically parses this and writes it to `.vscode/nowdev-ai-config.json` under `fluentApp.numericScopeId` and `fluentApp.scopePrefix`. Use these values to construct the correct workspace URL: `{instanceUrl}/x/{numericScopeId}/{path}/{landingPath}`.
+>
+> **Note:** The `scopeId` GUID in `now.config.json` (e.g. `"d3bdfeeacc..."`) is a different identifier — it is **not** used in URLs.
 
 ---
 

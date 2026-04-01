@@ -73,6 +73,17 @@ Before delegating to the first specialist, use the `memory` tool to check if `/m
 
 After each specialist completes, use the `memory` tool to verify they updated their registry entry status to ✅ Done and filled in Exports. When delegating to the next specialist, always include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists, then use `read/readFile` to read the actual source files of your dependencies to get exact method signatures."
 
+### Fluent App Scope Context
+
+When the orchestrator passes a `fluentApp` object (from `.vscode/nowdev-ai-config.json`), you MUST forward it to ALL specialists. This contains:
+- **`scope`**: Full scope prefix for all metadata (e.g. `x_1118332_userpuls`) — used when naming tables, roles, properties, and other scoped artifacts
+- **`scopeId`**: GUID of the application scope
+- **`name`**: Application display name
+- **`numericScopeId`**: Numeric ID extracted from scope (e.g. `1118332`) — needed for scoped workspace URLs: `/x/{numericScopeId}/{path}`
+- **`scopePrefix`**: Vendor prefix (e.g. `x`)
+
+Include this in every specialist delegation prompt: "The app scope is `{scope}`. Use this as the prefix for all scoped metadata (tables, roles, properties). For workspace URLs, the numeric scope ID is `{numericScopeId}`."
+
 ### Context Passing Between Specialists
 
 You MUST pass explicit artifact details from each specialist to the next in the chain:

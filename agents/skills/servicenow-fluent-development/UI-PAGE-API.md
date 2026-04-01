@@ -90,6 +90,16 @@ UiPage({
 })
 ```
 
+> **Important — Custom Prebuild Projects:** If your project uses a `now.prebuild.mjs` script (required for React apps — see [THIRD-PARTY-LIBRARIES.md](./THIRD-PARTY-LIBRARIES.md)), the `html` property must reference the **prebuild output**, not the source file. The prebuild writes transformed HTML to `dist/static/` (or the path configured in `now.config.json` as `staticContentDir`). Pointing to the source `index.html` causes a browser MIME type error because the source contains `<script src="./main.tsx" type="module">` which browsers reject.
+>
+> ```ts
+> // Source file — DO NOT USE when a custom prebuild is present
+> import incidentPage from '../../client/index.html'
+>
+> // Built output — USE THIS when now.prebuild.mjs is present
+> import incidentPage from '../../../dist/static/index.html'
+> ```
+
 #### `category` (String) — Optional
 The type of UI page.
 

@@ -40,6 +40,10 @@ In `package.json`, two categories apply to client-side libraries:
 
 ## 2. The Prebuild Script (`now.prebuild.mjs`)
 
+> **Required for React UI Pages:** `now.prebuild.mjs` is **mandatory** for any project that has a React UI page. Without it, `now-sdk build` only type-checks TypeScript — it does **not** bundle the React code. The page will fail to load on the instance.
+>
+> **`now-sdk init` does NOT create this file.** You must create it manually at the project root before running `now-sdk build` for the first time.
+
 Client code is **not** built by `now-sdk` directly — you must provide a prebuild script.
 Create `now.prebuild.mjs` at the project root:
 
