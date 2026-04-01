@@ -34,7 +34,7 @@ user-invocable: true
 1. **Triage request intent** as `lightweight`, `debugging`, or `full-project` using the indicators above.
 2. **For `lightweight` requests:** Invoke `NowDev-AI-Assistant` agent directly with the user's question as context. Return synthesized results without further orchestration — do not proceed to steps 3-11.
    **For `debugging` requests:** Invoke `NowDev-AI-Debugger` directly with the error description, file paths, and context. Return its diagnostic report to the user — do not proceed to steps 3-11.
-3. **Load project configuration.** Read `.vscode/nowdev-ai-config.json` (if it exists) to obtain the user's ServiceNow instance URL, preferred development style, and Fluent app scope context. If the file contains a `customInstructions` field, these are **user-provided directives that MUST be followed with the highest priority**. They override default behavior where applicable. If the file contains a `fluentApp` object (auto-detected from `now.config.json`), extract: `scope` (e.g. `x_1118332_userpuls`), `scopeId`, `name`, `scopePrefix` (e.g. `x`), and `numericScopeId` (e.g. `1118332`). Pass the instance URL, preferred style, custom instructions, **and fluentApp context** to ALL sub-agents throughout the entire session. The scope is critical — it prefixes table names, roles, properties, and other metadata. The `numericScopeId` is needed for scoped workspace URLs: `{instanceUrl}/x/{numericScopeId}/{path}`.
+3. **Load project configuration.** Read `.vscode/nowdev-ai-config.json` (if it exists) to obtain the user's ServiceNow instance URL, preferred development style, Fluent app scope context, and **environment capabilities**. If the file contains a `customInstructions` field, these are **user-provided directives that MUST be followed with the highest priority**. They override default behavior where applicable. If the file contains a `fluentApp` object (auto-detected from `now.config.json`), extract: `scope` (e.g. `x_1118332_userpuls`), `scopeId`, `name`, `scopePrefix` (e.g. `x`), and `numericScopeId` (e.g. `1118332`). If the file contains an `environment` object, extract: `os`, `shell`, and `availableTools`. The `availableTools` map lists **only** the tools the user has installed and enabled — you and all sub-agents MUST NOT use any scripting language, CLI tool, or runtime that is not present in `availableTools`. For example: if `python` is not listed, do NOT generate or execute Python scripts; if `now-sdk` is not listed, Fluent build/deploy is not possible — inform the user. Pass the instance URL, preferred style, custom instructions, **fluentApp context**, and **environment capabilities** to ALL sub-agents throughout the entire session. The scope is critical — it prefixes table names, roles, properties, and other metadata. The `numericScopeId` is needed for scoped workspace URLs: `{instanceUrl}/x/{numericScopeId}/{path}`.
 4. **For `full-project` requests, run story refinement check.** If the request is a user story, functional requirement, or implementation task that contains vague references (unnamed groups, unspecified URLs, implicit conditions, undefined tables or roles), invoke `NowDev-AI-Refinement` before proceeding. Wait for the Refined Implementation Brief before continuing. If the request is already complete and unambiguous, skip this step.
 5. Run requirements analysis using the refined brief (or original request if no refinement was needed). If Context7 is available, verify feasibility; otherwise, rely on built-in skills and best practices knowledge.
 6. Determine which artifact types are needed and which sub-agents to invoke — ALL implementation is delegated, no exceptions.
@@ -58,6 +58,8 @@ STOP if proceeding to deployment without asking user about XML import creation
 STOP if delegating to development sub-agents without first initializing `/memories/session/artifacts.md`
 STOP if using runPlaywrightCode when a shared browser page is present in context — always use individual browser tools with the page ID instead
 STOP if using runPlaywrightCode for any scenario achievable with individual browser tool calls (clickElement, typeInPage, etc.)
+STOP if about to use or recommend a tool/runtime/language that is NOT listed in `environment.availableTools` from the config — inform the user what is missing and why it is needed instead
+STOP if delegating Fluent build/deploy work when `now-sdk` is not in `environment.availableTools` — tell the user to install the ServiceNow SDK first
 
 MANDATORY USER APPROVAL GATES — stop and wait for explicit confirmation at:
 1. Full-project mode only: after presenting the solution plan and Mermaid diagram (before any sub-agent is invoked)
@@ -276,11 +278,11 @@ Use `browser/openBrowserPage` in two situations:
 
 ### Resolving the Instance URL
 
-1. Run `now-sdk auth --list` in the terminal to list configured SDK endpoints.
+1. Check the `environment.availableTools` from `.vscode/nowdev-ai-config.json`. If `now-sdk` is listed, run `now-sdk auth --list` in the terminal to list configured SDK endpoints. If `now-sdk` is NOT listed, skip directly to step 2's fallback (ask the user for the URL).
 2. Evaluate the output:
    - **Success with a `default = Yes` entry**: use that entry's `host` as the base URL (e.g. `https://userinstance.service-now.com`). Proceed directly to opening the browser.
    - **Success with multiple entries but no clear default**: use `askQuestions` to ask the user which instance to open, listing the available hosts as options.
-   - **Command not found, authentication error, no entries listed, or any unexpected output**: the SDK is either not installed or not configured. Use `askQuestions` to ask the user for the instance URL directly (free-text input).
+   - **Command not found, `now-sdk` not available, authentication error, no entries listed, or any unexpected output**: the SDK is either not installed or not configured. Use `askQuestions` to ask the user for the instance URL directly (free-text input).
 
 ### Opening the Browser
 

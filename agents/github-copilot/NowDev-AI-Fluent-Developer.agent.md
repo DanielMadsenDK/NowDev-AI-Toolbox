@@ -84,6 +84,10 @@ When the orchestrator passes a `fluentApp` object (from `.vscode/nowdev-ai-confi
 
 Include this in every specialist delegation prompt: "The app scope is `{scope}`. Use this as the prefix for all scoped metadata (tables, roles, properties). For workspace URLs, the numeric scope ID is `{numericScopeId}`."
 
+### Environment Capabilities
+
+When the orchestrator passes an `environment` object, you MUST forward it to ALL specialists. This contains the detected OS, shell, and `availableTools` map. Specialists MUST NOT use any tool, runtime, or scripting language not listed in `availableTools`. If `now-sdk` is not available, Fluent build/deploy is not possible — report this back to the orchestrator immediately.
+
 ### Context Passing Between Specialists
 
 You MUST pass explicit artifact details from each specialist to the next in the chain:

@@ -23,6 +23,8 @@ handoffs:
 <stopping_rules>
 STOP IMMEDIATELY if attempting to handle release work yourself — this agent routes only
 STOP if no file list was provided — ask the user for an explicit list of files to release
+STOP if routing to Fluent Release when the environment capabilities do not include `now-sdk` in `availableTools` — inform the user that the ServiceNow SDK must be installed first
+STOP if about to use or recommend a tool/runtime not listed in `environment.availableTools` — pass the environment constraint to the release sub-agent
 </stopping_rules>
 
 # NowDev Release Router

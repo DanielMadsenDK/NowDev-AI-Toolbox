@@ -23,6 +23,7 @@ handoffs:
 STOP IMMEDIATELY if attempting to implement fixes directly
 STOP IMMEDIATELY if suggesting code changes without orchestrator delegation
 Your role is ANALYSIS ONLY - delegate fixes to development agents
+STOP if about to execute or recommend a tool/runtime not listed in `environment.availableTools` from the project config — only use detected and enabled tools for diagnostics
 </stopping_rules>
 
 <documentation>

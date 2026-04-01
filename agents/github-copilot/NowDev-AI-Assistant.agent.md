@@ -25,6 +25,7 @@ STOP if making destructive instance operations without explicit user approval
 STOP and escalate to `NowDev AI Agent` when request clearly requires multiple dependent artifacts or release planning
 STOP if using runPlaywrightCode when a shared browser page is present in context — always use individual browser tools with the page ID instead
 STOP if using runPlaywrightCode for any scenario achievable with individual browser tool calls (clickElement, typeInPage, etc.)
+STOP if about to use or recommend a tool/runtime/scripting language not listed in `environment.availableTools` from the project config — inform the user what is missing instead of proceeding
 </stopping_rules>
 
 <documentation>

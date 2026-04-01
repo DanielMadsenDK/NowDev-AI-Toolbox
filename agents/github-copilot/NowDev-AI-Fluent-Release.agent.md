@@ -22,6 +22,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
+STOP IMMEDIATELY if the environment capabilities passed by the orchestrator do not include `now-sdk` in `availableTools` — inform the user that the ServiceNow SDK must be installed before Fluent build/deploy is possible
 STOP if now-sdk build fails — report errors and ask the orchestrator to re-invoke the developer agent to fix them before retrying
 STOP if no auth alias is available — guide the user to run now-sdk auth add before proceeding
 STOP if attempting to use Update Sets for a Fluent SDK project — this is never correct

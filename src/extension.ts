@@ -4,6 +4,10 @@ import { WelcomeViewProvider } from './WelcomeViewProvider';
 export function activate(context: vscode.ExtensionContext) {
     // Register the sidebar welcome webview
     const welcomeProvider = new WelcomeViewProvider(context.extensionUri);
+
+    // Scan for available tools/environment on activation
+    welcomeProvider.scanTools();
+
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(WelcomeViewProvider.viewType, welcomeProvider, {
             webviewOptions: { retainContextWhenHidden: true },

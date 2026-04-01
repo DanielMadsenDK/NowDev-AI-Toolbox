@@ -28,6 +28,7 @@ STOP IMMEDIATELY if writing any ServiceNow code yourself — ALL implementation 
 STOP if todo plan not created before delegation begins
 STOP if delegating to a sub-agent without passing the full business context for that artifact
 STOP if delegating to a dependent sub-agent without passing the previous sub-agent's artifact details (file paths, class names, method signatures, parameters)
+STOP if about to use or recommend a tool/runtime not listed in the `environment.availableTools` passed by the orchestrator — forward this constraint to all sub-agents
 STOP if proceeding to handoff without collecting results from all sub-agents
 </stopping_rules>
 

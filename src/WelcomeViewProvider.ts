@@ -1,12 +1,29 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
     private _view?: vscode.WebviewView;
+    private _environmentInfo: EnvironmentInfo | null = null;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
+
+    /**
+     * Runs the environment scan, respecting user-disabled tools.
+     * Called on activation and when the user toggles a tool.
+     */
+    public scanTools(): void {
+        try {
+            const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
+            const disabledTools = config.get<string[]>('disabledTools', []);
+            this._environmentInfo = scanEnvironment(disabledTools);
+        } catch (err) {
+            console.error('Environment scan failed:', err);
+            this._environmentInfo = null;
+        }
+    }
 
     resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -62,6 +79,26 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 }
+                case 'toggleTool': {
+                    const toolKey = message.key as string;
+                    const enabled = message.enabled as boolean;
+                    const cfg = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
+                    const disabled = cfg.get<string[]>('disabledTools', []).slice();
+                    if (!enabled && !disabled.includes(toolKey)) {
+                        disabled.push(toolKey);
+                    } else if (enabled) {
+                        const idx = disabled.indexOf(toolKey);
+                        if (idx >= 0) { disabled.splice(idx, 1); }
+                    }
+                    await cfg.update('disabledTools', disabled, vscode.ConfigurationTarget.Global);
+                    this.scanTools();
+                    this._updateStatus();
+                    break;
+                }
+                case 'rescanTools':
+                    this.scanTools();
+                    this._updateStatus();
+                    break;
                 case 'refresh':
                     this._updateStatus();
                     break;
@@ -122,7 +159,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
@@ -197,6 +234,28 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         if (customInstructionsContent) {
             configData.customInstructions = customInstructionsContent;
+        }
+
+        // Include environment capabilities so agents know what tools are available
+        if (this._environmentInfo) {
+            const env = this._environmentInfo;
+            const enabledTools: Record<string, { version: string; label: string; description: string }> = {};
+            for (const [key, tool] of Object.entries(env.tools)) {
+                if (tool.available && tool.enabled) {
+                    enabledTools[key] = {
+                        version: tool.version,
+                        label: tool.label,
+                        description: tool.description,
+                    };
+                }
+            }
+            configData.environment = {
+                os: env.os,
+                osVersion: env.osVersion,
+                arch: env.arch,
+                shell: env.shell,
+                availableTools: enabledTools,
+            };
         }
 
         try {
@@ -495,6 +554,98 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             font-style: italic;
         }
 
+        /* Tool toggles */
+        .tool-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 0;
+            font-size: 12px;
+            border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+        }
+        .tool-row:last-child { border-bottom: none; }
+        .tool-status {
+            flex-shrink: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .tool-status.installed { background: var(--vscode-testing-iconPassed, #388a34); }
+        .tool-status.missing { background: var(--vscode-testing-iconFailed, #f14c4c); }
+        .tool-info { flex: 1; min-width: 0; }
+        .tool-name {
+            font-weight: 600;
+            color: var(--vscode-foreground);
+        }
+        .tool-version {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            margin-left: 4px;
+        }
+        .tool-desc {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tool-impact {
+            font-size: 10px;
+            color: var(--vscode-editorWarning-foreground, #cca700);
+            font-style: italic;
+        }
+        .tool-toggle {
+            flex-shrink: 0;
+            position: relative;
+            width: 32px;
+            height: 18px;
+        }
+        .tool-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .tool-toggle .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+            border-radius: 9px;
+            transition: background 0.2s;
+        }
+        .tool-toggle .slider::before {
+            content: "";
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--vscode-descriptionForeground);
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .tool-toggle input:checked + .slider {
+            background: var(--vscode-button-background);
+            border-color: var(--vscode-button-background);
+        }
+        .tool-toggle input:checked + .slider::before {
+            transform: translateX(14px);
+            background: var(--vscode-button-foreground);
+        }
+        .tool-toggle input:disabled + .slider {
+            opacity: 0.4;
+            cursor: default;
+        }
+        .env-summary {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            padding: 4px 0 8px 0;
+        }
+        .env-summary strong {
+            color: var(--vscode-foreground);
+        }
+
         /* File picker */
         .file-picker-row {
             display: flex;
@@ -654,6 +805,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     <hr>
 
+    <!-- Environment & Tools -->
+    <div class="section">
+        <div class="section-title">
+            <span>Environment &amp; Tools</span>
+            <button class="fix-btn" id="rescanTools" title="Re-scan for available tools">Rescan</button>
+        </div>
+        <div id="envSummary" class="env-summary"></div>
+        <div id="toolsList"></div>
+    </div>
+
+    <hr>
+
     <!-- Links -->
     <div class="section">
         <div class="section-title">Resources</div>
@@ -711,6 +874,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 vscode.postMessage({ command: 'clearInstructionsFile' });
             });
 
+            // -- Rescan tools --
+            document.getElementById('rescanTools').addEventListener('click', () => {
+                vscode.postMessage({ command: 'rescanTools' });
+            });
+
             // -- Receive status from extension --
             window.addEventListener('message', (event) => {
                 const msg = event.data;
@@ -718,6 +886,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     updateChecks(msg.checks);
                     updateSettings(msg.settings);
                     updateFluentApp(msg.fluentApp);
+                    updateEnvironment(msg.environment);
                 }
             });
 
@@ -766,6 +935,53 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 info.innerHTML = rows.map(r =>
                     '<div class="app-info-row"><span class="app-info-key">' + r.key + '</span><span class="app-info-value">' + r.value + '</span></div>'
                 ).join('');
+            }
+
+            function updateEnvironment(env) {
+                const summary = document.getElementById('envSummary');
+                const list = document.getElementById('toolsList');
+                if (!env) {
+                    summary.innerHTML = '<em>Environment scan not yet available.</em>';
+                    list.innerHTML = '';
+                    return;
+                }
+                summary.innerHTML = '<strong>OS:</strong> ' + env.os + ' (' + env.arch + ') &nbsp; <strong>Shell:</strong> ' + env.shell;
+                let html = '';
+                const tools = env.tools || {};
+                const keys = Object.keys(tools);
+                for (let i = 0; i < keys.length; i++) {
+                    const key = keys[i];
+                    const t = tools[key];
+                    const statusClass = t.available ? 'installed' : 'missing';
+                    const checked = t.enabled ? 'checked' : '';
+                    const disabled = !t.available ? 'disabled' : '';
+                    html += '<div class="tool-row">';
+                    html += '  <span class="tool-status ' + statusClass + '"></span>';
+                    html += '  <div class="tool-info">';
+                    html += '    <span class="tool-name">' + t.label + '</span>';
+                    if (t.available && t.version) {
+                        html += '    <span class="tool-version">v' + t.version + '</span>';
+                    }
+                    if (!t.available) {
+                        html += '    <div class="tool-impact">' + t.impact + '</div>';
+                    } else {
+                        html += '    <div class="tool-desc">' + t.description + '</div>';
+                    }
+                    html += '  </div>';
+                    html += '  <label class="tool-toggle" title="' + (t.available ? 'Enable/disable for agents' : 'Not installed') + '">';
+                    html += '    <input type="checkbox" data-tool="' + key + '" ' + checked + ' ' + disabled + '>';
+                    html += '    <span class="slider"></span>';
+                    html += '  </label>';
+                    html += '</div>';
+                }
+                list.innerHTML = html;
+
+                // Bind toggle events
+                list.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                    cb.addEventListener('change', function() {
+                        vscode.postMessage({ command: 'toggleTool', key: cb.dataset.tool, enabled: cb.checked });
+                    });
+                });
             }
 
             function updateSettings(settings) {

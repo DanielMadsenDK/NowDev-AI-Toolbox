@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -87,6 +87,15 @@
           "default": "",
           "description": "Path to a file (.md or .txt) containing custom instructions for the AI agents. The file content is read and included as high-priority context in every agent session.",
           "order": 3
+        },
+        "nowdev-ai-toolbox.disabledTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of tool keys (e.g. 'python', 'powershell') that should NOT be made available to AI agents, even if installed. User choices are respected across restarts.",
+          "order": 4
         }
       }
     },

@@ -179,6 +179,19 @@ The NowDev AI Toolbox extension writes `.vscode/nowdev-ai-config.json` in the wo
     "name": "UserPulse",
     "scopePrefix": "x",
     "numericScopeId": "1118332"
+  },
+  "environment": {
+    "os": "linux",
+    "osVersion": "6.6.87",
+    "arch": "x64",
+    "shell": "/bin/bash",
+    "availableTools": {
+      "node": { "version": "20.11.0", "label": "Node.js", "description": "JavaScript runtime for build tools and SDK" },
+      "npm": { "version": "10.2.4", "label": "npm", "description": "Node package manager" },
+      "now-sdk": { "version": "1.5.0", "label": "ServiceNow SDK (now-sdk)", "description": "ServiceNow Fluent SDK CLI for build and deploy" },
+      "git": { "version": "2.43.0", "label": "Git", "description": "Version control system" },
+      "python": { "version": "3.12.1", "label": "Python", "description": "Scripting language for automation and data tasks" }
+    }
   }
 }
 ```
@@ -195,11 +208,25 @@ Present only when the workspace contains a ServiceNow Fluent project (`now.confi
 | `scopePrefix` | `x` | Vendor prefix |
 | `numericScopeId` | `1118332` | Numeric ID for scoped workspace URLs: `/x/1118332/{path}` |
 
+### `environment` Object (auto-detected at extension activation)
+
+Scanned by the extension on startup. Only tools that are both installed and user-enabled appear in `availableTools`. Users can disable tools via the sidebar UI — those choices persist across restarts and the scan respects them.
+
+| Field | Example | Usage |
+|-------|---------|-------|
+| `os` | `linux` / `windows` / `macos` | OS the agent is running on |
+| `osVersion` | `6.6.87` | Kernel / OS build version |
+| `arch` | `x64` / `arm64` | CPU architecture |
+| `shell` | `/bin/bash` | Default shell |
+| `availableTools` | `{ "node": {...}, ... }` | Map of tool key → `{ version, label, description }` |
+
+**Critical rule:** Agents MUST NOT use any scripting language, CLI tool, or runtime that is not present in `availableTools`. If `python` is absent, do not write Python scripts. If `now-sdk` is absent, Fluent build/deploy is not possible. If `powershell` is absent, do not write PowerShell scripts. Always inform the user what is missing and why when a required tool is unavailable.
+
 ### Who Loads What
 
-- **Orchestrator (NowDev-AI)**: Reads the full config file in workflow step 3. Passes all fields to sub-agents.
-- **Fluent Developer coordinator**: Receives `fluentApp` from orchestrator and forwards to all specialists.
-- **Leaf development agents**: Receive scope context in their delegation prompt. Use `scope` to prefix metadata names and `numericScopeId` for workspace URL construction.
+- **Orchestrator (NowDev-AI)**: Reads the full config file in workflow step 3. Passes all fields — including `environment` — to sub-agents.
+- **Fluent Developer coordinator**: Receives `fluentApp` and `environment` from orchestrator and forwards to all specialists.
+- **Leaf development agents**: Receive scope context and environment capabilities in their delegation prompt. Use `scope` to prefix metadata names, `numericScopeId` for workspace URL construction, and `availableTools` to constrain which external tools they may invoke.
 
 ---
 
