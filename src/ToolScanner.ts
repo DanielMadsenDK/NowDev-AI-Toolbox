@@ -32,6 +32,8 @@ interface ToolDefinition {
     label: string;
     description: string;
     impact: string;
+    /** Optional: validate the command output is meaningful (prevents false positives) */
+    validateOutput?: (output: string) => boolean;
 }
 
 const TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
@@ -90,6 +92,10 @@ const TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
         label: 'SNC CLI',
         description: 'ServiceNow CLI tool',
         impact: 'Alternative CLI for ServiceNow instance management',
+        // Validate output to avoid false positives from Windows app execution aliases
+        // or other programs named 'snc'. Real SNC CLI output contains 'snc' or a version.
+        validateOutput: (output: string) =>
+            /snc/i.test(output) || /\d+\.\d+\.\d+/.test(output),
     },
 };
 
@@ -114,13 +120,26 @@ function tryExec(command: string, timeoutMs = 5000): string | null {
         });
         return result.trim();
     } catch {
-        // On Windows, cmd.exe may not find tools that are on the PATH in PowerShell
-        // (e.g. npm global packages whose directory is only in the user's PS profile).
-        // Retry the command through PowerShell as a fallback.
+        // On Windows, the extension process may have a different PATH than an interactive
+        // CMD or PowerShell session (e.g. npm global bin dir added via user profile).
+        // Try progressively broader shell invocations as fallbacks.
         if (process.platform === 'win32') {
+            // Attempt 1: explicit cmd /c — resolves .cmd/.bat extensions properly
+            try {
+                const cmdResult = execSync(`cmd /c ${command}`, {
+                    timeout: timeoutMs,
+                    encoding: 'utf-8',
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                });
+                return cmdResult.trim();
+            } catch {
+                // fall through
+            }
+
+            // Attempt 2: PowerShell WITH user profile so npm-global PATH entries are loaded
             try {
                 const psResult = execSync(
-                    `powershell -NoProfile -Command "& { ${command} }"`,
+                    `powershell -Command "& { ${command} }"`,
                     {
                         timeout: timeoutMs,
                         encoding: 'utf-8',
@@ -152,7 +171,8 @@ export function scanEnvironment(disabledTools: string[]): EnvironmentInfo {
     for (const [key, def] of Object.entries(TOOL_DEFINITIONS)) {
         try {
             const raw = tryExec(def.versionCommand);
-            const available = raw !== null;
+            const outputValid = raw !== null && (def.validateOutput ? def.validateOutput(raw) : true);
+            const available = outputValid;
             const userDisabled = disabledTools.includes(key);
 
             tools[key] = {
