@@ -50,7 +50,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for SDK object patterns
   - query-docs('/websites/servicenow') for Classic API validity in script content (GlideRecord, gs.*, etc.)
-Additional SDK API reference: https://servicenow.github.io/sdk/llms.txt
+  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
+If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
 </documentation>
 
 # Fluent Logic Developer
