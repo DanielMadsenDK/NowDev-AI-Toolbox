@@ -172,24 +172,28 @@
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             const t = tools[key];
-            const statusClass = t.available ? 'installed' : 'missing';
+            // manual = user force-enabled a tool that wasn't auto-detected
+            const statusClass = t.available ? 'installed' : (t.manualOverride ? 'manual' : 'missing');
             const checked = t.enabled ? 'checked' : '';
-            const disabled = !t.available ? 'disabled' : '';
+            let tooltip = t.available ? 'Enable/disable for agents' : (t.manualOverride ? 'Manually enabled — not auto-detected' : 'Not installed — toggle to manually enable');
             html += '<div class="tool-row">';
-            html += '  <span class="tool-status ' + statusClass + '"></span>';
+            html += '  <span class="tool-status ' + statusClass + '" title="' + esc(tooltip) + '"></span>';
             html += '  <div class="tool-info">';
             html += '    <span class="tool-name">' + esc(t.label) + '</span>';
             if (t.available && t.version) {
                 html += '    <span class="tool-version">v' + esc(t.version) + '</span>';
             }
-            if (!t.available) {
+            if (t.manualOverride) {
+                html += '    <div class="tool-desc">' + esc(t.description) + '</div>';
+                html += '    <div class="tool-note">Not auto-detected \u2014 manually enabled</div>';
+            } else if (!t.available) {
                 html += '    <div class="tool-impact">' + esc(t.impact) + '</div>';
             } else {
                 html += '    <div class="tool-desc">' + esc(t.description) + '</div>';
             }
             html += '  </div>';
-            html += '  <label class="tool-toggle" title="' + (t.available ? 'Enable/disable for agents' : 'Not installed') + '">';
-            html += '    <input type="checkbox" data-tool="' + esc(key) + '" ' + checked + ' ' + disabled + '>';
+            html += '  <label class="tool-toggle" title="' + esc(tooltip) + '">';
+            html += '    <input type="checkbox" data-tool="' + esc(key) + '" ' + checked + '>';
             html += '    <span class="slider"></span>';
             html += '  </label>';
             html += '</div>';

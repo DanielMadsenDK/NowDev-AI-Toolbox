@@ -303,6 +303,7 @@ hr {
 }
 .tool-status.installed { background: var(--vscode-testing-iconPassed, #388a34); }
 .tool-status.missing { background: var(--vscode-testing-iconFailed, #f14c4c); }
+.tool-status.manual { background: var(--vscode-editorWarning-foreground, #cca700); }
 .tool-info { flex: 1; min-width: 0; }
 .tool-name {
     font-weight: 600;
@@ -321,6 +322,11 @@ hr {
     text-overflow: ellipsis;
 }
 .tool-impact {
+    font-size: 10px;
+    color: var(--vscode-editorWarning-foreground, #cca700);
+    font-style: italic;
+}
+.tool-note {
     font-size: 10px;
     color: var(--vscode-editorWarning-foreground, #cca700);
     font-style: italic;

@@ -21,7 +21,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         try {
             const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
             const disabledTools = config.get<string[]>('disabledTools', []);
-            this._environmentInfo = scanEnvironment(disabledTools);
+            const enabledTools = config.get<string[]>('enabledTools', []);
+            this._environmentInfo = scanEnvironment(disabledTools, enabledTools);
         } catch (err) {
             console.error('Environment scan failed:', err);
             this._environmentInfo = null;
@@ -84,16 +85,32 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 }
                 case 'toggleTool': {
                     const toolKey = message.key as string;
-                    const enabled = message.enabled as boolean;
+                    const nowEnabled = message.enabled as boolean;
                     const cfg = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
                     const disabled = cfg.get<string[]>('disabledTools', []).slice();
-                    if (!enabled && !disabled.includes(toolKey)) {
-                        disabled.push(toolKey);
-                    } else if (enabled) {
-                        const idx = disabled.indexOf(toolKey);
-                        if (idx >= 0) { disabled.splice(idx, 1); }
+                    const forceEnabled = cfg.get<string[]>('enabledTools', []).slice();
+                    const toolInfo = this._environmentInfo?.tools[toolKey];
+
+                    if (nowEnabled) {
+                        // Remove from disabled list
+                        const di = disabled.indexOf(toolKey);
+                        if (di >= 0) { disabled.splice(di, 1); }
+                        // If the tool was not auto-detected, add a manual force-enable
+                        if (!toolInfo?.available) {
+                            if (!forceEnabled.includes(toolKey)) { forceEnabled.push(toolKey); }
+                        }
+                    } else {
+                        // Remove from force-enabled list
+                        const fi = forceEnabled.indexOf(toolKey);
+                        if (fi >= 0) { forceEnabled.splice(fi, 1); }
+                        // Only add to disabled list if the tool is auto-detectable (available)
+                        if (toolInfo?.available) {
+                            if (!disabled.includes(toolKey)) { disabled.push(toolKey); }
+                        }
                     }
+
                     await cfg.update('disabledTools', disabled, vscode.ConfigurationTarget.Global);
+                    await cfg.update('enabledTools', forceEnabled, vscode.ConfigurationTarget.Global);
                     this.scanTools();
                     this._updateStatus();
                     break;
@@ -330,7 +347,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             const env = this._environmentInfo;
             const enabledTools: Record<string, { version: string; label: string; description: string }> = {};
             for (const [key, tool] of Object.entries(env.tools)) {
-                if (tool.available && tool.enabled) {
+                if (tool.enabled && (tool.available || tool.manualOverride)) {
                     enabledTools[key] = {
                         version: tool.version,
                         label: tool.label,
