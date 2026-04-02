@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
+import { AGENT_TREE } from './AgentTopology';
+import { parseArtifactsMarkdown } from './ArtifactParser';
 
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
@@ -115,21 +117,33 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         nowConfigWatcher.onDidCreate(() => this._updateStatus());
         nowConfigWatcher.onDidDelete(() => this._updateStatus());
 
+        // Watch for Session Artifact Registry changes
+        const artifactWatcher = vscode.workspace.createFileSystemWatcher('**/memories/session/artifacts.md');
+        artifactWatcher.onDidChange(() => this._sendArtifacts());
+        artifactWatcher.onDidCreate(() => this._sendArtifacts());
+        artifactWatcher.onDidDelete(() => this._sendArtifacts());
+
         webviewView.onDidChangeVisibility(() => {
             if (webviewView.visible) {
-                // Small delay to ensure webview message listener is ready after re-show
                 setTimeout(() => this._updateStatus(), 100);
             }
         });
 
         webviewView.webview.html = this._getHtml(webviewView.webview);
 
-        setTimeout(() => this._updateStatus(), 200);
+        // Initial data pushes
+        setTimeout(() => {
+            this._updateStatus();
+            this._sendAgentTree();
+            this._sendArtifacts();
+        }, 200);
     }
 
     public refreshStatus() {
         this._updateStatus();
     }
+
+    // ── Data senders ───────────────────────────────────────────────
 
     private _updateStatus() {
         if (!this._view) { return; }
@@ -163,11 +177,45 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
-    /**
-     * Reads now.config.json from the workspace root (ServiceNow Fluent project config).
-     * Parses the scope string to extract the vendor prefix and numeric scope ID
-     * used in scoped app workspace URLs: /x/{numericScopeId}/{path}
-     */
+    private _sendAgentTree() {
+        if (!this._view) { return; }
+        this._view.webview.postMessage({ command: 'updateAgents', tree: AGENT_TREE });
+    }
+
+    private _sendArtifacts() {
+        if (!this._view) { return; }
+        const content = this._readArtifactsFile();
+        if (content === null) {
+            this._view.webview.postMessage({ command: 'updateArtifacts', artifacts: [], sessionActive: false });
+        } else {
+            const artifacts = parseArtifactsMarkdown(content);
+            this._view.webview.postMessage({ command: 'updateArtifacts', artifacts, sessionActive: true });
+        }
+    }
+
+    private _readArtifactsFile(): string | null {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) { return null; }
+
+        // The memory tool stores session files under .github/memories/session/ in the workspace
+        const candidates = [
+            path.join(workspaceFolders[0].uri.fsPath, '.github', 'memories', 'session', 'artifacts.md'),
+            path.join(workspaceFolders[0].uri.fsPath, 'memories', 'session', 'artifacts.md'),
+        ];
+        for (const p of candidates) {
+            try {
+                if (fs.existsSync(p)) {
+                    return fs.readFileSync(p, 'utf-8');
+                }
+            } catch {
+                // ignore
+            }
+        }
+        return null;
+    }
+
+    // ── Config helpers ─────────────────────────────────────────────
+
     private _readNowConfig(): { scope: string; scopeId: string; name: string; scopePrefix: string; numericScopeId: string } | null {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return null; }
@@ -179,7 +227,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             const config = JSON.parse(raw);
             if (!config.scope) { return null; }
 
-            // Parse scope like "x_1118332_userpuls" → prefix "x", numericId "1118332"
             let scopePrefix = '';
             let numericScopeId = '';
             const scopeMatch = config.scope.match(/^(\w+?)_(\d+)_/);
@@ -201,10 +248,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    /**
-     * Writes settings to .vscode/nowdev-ai-config.json in the workspace root
-     * so that Copilot Chat agents can read them via the read_file tool.
-     */
     private _writeConfigFile(
         settings: { instanceUrl: string; preferredStyle: string; customInstructionsFile: string },
         customInstructionsContent: string,
@@ -236,7 +279,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             configData.customInstructions = customInstructionsContent;
         }
 
-        // Include environment capabilities so agents know what tools are available
         if (this._environmentInfo) {
             const env = this._environmentInfo;
             const enabledTools: Record<string, { version: string; label: string; description: string }> = {};
@@ -296,12 +338,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    // ── HTML generation ────────────────────────────────────────────
+
     private _getHtml(webview: vscode.Webview): string {
         const ext = vscode.extensions.getExtension('DanielMadsenDK.nowdev-ai-toolbox');
         const version = ext?.packageJSON?.version ?? '0.0.0';
 
         const iconUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, 'media', 'agent-icon.svg')
+        );
+        const cssUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'styles.css')
+        );
+        const jsUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'main.js')
         );
 
         const nonce = getNonce();
@@ -311,390 +361,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'none'; img-src ${webview.cspSource}; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+          content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style nonce="${nonce}">
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            color: var(--vscode-foreground);
-            background: var(--vscode-sideBar-background);
-            padding: 16px 14px;
-            line-height: 1.5;
-        }
-
-        /* Header */
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-        }
-        .header img {
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
-        }
-        .header-text h1 {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--vscode-foreground);
-        }
-        .header-text .version {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-        }
-
-        /* Sections */
-        .section {
-            margin-bottom: 16px;
-        }
-        .section-title {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--vscode-foreground);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        /* Status checks */
-        .check-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-            font-size: 12px;
-        }
-        .check-icon {
-            flex-shrink: 0;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            line-height: 1;
-        }
-        .check-icon.ok {
-            background: var(--vscode-testing-iconPassed, #388a34);
-            color: #fff;
-        }
-        .check-icon.fail {
-            background: var(--vscode-testing-iconFailed, #f14c4c);
-            color: #fff;
-        }
-        .check-label {
-            flex: 1;
-            color: var(--vscode-foreground);
-        }
-        .fix-btn {
-            font-size: 10px;
-            padding: 1px 8px;
-            border: 1px solid var(--vscode-button-border, var(--vscode-button-background));
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .fix-btn:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
-        }
-        .fix-all-btn {
-            font-size: 10px;
-            padding: 2px 8px;
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .fix-all-btn:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-        .all-good {
-            display: none;
-            font-size: 11px;
-            color: var(--vscode-testing-iconPassed, #388a34);
-            padding: 4px 0;
-        }
-
-        /* Settings form */
-        .field {
-            margin-bottom: 10px;
-        }
-        .field label {
-            display: block;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--vscode-foreground);
-            margin-bottom: 4px;
-        }
-        .field .field-desc {
-            font-size: 10px;
-            color: var(--vscode-descriptionForeground);
-            margin-bottom: 4px;
-        }
-        .field input[type="text"],
-        .field select {
-            width: 100%;
-            padding: 4px 8px;
-            font-size: 12px;
-            font-family: var(--vscode-font-family);
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-            border-radius: 3px;
-            outline: none;
-        }
-        .field input[type="text"]:focus,
-        .field select:focus {
-            border-color: var(--vscode-focusBorder);
-        }
-
-        /* Primary button */
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            font-size: 12px;
-            font-family: var(--vscode-font-family);
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            justify-content: center;
-        }
-        .btn-primary:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-
-        /* Info list */
-        .info-list {
-            list-style: none;
-            padding: 0;
-        }
-        .info-list li {
-            font-size: 12px;
-            color: var(--vscode-foreground);
-            padding: 3px 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .info-list li::before {
-            content: "\\2022";
-            color: var(--vscode-descriptionForeground);
-            font-weight: bold;
-        }
-
-        /* Links */
-        a {
-            color: var(--vscode-textLink-foreground);
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-            color: var(--vscode-textLink-activeForeground);
-        }
-
-        /* Divider */
-        hr {
-            border: none;
-            border-top: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-            margin: 14px 0;
-        }
-
-        /* Desc */
-        .desc {
-            font-size: 12px;
-            color: var(--vscode-descriptionForeground);
-            margin-bottom: 14px;
-        }
-
-        /* Fluent App Info (read-only) */
-        .app-info {
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-            border-radius: 4px;
-            padding: 8px 10px;
-        }
-        .app-info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 3px 0;
-            font-size: 11px;
-        }
-        .app-info-key {
-            color: var(--vscode-descriptionForeground);
-            font-weight: 600;
-        }
-        .app-info-value {
-            color: var(--vscode-foreground);
-            font-family: var(--vscode-editor-font-family, monospace);
-            font-size: 11px;
-            text-align: right;
-            word-break: break-all;
-        }
-        .app-info-none {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            font-style: italic;
-        }
-
-        /* Tool toggles */
-        .tool-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 5px 0;
-            font-size: 12px;
-            border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-        }
-        .tool-row:last-child { border-bottom: none; }
-        .tool-status {
-            flex-shrink: 0;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        .tool-status.installed { background: var(--vscode-testing-iconPassed, #388a34); }
-        .tool-status.missing { background: var(--vscode-testing-iconFailed, #f14c4c); }
-        .tool-info { flex: 1; min-width: 0; }
-        .tool-name {
-            font-weight: 600;
-            color: var(--vscode-foreground);
-        }
-        .tool-version {
-            font-size: 10px;
-            color: var(--vscode-descriptionForeground);
-            margin-left: 4px;
-        }
-        .tool-desc {
-            font-size: 10px;
-            color: var(--vscode-descriptionForeground);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .tool-impact {
-            font-size: 10px;
-            color: var(--vscode-editorWarning-foreground, #cca700);
-            font-style: italic;
-        }
-        .tool-toggle {
-            flex-shrink: 0;
-            position: relative;
-            width: 32px;
-            height: 18px;
-        }
-        .tool-toggle input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .tool-toggle .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-            border-radius: 9px;
-            transition: background 0.2s;
-        }
-        .tool-toggle .slider::before {
-            content: "";
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            left: 2px;
-            bottom: 2px;
-            background: var(--vscode-descriptionForeground);
-            border-radius: 50%;
-            transition: transform 0.2s, background 0.2s;
-        }
-        .tool-toggle input:checked + .slider {
-            background: var(--vscode-button-background);
-            border-color: var(--vscode-button-background);
-        }
-        .tool-toggle input:checked + .slider::before {
-            transform: translateX(14px);
-            background: var(--vscode-button-foreground);
-        }
-        .tool-toggle input:disabled + .slider {
-            opacity: 0.4;
-            cursor: default;
-        }
-        .env-summary {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            padding: 4px 0 8px 0;
-        }
-        .env-summary strong {
-            color: var(--vscode-foreground);
-        }
-
-        /* File picker */
-        .file-picker-row {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        .btn-secondary {
-            padding: 4px 12px;
-            font-size: 11px;
-            font-family: var(--vscode-font-family);
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border: 1px solid var(--vscode-button-border, var(--vscode-button-secondaryBackground));
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .btn-secondary:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
-        }
-        .btn-clear {
-            padding: 2px 6px;
-            font-size: 12px;
-            background: none;
-            color: var(--vscode-descriptionForeground);
-            border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-            border-radius: 3px;
-            cursor: pointer;
-            line-height: 1;
-        }
-        .btn-clear:hover {
-            color: var(--vscode-errorForeground);
-            border-color: var(--vscode-errorForeground);
-        }
-        .file-path {
-            margin-top: 6px;
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            word-break: break-all;
-            padding: 4px 6px;
-            background: var(--vscode-input-background);
-            border-radius: 3px;
-            border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-        }
-
-    </style>
+    <link rel="stylesheet" href="${cssUri}">
 </head>
 <body>
 
-    <!-- Header -->
+    <!-- Header (always visible) -->
     <div class="header">
         <img src="${iconUri}" alt="NowDev AI">
         <div class="header-text">
@@ -707,307 +380,158 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         AI-powered multi-agent system for ServiceNow development in VS Code Copilot Chat.
     </p>
 
-    <!-- Quick Action -->
-    <div class="section">
-        <button class="btn-primary" id="openChat">Open Copilot Chat (Ctrl+Shift+I)</button>
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="setup">Setup</button>
+        <button class="tab-btn" data-tab="tools">Tools</button>
+        <button class="tab-btn" data-tab="agents">Agents</button>
+        <button class="tab-btn" data-tab="session">Session</button>
     </div>
 
-    <hr>
+    <!-- ═══════════ TAB: Setup ═══════════ -->
+    <div id="tab-setup" class="tab-content active">
 
-    <!-- Prerequisites Status -->
-    <div class="section">
-        <div class="section-title">
-            <span>Configuration Status</span>
-            <button class="fix-all-btn" id="fixAll" title="Enable all required settings">Fix All</button>
+        <!-- Quick Action -->
+        <div class="section">
+            <button class="btn-primary" id="openChat">Open Copilot Chat (Ctrl+Shift+I)</button>
         </div>
-        <div id="allGood" class="all-good">All prerequisites are configured correctly.</div>
-        <div id="checks">
-            <div class="check-row" data-key="subAgents">
-                <span class="check-icon fail">&#10005;</span>
-                <span class="check-label">Sub-agent invocations</span>
-                <button class="fix-btn">Enable</button>
+
+        <hr>
+
+        <!-- Prerequisites Status -->
+        <div class="section">
+            <div class="section-title">
+                <span>Configuration Status</span>
+                <button class="fix-all-btn" id="fixAll" title="Enable all required settings">Fix All</button>
             </div>
-            <div class="check-row" data-key="memory">
-                <span class="check-icon fail">&#10005;</span>
-                <span class="check-label">Memory tool</span>
-                <button class="fix-btn">Enable</button>
+            <div id="allGood" class="all-good">All prerequisites are configured correctly.</div>
+            <div id="checks">
+                <div class="check-row" data-key="subAgents">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Sub-agent invocations</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
+                <div class="check-row" data-key="memory">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Memory tool</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
+                <div class="check-row" data-key="askChatLocation">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Ask Chat Location</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
+                <div class="check-row" data-key="browserTools">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Browser tools</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
             </div>
-            <div class="check-row" data-key="askChatLocation">
-                <span class="check-icon fail">&#10005;</span>
-                <span class="check-label">Ask Chat Location</span>
-                <button class="fix-btn">Enable</button>
+        </div>
+
+        <hr>
+
+        <!-- ServiceNow Settings -->
+        <div class="section">
+            <div class="section-title">
+                <span>ServiceNow Settings</span>
+                <button class="fix-btn" id="openSettings" title="Open in VS Code Settings">Settings</button>
             </div>
-            <div class="check-row" data-key="browserTools">
-                <span class="check-icon fail">&#10005;</span>
-                <span class="check-label">Browser tools</span>
-                <button class="fix-btn">Enable</button>
+
+            <div class="field">
+                <label for="instanceUrl">Instance URL</label>
+                <div class="field-desc">Used by agents for context (e.g. https://mydev.service-now.com)</div>
+                <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
+            </div>
+
+            <div class="field">
+                <label for="devStyle">Development Style</label>
+                <div class="field-desc">How agents should generate ServiceNow code</div>
+                <select id="devStyle">
+                    <option value="auto">Auto (agents decide)</option>
+                    <option value="classic">Classic (Script Includes, Business Rules)</option>
+                    <option value="fluent">Fluent SDK (.now.ts TypeScript)</option>
+                </select>
             </div>
         </div>
-    </div>
 
-    <hr>
+        <hr>
 
-    <!-- ServiceNow Settings -->
-    <div class="section">
-        <div class="section-title">
-            <span>ServiceNow Settings</span>
-            <button class="fix-btn" id="openSettings" title="Open in VS Code Settings">Settings</button>
-        </div>
-
-        <div class="field">
-            <label for="instanceUrl">Instance URL</label>
-            <div class="field-desc">Used by agents for context (e.g. https://mydev.service-now.com)</div>
-            <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
-        </div>
-
-        <div class="field">
-            <label for="devStyle">Development Style</label>
-            <div class="field-desc">How agents should generate ServiceNow code</div>
-            <select id="devStyle">
-                <option value="auto">Auto (agents decide)</option>
-                <option value="classic">Classic (Script Includes, Business Rules)</option>
-                <option value="fluent">Fluent SDK (.now.ts TypeScript)</option>
-            </select>
-        </div>
-    </div>
-
-    <hr>
-
-    <!-- Fluent App Info (read-only from now.config.json) -->
-    <div class="section" id="fluentAppSection" style="display:none;">
-        <div class="section-title">
-            <span>Fluent App</span>
-        </div>
-        <div class="field-desc" style="margin-bottom: 8px;">
-            Detected from <code style="font-size:10px;">now.config.json</code> in the workspace root.
-        </div>
-        <div class="app-info" id="fluentAppInfo"></div>
-    </div>
-
-    <hr id="fluentAppHr" style="display:none;">
-
-    <!-- Custom Instructions -->
-    <div class="section">
-        <div class="section-title">
-            <span>Custom Instructions</span>
-        </div>
-        <div class="field-desc" style="margin-bottom: 8px;">
-            Select a .md or .txt file with instructions for the AI agents. These are treated as high-priority directives.
-        </div>
-        <div class="file-picker">
-            <div class="file-picker-row">
-                <button class="btn-secondary" id="browseFile">Browse…</button>
-                <button class="btn-clear" id="clearFile" title="Remove instructions file" style="display:none;">✕</button>
+        <!-- Fluent App Info -->
+        <div class="section" id="fluentAppSection" style="display:none;">
+            <div class="section-title">
+                <span>Fluent App</span>
             </div>
-            <div class="file-path" id="filePath" style="display:none;"></div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Detected from <code style="font-size:10px;">now.config.json</code> in the workspace root.
+            </div>
+            <div class="app-info" id="fluentAppInfo"></div>
+        </div>
+
+        <hr id="fluentAppHr" style="display:none;">
+
+        <!-- Custom Instructions -->
+        <div class="section">
+            <div class="section-title">
+                <span>Custom Instructions</span>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Select a .md or .txt file with instructions for the AI agents. These are treated as high-priority directives.
+            </div>
+            <div class="file-picker">
+                <div class="file-picker-row">
+                    <button class="btn-secondary" id="browseFile">Browse\u2026</button>
+                    <button class="btn-clear" id="clearFile" title="Remove instructions file" style="display:none;">\u2715</button>
+                </div>
+                <div class="file-path" id="filePath" style="display:none;"></div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Resources -->
+        <div class="section">
+            <div class="section-title">Resources</div>
+            <ul class="info-list">
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox">GitHub Repository</a></li>
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox#readme">Documentation</a></li>
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/issues">Report an Issue</a></li>
+            </ul>
         </div>
     </div>
 
-    <hr>
-
-    <!-- Environment & Tools -->
-    <div class="section">
-        <div class="section-title">
-            <span>Environment &amp; Tools</span>
-            <button class="fix-btn" id="rescanTools" title="Re-scan for available tools">Rescan</button>
+    <!-- ═══════════ TAB: Tools ═══════════ -->
+    <div id="tab-tools" class="tab-content">
+        <div class="section">
+            <div class="section-title">
+                <span>Environment &amp; Tools</span>
+                <button class="fix-btn" id="rescanTools" title="Re-scan for available tools">Rescan</button>
+            </div>
+            <div id="envSummary" class="env-summary"></div>
+            <div id="toolsList"></div>
         </div>
-        <div id="envSummary" class="env-summary"></div>
-        <div id="toolsList"></div>
     </div>
 
-    <hr>
-
-    <!-- Links -->
-    <div class="section">
-        <div class="section-title">Resources</div>
-        <ul class="info-list">
-            <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox">GitHub Repository</a></li>
-            <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox#readme">Documentation</a></li>
-            <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/issues">Report an Issue</a></li>
-        </ul>
+    <!-- ═══════════ TAB: Agents ═══════════ -->
+    <div id="tab-agents" class="tab-content">
+        <div class="section">
+            <div class="section-title">Agent Team</div>
+            <div class="field-desc" style="margin-bottom: 10px;">
+                22 specialized agents organized by role. Click a name to see its description; click the arrow to expand.
+            </div>
+            <div id="agentTree" class="agent-tree"></div>
+        </div>
     </div>
 
-    <script nonce="${nonce}">
-        (function() {
-            const vscode = acquireVsCodeApi();
+    <!-- ═══════════ TAB: Session ═══════════ -->
+    <div id="tab-session" class="tab-content">
+        <div class="section">
+            <div class="section-title">Artifact Registry</div>
+            <div id="artifactsView"></div>
+        </div>
+    </div>
 
-            // -- Buttons --
-            document.getElementById('openChat').addEventListener('click', () => {
-                vscode.postMessage({ command: 'openCopilotChat' });
-            });
-            document.getElementById('openSettings').addEventListener('click', () => {
-                vscode.postMessage({ command: 'openSettings' });
-            });
-            document.getElementById('fixAll').addEventListener('click', () => {
-                vscode.postMessage({ command: 'fixAllSettings' });
-            });
-
-            // -- Fix buttons on individual check rows --
-            document.querySelectorAll('#checks .check-row .fix-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const key = btn.closest('.check-row').dataset.key;
-                    vscode.postMessage({ command: 'fixSetting', key });
-                });
-            });
-
-            // -- Config inputs with debounce --
-            let debounceTimers = {};
-            function debounceUpdate(key, value) {
-                clearTimeout(debounceTimers[key]);
-                debounceTimers[key] = setTimeout(() => {
-                    vscode.postMessage({ command: 'updateConfig', key, value });
-                }, 600);
-            }
-
-            document.getElementById('instanceUrl').addEventListener('input', (e) => {
-                debounceUpdate('instanceUrl', e.target.value.trim());
-            });
-            document.getElementById('devStyle').addEventListener('change', (e) => {
-                vscode.postMessage({ command: 'updateConfig', key: 'preferredDevelopmentStyle', value: e.target.value });
-            });
-
-            // -- File picker --
-            document.getElementById('browseFile').addEventListener('click', () => {
-                vscode.postMessage({ command: 'browseFile' });
-            });
-            document.getElementById('clearFile').addEventListener('click', () => {
-                vscode.postMessage({ command: 'clearInstructionsFile' });
-            });
-
-            // -- Rescan tools --
-            document.getElementById('rescanTools').addEventListener('click', () => {
-                vscode.postMessage({ command: 'rescanTools' });
-            });
-
-            // -- Receive status from extension --
-            window.addEventListener('message', (event) => {
-                const msg = event.data;
-                if (msg.command === 'updateStatus') {
-                    updateChecks(msg.checks);
-                    updateSettings(msg.settings);
-                    updateFluentApp(msg.fluentApp);
-                    updateEnvironment(msg.environment);
-                }
-            });
-
-            function updateChecks(checks) {
-                let allOk = true;
-                document.querySelectorAll('#checks .check-row').forEach(row => {
-                    const key = row.dataset.key;
-                    const ok = checks[key];
-                    const icon = row.querySelector('.check-icon');
-                    const btn = row.querySelector('.fix-btn');
-                    if (ok) {
-                        icon.className = 'check-icon ok';
-                        icon.innerHTML = '\\u2713';
-                        btn.style.display = 'none';
-                    } else {
-                        icon.className = 'check-icon fail';
-                        icon.innerHTML = '\\u2717';
-                        btn.style.display = '';
-                        allOk = false;
-                    }
-                });
-                document.getElementById('allGood').style.display = allOk ? 'block' : 'none';
-                document.getElementById('fixAll').style.display = allOk ? 'none' : '';
-            }
-
-            function updateFluentApp(fluentApp) {
-                const section = document.getElementById('fluentAppSection');
-                const hr = document.getElementById('fluentAppHr');
-                const info = document.getElementById('fluentAppInfo');
-                if (!fluentApp) {
-                    section.style.display = 'none';
-                    hr.style.display = 'none';
-                    return;
-                }
-                section.style.display = '';
-                hr.style.display = '';
-                const rows = [
-                    { key: 'Name', value: fluentApp.name },
-                    { key: 'Scope', value: fluentApp.scope },
-                    { key: 'Scope ID', value: fluentApp.scopeId },
-                ];
-                if (fluentApp.numericScopeId) {
-                    rows.push({ key: 'Numeric ID', value: fluentApp.numericScopeId });
-                    rows.push({ key: 'URL Prefix', value: '/x/' + fluentApp.numericScopeId });
-                }
-                info.innerHTML = rows.map(r =>
-                    '<div class="app-info-row"><span class="app-info-key">' + r.key + '</span><span class="app-info-value">' + r.value + '</span></div>'
-                ).join('');
-            }
-
-            function updateEnvironment(env) {
-                const summary = document.getElementById('envSummary');
-                const list = document.getElementById('toolsList');
-                if (!env) {
-                    summary.innerHTML = '<em>Environment scan not yet available.</em>';
-                    list.innerHTML = '';
-                    return;
-                }
-                summary.innerHTML = '<strong>OS:</strong> ' + env.os + ' (' + env.arch + ') &nbsp; <strong>Shell:</strong> ' + env.shell;
-                let html = '';
-                const tools = env.tools || {};
-                const keys = Object.keys(tools);
-                for (let i = 0; i < keys.length; i++) {
-                    const key = keys[i];
-                    const t = tools[key];
-                    const statusClass = t.available ? 'installed' : 'missing';
-                    const checked = t.enabled ? 'checked' : '';
-                    const disabled = !t.available ? 'disabled' : '';
-                    html += '<div class="tool-row">';
-                    html += '  <span class="tool-status ' + statusClass + '"></span>';
-                    html += '  <div class="tool-info">';
-                    html += '    <span class="tool-name">' + t.label + '</span>';
-                    if (t.available && t.version) {
-                        html += '    <span class="tool-version">v' + t.version + '</span>';
-                    }
-                    if (!t.available) {
-                        html += '    <div class="tool-impact">' + t.impact + '</div>';
-                    } else {
-                        html += '    <div class="tool-desc">' + t.description + '</div>';
-                    }
-                    html += '  </div>';
-                    html += '  <label class="tool-toggle" title="' + (t.available ? 'Enable/disable for agents' : 'Not installed') + '">';
-                    html += '    <input type="checkbox" data-tool="' + key + '" ' + checked + ' ' + disabled + '>';
-                    html += '    <span class="slider"></span>';
-                    html += '  </label>';
-                    html += '</div>';
-                }
-                list.innerHTML = html;
-
-                // Bind toggle events
-                list.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-                    cb.addEventListener('change', function() {
-                        vscode.postMessage({ command: 'toggleTool', key: cb.dataset.tool, enabled: cb.checked });
-                    });
-                });
-            }
-
-            function updateSettings(settings) {
-                const urlInput = document.getElementById('instanceUrl');
-                const styleSelect = document.getElementById('devStyle');
-                if (document.activeElement !== urlInput) {
-                    urlInput.value = settings.instanceUrl || '';
-                }
-                if (document.activeElement !== styleSelect) {
-                    styleSelect.value = settings.preferredStyle || 'auto';
-                }
-                // Update file picker display
-                const filePathEl = document.getElementById('filePath');
-                const clearBtn = document.getElementById('clearFile');
-                if (settings.customInstructionsFile) {
-                    filePathEl.textContent = settings.customInstructionsFile;
-                    filePathEl.style.display = 'block';
-                    clearBtn.style.display = '';
-                } else {
-                    filePathEl.style.display = 'none';
-                    clearBtn.style.display = 'none';
-                }
-            }
-        })();
-    </script>
-
+    <script nonce="${nonce}" src="${jsUri}"></script>
 </body>
 </html>`;
     }

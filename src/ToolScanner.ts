@@ -114,6 +114,24 @@ function tryExec(command: string, timeoutMs = 5000): string | null {
         });
         return result.trim();
     } catch {
+        // On Windows, cmd.exe may not find tools that are on the PATH in PowerShell
+        // (e.g. npm global packages whose directory is only in the user's PS profile).
+        // Retry the command through PowerShell as a fallback.
+        if (process.platform === 'win32') {
+            try {
+                const psResult = execSync(
+                    `powershell -NoProfile -Command "& { ${command} }"`,
+                    {
+                        timeout: timeoutMs,
+                        encoding: 'utf-8',
+                        stdio: ['pipe', 'pipe', 'pipe'],
+                    },
+                );
+                return psResult.trim();
+            } catch {
+                return null;
+            }
+        }
         return null;
     }
 }
