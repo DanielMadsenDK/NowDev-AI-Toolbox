@@ -246,13 +246,9 @@
                 if (!children) return;
                 const isCollapsed = children.classList.contains('collapsed');
                 if (isCollapsed) {
-                    children.style.maxHeight = children.scrollHeight + 'px';
                     children.classList.remove('collapsed');
                     chevron.textContent = '\u25BC';
                 } else {
-                    children.style.maxHeight = children.scrollHeight + 'px';
-                    // Force reflow then collapse
-                    children.offsetHeight;
                     children.classList.add('collapsed');
                     chevron.textContent = '\u25B6';
                 }
@@ -272,9 +268,22 @@
 
     // ── Artifact registry rendering ────────────────────────────────
 
+    let _currentArtifactFilter = 'active'; // default to showing active (non-done) artifacts
+    let _lastArtifacts = [];
+    let _lastSessionActive = false;
+
     function renderArtifacts(artifacts, sessionActive) {
+        _lastArtifacts = artifacts || [];
+        _lastSessionActive = sessionActive;
+        _renderArtifactsFiltered();
+    }
+
+    function _renderArtifactsFiltered() {
         const container = document.getElementById('artifactsView');
         if (!container) return;
+
+        const artifacts = _lastArtifacts;
+        const sessionActive = _lastSessionActive;
 
         if (!sessionActive || !artifacts || artifacts.length === 0) {
             container.innerHTML =
@@ -285,34 +294,76 @@
             return;
         }
 
-        // Summary
-        const done = artifacts.filter(a => isDone(a.status)).length;
-        const inProgress = artifacts.filter(a => isInProgress(a.status)).length;
+        // Counts
+        const doneCount = artifacts.filter(a => isDone(a.status)).length;
+        const inProgressCount = artifacts.filter(a => isInProgress(a.status)).length;
         const total = artifacts.length;
+        const activeCount = total - doneCount;
+
+        // Filter bar
+        let html = '<div class="artifact-filters">';
+        html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'active' ? ' active' : '') + '" data-filter="active">Active (' + activeCount + ')</button>';
+        html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'all' ? ' active' : '') + '" data-filter="all">All (' + total + ')</button>';
+        html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'done' ? ' active' : '') + '" data-filter="done">Done (' + doneCount + ')</button>';
+        html += '</div>';
+
+        // Summary
         let summaryParts = [total + ' artifact' + (total !== 1 ? 's' : '')];
-        if (done > 0) summaryParts.push(done + ' done');
-        if (inProgress > 0) summaryParts.push(inProgress + ' in progress');
-        const remaining = total - done - inProgress;
+        if (doneCount > 0) summaryParts.push(doneCount + ' done');
+        if (inProgressCount > 0) summaryParts.push(inProgressCount + ' in progress');
+        const remaining = total - doneCount - inProgressCount;
         if (remaining > 0) summaryParts.push(remaining + ' other');
+        html += '<div class="artifacts-summary"><strong>' + summaryParts.join(' &middot; ') + '</strong></div>';
 
-        let html = '<div class="artifacts-summary"><strong>' + summaryParts.join(' &middot; ') + '</strong></div>';
-
-        html += '<table class="artifacts-table">';
-        html += '<thead><tr><th>Artifact</th><th>Type</th><th>Status</th></tr></thead>';
-        html += '<tbody>';
-        for (const a of artifacts) {
-            const dotClass = isDone(a.status) ? 'done' : isInProgress(a.status) ? 'progress' : isError(a.status) ? 'error' : 'unknown';
-            const statusLabel = esc(a.status.replace(/[\u2705\uD83C\uDFD7\uFE0F\u274C]/gu, '').trim() || a.status);
-            html += '<tr>';
-            html += '<td><strong>' + esc(a.name) + '</strong>';
-            if (a.file) html += '<br><span style="font-size:10px;color:var(--vscode-descriptionForeground);">' + esc(a.file) + '</span>';
-            html += '</td>';
-            html += '<td>' + esc(a.type) + '</td>';
-            html += '<td><span class="artifact-status"><span class="status-dot ' + dotClass + '"></span>' + statusLabel + '</span></td>';
-            html += '</tr>';
+        // Filter artifacts
+        var filtered = artifacts;
+        if (_currentArtifactFilter === 'active') {
+            filtered = artifacts.filter(function (a) { return !isDone(a.status); });
+        } else if (_currentArtifactFilter === 'done') {
+            filtered = artifacts.filter(function (a) { return isDone(a.status); });
         }
-        html += '</tbody></table>';
+
+        if (filtered.length === 0) {
+            html += '<div class="empty-state"><p>' +
+                (_currentArtifactFilter === 'active' ? 'All artifacts are done!' : 'No matching artifacts.') +
+                '</p></div>';
+        }
+
+        for (const a of filtered) {
+            var aIsDone = isDone(a.status);
+            var dotClass = aIsDone ? 'done' : isInProgress(a.status) ? 'progress' : isError(a.status) ? 'error' : 'unknown';
+            var statusLabel = esc(a.status.replace(/[\u2705\uD83C\uDFD7\uFE0F\u274C]/gu, '').trim() || a.status);
+
+            html += '<div class="artifact-card' + (aIsDone ? ' is-done' : '') + '">';
+            html += '<div class="artifact-card-header">';
+            html += '<span class="artifact-status"><span class="status-dot ' + dotClass + '"></span>' + statusLabel + '</span>';
+            if (a.agent) html += '<span class="artifact-agent">' + esc(a.agent) + '</span>';
+            html += '</div>';
+            html += '<div class="artifact-card-name">' + esc(a.name) + '</div>';
+            if (a.file) html += '<div class="artifact-card-file">' + esc(a.file) + '</div>';
+            html += '<div class="artifact-card-type">' + esc(a.type) + '</div>';
+
+            if ((a.exports && a.exports !== '-' && a.exports !== '\u2014') || (a.dependsOn && a.dependsOn !== '-' && a.dependsOn !== '\u2014')) {
+                html += '<div class="artifact-card-details">';
+                if (a.exports && a.exports !== '-' && a.exports !== '\u2014') {
+                    html += '<span class="artifact-detail"><span class="detail-label">Exports:</span> ' + esc(a.exports) + '</span>';
+                }
+                if (a.dependsOn && a.dependsOn !== '-' && a.dependsOn !== '\u2014') {
+                    html += '<span class="artifact-detail"><span class="detail-label">Depends on:</span> ' + esc(a.dependsOn) + '</span>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+        }
         container.innerHTML = html;
+
+        // Bind filter buttons
+        container.querySelectorAll('.artifact-filter-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                _currentArtifactFilter = btn.dataset.filter;
+                _renderArtifactsFiltered();
+            });
+        });
     }
 
     function isDone(s) { return /done|complete|\u2705/i.test(s); }

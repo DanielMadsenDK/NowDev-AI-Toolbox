@@ -493,11 +493,9 @@ hr {
 .agent-badge.release      { background: #3b1f5e; color: #d2b4de; }
 .agent-badge.support      { background: #333; color: #aaa; }
 .agent-children {
-    overflow: hidden;
-    transition: max-height 0.2s ease-out;
 }
 .agent-children.collapsed {
-    max-height: 0 !important;
+    display: none;
 }
 .agent-desc {
     font-size: 10px;
@@ -561,6 +559,84 @@ hr {
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50%      { opacity: 0.4; }
+}
+.artifact-filters {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+.artifact-filter-btn {
+    flex: 1;
+    padding: 3px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+    border-radius: 3px;
+    background: transparent;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+}
+.artifact-filter-btn:hover {
+    background: var(--vscode-list-hoverBackground, rgba(128,128,128,0.1));
+}
+.artifact-filter-btn.active {
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    border-color: var(--vscode-badge-background);
+}
+.artifact-card.is-done {
+    opacity: 0.6;
+}
+.artifact-card {
+    border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+}
+.artifact-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+.artifact-agent {
+    font-size: 9px;
+    color: var(--vscode-descriptionForeground);
+    background: var(--vscode-badge-background);
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+.artifact-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+}
+.artifact-card-file {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    word-break: break-all;
+    margin-top: 2px;
+}
+.artifact-card-type {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    margin-top: 2px;
+}
+.artifact-card-details {
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+    font-size: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.artifact-detail {
+    color: var(--vscode-foreground);
+}
+.detail-label {
+    color: var(--vscode-descriptionForeground);
+    font-weight: 600;
 }
 .empty-state {
     text-align: center;

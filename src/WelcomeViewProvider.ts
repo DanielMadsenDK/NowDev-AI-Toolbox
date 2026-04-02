@@ -9,6 +9,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
     private _view?: vscode.WebviewView;
     private _environmentInfo: EnvironmentInfo | null = null;
+    private _artifactFilePath: string | null = null;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -117,11 +118,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         nowConfigWatcher.onDidCreate(() => this._updateStatus());
         nowConfigWatcher.onDidDelete(() => this._updateStatus());
 
-        // Watch for Session Artifact Registry changes
-        const artifactWatcher = vscode.workspace.createFileSystemWatcher('**/memories/session/artifacts.md');
-        artifactWatcher.onDidChange(() => this._sendArtifacts());
-        artifactWatcher.onDidCreate(() => this._sendArtifacts());
-        artifactWatcher.onDidDelete(() => this._sendArtifacts());
+        // Watch for nowdev-ai-config.json changes to pick up memoryLocation
+        const aiConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.vscode/nowdev-ai-config.json');
+        aiConfigWatcher.onDidChange(() => this._onConfigFileChanged());
+        aiConfigWatcher.onDidCreate(() => this._onConfigFileChanged());
+
+        webviewView.onDidDispose(() => {
+            this._teardownArtifactWatcher();
+        });
 
         webviewView.onDidChangeVisibility(() => {
             if (webviewView.visible) {
@@ -135,6 +139,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         setTimeout(() => {
             this._updateStatus();
             this._sendAgentTree();
+            this._onConfigFileChanged();
             this._sendArtifacts();
         }, 200);
     }
@@ -194,24 +199,66 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     private _readArtifactsFile(): string | null {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders || workspaceFolders.length === 0) { return null; }
-
-        // The memory tool stores session files under .github/memories/session/ in the workspace
-        const candidates = [
-            path.join(workspaceFolders[0].uri.fsPath, '.github', 'memories', 'session', 'artifacts.md'),
-            path.join(workspaceFolders[0].uri.fsPath, 'memories', 'session', 'artifacts.md'),
-        ];
-        for (const p of candidates) {
-            try {
-                if (fs.existsSync(p)) {
-                    return fs.readFileSync(p, 'utf-8');
-                }
-            } catch {
-                // ignore
+        if (!this._artifactFilePath) { return null; }
+        try {
+            if (fs.existsSync(this._artifactFilePath)) {
+                return fs.readFileSync(this._artifactFilePath, 'utf-8');
             }
+        } catch {
+            // File may not exist yet
         }
         return null;
+    }
+
+    private _onConfigFileChanged(): void {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) { return; }
+
+        const configPath = path.join(workspaceFolders[0].uri.fsPath, '.vscode', 'nowdev-ai-config.json');
+        try {
+            if (!fs.existsSync(configPath)) { return; }
+            const raw = fs.readFileSync(configPath, 'utf-8');
+            const config = JSON.parse(raw);
+            const memoryLocation: string | undefined = config.memoryLocation;
+            if (!memoryLocation) { return; }
+
+            // Convert file:/// URI to filesystem path
+            const resolvedPath = vscode.Uri.parse(memoryLocation).fsPath;
+
+            // Only re-setup if the path actually changed
+            if (resolvedPath === this._artifactFilePath) { return; }
+
+            this._setupArtifactWatcher(resolvedPath);
+        } catch (err) {
+            console.error('Failed to read nowdev-ai-config.json for memoryLocation:', err);
+        }
+    }
+
+    private _setupArtifactWatcher(resolvedPath: string): void {
+        this._teardownArtifactWatcher();
+        this._artifactFilePath = resolvedPath;
+
+        // Initial read
+        this._sendArtifacts();
+
+        // Use fs.watchFile (polling) — works even if file doesn't exist yet,
+        // handles files outside the workspace, reliable across platforms including WSL2
+        try {
+            fs.watchFile(resolvedPath, { interval: 2000 }, (curr, prev) => {
+                if (curr.mtimeMs !== prev.mtimeMs || curr.size !== prev.size) {
+                    this._sendArtifacts();
+                }
+            });
+        } catch (err) {
+            console.error('Failed to watch artifact file:', err);
+        }
+    }
+
+    private _teardownArtifactWatcher(): void {
+        if (this._artifactFilePath) {
+            fs.unwatchFile(this._artifactFilePath);
+        }
+        this._artifactFilePath = null;
     }
 
     // ── Config helpers ─────────────────────────────────────────────
@@ -299,6 +346,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 availableTools: enabledTools,
             };
         }
+
+        // Preserve agent-written fields (e.g. memoryLocation) that should not be overwritten
+        try {
+            if (fs.existsSync(configPath)) {
+                const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+                if (existing.memoryLocation) {
+                    configData.memoryLocation = existing.memoryLocation;
+                }
+            }
+        } catch { /* ignore parse errors */ }
 
         try {
             if (!fs.existsSync(vscodePath)) {
