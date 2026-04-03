@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
+    // Ensure .vscode/nowdev-ai-config.json is listed in .gitignore
+    ensureGitignoreEntry();
     // Register the sidebar welcome webview
     const welcomeProvider = new WelcomeViewProvider(context.extensionUri);
 
@@ -73,6 +77,34 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Agents are now registered via package.json chatAgents contribution
     // No additional installation logic needed
+}
+
+function ensureGitignoreEntry() {
+    const entry = '.vscode/nowdev-ai-config.json';
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        return;
+    }
+
+    const rootPath = workspaceFolders[0].uri.fsPath;
+    const gitignorePath = path.join(rootPath, '.gitignore');
+
+    try {
+        let content = '';
+        if (fs.existsSync(gitignorePath)) {
+            content = fs.readFileSync(gitignorePath, 'utf-8');
+            const lines = content.split(/\r?\n/).map(l => l.trim());
+            if (lines.includes(entry)) {
+                return;
+            }
+        }
+
+        const suffix = content.length > 0 && !content.endsWith('\n') ? '\n' : '';
+        fs.appendFileSync(gitignorePath, `${suffix}${entry}\n`, 'utf-8');
+        console.log(`Added ${entry} to .gitignore`);
+    } catch (err) {
+        console.error('Failed to update .gitignore:', err);
+    }
 }
 
 export function deactivate() {}
