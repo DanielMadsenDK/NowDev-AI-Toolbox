@@ -43,7 +43,7 @@ Use these as templates when creating or modifying agents:
 - **Search:** `search`, `web`
 - **Knowledge:** `io.github.upstash/context7/*`
 - **Tracking:** `todo`
-- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
+- **Memory:** `vscode/memory` — used by specialist reviewers (NowDev-AI-Fluent-Reviewer, NowDev-AI-Classic-Reviewer) for the Dependency Validation pattern (cross-referencing `/memories/session/artifacts.md`)
 - **NO write tools** (reviewers only analyze, never modify)
 - **NO browser tools** (no instance interaction)
 - **Handoff:** Include handoff back to NowDev AI Agent
