@@ -38,15 +38,23 @@ Use these as templates when creating or modifying agents:
 - **Handoff:** Include `handoffs` with "Back to Architect" label pointing to `NowDev AI Agent`
 - **Browser:** None — exception: `NowDev-AI-Client-Developer` may include `browser/readPage` and `browser/screenshotPage` (read-only, shared session only) for form inspection during development. It does NOT have `browser/openBrowserPage` — the orchestrator must open the browser first.
 
-### Reviewer Agent (NowDev-AI-Reviewer)
+### Reviewer Router (NowDev-AI-Reviewer)
+- **Read:** `read/readFile`
+- **Search:** `search`
+- **Tracking:** `todo`
+- **Routing:** `agent`
+- **NO write tools**, **NO browser tools**, **NO memory tools** (router only — delegates all review work to specialists)
+- **Handoff:** Include handoff back to NowDev AI Agent
+
+### Reviewer Specialists (NowDev-AI-Fluent-Reviewer, NowDev-AI-Classic-Reviewer)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Search:** `search`, `web`
 - **Knowledge:** `io.github.upstash/context7/*`
 - **Tracking:** `todo`
-- **Memory:** `vscode/memory` — used by specialist reviewers (NowDev-AI-Fluent-Reviewer, NowDev-AI-Classic-Reviewer) for the Dependency Validation pattern (cross-referencing `/memories/session/artifacts.md`)
+- **Memory:** `vscode/memory` — used for the Dependency Validation pattern (cross-referencing `/memories/session/artifacts.md`)
 - **NO write tools** (reviewers only analyze, never modify)
 - **NO browser tools** (no instance interaction)
-- **Handoff:** Include handoff back to NowDev AI Agent
+- **Handoff:** Include handoff back to NowDev-AI-Reviewer
 
 ### Debugger Agent (NowDev-AI-Debugger)
 - **User Interaction:** `vscode/askQuestions` (for Login Verification Checkpoint and clarifying questions)
