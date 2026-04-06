@@ -134,6 +134,7 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-Fluent-Logic-Developer | Fluent-Developer | Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs, Scheduled Scripts |
 | NowDev-AI-Fluent-Automation-Developer | Fluent-Developer | Flows, Subflows, custom Action Definitions, custom Trigger Definitions |
 | NowDev-AI-Fluent-UI-Developer | Fluent-Developer | React UI Pages, Client Scripts, UI Policies, Service Catalog, Service Portal, Workspaces, Dashboards |
+| NowDev-AI-ATF-Developer | Fluent-Developer | ATF Test() definitions covering form, REST, server-side, catalog, and navigation test steps |
 | NowDev-AI-AI-Agent-Developer | AI-Studio-Developer | AiAgent definitions with tools, triggers, version management, and AiAgenticWorkflow team orchestration |
 | NowDev-AI-NowAssist-Developer | AI-Studio-Developer | NowAssistSkillConfig — tool graph, LLM prompts, security controls, and deployment settings |
 | NowDev-AI-Classic-Reviewer | Reviewer | Reviews Classic scripts against best practices |
@@ -167,6 +168,7 @@ graph TD
     FLU --> LOG["NowDev-AI-Fluent-Logic-Developer\n(Business Rules · Script Includes · REST APIs)"]
     FLU --> AUT["NowDev-AI-Fluent-Automation-Developer\n(Flows · Subflows · Actions)"]
     FLU --> UI["NowDev-AI-Fluent-UI-Developer\n(React UI · Catalog · Workspaces)"]
+    FLU --> ATF["NowDev-AI-ATF-Developer\n(ATF Tests)"]
     FLU --> AIS
 
     AIS --> AAD["NowDev-AI-AI-Agent-Developer\n(AiAgent · AiAgenticWorkflow)"]

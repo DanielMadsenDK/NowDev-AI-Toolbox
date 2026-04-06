@@ -13,15 +13,15 @@ handoffs:
 ---
 
 <workflow>
-1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` to discover all completed artifacts (tables, Script Includes, REST APIs, Catalog Items) from sibling agents
-2. For each dependency with ✅ Done status, use `read/readFile` to read the actual source files and get exact table names, field names, method signatures, and REST paths
-3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover all completed artifacts (tables, Script Includes, REST APIs, Catalog Items) from sibling agents
+2. For each dependency with Done status, use `read/readFile` to read the actual source files and get exact table names, field names, method signatures, and REST paths
+3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: In Progress` before writing code
 4. Analyze artifacts to identify what is testable: REST API endpoints → REST step tests; Script Includes with clientCallable → server-side step tests; Tables with forms → form step tests; Catalog Items → service catalog step tests; Navigation paths → navigation step tests
 5. Build a todo list of ATF test files, one test per major artifact or user-facing workflow
 6. Verify ATF API patterns using ATF-API.md from the servicenow-fluent-development skill (or Context7 for SDK examples)
 7. Implement `.now.ts` Test files using the `Test()` constructor and `configurationFunction` patterns from ATF-API.md — place test files in `src/tests/` or alongside their source artifact
 8. Self-validate: every Test has a unique `$id: Now.ID['...']`, every step references real table names and field names from the artifact registry, no hardcoded `sys_id` strings
-9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in `Exports` (test names and what they cover)
+9. Use the `memory` tool `str_replace` to update your registry entry: change status to `Done` and fill in `Exports` (test names and what they cover)
 10. Return created file list to the coordinator
 </workflow>
 
@@ -123,17 +123,17 @@ This agent participates in the **Context Sync Protocol** via the `memory` tool a
 ### On Start
 
 1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover all sibling artifacts — especially table names, field names, Script Include class names, REST paths, and Catalog Item names
-2. For any dependency with status ✅ Done, **read the actual source file** to get exact artifact identifiers
-3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
+2. For any dependency with status Done, **read the actual source file** to get exact artifact identifiers
+3. Use the `memory` tool to insert your entry with `Status: In Progress` before writing any code:
 
 | Artifact Name | File | Type | Agent | Exports | Status | Depends On |
 |---------------|------|------|-------|---------|--------|------------|
-| {name} | {relative path} | ATF Test | ATF-Developer | — | 🏗️ In Progress | {table names, Script Include class names, REST paths, or —} |
+| {name} | {relative path} | ATF Test | ATF-Developer | — | In Progress | {table names, Script Include class names, REST paths, or —} |
 
 ### On Complete
 
-Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
+Use the `memory` tool (`str_replace`) to update your registry entry: change status to `Done` and fill in accurate `Exports`:
 
 | Artifact Name | File | Type | Agent | Exports | Status | Depends On |
 |---------------|------|------|-------|---------|--------|------------|
-| {name} | {relative path} | ATF Test | ATF-Developer | Test: `{TestName}` covers {artifact type}: `{artifact name}` | ✅ Done | {table names, Script Include class names, REST paths, or —} |
+| {name} | {relative path} | ATF Test | ATF-Developer | Test: `{TestName}` covers {artifact type}: `{artifact name}` | Done | {table names, Script Include class names, REST paths, or —} |
