@@ -115,8 +115,11 @@ This is the primary mechanism for enforcing org-specific standards:
 
 1. Copy [`agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md`](agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md) to a path of your choice (e.g. `~/nowdev-custom-instructions.md`).
 2. Edit the file to reflect your team's standards.
-3. Open **VS Code Settings** (`Ctrl+,`) and search for `NowDev AI Toolbox`.
-4. Set **Custom Instructions File** to the absolute path of your file.
+3. Point the extension at your file using **one** of these methods:
+
+   **Option A — Sidebar (recommended):** Click the NowDev AI Toolbox icon in the VS Code Activity Bar to open the sidebar panel. In the *Custom Instructions File* row, click the **Browse…** button and select your file using the OS file picker. The path is saved automatically to your global VS Code settings.
+
+   **Option B — VS Code Settings:** Open Settings (`Ctrl+,`), search for `NowDev AI Toolbox`, and paste the absolute path into the **Custom Instructions File** field.
 
 The extension reads the file on every save and writes its content into `.vscode/nowdev-ai-config.json` under the `customInstructions` key. All agents then receive these instructions automatically.
 

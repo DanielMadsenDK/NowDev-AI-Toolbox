@@ -24,13 +24,15 @@ Agents use this to pick the right code patterns without asking every time.
 ## Naming Conventions
 
 <!--
-Define identifiers, prefixes, and casing rules that must be applied across all generated artifacts.
-These override any SDK defaults or best-practice recommendations.
+Set your company-specific naming conventions here to ensure all generated code matches
+your organisation's existing codebase.  Agents apply these rules to every artifact they
+produce — tables, scripts, flows, tests, and variables — making the output consistent
+with your existing code from day one.  These override any SDK defaults or best-practice
+recommendations.
 -->
 
-- **Application scope prefix**: `x_acme_itsm` — use this prefix for all table names, roles, script names, and properties.
-- **Table names**: `snake_case`, always prefixed with the scope (e.g. `x_acme_itsm_asset_request`).
 - **Script Include names**: `PascalCase`, no scope prefix in the class name itself (e.g. `AssetRequestHelper`).
+- **Table names**: `snake_case`, always prefixed with the app scope (auto-detected from `now.config.json`).
 - **Flow / Subflow names**: Title Case with spaces (e.g. `Approve Asset Request`).
 - **ATF test names**: `[Feature] - [Scenario]` format (e.g. `Asset Request - Approval happy path`).
 - **Variables and parameters**: `camelCase`; booleans prefixed with `is` or `has` (e.g. `isApproved`).
@@ -42,9 +44,10 @@ Restrict where agents are allowed to make changes.  This prevents accidental edi
 applications or records.
 -->
 
-- All generated code must belong to scope `x_acme_itsm` unless the user explicitly requests otherwise.
+- All generated code must belong to the current app scope (auto-detected from `now.config.json`) unless the user explicitly requests otherwise.
 - Do **not** modify out-of-box (OOB) tables directly; always extend via relationships or override with scoped copies.
 - Only propose changes to the **current Fluent workspace** detected in `now.config.json`; do not suggest cross-scope changes.
+- If you cannot achieve the goal without modifying an OOB record, **stop** and explain the constraint to the user. Describe at least one extension-safe alternative (e.g. a scoped relationship table, a configuration record, or a cross-scope privilege) before proceeding.
 
 ## Excluded Patterns
 
@@ -71,7 +74,7 @@ Short, unconditional directives.  "Always use X" means generate X by default wit
 - `try / catch` blocks in all server-side Scripted REST endpoints.
 - Role-based ACLs defined in the Fluent Schema developer for every new table.
 - `GlideAggregate` instead of `GlideRecord` when only counting or summing records.
-- Pagination (`setLimit` + `addOrderBy`) on all `GlideRecord` queries that may return more than 100 rows.
+- Pagination (`setLimit` + `orderBy`) on all `GlideRecord` queries that may return more than 100 rows.
 - JSDoc comments on every public Script Include method.
 
 **Never use:**
