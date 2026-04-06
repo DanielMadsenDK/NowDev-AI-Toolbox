@@ -1,6 +1,6 @@
 # @servicenow/react-components — Complete Working Examples
 
-All examples are production-quality TypeScript + React. Every import is shown.
+All examples use the component APIs documented in the reference files in this skill directory.
 For full component API details see the reference files listed in [SKILL.md](./SKILL.md).
 
 ---
@@ -61,8 +61,8 @@ export default function IncidentFormPage({sysId}: IncidentFormPageProps) {
         <div style={{width: '100%'}}>
           <FormActionBar
             onUiActionBarClicked={e => {
-              const {name} = e.detail.payload;
-              if (name === 'sysverb_update' || name === 'sysverb_insert') {
+              const {actionSysId} = e.detail.payload;
+              if (actionSysId === 'sysverb_update' || actionSysId === 'sysverb_insert') {
                 setSavedAlert(true);
               }
             }}
