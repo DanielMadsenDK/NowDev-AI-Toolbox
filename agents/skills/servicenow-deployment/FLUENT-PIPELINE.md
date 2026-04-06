@@ -14,6 +14,7 @@ Patterns for deploying ServiceNow Fluent SDK applications through automated pipe
 3. [Rollback via `--reinstall`](#rollback-via---reinstall)
 4. [Multi-Environment Promotion Strategies](#multi-environment-promotion-strategies)
 5. [Branch-per-Environment vs Trunk-Based](#branch-per-environment-vs-trunk-based)
+6. [Verifying Pipeline Templates](#verifying-pipeline-templates)
 
 ---
 
@@ -304,78 +305,6 @@ Library → Variable Groups → New variable group
       NOW_PASSWORD      → dev-service-account-password
 ```
 
-### Jenkins
-
-Use the [Credentials Binding Plugin](https://plugins.jenkins.io/credentials-binding/) to inject secrets as environment variables without logging them:
-
-```groovy
-// Jenkinsfile
-pipeline {
-    agent any
-
-    environment {
-        DEPLOY_ENV = "${params.ENVIRONMENT ?: 'dev'}"
-    }
-
-    parameters {
-        choice(name: 'ENVIRONMENT', choices: ['dev', 'test', 'prod'], description: 'Target environment')
-    }
-
-    stages {
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm ci'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'npm run build'
-            }
-        }
-
-        stage('Deploy — Core Scope') {
-            steps {
-                // Resolve credential IDs by environment at runtime
-                script {
-                    def credId = "${DEPLOY_ENV.toUpperCase()}_SERVICENOW_CREDS"
-                    withCredentials([
-                        string(credentialsId: "${DEPLOY_ENV}-now-instance-url", variable: 'NOW_INSTANCE_URL'),
-                        usernamePassword(
-                            credentialsId: credId,
-                            usernameVariable: 'NOW_USERNAME',
-                            passwordVariable: 'NOW_PASSWORD'
-                        )
-                    ]) {
-                        dir('packages/core-app') {
-                            sh '''
-                                npx @servicenow/sdk install \
-                                  --scope x_mycompany_core \
-                                  --url "$NOW_INSTANCE_URL" \
-                                  --username "$NOW_USERNAME" \
-                                  --password "$NOW_PASSWORD"
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-```
-
-**Jenkins credential storage:**
-
-```
-Manage Jenkins → Credentials → System → Global credentials
-  ├── String:              dev-now-instance-url        = https://dev.service-now.com
-  ├── Username/Password:   DEV_SERVICENOW_CREDS        = svc_sdk_deploy / <secret>
-  ├── String:              test-now-instance-url       = https://test.service-now.com
-  ├── Username/Password:   TEST_SERVICENOW_CREDS       = svc_sdk_deploy / <secret>
-  ├── String:              prod-now-instance-url       = https://mycompany.service-now.com
-  └── Username/Password:   PROD_SERVICENOW_CREDS       = svc_sdk_deploy / <secret>
-```
-
 ### Credential Safety Rules
 
 ✅ **Do:**
@@ -465,7 +394,7 @@ cd ../..
 echo "==> Rollback to ${ROLLBACK_TAG} complete"
 ```
 
-Trigger this as a `workflow_dispatch` job in GitHub Actions or a parameterised Jenkins build, passing the target tag as input.
+Trigger this as a `workflow_dispatch` job in GitHub Actions or a parameterised Azure DevOps build, passing the target tag as input.
 
 ### Rollback vs Forward-Fix Decision Guide
 
@@ -617,19 +546,6 @@ Settings → Environments → prod
   jobs:
     - deployment: DeployProd
       environment: 'servicenow-prod'   # environment configured with approvals in ADO portal
-```
-
-**Jenkins — input step:**
-```groovy
-stage('Approve Production Deploy') {
-    steps {
-        timeout(time: 24, unit: 'HOURS') {
-            input message: 'Deploy to production?',
-                  submitter: 'release-manager,qa-lead',
-                  ok: 'Deploy'
-        }
-    }
-}
 ```
 
 ### Environment-Specific Configuration
@@ -907,6 +823,59 @@ npx @servicenow/sdk install --scope <scope_name> ...
 - [ ] Approval gate in place for production deploys
 - [ ] Git tag created at deploy time for rollback traceability
 - [ ] Rollback procedure tested on a non-production environment
+
+---
+
+## Verifying Pipeline Templates
+
+Pipeline templates in this document cannot be run against a live ServiceNow instance in a static validation context. The following verification approach is used to ensure correctness:
+
+### Context7 SDK Verification
+
+The `@servicenow/sdk` CLI commands used in all templates were verified against the official ServiceNow SDK documentation via Context7 (`/websites/servicenow_github_io_sdk`):
+
+| Command | Source |
+|---------|--------|
+| `npx @servicenow/sdk build` | [servicenow.github.io/sdk](https://servicenow.github.io/sdk) — builds TypeScript → metadata in `dist/app/`; also see [BUILD-WORKFLOW.md](../servicenow-fluent-development/BUILD-WORKFLOW.md) |
+| `npx @servicenow/sdk install --url ... --username ... --password ...` | SDK CLI reference — direct credential flags for non-interactive (CI) auth |
+| `npx @servicenow/sdk install --reinstall` | [BUILD-WORKFLOW.md](../servicenow-fluent-development/BUILD-WORKFLOW.md) — removes non-package metadata before redeploying |
+| `npx @servicenow/sdk install --scope <scope>` | SDK CLI reference — restricts install to a single named scope |
+
+Always cross-reference the installed SDK version's own docs before using in production:
+
+```bash
+# Fetch the machine-readable version index
+curl https://servicenow.github.io/sdk/versions.json
+
+# Read the llmsFull URL for your exact version and load it as your API reference
+```
+
+### Dry-Run Validation (Recommended Before First Real Deployment)
+
+Before deploying to a real instance:
+
+1. **Build locally** — run `npx @servicenow/sdk build` in the project root. A successful local build confirms the TypeScript and schema are correct.
+2. **Check secret resolution** — in GitHub Actions, use `echo "URL=${{ secrets.NOW_INSTANCE_URL }}"` (secrets are redacted in logs; any `***` confirms the secret is set).
+3. **Deploy to a throwaway dev instance first** — use a personal developer instance (PDI) before targeting shared dev/test environments.
+4. **Review workflow run logs** — GitHub Actions and Azure DevOps both show step-by-step output; confirm `npx @servicenow/sdk build` exits 0 and `install` reports successful metadata push.
+
+### CI Template Linting
+
+| Tool | Command | What it checks |
+|------|---------|----------------|
+| GitHub Actions | [actionlint](https://github.com/rhysd/actionlint) (Go binary, see install instructions) | YAML syntax, expression syntax, secret references |
+| Azure DevOps | `az pipelines run --dry-run` | Pipeline parse and validation |
+
+```bash
+# Install actionlint (macOS)
+brew install actionlint
+
+# Install actionlint (Linux, via download)
+bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+# Lint GitHub Actions workflows
+actionlint .github/workflows/deploy.yml
+```
 
 ---
 

@@ -23,7 +23,7 @@ user-invocable: true
 - Log analysis or systematic root-cause investigation
 
 **Pipeline / CI-CD Request Indicators:**
-- Request to generate GitHub Actions, Azure DevOps, or Jenkins pipeline YAML
+- Request to generate GitHub Actions or Azure DevOps pipeline YAML
 - Setting up automated Fluent SDK deployment workflows
 - Branch strategy design (branch-per-environment vs trunk-based)
 - Multi-scope CI/CD with `--scope` or secret/credential management for CI
