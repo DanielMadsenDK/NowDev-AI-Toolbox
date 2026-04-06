@@ -167,6 +167,9 @@
         "path": "./agents/github-copilot/NowDev-AI-Fluent-Release.agent.md"
       },
       {
+        "path": "./agents/github-copilot/NowDev-AI-Pipeline-Expert.agent.md"
+      },
+      {
         "path": "./agents/github-copilot/NowDev-AI-ATF-Developer.agent.md"
       },
       {

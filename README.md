@@ -158,6 +158,7 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-AI-Studio-Developer | AI Studio coordinator (SDK 4.5.0+) — routes based on whether request needs an AiAgent/AiAgenticWorkflow or a NowAssist Skill | AI Agent Developer, NowAssist Developer |
 | NowDev-AI-Reviewer | Review router — detects Classic vs Fluent and delegates to the right reviewer | Classic Reviewer, Fluent Reviewer |
 | NowDev-AI-Release-Expert | Release router — detects Classic vs Fluent and delegates to the right release agent | Classic Release, Fluent Release |
+| NowDev-AI-Pipeline-Expert | CI/CD pipeline generator — creates GitHub Actions, Azure DevOps, and Jenkins pipeline YAML for Fluent SDK deployments; covers credential management, branch strategies, and multi-scope deployments | — |
 
 ### Tier 3 — Specialists (internal, invoked by coordinators only)
 
@@ -195,6 +196,7 @@ graph TD
     ORC --> AIS["NowDev-AI-AI-Studio-Developer\n(AI Studio Coordinator)"]
     ORC --> REV["NowDev-AI-Reviewer\n(Review Router)"]
     ORC --> REL["NowDev-AI-Release-Expert\n(Release Router)"]
+    ORC --> PIP["NowDev-AI-Pipeline-Expert\n(CI/CD Pipeline Generator)"]
 
     CLA --> SCR["NowDev-AI-Script-Developer\n(Script Includes)"]
     CLA --> BRD["NowDev-AI-BusinessRule-Developer\n(Business Rules)"]
