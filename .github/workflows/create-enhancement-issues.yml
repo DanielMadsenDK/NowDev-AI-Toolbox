@@ -1,0 +1,337 @@
+name: Create Enhancement Issues
+
+# Runs once on push to this branch to create the enhancement issues.
+# This workflow file should be deleted after the issues are created.
+on:
+  push:
+    branches:
+      - 'copilot/research-nowdev-ai-toolbox'
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    # Only run on the first push after this file appears (no duplicate runs)
+    steps:
+      - name: Create Enhancement Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          create_issue_if_missing() {
+            local title="$1"
+            local body="$2"
+            local labels="$3"
+
+            existing=$(gh issue list --repo "$REPO" --search "\"$title\" in:title" --json number,title --jq ".[0].number" 2>/dev/null)
+            if [ -n "$existing" ]; then
+              echo "Issue already exists: #$existing — $title"
+            else
+              number=$(gh issue create --repo "$REPO" --title "$title" --body "$body" --label "$labels" 2>/dev/null || \
+                       gh issue create --repo "$REPO" --title "$title" --body "$body")
+              echo "Created: $title → $number"
+            fi
+          }
+
+          # ── Issue 1: ATF Developer Agent ───────────────────────────────────────
+          create_issue_if_missing \
+            "Add NowDev-AI-ATF-Developer specialist agent for Automated Test Framework" \
+            "## Summary
+
+The repository already has a comprehensive 536-line \`ATF-API.md\` inside \`agents/skills/servicenow-fluent-development/ATF-API.md\` covering \`Test\`, \`TestStep\`, all step types (form, REST, server-side, catalog, navigation), and assertion patterns — but there is **no dedicated specialist agent** that applies this knowledge.
+
+\`NowDev-AI-Fluent-Release.agent.md\` already mentions \"Run ATF tests if available\", and \`NowDev-AI-Fluent-Reviewer.agent.md\` references dozens of API docs by artifact type but omits ATF-API.md from its mapping. Without a dedicated agent, ATF test generation is never systematically applied.
+
+## Proposed Solution
+
+Create \`agents/github-copilot/NowDev-AI-ATF-Developer.agent.md\` as a Tier 3 specialist:
+
+- **Invoked by** \`NowDev-AI-Fluent-Developer\` after Logic and Schema artifacts are complete
+- **Tools**: read, write, execute (for \`now-sdk build\` validation), Context7, memory (reads \`artifacts.md\` for table names and Script Include exports)
+- **Workflow**: reads session artifacts → identifies testable artifacts (REST APIs, Business Rules, Script Includes, Service Catalog) → generates \`.now.ts\` Test files using ATF-API.md patterns → self-validates unique \`\$id\` values
+- Wire into \`NowDev-AI-Fluent-Developer\` \`agents:\` list
+- Add ATF-API.md to \`NowDev-AI-Fluent-Reviewer\` artifact-type mapping
+
+## Impacted Files
+
+- \`agents/github-copilot/NowDev-AI-ATF-Developer.agent.md\` (new)
+- \`agents/github-copilot/NowDev-AI-Fluent-Developer.agent.md\` (add to \`agents:\` list)
+- \`agents/github-copilot/NowDev-AI-Fluent-Reviewer.agent.md\` (add ATF-API.md mapping)
+- \`agents/github-copilot/AGENT-PATTERNS.md\` (add ATF Developer tool-set template)
+- \`package.json\` (add chatAgent entry)
+
+## Why This Matters
+
+ATF is the primary regression testing mechanism on ServiceNow. Generating tests in the same agent session that creates the code dramatically raises deployment confidence. This closes a complete governance gap — the skill knowledge already exists but is never used." \
+            "enhancement"
+
+          # ── Issue 2: Custom Instructions Documentation ─────────────────────────
+          create_issue_if_missing \
+            "Document the custom instructions file format with schema and example template" \
+            "## Summary
+
+The \`nowdev-ai-toolbox.customInstructionsFile\` setting is a core personalization feature: the orchestrator agent (\`NowDev-AI.agent.md\`, workflow step 3) reads the file and treats its content as *highest-priority directives that override default behavior*. However, neither the README nor any documentation file defines what syntax, sections, or structure the file should follow. No example file or schema exists anywhere in the repository.
+
+## Proposed Solution
+
+1. Create \`agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md\` with documented sections:
+   - \`## Development Preferences\`
+   - \`## Naming Conventions\`
+   - \`## Scope and Application\`
+   - \`## Excluded Patterns\`
+   - \`## Always Use / Never Use\`
+   - Filled-in example for a Fluent-first enterprise team
+
+2. Update \`README.md\` with a \"Customizing Agent Behavior\" section explaining the feature and linking to the template
+
+3. Improve the \`package.json\` config description for \`customInstructionsFile\` to mention the template
+
+## Impacted Files
+
+- \`agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md\` (new)
+- \`README.md\` (add \"Customizing Agent Behavior\" section)
+- \`package.json\` (improve description for \`nowdev-ai-toolbox.customInstructionsFile\`)
+
+## Why This Matters
+
+Enterprise teams have org-specific coding standards, naming conventions, and forbidden patterns. This feature is the primary mechanism for compliance enforcement and personalization. It is already implemented — it just needs documentation to be discoverable and usable." \
+            "enhancement,documentation"
+
+          # ── Issue 3: Expand AI Agent Studio / NowAssist / Instance Scan Skills ──
+          create_issue_if_missing \
+            "Expand single-file skills: add EXAMPLES.md and BEST_PRACTICES.md for AI Agent Studio, NowAssist, and Instance Scan" \
+            "## Summary
+
+Three skills currently have only a single \`SKILL.md\` file, while all comparable skills have 3–5 files (\`SKILL.md\`, \`EXAMPLES.md\`, \`BEST_PRACTICES.md\`, and sometimes \`FLUENT.md\`/\`CLASSIC.md\`):
+
+| Skill | Current Files | Missing |
+|---|---|---|
+| \`servicenow-ai-agent-studio\` | 1 (\`SKILL.md\` only) | \`EXAMPLES.md\`, \`BEST_PRACTICES.md\` |
+| \`servicenow-now-assist\` | 1 (\`SKILL.md\` only) | \`EXAMPLES.md\`, \`BEST_PRACTICES.md\` |
+| \`servicenow-instance-scan\` | 1 (\`SKILL.md\` only) | \`EXAMPLES.md\`, \`BEST_PRACTICES.md\` |
+
+These three domains represent ServiceNow's newest and most complex AI-platform capabilities — the areas where developers are most likely to seek help and most likely to make mistakes.
+
+## Proposed Content
+
+**AI Agent Studio \`EXAMPLES.md\`**: Complete multi-version AiAgent with tools + a two-agent AiAgenticWorkflow team  
+**AI Agent Studio \`BEST_PRACTICES.md\`**: Version lifecycle, \`runAsUser\` vs \`dataAccess.roleList\` mutual exclusion, channel restrictions, ACL patterns  
+**NowAssist \`EXAMPLES.md\`**: Two-tool skill (Script + WebSearch), FlowAction-based variant, multi-provider prompt config  
+**NowAssist \`BEST_PRACTICES.md\`**: \`securityControls\` is mandatory, prompt versioning, input validation, avoiding circular tool invocations  
+**Instance Scan \`EXAMPLES.md\`**: Complete security check set + performance check set with scoring  
+**Instance Scan \`BEST_PRACTICES.md\`**: Test with \`active: false\`, \`scoreMax\`/\`scoreScale\` calibration, \`Now.include\` for complex scripts
+
+## Impacted Files
+
+- \`agents/skills/servicenow-ai-agent-studio/EXAMPLES.md\` (new)
+- \`agents/skills/servicenow-ai-agent-studio/BEST_PRACTICES.md\` (new)
+- \`agents/skills/servicenow-now-assist/EXAMPLES.md\` (new)
+- \`agents/skills/servicenow-now-assist/BEST_PRACTICES.md\` (new)
+- \`agents/skills/servicenow-instance-scan/EXAMPLES.md\` (new)
+- \`agents/skills/servicenow-instance-scan/BEST_PRACTICES.md\` (new)
+
+## Why This Matters
+
+AI Agents, NowAssist Skills, and Instance Scan checks are among the fastest-growing domains in enterprise ServiceNow adoption. Developers working here have the least community reference material elsewhere — making in-toolbox skill depth especially valuable." \
+            "enhancement,documentation"
+
+          # ── Issue 4: CI/CD Improvements ───────────────────────────────────────
+          create_issue_if_missing \
+            "Add TypeScript build step to CI and unit tests for ArtifactParser" \
+            "## Summary
+
+The single workflow file (\`.github/workflows/copilot-setup-steps.yml\`) runs only \`npm install\`. It never runs \`npm run compile\`. TypeScript compilation errors in \`src/\` would not be caught by CI, and a VSIX built with broken \`src/\` could be published with runtime errors.
+
+Additionally, \`ArtifactParser.ts\` (40 LOC) is a pure function that parses the Session Artifact Registry markdown powering the sidebar's live progress tracking — but has no tests.
+
+## Proposed Solution
+
+1. Add \`npm run compile\` step to \`.github/workflows/copilot-setup-steps.yml\` after \`npm install\`
+2. Add a \`test\` script in \`package.json\` using \`jest\` or \`vitest\`
+3. Create \`src/ArtifactParser.test.ts\` with unit tests for \`parseArtifactsMarkdown()\` — pure function, no VS Code dependencies, fully testable
+4. Run \`npm test\` in CI
+
+## Impacted Files
+
+- \`.github/workflows/copilot-setup-steps.yml\` (add compile step)
+- \`package.json\` (add \`test\` script, add jest/vitest dev dependency)
+- \`src/ArtifactParser.test.ts\` (new)
+
+## Why This Matters
+
+As the agent roster grows, \`ArtifactParser.ts\` becomes increasingly critical — it powers sidebar artifact progress tracking. A regression here silently breaks the live-session visualization. A TypeScript build step catches type errors before they reach published VSIXs." \
+            "enhancement,testing,ci"
+
+          # ── Issue 5: Pipeline Expert Agent ────────────────────────────────────
+          create_issue_if_missing \
+            "Add NowDev-AI-Pipeline-Expert agent for CI/CD and GitOps Fluent SDK workflows" \
+            "## Summary
+
+Teams adopting Fluent SDK commonly deliver via Git branches and automated pipelines (\`now-sdk build && now-sdk install\` in GitHub Actions or Azure DevOps). There is no agent or skill section covering this. \`NowDev-AI-Fluent-Release\` runs \`now-sdk build/install\` interactively in the terminal but does not generate pipeline YAML or document branching strategies.
+
+The \`servicenow-deployment/SKILL.md\` covers Update Sets only — it has no Fluent CI/CD content.
+
+## Proposed Solution
+
+1. Create \`agents/github-copilot/NowDev-AI-Pipeline-Expert.agent.md\` — Tier 2 agent invokable from the orchestrator. Generates \`.github/workflows/deploy.yml\` (and Azure DevOps/Jenkins equivalents) for Fluent SDK projects; documents environment variable management (\`NOW_INSTANCE_URL\`, \`NOW_USERNAME\`, OAuth); covers branch-per-environment strategies (dev/test/prod).
+
+2. Create \`agents/skills/servicenow-deployment/FLUENT-PIPELINE.md\` covering:
+   - \`now-sdk install --scope\` for multi-scope deployments
+   - Credential/secret management in CI
+   - Rollback via \`now-sdk reinstall\`
+   - Multi-environment promotion strategies
+   - Branch-per-environment vs trunk-based approaches
+
+## Impacted Files
+
+- \`agents/github-copilot/NowDev-AI-Pipeline-Expert.agent.md\` (new)
+- \`agents/github-copilot/NowDev-AI.agent.md\` (add to \`agents:\` list and triage section)
+- \`agents/skills/servicenow-deployment/FLUENT-PIPELINE.md\` (new)
+- \`package.json\` (add chatAgent entry)
+- \`README.md\` (document Pipeline Expert in Tier 2 table)
+
+## Why This Matters
+
+Fluent SDK is explicitly designed for Git-based delivery pipelines. Without pipeline guidance, teams using NowDev AI Toolbox for development still manually research CI/CD integration — defeating the end-to-end promise of the toolbox." \
+            "enhancement"
+
+          # ── Issue 6: New Fluent Project Onboarding Command ────────────────────
+          create_issue_if_missing \
+            "Add 'Initialize Fluent Project' onboarding command for new workspaces" \
+            "## Summary
+
+The sidebar already detects \`now-sdk\` presence and reads \`now.config.json\` (\`WelcomeViewProvider.ts\`, \`_readNowConfig()\`), but when neither exists, there is no actionable path. A new developer who just installed the extension has no guided path to \`now-sdk init\`.
+
+The README Quick Start assumes the user already knows to run \`now-sdk init\` before using the toolbox — but no mention of this appears in the first-use flow, and the sidebar shows a blank/incomplete state with no call to action.
+
+## Proposed Solution
+
+1. Add \`nowdev-ai-toolbox.initFluentProject\` command to \`package.json\` (\`commands\` + \`menus\` entry in Explorer context menu when no \`now.config.json\` detected)
+
+2. In \`src/extension.ts\`, register the command handler:
+   - Prompt for instance URL (\`vscode.window.showInputBox\`)
+   - Open terminal and run \`now-sdk init\` with the provided values
+   - Refresh sidebar scan after completion
+
+3. In \`src/WelcomeViewProvider.ts\`, add an \"Initialize Fluent Project\" button to the sidebar when \`now.config.json\` is not detected
+
+4. Add a \"Getting Started with Fluent SDK\" section to \`README.md\`
+
+## Impacted Files
+
+- \`package.json\` (new command + menu contribution)
+- \`src/extension.ts\` (register command handler)
+- \`src/WelcomeViewProvider.ts\` (add CTA button when no now.config.json)
+- \`README.md\` (Getting Started section)
+
+## Why This Matters
+
+Reduces time-to-first-artifact from \"confusing\" to \"guided\". The sidebar already has all the context needed to know a Fluent project hasn't been initialized — it just doesn't act on that knowledge. This is a high-impact UX improvement for new users." \
+            "enhancement,ux"
+
+          # ── Issue 7: CONTRIBUTING.md and CHANGELOG.md ─────────────────────────
+          create_issue_if_missing \
+            "Add CONTRIBUTING.md and CHANGELOG.md for community contributors" \
+            "## Summary
+
+The repository has no \`CONTRIBUTING.md\`, \`CHANGELOG.md\`, or \`ROADMAP.md\`. Version 0.3.7 implies active iteration but users cannot see what changed between versions.
+
+The \`AGENT-PATTERNS.md\` document (which serves as an internal maintenance guide) explicitly states it is not loaded automatically and is intended for humans editing agents — it is effectively a partial contributor guide buried in \`agents/github-copilot/\`. The \`package.json\` \`bugs\` field is empty.
+
+## Proposed Solution
+
+### \`CONTRIBUTING.md\`
+- How to add a new agent (referencing \`AGENT-PATTERNS.md\` as the canonical reference)
+- How to add or extend a skill (referencing \`.github/agents/\` skill-authoring guide)
+- How to build and test the extension locally (\`npm run compile\`, VSIX packaging with \`vsce package\`)
+- PR expectations (titles, checklist, testing)
+- Issue reporting guidelines
+
+### \`CHANGELOG.md\`
+- Starting from v0.3.7 as baseline
+- Document features per version
+- Follow [Keep a Changelog](https://keepachangelog.com/) format
+
+## Impacted Files
+
+- \`CONTRIBUTING.md\` (new)
+- \`CHANGELOG.md\` (new)
+
+## Why This Matters
+
+The extension author is a ServiceNow Rising Star 2025. Community contributions — new skills for emerging ServiceNow features, new domain agents — are a natural growth path. Without a contributing guide, the barrier to contribution is unnecessarily high." \
+            "enhancement,documentation"
+
+          # ── Issue 8: Reviewer Auto-Fix Delegation ─────────────────────────────
+          create_issue_if_missing \
+            "Add structured auto-fix delegation pattern for reviewer agent findings" \
+            "## Summary
+
+\`NowDev-AI-Fluent-Reviewer\` and \`NowDev-AI-Classic-Reviewer\` have no write tools by design (\`AGENT-PATTERNS.md\`: \"NO write tools — reviewers only analyze, never modify\"). This is intentional for safety. However, review findings are returned as unstructured text reports, and applying fixes requires either the user manually editing code or the orchestrator re-invoking a developer agent without structured context.
+
+There is no defined round-trip pattern: generate → review → fix → re-review.
+
+## Proposed Solution
+
+1. **Structured findings output**: Extend reviewer agents to output a machine-parseable findings block (JSON in a markdown code fence) with: file path, line number, finding category, recommended fix description
+
+2. **Optional fix handoff**: Add a \"Fix Issues\" handoff trigger in \`NowDev-AI-Reviewer.agent.md\` that, when the user approves, re-invokes the appropriate developer specialist with the structured findings as \`argument-hint\` context
+
+3. **Document the pattern**: Add \"Reviewer Fix Delegation Pattern\" to \`AGENT-PATTERNS.md\` as a canonical shared pattern
+
+The reviewer agents themselves would remain read-only. Fixes are still delegated to developer specialists — just with structured context from the review.
+
+## Impacted Files
+
+- \`agents/github-copilot/NowDev-AI-Fluent-Reviewer.agent.md\` (add structured output format + optional fix handoff trigger)
+- \`agents/github-copilot/NowDev-AI-Classic-Reviewer.agent.md\` (same)
+- \`agents/github-copilot/NowDev-AI-Reviewer.agent.md\` (route fix requests to correct developer)
+- \`agents/github-copilot/AGENT-PATTERNS.md\` (document Reviewer Fix Delegation Pattern)
+
+## Why This Matters
+
+The governance loop (generate → review → fix → re-review) is the core value proposition. Currently the \"fix\" step falls back to humans reading unstructured text. Structured findings make the loop one user-approved click and turn the toolbox into a true agentic governance system." \
+            "enhancement"
+
+          # ── Issue 9: React UI Components Theming Guide ────────────────────────
+          create_issue_if_missing \
+            "Add React UI components styling, theming, and Horizon Design System guide" \
+            "## Summary
+
+\`servicenow-react-ui-components\` (8 files) covers the ServiceNow Horizon Design System component library but does not address:
+
+- CSS Modules / scoped styles in \`UiPage\` apps
+- Overriding Horizon Design System design tokens (\`--now-color-*\`, \`--now-font-*\`)
+- Building custom components that match the platform aesthetic
+- CSS bundling via the \`now.prebuild.mjs\` Rollup config (mentioned in \`THIRD-PARTY-LIBRARIES.md\` only for JS)
+- \`@servicenow/now-theming\` for workspace theming context
+
+Teams building custom ServiceNow workspaces, dashboards, or UI pages in React frequently encounter this gap and resort to generic React patterns that produce visually inconsistent results.
+
+## Proposed Solution
+
+1. Create \`agents/skills/servicenow-react-ui-components/STYLING.md\`:
+   - CSS Modules setup in Rollup/prebuild config
+   - Horizon design token reference and override patterns
+   - CSS-in-JS integration with theming context in Workspaces
+   - When to use Horizon tokens vs custom CSS
+
+2. Update \`agents/skills/servicenow-react-ui-components/SKILL.md\` description to reference styling guidance
+
+3. Add a styled custom card component to \`EXAMPLES.md\`
+
+## Impacted Files
+
+- \`agents/skills/servicenow-react-ui-components/STYLING.md\` (new)
+- \`agents/skills/servicenow-react-ui-components/SKILL.md\` (update description)
+- \`agents/skills/servicenow-react-ui-components/EXAMPLES.md\` (add styled component example)
+
+## Why This Matters
+
+\"Make it look native\" is a nearly universal requirement for ServiceNow React apps. Without theming guidance, agents produce functionally correct but visually inconsistent UIs — which is one of the most common feedback points from ServiceNow UI developers." \
+            "enhancement,documentation"
+
+          echo "All issues processed."
