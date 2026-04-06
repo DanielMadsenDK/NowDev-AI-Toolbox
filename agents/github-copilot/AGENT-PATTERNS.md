@@ -88,6 +88,17 @@ Use these as templates when creating or modifying agents:
 - **Handoff:** Handoff to `NowDev AI Agent` with the complete Refined Implementation Brief
 - **Invoked when:** User story or implementation request contains vague references (unnamed groups, unspecified URLs, implicit conditions, undefined tables or roles)
 
+### ATF Developer Agent (NowDev-AI-ATF-Developer)
+- **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
+- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
+- **Search:** `search`, `web`
+- **Knowledge:** `io.github.upstash/context7/*` (mandatory: verify ATF step APIs before writing tests)
+- **Tracking:** `todo`
+- **Memory:** `vscode/memory` — used for Context Sync Protocol (reads and writes `/memories/session/artifacts.md`)
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask` (for `now-sdk build` validation)
+- **Handoff:** Include handoff back to `NowDev-AI-Fluent-Developer`
+- **Invoked when:** Logic and Schema artifacts are complete and testable artifacts (REST APIs, Script Includes, Tables, Catalog Items) were generated in the session
+
 ---
 
 ## Canonical: Login Verification Checkpoint

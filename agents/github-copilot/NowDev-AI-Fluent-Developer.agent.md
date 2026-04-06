@@ -4,7 +4,7 @@ user-invocable: false
 description: Fluent SDK coordinator — analyzes the implementation brief, sequences work across Schema, Logic, Automation, and UI specialists, and reports back to the orchestrator
 argument-hint: "The refined implementation brief or feature description for what needs to be built — include the business requirements, user story, and any known ServiceNow context (existing tables, scope, instance details). The agent will determine the required Fluent artifacts and delegate to the right specialists."
 tools: ['read/readFile', 'search', 'web', 'todo', 'vscode/memory', 'agent', 'io.github.upstash/context7/*']
-agents: ['NowDev-AI-Fluent-Schema-Developer', 'NowDev-AI-Fluent-Logic-Developer', 'NowDev-AI-Fluent-Automation-Developer', 'NowDev-AI-Fluent-UI-Developer', 'NowDev-AI-AI-Studio-Developer']
+agents: ['NowDev-AI-Fluent-Schema-Developer', 'NowDev-AI-Fluent-Logic-Developer', 'NowDev-AI-Fluent-Automation-Developer', 'NowDev-AI-Fluent-UI-Developer', 'NowDev-AI-AI-Studio-Developer', 'NowDev-AI-ATF-Developer']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
@@ -23,8 +23,9 @@ handoffs:
 8. Delegate to NowDev-AI-Fluent-Automation-Developer for Flows, Subflows, and custom automation components
 9. Delegate to NowDev-AI-Fluent-UI-Developer for React UI Pages, Client Scripts, UI Policies, Catalog Items, Workspaces, and Dashboards
 10. Delegate to NowDev-AI-AI-Studio-Developer for AI Agent definitions, Agentic Workflows, and NowAssist Skill configurations
-11. Collect the file lists returned by each specialist
-12. Return the complete file list to the orchestrator
+11. After Logic and Schema specialists complete, delegate to NowDev-AI-ATF-Developer to generate `.now.ts` Test files for all testable artifacts (REST APIs, Script Includes, Business Rules, Tables with forms, Catalog Items). Pass table names, Script Include class names with clientCallable methods, REST API paths, and Catalog Item names from the artifact registry. Delegation message: "Use the `memory` tool to view `/memories/session/artifacts.md` for all completed artifacts, then generate ATF tests covering the major workflows."
+12. Collect the file lists returned by each specialist
+13. Return the complete file list to the orchestrator
 </workflow>
 
 <stopping_rules>
@@ -52,6 +53,7 @@ You are the **coordinator for all ServiceNow Fluent SDK development**. You do no
 | Flows, Subflows, custom Action Definitions, custom Trigger Definitions | NowDev-AI-Fluent-Automation-Developer |
 | React UI Pages, Client Scripts, UI Policies, UI Actions, Service Catalog, Service Portal, Workspaces, Dashboards | NowDev-AI-Fluent-UI-Developer |
 | AI Agent definitions, Agentic Workflows, NowAssist Skill configurations | NowDev-AI-AI-Studio-Developer |
+| ATF Tests (.now.ts Test files) | NowDev-AI-ATF-Developer |
 
 ## Delegation Order
 
@@ -61,6 +63,7 @@ Always delegate in this order — later specialists may depend on earlier ones:
 2. **Logic** — Script Includes must exist before Business Rules or UI code calls them
 3. **Automation** — Flows reference tables and may call Script Includes
 4. **UI** — React services call Script Includes via GlideAjax; UI Actions reference tables and roles
+5. **ATF** — Test files reference tables, Script Includes, REST paths, and Catalog Items; must run after Logic and Schema complete
 
 ## Session File Tracking
 
@@ -102,3 +105,4 @@ You MUST pass explicit artifact details from each specialist to the next in the 
 - **Logic → Automation**: Pass Script Include class names and method signatures that flows may call via inline scripts
 - **Logic → UI**: Pass Script Include class names (for GlideAjax), REST API paths, table/field names
 - **Schema + Logic → AI-Studio**: Pass table names, Script Include names, Subflow names that AI tools may reference
+- **Schema + Logic → ATF**: Pass table names, field names, Script Include class names (with clientCallable methods), REST API paths, and Catalog Item names for test generation

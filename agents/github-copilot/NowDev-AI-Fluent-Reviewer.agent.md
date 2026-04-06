@@ -54,6 +54,7 @@ Reference the correct sub-document for each artifact type:
   - Import Sets → IMPORT-SETS-API.md
   - Advanced patterns (Now.ref, AnnotationType, Record(), helpers) → ADVANCED-PATTERNS.md
   - Fluent language constructs (Now.ID, Now.include, Now.attach, Now.ref) → API-REFERENCE.md
+  - ATF Tests → ATF-API.md
 
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for Fluent SDK object patterns
@@ -77,6 +78,7 @@ Read each provided file and identify which artifact types are present. Only revi
 - `.now.ts` exporting `UiAction(...)` → review against UI-ACTION-API.md
 - `.now.ts` exporting `UiPolicy(...)` or `CatalogUiPolicy(...)` → review against UI-POLICY-API.md
 - `.now.ts` exporting `Acl(...)` or `Role(...)` → review against ACL-API.md / ROLE-API.md
+- `.now.ts` exporting `Test(...)` → review against ATF-API.md best practices
 
 Build a todo list of artifact types found before starting the review.
 
