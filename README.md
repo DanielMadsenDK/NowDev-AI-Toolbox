@@ -101,6 +101,39 @@ Open GitHub Copilot Chat, select "NowDev AI Agent" from the agent dropdown, and 
 I need to create a custom ServiceNow application for managing IT assets with approval workflows
 ```
 
+## Customizing Agent Behavior
+
+The `nowdev-ai-toolbox.customInstructionsFile` setting lets you supply a Markdown or plain-text file whose contents are injected into **every** agent session as the highest-priority directives — overriding built-in defaults where they conflict.
+
+This is the primary mechanism for enforcing org-specific standards:
+- Coding conventions and framework preferences (e.g. "always use Fluent SDK")
+- Naming rules (scope prefix, casing, identifier patterns)
+- Forbidden patterns (e.g. `eval()`, N+1 queries, hard-coded `sys_id` values)
+- Unconditional "always use / never use" directives
+
+### How to Configure
+
+1. Copy [`agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md`](agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md) to a path of your choice (e.g. `~/nowdev-custom-instructions.md`).
+2. Edit the file to reflect your team's standards.
+3. Open **VS Code Settings** (`Ctrl+,`) and search for `NowDev AI Toolbox`.
+4. Set **Custom Instructions File** to the absolute path of your file.
+
+The extension reads the file on every save and writes its content into `.vscode/nowdev-ai-config.json` under the `customInstructions` key. All agents then receive these instructions automatically.
+
+> **Note**: `.vscode/nowdev-ai-config.json` is auto-generated and is automatically added to `.gitignore`. It should not be committed to source control.
+
+### Template Sections
+
+The [template](agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md) covers these sections (all optional):
+
+| Section | Purpose |
+|---------|---------|
+| `## Development Preferences` | Default framework, SDK version, coding style |
+| `## Naming Conventions` | Scope prefix, table names, casing rules |
+| `## Scope and Application` | Restrict changes to specific scopes/apps |
+| `## Excluded Patterns` | Hard-forbidden APIs and practices |
+| `## Always Use / Never Use` | Unconditional short-form directives |
+
 ## Specialized Agents
 
 The extension provides a hierarchical system of AI agents spanning three tiers. **Tier 1** agents are invoked directly by the orchestrator. **Tier 2** agents are coordinators and routers that delegate to **Tier 3** specialists. All tiers are wired automatically — you only ever interact with the Tier 1 agents.
