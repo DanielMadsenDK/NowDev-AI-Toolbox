@@ -94,6 +94,13 @@ export const AGENT_TREE: AgentNode = {
                     children: [],
                 },
                 {
+                    id: 'NowDev-AI-ATF-Developer',
+                    shortName: 'ATF Developer',
+                    role: 'developer',
+                    description: 'ATF Test files (.now.ts Test)',
+                    children: [],
+                },
+                {
                     id: 'NowDev-AI-AI-Studio-Developer',
                     shortName: 'AI Studio Developer',
                     role: 'coordinator',
