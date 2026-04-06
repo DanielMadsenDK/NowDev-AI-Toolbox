@@ -491,7 +491,14 @@ function Dashboard() {
   color: var(--now-color_text--primary);
 }
 
-/* ❌ Never hardcode colours — they won't adapt to themes or dark mode */
+/* ✅ Adding a CSS fallback value is acceptable as a safety net */
+.card {
+  background-color: var(--now-color_background--primary, #ffffff);
+  border: 1px solid var(--now-color_divider--primary, #e0e0e0);
+  color: var(--now-color_text--primary, #1c1f23);
+}
+
+/* ❌ Never use a hardcoded colour as the primary value — it won't adapt to themes or dark mode */
 .card {
   background-color: #ffffff;
   border: 1px solid #d0d3d8;

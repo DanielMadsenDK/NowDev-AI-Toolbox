@@ -230,7 +230,7 @@ export default function Dashboard() {
               <span
                 style={{
                   fontSize: 'var(--now-font-size--sm)',
-                  color: 'var(--now-color_text--secondary)',
+                  color: 'var(--now-color_text--secondary, #6b778c)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                 }}
@@ -241,7 +241,7 @@ export default function Dashboard() {
                 style={{
                   fontSize: 'var(--now-font-size--xl)',
                   fontWeight: 'var(--now-font-weight--bold)',
-                  color: 'var(--now-color_text--primary)',
+                  color: 'var(--now-color_text--primary, #1c1f23)',
                 }}
               >
                 {stat.value}
@@ -284,14 +284,14 @@ export default function Dashboard() {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: 'var(--now-space--4)',
-                        borderBottom: '1px solid var(--now-color_divider--primary)',
+                        borderBottom: '1px solid var(--now-color_divider--primary, #e0e0e0)',
                       }}
                     >
                       <div>
                         <div
                           style={{
                             fontWeight: 'var(--now-font-weight--semi-bold)',
-                            color: 'var(--now-color_text--primary)',
+                            color: 'var(--now-color_text--primary, #1c1f23)',
                           }}
                         >
                           {inc.number}
@@ -299,7 +299,7 @@ export default function Dashboard() {
                         <div
                           style={{
                             fontSize: 'var(--now-font-size--sm)',
-                            color: 'var(--now-color_text--secondary)',
+                            color: 'var(--now-color_text--secondary, #6b778c)',
                           }}
                         >
                           {inc.description}
@@ -336,7 +336,7 @@ export default function Dashboard() {
           {activeTab === 'critical' && (
             <Card size="md">
               <Heading label="Critical Incidents" level={2} variant="title-secondary" />
-              <p style={{color: 'var(--now-color_text--secondary)'}}>
+              <p style={{color: 'var(--now-color_text--secondary, #6b778c)'}}>
                 {/* Wire up NowRecordListConnected for the real list */}
                 Critical incidents list — replace with{' '}
                 <code>NowRecordListConnected</code> filtered to priority=1.
@@ -347,7 +347,7 @@ export default function Dashboard() {
           {activeTab === 'assignments' && (
             <Card size="md">
               <Heading label="My Assignments" level={2} variant="title-secondary" />
-              <p style={{color: 'var(--now-color_text--secondary)'}}>
+              <p style={{color: 'var(--now-color_text--secondary, #6b778c)'}}>
                 Assignments — replace with <code>NowRecordListConnected</code> filtered to
                 assigned_to=current user.
               </p>
@@ -358,7 +358,7 @@ export default function Dashboard() {
             <Card size="md">
               <Heading label="Reports" level={2} variant="title-secondary" />
               <Badge value={0} color="info" />
-              <p style={{color: 'var(--now-color_text--secondary)', marginTop: '0.5rem'}}>
+              <p style={{color: 'var(--now-color_text--secondary, #6b778c)', marginTop: '0.5rem'}}>
                 No reports configured.
               </p>
             </Card>
