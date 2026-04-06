@@ -3,7 +3,7 @@ name: servicenow-react-ui-components
 user-invocable: false
 description: >
   Comprehensive guide for using @servicenow/react-components when building UI in ServiceNow Fluent React applications.
-  Use this skill whenever you are designing or building React UI for a ServiceNow application — especially when creating UiPage components, workspace UIs, forms, lists, dashboards, or any custom React UI that integrates with ServiceNow. This skill ensures your UI uses native ServiceNow Horizon Design System components, which guarantees visual consistency and seamless integration with the rest of the ServiceNow platform. Always use this skill rather than generic React component libraries when building for ServiceNow.
+  Use this skill whenever you are designing or building React UI for a ServiceNow application — especially when creating UiPage components, workspace UIs, forms, lists, dashboards, or any custom React UI that integrates with ServiceNow. This skill ensures your UI uses native ServiceNow Horizon Design System components, which guarantees visual consistency and seamless integration with the rest of the ServiceNow platform. Always use this skill rather than generic React component libraries when building for ServiceNow. This skill also covers CSS Modules, Horizon design tokens, and styling custom components to match the platform aesthetic.
 ---
 
 # ServiceNow React UI Components
@@ -273,3 +273,5 @@ Load the relevant reference file for detailed props, examples, and patterns:
 | Input, Textarea, Select, Typeahead, Checkbox, Toggle, RadioButtons, DateTime | [INPUT-COMPONENTS.md](./INPUT-COMPONENTS.md) |
 | Alert, Loader, ProgressBar, Tooltip, Heading, Badge, HighlightedValue, LabelValue, Avatar, Icon, Breadcrumbs, TemplateMessage | [FEEDBACK-DISPLAY-COMPONENTS.md](./FEEDBACK-DISPLAY-COMPONENTS.md) |
 | Full import list and event pattern cheatsheet | [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md) |
+| CSS Modules setup, Horizon design tokens, custom component styling, theming | [STYLING.md](./STYLING.md) |
+| Complete working examples (form, list, dashboard, styled components, modal) | [EXAMPLES.md](./EXAMPLES.md) |
