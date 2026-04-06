@@ -20,6 +20,7 @@ handoffs:
 6. Review each file against the best practices sourced from the relevant skill references
 7. **Dependency Validation**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) and cross-reference — verify that method signatures, table names, and field names used by dependent artifacts match the actual exports of their dependencies
 8. Generate structured feedback
+9. Emit the **Structured Findings Block** (Section 9) as a JSON code fence — this block is required regardless of status so the reviewer router can offer fix delegation to the user
 </workflow>
 
 <stopping_rules>
@@ -152,3 +153,28 @@ If `/memories/session/artifacts.md` exists (use the `memory` tool to check), cro
 ### 8. **Next Steps:**
 - If status is PASS: confirm the solution is ready to proceed to deployment via `now-sdk build && now-sdk install --auth <alias>`
 - If status is REQUEST CHANGES or CRITICAL ISSUES: list action items and instruct the orchestrator to re-invoke `NowDev-AI-Fluent-Developer` with the findings as input
+
+### 9. **Structured Findings Block:**
+
+Always emit this block at the very end of your response, even when status is PASS (use an empty `findings` array). The reviewer router reads this block to offer fix delegation to the user.
+
+```json
+{
+  "review_status": "<PASS | REQUEST CHANGES | CRITICAL ISSUES>",
+  "reviewed_files": ["<relative/path/to/file.now.ts>"],
+  "findings": [
+    {
+      "id": "F001",
+      "file": "<relative/path/to/file.now.ts>",
+      "line": 0,
+      "artifact_type": "<Table | Flow | ScriptInclude | UiPage | React | ...>",
+      "category": "<Correctness | Security | Performance | Deprecated Pattern | Best Practice | Schema Mismatch>",
+      "priority": "<Critical | High | Medium | Low>",
+      "problem": "<one-sentence description of what was found and why it deviates from best practice>",
+      "recommended_fix": "<one-sentence description of the exact change needed>"
+    }
+  ]
+}
+```
+
+Emit one entry per finding. Match `id` values to the finding numbers used in Section 3 (e.g. F001 = first finding in Detailed Findings). Leave `findings` as `[]` when status is PASS.

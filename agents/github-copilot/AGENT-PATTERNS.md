@@ -479,3 +479,71 @@ Before delegating to the first specialist, use the `memory` tool to check if `/m
 
 After each specialist completes, use the `memory` tool to verify they updated their status to ✅ Done and filled in Exports. When delegating to the next specialist, include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists. Use `read/readFile` to read the actual source files of your dependencies."
 ```
+
+---
+
+## Canonical: Reviewer Fix Delegation Pattern
+
+This pattern closes the governance loop: **generate → review → fix → re-review**. Reviewer specialists output a machine-parseable findings block; the reviewer router uses it to offer one-click fix delegation to the appropriate developer specialist.
+
+### How It Works
+
+1. **Reviewer specialist** (Classic or Fluent) completes its review and emits a **Structured Findings Block** as a JSON code fence at the end of its response (Section 9 of the output format).
+2. **Reviewer router** (`NowDev-AI-Reviewer`) reads the block and — if `review_status` is not PASS — presents a fix delegation summary and instructs the user to click the "Fix Issues" handoff button.
+3. **User clicks the handoff** (one-approved action). The router invokes the appropriate developer specialist with the full structured findings as context.
+4. **Developer specialist** applies all fixes in priority order (Critical first) using the JSON block for precise targeting.
+5. **Developer hands back** to the orchestrator. The orchestrator may then re-invoke the reviewer for a re-review of the changed files.
+
+### Structured Findings JSON Schema
+
+Both `NowDev-AI-Classic-Reviewer` and `NowDev-AI-Fluent-Reviewer` MUST emit this block as the final section (Section 9) of every review response.
+
+```json
+{
+  "review_status": "<PASS | REQUEST CHANGES | CRITICAL ISSUES>",
+  "reviewed_files": ["<relative/path/to/reviewed/file>"],
+  "findings": [
+    {
+      "id": "F001",
+      "file": "<relative/path/to/file>",
+      "line": 0,
+      "artifact_type": "<e.g. Script Include | Table | Flow | Business Rule | ...>",
+      "category": "<Security | Performance | Correctness | Maintainability | Best Practice | Schema Mismatch | Deprecated Pattern>",
+      "priority": "<Critical | High | Medium | Low>",
+      "problem": "<one-sentence description of the deviation from best practice>",
+      "recommended_fix": "<one-sentence description of the exact change needed>"
+    }
+  ]
+}
+```
+
+**Rules:**
+
+- Emit one entry per finding; `id` values correspond to finding numbers in Section 3 (e.g. F001 = first Detailed Finding).
+- Use `[]` for `findings` when `review_status` is `PASS`.
+- Always include this block — even on PASS — so the router can reliably branch on `review_status`.
+
+### Handoff Buttons (Router Agent)
+
+`NowDev-AI-Reviewer` includes two fix-delegation handoff buttons in its frontmatter:
+
+| Button Label | Target Agent | When to Use |
+|---|---|---|
+| Fix Issues — Classic Developer | NowDev-AI-Classic-Developer | Classic-only or Classic portion of Mixed review |
+| Fix Issues — Fluent Developer | NowDev-AI-Fluent-Developer | Fluent-only or Fluent portion of Mixed review |
+
+When the user clicks a fix button, the target developer receives the full conversation context (including the Structured Findings Block) and applies corrections in priority order.
+
+### Fix Delegation Rules (Router Workflow Step 6)
+
+After presenting the specialist's full findings:
+
+1. If `review_status` is `REQUEST CHANGES` or `CRITICAL ISSUES`:
+   - Count findings by priority level and state the total
+   - Identify the correct developer (Classic, Fluent, or both for Mixed)
+   - Tell the user to click the matching "Fix Issues" handoff button
+2. If `review_status` is `PASS`: confirm no fix delegation is needed and offer "Back to Architect"
+
+### Governance Loop Completion
+
+After the developer specialist returns control to the orchestrator, the orchestrator SHOULD re-invoke `NowDev-AI-Reviewer` with the same file list to verify fixes. This closes the generate → review → fix → re-review loop.
