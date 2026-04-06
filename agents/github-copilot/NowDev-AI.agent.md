@@ -1,7 +1,7 @@
 ---
 name: NowDev AI Agent
 description: Agentic ServiceNow development orchestrated and delivered by multiple specialized AI agents
-agents: ['NowDev-AI-Assistant', 'NowDev-AI-Refinement', 'NowDev-AI-Classic-Developer', 'NowDev-AI-Fluent-Developer', 'NowDev-AI-Debugger', 'NowDev-AI-Reviewer', 'NowDev-AI-Release-Expert']
+agents: ['NowDev-AI-Assistant', 'NowDev-AI-Refinement', 'NowDev-AI-Classic-Developer', 'NowDev-AI-Fluent-Developer', 'NowDev-AI-Debugger', 'NowDev-AI-Reviewer', 'NowDev-AI-Release-Expert', 'NowDev-AI-Pipeline-Expert']
 tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'agent', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'vscode/resolveMemoryFileUri', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*']
 user-invocable: true
 ---
@@ -22,6 +22,12 @@ user-invocable: true
 - Performance issue (slow query, slow GlideAjax, event backlog)
 - Log analysis or systematic root-cause investigation
 
+**Pipeline / CI-CD Request Indicators:**
+- Request to generate GitHub Actions, Azure DevOps, or Jenkins pipeline YAML
+- Setting up automated Fluent SDK deployment workflows
+- Branch strategy design (branch-per-environment vs trunk-based)
+- Multi-scope CI/CD with `--scope` or secret/credential management for CI
+
 **Full-Project Indicators:**
 - New feature implementation (multiple artifacts)
 - Multi-component or multi-table system design
@@ -31,9 +37,10 @@ user-invocable: true
 
 ## Workflow Steps
 
-1. **Triage request intent** as `lightweight`, `debugging`, or `full-project` using the indicators above.
+1. **Triage request intent** as `lightweight`, `debugging`, `pipeline`, or `full-project` using the indicators above.
 2. **For `lightweight` requests:** Invoke `NowDev-AI-Assistant` agent directly with the user's question as context. Return synthesized results without further orchestration — do not proceed to steps 3-11.
    **For `debugging` requests:** Invoke `NowDev-AI-Debugger` directly with the error description, file paths, and context. Return its diagnostic report to the user — do not proceed to steps 3-11.
+   **For `pipeline/CI-CD` requests:** Invoke `NowDev-AI-Pipeline-Expert` directly with the project root, target environments, CI platform, and branch strategy. Return its generated pipeline files to the user — do not proceed to steps 3-11.
 3. **Load project configuration.** Read `.vscode/nowdev-ai-config.json` (if it exists) to obtain the user's ServiceNow instance URL, preferred development style, Fluent app scope context, and **environment capabilities**. If the file contains a `customInstructions` field, these are **user-provided directives that MUST be followed with the highest priority**. They override default behavior where applicable. If the file contains a `fluentApp` object (auto-detected from `now.config.json`), extract: `scope` (e.g. `x_1118332_userpuls`), `scopeId`, `name`, `scopePrefix` (e.g. `x`), and `numericScopeId` (e.g. `1118332`). If the file contains an `environment` object, extract: `os`, `shell`, and `availableTools`. The `availableTools` map lists **only** the tools the user has installed and enabled — you and all sub-agents MUST NOT use any scripting language, CLI tool, or runtime that is not present in `availableTools`. For example: if `python` is not listed, do NOT generate or execute Python scripts; if `now-sdk` is not listed, Fluent build/deploy is not possible — inform the user. Pass the instance URL, preferred style, custom instructions, **fluentApp context**, and **environment capabilities** to ALL sub-agents throughout the entire session. The scope is critical — it prefixes table names, roles, properties, and other metadata. The `numericScopeId` is needed for scoped workspace URLs: `{instanceUrl}/x/{numericScopeId}/{path}`.
 4. **For `full-project` requests, run story refinement check.** If the request is a user story, functional requirement, or implementation task that contains vague references (unnamed groups, unspecified URLs, implicit conditions, undefined tables or roles), invoke `NowDev-AI-Refinement` before proceeding. Wait for the Refined Implementation Brief before continuing. If the request is already complete and unambiguous, skip this step.
 5. Run requirements analysis using the refined brief (or original request if no refinement was needed). If Context7 is available, verify feasibility; otherwise, rely on built-in skills and best practices knowledge.
