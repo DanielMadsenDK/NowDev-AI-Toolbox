@@ -85,7 +85,7 @@
         "nowdev-ai-toolbox.customInstructionsFile": {
           "type": "string",
           "default": "",
-          "description": "Path to a file (.md or .txt) containing custom instructions for the AI agents. The file content is read and included as high-priority context in every agent session.",
+          "description": "Path to a Markdown or text file containing custom instructions for the AI agents. The file content is injected as highest-priority directives into every agent session — overriding built-in defaults where they conflict. Use this to enforce org-specific coding standards, naming conventions, and forbidden patterns. A ready-to-use template with documented sections is available at agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md in the extension source.",
           "order": 3
         },
         "nowdev-ai-toolbox.disabledTools": {
