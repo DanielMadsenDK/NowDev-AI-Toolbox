@@ -85,6 +85,20 @@ If you cannot install the Context7 MCP plugin due to group policy restrictions o
 
 All agents are automatically available in every workspace once the extension is installed.
 
+### Getting Started with Fluent SDK
+
+If you are starting a new ServiceNow Fluent SDK project, the NowDev AI Toolbox provides a guided onboarding flow:
+
+1. **Install the ServiceNow SDK CLI** globally (requires Node.js):
+   ```bash
+   npm install -g @servicenow/sdk
+   ```
+2. **Open the NowDev AI Toolbox sidebar** by clicking the activity bar icon.
+3. **Click "Initialize Fluent Project…"** in the sidebar (visible when no `now.config.json` is detected in your workspace). You will be prompted to enter your ServiceNow instance URL, and a terminal will open running `now-sdk init` to scaffold the project.
+4. Alternatively, run the command directly from the Command Palette (`Ctrl+Shift+P`) → **NowDev AI: Initialize Fluent Project**, or right-click your workspace folder in the Explorer and select **NowDev AI: Initialize Fluent Project**.
+
+Once `now-sdk init` completes, the sidebar will automatically detect the new `now.config.json` and display your Fluent App details.
+
 ### Recommended Workflow
 
 **Always start with the NowDev-AI-Orchestrator** for any new task or feature. The orchestrator will:

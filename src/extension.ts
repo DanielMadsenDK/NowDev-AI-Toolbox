@@ -25,6 +25,30 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.refreshStatus', () => {
             welcomeProvider.refreshStatus();
+        }),
+        vscode.commands.registerCommand('nowdev-ai-toolbox.initFluentProject', async () => {
+            const toolboxConfig = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
+            const existingUrl = toolboxConfig.get<string>('instanceUrl', '');
+
+            const instanceUrl = await vscode.window.showInputBox({
+                prompt: 'Enter your ServiceNow instance URL',
+                placeHolder: 'https://myinstance.service-now.com',
+                value: existingUrl,
+                validateInput: (value) => {
+                    if (!value.trim()) { return 'Instance URL is required'; }
+                    return undefined;
+                },
+            });
+
+            if (!instanceUrl) { return; }
+
+            await toolboxConfig.update('instanceUrl', instanceUrl.trim(), vscode.ConfigurationTarget.Global);
+
+            const terminal = vscode.window.createTerminal('NowDev: Init Fluent Project');
+            terminal.show();
+            terminal.sendText('now-sdk init');
+
+            welcomeProvider.refreshStatus();
         })
     );
     // Enable ask-chat-location so Copilot questions appear in the chat view
