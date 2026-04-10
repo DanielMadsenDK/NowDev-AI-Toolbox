@@ -122,6 +122,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'refresh':
                     this._updateStatus();
                     break;
+                case 'initFluentProject':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.initFluentProject');
+                    break;
             }
         });
 
@@ -543,6 +546,19 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         </div>
 
         <hr id="fluentAppHr" style="display:none;">
+
+        <!-- Initialize Fluent Project CTA (shown when no now.config.json) -->
+        <div class="section" id="initFluentSection">
+            <div class="section-title">
+                <span>Fluent Project</span>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                No <code style="font-size:10px;">now.config.json</code> detected. Run <code style="font-size:10px;">now-sdk init</code> in a terminal to create a new Fluent SDK project.
+            </div>
+            <button class="btn-secondary" id="initFluentProject">Initialize Fluent Project&hellip;</button>
+        </div>
+
+        <hr id="initFluentHr">
 
         <!-- Custom Instructions -->
         <div class="section">

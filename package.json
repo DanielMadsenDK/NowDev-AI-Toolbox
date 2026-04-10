@@ -55,8 +55,22 @@
         "command": "nowdev-ai-toolbox.refreshStatus",
         "title": "Refresh Status",
         "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.initFluentProject",
+        "title": "Initialize Fluent Project",
+        "category": "NowDev AI"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "nowdev-ai-toolbox.initFluentProject",
+          "group": "nowdev@1",
+          "when": "explorerResourceIsFolder && workspaceFolderCount == 1"
+        }
+      ]
+    },
     "configuration": {
       "title": "NowDev AI Toolbox",
       "properties": {

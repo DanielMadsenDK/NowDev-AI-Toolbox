@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as cp from 'child_process';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -25,6 +26,144 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.refreshStatus', () => {
             welcomeProvider.refreshStatus();
+        }),
+        vscode.commands.registerCommand('nowdev-ai-toolbox.initFluentProject', async () => {
+            // Step 1: App display name
+            const appName = await vscode.window.showInputBox({
+                prompt: 'Application display name',
+                placeHolder: 'My ServiceNow App',
+                validateInput: (v) => (!v.trim() ? 'App name is required' : undefined),
+            });
+            if (!appName) { return; }
+
+            // Step 2: npm package name
+            const packageName = await vscode.window.showInputBox({
+                prompt: 'Package name (npm-compatible, lowercase letters, numbers, hyphens)',
+                placeHolder: 'my-servicenow-app',
+                validateInput: (v) => {
+                    if (!v.trim()) { return 'Package name is required'; }
+                    if (!/^[a-z0-9][a-z0-9._-]*$/.test(v.trim())) {
+                        return 'Must start with a letter/digit and contain only lowercase letters, digits, hyphens, underscores, or dots';
+                    }
+                    return undefined;
+                },
+            });
+            if (!packageName) { return; }
+
+            // Step 3: Scope name
+            const scopeName = await vscode.window.showInputBox({
+                prompt: 'Application scope (must start with x_, max 18 characters)',
+                placeHolder: 'x_snc_myapp',
+                validateInput: (v) => {
+                    if (!v.trim()) { return 'Scope name is required'; }
+                    if (!v.trim().startsWith('x_')) { return 'Scope must start with x_'; }
+                    if (v.trim().length > 18) { return 'Scope must be 18 characters or fewer'; }
+                    return undefined;
+                },
+            });
+            if (!scopeName) { return; }
+
+            // Step 4: Template
+            const templatePick = await vscode.window.showQuickPick(
+                [
+                    { label: 'typescript.react', description: 'TypeScript + React (recommended)' },
+                    { label: 'typescript.basic', description: 'TypeScript only' },
+                    { label: 'javascript.react', description: 'JavaScript + React' },
+                    { label: 'javascript.basic', description: 'JavaScript only' },
+                    { label: 'base', description: 'Minimal base structure' },
+                ],
+                { placeHolder: 'Select a project template' }
+            );
+            if (!templatePick) { return; }
+
+            // Step 5: Auth alias (optional — uses SDK default if blank)
+            const authAlias = await vscode.window.showInputBox({
+                prompt: 'Auth alias (optional — leave blank to use default credentials)',
+                placeHolder: 'devuser1',
+            });
+
+            // Step 6: Target directory (defaults to a subfolder named after the package)
+            const defaultDir = path.join(
+                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.env.HOME ?? '~',
+                packageName.trim()
+            );
+            const targetDir = await vscode.window.showInputBox({
+                prompt: 'Directory in which to create the project',
+                value: defaultDir,
+                validateInput: (v) => (!v.trim() ? 'Directory is required' : undefined),
+            });
+            if (!targetDir) { return; }
+
+            // Build the now-sdk init command
+            const args = [
+                `--appName "${appName.trim()}"`,
+                `--packageName "${packageName.trim()}"`,
+                `--scopeName "${scopeName.trim()}"`,
+                `--template ${templatePick.label}`,
+            ];
+            if (authAlias?.trim()) {
+                args.push(`--auth ${authAlias.trim()}`);
+            }
+
+            const resolvedTargetDir = targetDir.trim();
+            const currentWorkspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            const isCurrentFolder = currentWorkspace && path.resolve(currentWorkspace) === path.resolve(resolvedTargetDir);
+
+            const outputChannel = vscode.window.createOutputChannel('NowDev: Init Fluent Project');
+            outputChannel.show(true);
+            outputChannel.appendLine(`Initialising project in ${resolvedTargetDir}...`);
+            outputChannel.appendLine(`> now-sdk init ${args.join(' ')}\n`);
+
+            fs.mkdirSync(resolvedTargetDir, { recursive: true });
+
+            const proc = cp.spawn('now-sdk', ['init', ...args.flatMap(a => a.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [a])], {
+                cwd: resolvedTargetDir,
+                shell: true,
+            });
+
+            proc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
+            proc.stderr.on('data', (data: Buffer) => outputChannel.append(data.toString()));
+
+            proc.on('close', (code: number | null) => {
+                if (code === 0) {
+                    outputChannel.appendLine('\n✓ Project initialised successfully.');
+                    outputChannel.appendLine('\nRunning npm install...\n');
+
+                    const npmProc = cp.spawn('npm', ['install'], {
+                        cwd: resolvedTargetDir,
+                        shell: true,
+                    });
+
+                    npmProc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
+                    npmProc.stderr.on('data', (data: Buffer) => outputChannel.append(data.toString()));
+
+                    npmProc.on('close', (npmCode: number | null) => {
+                        if (npmCode === 0) {
+                            outputChannel.appendLine('\n✓ npm install completed. Project is ready.');
+                        } else {
+                            outputChannel.appendLine(`\n✗ npm install failed with exit code ${npmCode}.`);
+                            vscode.window.showWarningMessage(`npm install failed (exit code ${npmCode}). See the output channel for details.`);
+                        }
+                        welcomeProvider.refreshStatus();
+                        if (!isCurrentFolder) {
+                            vscode.window.showInformationMessage(
+                                `"${appName.trim()}" initialised in ${resolvedTargetDir}. Open the folder?`,
+                                'Open Folder',
+                                'Open in New Window'
+                            ).then((choice) => {
+                                if (choice === 'Open Folder') {
+                                    vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(resolvedTargetDir), false);
+                                } else if (choice === 'Open in New Window') {
+                                    vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(resolvedTargetDir), true);
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    outputChannel.appendLine(`\n✗ now-sdk init failed with exit code ${code}.`);
+                    vscode.window.showErrorMessage(`now-sdk init failed (exit code ${code}). See the output channel for details.`);
+                }
+            });
         })
     );
     // Enable ask-chat-location so Copilot questions appear in the chat view

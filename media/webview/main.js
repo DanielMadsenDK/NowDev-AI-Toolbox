@@ -63,6 +63,10 @@
         vscode.postMessage({ command: 'clearInstructionsFile' });
     });
 
+    document.getElementById('initFluentProject').addEventListener('click', () => {
+        vscode.postMessage({ command: 'initFluentProject' });
+    });
+
     // ── Tools tab: rescan ──────────────────────────────────────────
     document.getElementById('rescanTools').addEventListener('click', () => {
         vscode.postMessage({ command: 'rescanTools' });
@@ -136,13 +140,19 @@
         const section = document.getElementById('fluentAppSection');
         const hr = document.getElementById('fluentAppHr');
         const info = document.getElementById('fluentAppInfo');
+        const initSection = document.getElementById('initFluentSection');
+        const initHr = document.getElementById('initFluentHr');
         if (!fluentApp) {
             section.style.display = 'none';
             hr.style.display = 'none';
+            initSection.style.display = '';
+            initHr.style.display = '';
             return;
         }
         section.style.display = '';
         hr.style.display = '';
+        initSection.style.display = 'none';
+        initHr.style.display = 'none';
         const rows = [
             { key: 'Name', value: fluentApp.name },
             { key: 'Scope', value: fluentApp.scope },
