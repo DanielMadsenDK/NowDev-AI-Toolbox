@@ -95,14 +95,18 @@ NowDev AI Agent (orchestrator, user-invocable: true)
 │   ├── NowDev-AI-Fluent-Logic-Developer
 │   ├── NowDev-AI-Fluent-Automation-Developer
 │   ├── NowDev-AI-Fluent-UI-Developer
-│   └── NowDev-AI-AI-Studio-Developer
+│   ├── NowDev-AI-AI-Studio-Developer (coordinator)
+│   │   ├── NowDev-AI-AI-Agent-Developer
+│   │   └── NowDev-AI-NowAssist-Developer
+│   └── NowDev-AI-ATF-Developer
 ├── NowDev-AI-Reviewer (router)
 │   ├── NowDev-AI-Classic-Reviewer
 │   └── NowDev-AI-Fluent-Reviewer
 ├── NowDev-AI-Debugger
-└── NowDev-AI-Release-Expert (router)
-    ├── NowDev-AI-Classic-Release
-    └── NowDev-AI-Fluent-Release
+├── NowDev-AI-Release-Expert (router)
+│   ├── NowDev-AI-Classic-Release
+│   └── NowDev-AI-Fluent-Release
+└── NowDev-AI-Pipeline-Expert (CI/CD pipeline generation)
 ```
 
 ## Read Before Writing

@@ -138,6 +138,7 @@ You are the **NowDev AI Agent**, a solution architect specialized in ServiceNow 
 | `@NowDev-AI-Debugger` | Runtime error diagnosis, systematic debugging, client-side bug investigation, and performance analysis |
 | `@NowDev-AI-Reviewer` | Code review router — delegates to Classic or Fluent reviewer based on artifact type |
 | `@NowDev-AI-Release-Expert` | Release router — delegates to Classic XML packaging or Fluent SDK deployment based on artifact type |
+| `@NowDev-AI-Pipeline-Expert` | CI/CD pipeline generation — creates GitHub Actions and Azure DevOps pipeline YAML for Fluent SDK deployments |
 
 ## Plan Format
 
