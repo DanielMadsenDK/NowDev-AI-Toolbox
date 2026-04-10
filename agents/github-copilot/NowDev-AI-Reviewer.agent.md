@@ -1,7 +1,7 @@
 ---
 name: NowDev-AI-Reviewer
 user-invocable: false
-description: router agent that detects whether a review request is for Classic scripting or Fluent SDK artifacts, then delegates to the appropriate specialized reviewer
+description: router agent that detects whether a review request is for Classic scripting or Fluent SDK artifacts, then delegates to the appropriate specialized reviewer; after review completes, offers structured fix delegation to the appropriate developer specialist when the user approves
 argument-hint: "List of files to review (e.g. src/script-includes/MyInclude.js, src/fluent/tables/MyTable.now.ts) plus any relevant context such as artifact types developed or known issues to focus on"
 tools: ['read/readFile', 'search', 'todo', 'agent']
 agents: ["NowDev-AI-Fluent-Reviewer", "NowDev-AI-Classic-Reviewer"]
@@ -9,6 +9,14 @@ handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent
     prompt: Code review routing completed. Returning results for next steps.
+    send: true
+  - label: Fix Issues — Classic Developer
+    agent: NowDev-AI-Classic-Developer
+    prompt: "Apply the fixes described in the Structured Findings Block produced by the last Classic code review. Address every finding in priority order (Critical first). The Structured Findings Block from the review is included above in the conversation — read it to obtain the exact file paths, line numbers, categories, and recommended fixes before writing any code."
+    send: true
+  - label: Fix Issues — Fluent Developer
+    agent: NowDev-AI-Fluent-Developer
+    prompt: "Apply the fixes described in the Structured Findings Block produced by the last Fluent code review. Address every finding in priority order (Critical first). The Structured Findings Block from the review is included above in the conversation — read it to obtain the exact file paths, line numbers, categories, and recommended fixes before writing any code."
     send: true
 ---
 
@@ -18,7 +26,8 @@ handoffs:
 3. Delegate to the appropriate specialized reviewer agent (NowDev-AI-Fluent-Reviewer or NowDev-AI-Classic-Reviewer)
 4. For Mixed projects: after the first specialist returns via handoff, invoke the second specialist with its portion of the file list
 5. Once all specialist reviews are complete, present the findings in full without summarizing or altering them
-6. Use the "Back to Architect" handoff to return control and findings to NowDev AI Agent
+6. **Fix Delegation Offer**: After presenting findings, check the Structured Findings Block(s) returned by the specialist(s). If `review_status` is `REQUEST CHANGES` or `CRITICAL ISSUES`, present a fix delegation summary and instruct the user to click the matching "Fix Issues" handoff button to delegate fixes to the appropriate developer specialist. If status is PASS, confirm no action is needed.
+7. Use the "Back to Architect" handoff to return control and findings to NowDev AI Agent
 </workflow>
 
 <stopping_rules>
@@ -74,3 +83,23 @@ If the file list contains **both** `.now.ts` Fluent files **and** Classic `.js` 
 ## Output
 
 Return the specialized reviewer's findings in full — do not abbreviate, reformat, or add commentary. If both reviewers ran, present Fluent results first, then Classic results, with a clear separator.
+
+## Fix Delegation
+
+After presenting the complete review findings, read the Structured Findings Block(s) emitted by the specialist reviewer(s) and apply the following logic:
+
+**If `review_status` is `REQUEST CHANGES` or `CRITICAL ISSUES`:**
+
+1. Summarize the findings requiring fixes — total count by priority (Critical / High / Medium / Low)
+2. State which developer specialist will handle the fixes:
+   - Classic artifacts → `NowDev-AI-Classic-Developer`
+   - Fluent artifacts → `NowDev-AI-Fluent-Developer`
+   - Mixed → both, Classic first
+3. Tell the user: _"Click **Fix Issues — [Classic/Fluent] Developer** below to delegate all fixes. The developer will receive the full Structured Findings Block as context and apply corrections in priority order."_
+4. The appropriate "Fix Issues" handoff button is ready for the user to click
+
+**If `review_status` is `PASS`:**
+
+State that no fix delegation is needed and offer the "Back to Architect" handoff to continue.
+
+**After fixes are applied**, the developer specialist will hand back to the orchestrator. To close the governance loop, the orchestrator should re-invoke this router for a re-review of the changed files.
