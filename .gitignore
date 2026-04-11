@@ -30,3 +30,4 @@ Thumbs.db
 #servicenowsdk
 
 sdk-core/
+.vscode/nowdev-ai-config.json
