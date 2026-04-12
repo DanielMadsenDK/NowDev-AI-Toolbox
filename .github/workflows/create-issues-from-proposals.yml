@@ -1,0 +1,99 @@
+name: Create Issues from Proposals
+
+on:
+  push:
+    branches:
+      - 'copilot/**'
+    paths:
+      - '.github/issue-proposals/*.md'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (print issues without creating them)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create issues from proposal files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+
+          PROPOSALS_DIR=".github/issue-proposals"
+          DRY_RUN="${{ inputs.dry_run || 'false' }}"
+          CREATED=0
+          SKIPPED=0
+
+          if [ ! -d "$PROPOSALS_DIR" ]; then
+            echo "No proposals directory found at $PROPOSALS_DIR"
+            exit 0
+          fi
+
+          for file in $(ls "$PROPOSALS_DIR"/*.md | sort); do
+            [ -f "$file" ] || continue
+
+            # Extract title from YAML frontmatter
+            TITLE=$(python3 -c "
+          import sys, re
+          content = open('$file').read()
+          m = re.search(r'^---\s*\ntitle:\s*[\"\'"]?(.+?)[\"\'"]?\s*\n', content, re.MULTILINE)
+          print(m.group(1).strip('\"\'') if m else '')
+          ")
+
+            if [ -z "$TITLE" ]; then
+              echo "Skipping $file — no title found in frontmatter"
+              SKIPPED=$((SKIPPED + 1))
+              continue
+            fi
+
+            # Extract body: everything after the closing --- of frontmatter
+            BODY=$(python3 -c "
+          content = open('$file').read()
+          parts = content.split('---', 2)
+          print(parts[2].strip() if len(parts) >= 3 else '')
+          ")
+
+            # Check if issue already exists (by exact title match)
+            EXISTING=$(gh issue list \
+              --repo "$GITHUB_REPOSITORY" \
+              --state open \
+              --limit 100 \
+              --json title \
+              --jq '.[].title' | grep -Fx "$TITLE" || true)
+
+            if [ -n "$EXISTING" ]; then
+              echo "Skipping '$TITLE' — issue already exists"
+              SKIPPED=$((SKIPPED + 1))
+              continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "DRY RUN — Would create: '$TITLE'"
+            else
+              echo "Creating issue: '$TITLE'"
+              TMPFILE=$(mktemp)
+              echo "$BODY" > "$TMPFILE"
+              ISSUE_URL=$(gh issue create \
+                --repo "$GITHUB_REPOSITORY" \
+                --title "$TITLE" \
+                --body-file "$TMPFILE")
+              rm -f "$TMPFILE"
+              echo "  Created: $ISSUE_URL"
+              CREATED=$((CREATED + 1))
+            fi
+          done
+
+          echo ""
+          echo "Summary: Created=$CREATED  Skipped=$SKIPPED"
