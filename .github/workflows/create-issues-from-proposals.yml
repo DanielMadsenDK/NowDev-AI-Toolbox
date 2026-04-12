@@ -1,6 +1,11 @@
 name: Create Issues from Proposals
 
 on:
+  push:
+    branches:
+      - 'copilot/**'
+    paths:
+      - '.github/issue-proposals/*.md'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -27,7 +32,7 @@ jobs:
           set -e
 
           PROPOSALS_DIR=".github/issue-proposals"
-          DRY_RUN="${{ inputs.dry_run }}"
+          DRY_RUN="${{ inputs.dry_run || 'false' }}"
           CREATED=0
           SKIPPED=0
 
