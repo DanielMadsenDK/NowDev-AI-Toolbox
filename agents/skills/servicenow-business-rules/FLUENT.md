@@ -15,7 +15,7 @@ Patterns for creating business rules in ServiceNow SDK projects using TypeScript
 
 ## Overview
 
-In SDK projects, business rules are defined using `.now.ts` files (metadata) with handler functions in accompanying `.server.js` files.
+In SDK projects, business rules are defined using `.now.ts` files (metadata). JavaScript modules are the **preferred** approach for scripts — the BusinessRule `script` property accepts functions, giving you typed Glide API imports, code reuse, and full IDE support. `Now.include()` is the fallback for non-modular scripts.
 
 ### Key Fluent Language Constructs
 
@@ -29,11 +29,30 @@ See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow
 
 ```
 src/
-├── rules/
-│   ├── incident_before_rule.now.ts      # Metadata definition
-│   └── handlers/
-│       └── incident-before.server.js    # Execution code
+├── fluent/
+│   └── business-rules/
+│       └── incident_before_rule.now.ts   # Metadata definition
+└── server/
+    └── business-rules/
+        └── incident-before.js           # Module file (preferred)
 ```
+
+### Key Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$id` | `string` | Unique ID via `Now.ID['rule_id']` (required) |
+| `name` | `string` | Human-readable name (required) |
+| `table` | `string` | Scoped table name (required) |
+| `when` | `string` | Timing: `'before'`, `'after'`, `'async'`, `'display'` |
+| `action` | `string[]` | Triggers: `'insert'`, `'update'`, `'delete'`, `'query'` |
+| `script` | `string \| function` | Module import (preferred) or `Now.include()` |
+| `filterCondition` | `string` | Encoded query — prefer over script guards |
+| `condition` | `string` | JavaScript condition — use `filterCondition` instead when possible |
+| `order` | `number` | Execution order (lower first, default 100) |
+| `access` | `string` | Cross-scope: `''`, `'public'`, `'package_private'` |
+| `protectionPolicy` | `string` | IP protection: `'read'` or `'protected'` |
+| `roleConditions` | `array` | Roles required for execution |
 
 ---
 
@@ -45,11 +64,11 @@ Run before database save, allowing you to modify the current record.
 
 You have multiple options for providing the script and conditions:
 
-**Option 1: Import TypeScript module with filterCondition** (for compiled logic)
+**Option 1: Import JavaScript module with filterCondition** (preferred — typed Glide APIs, code reuse)
 
 ```typescript
 import { BusinessRule } from '@servicenow/sdk/core'
-import { beforeRuleHandler } from '../handlers/incident-before.server.js'
+import { beforeRuleHandler } from '../../server/business-rules/incident-before'
 
 export default BusinessRule({
     $id: Now.ID['incident_before_rule'],
@@ -57,12 +76,21 @@ export default BusinessRule({
     table: 'incident',
     when: 'before',
     action: ['insert', 'update'],
-    filterCondition: 'priority=1^ORpriority=2', // Filter query (optional)
-    script: beforeRuleHandler,
+    filterCondition: 'priority=1^ORpriority=2',
     order: 100,
+    script: beforeRuleHandler,
     active: true,
-    addMessage: false,
 })
+```
+
+```javascript
+// server/business-rules/incident-before.js
+import { gs } from '@servicenow/glide'
+
+export function beforeRuleHandler(current, previous) {
+    if (current.priority === previous.priority) return;
+    current.setValue('urgency', '1');
+}
 ```
 
 **Option 2: Use `Now.include()` for ServiceNow JavaScript** (recommended for two-way sync)

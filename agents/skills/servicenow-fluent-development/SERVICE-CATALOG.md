@@ -106,6 +106,13 @@ Creates a `sc_cat_item` record that users can request from a service catalog. A 
 | `customCart` | Reference or String | Custom UI macro `[sys_ui_macro]` for cart rendering |
 | `useScLayout` | Boolean | Use Service Catalog layout for display (default: `true`) |
 | `entitlementScript` | Script | Script defining entitlement for the item |
+| `deliveryPlanScript` | String | Delivery plan script for the catalog item |
+| `noCart` | Boolean | Hide cart (legacy). Default: `false` |
+| `noOrder` | Boolean | Hide order (legacy). Default: `false` |
+| `noOrderNow` | Boolean | Hide order now (legacy). Default: `false` |
+| `noProceedCheckout` | Boolean | Hide proceed to checkout (legacy). Default: `false` |
+| `noQuantity` | Boolean | Hide quantity (legacy). Default: `false` |
+| `noSearch` | Boolean | Hide from search (legacy). Default: `false` |
 | `$meta` | Object | Installation metadata. `{ installMethod: 'demo' \| 'first install' }` |
 
 **Example:**
@@ -156,6 +163,44 @@ export const softwareLicenseRequest = CatalogItem({
 ```
 
 > **Best Practice:** Prefer passing a Fluent `Flow` constant directly to the `flow` property rather than a raw `executionPlan` sys_id. This keeps the flow and catalog item in the same codebase and allows programmatic reference.
+
+### Taxonomy & Catalog Organization
+
+**Taxonomy** (`taxonomy_topic`): Hierarchical classification on catalog items. Organizes items from broad categories to specific subcategories, improving searchability and navigation — particularly in Employee Center, where it maps items to topics and appears above the item name in search results. Assign topics to a catalog item using the `assignedTopics` property.
+
+**Catalog & Category Assignment**: Items must belong to at least one Catalog (`sc_catalog`) and Category (`sc_category`). Categories can be nested into subcategories. Items can appear in multiple catalogs and categories simultaneously.
+
+**Visibility**: Controlled via user criteria on the catalog item: `availableFor` grants access, `notAvailableFor` restricts it. `notAvailableFor` always overrides `availableFor` when both are present.
+
+### Circular Dependency Resolution (Flow + CatalogItem)
+
+When a flow needs to use `getCatalogVariables` with the catalog item's variables, a circular import arises. Break it by having the **flow** import the CatalogItem (so it can use `getCatalogVariables`), while the **CatalogItem** uses `Now.ref()` to reference the flow without importing it:
+
+```ts
+// catalog-item.now.ts — Uses Now.ref(), does NOT import flow
+export const myCatalogItem = CatalogItem({
+  $id: Now.ID["my_catalog_item"],
+  flow: Now.ref("sys_hub_flow", "my_flow"), // No import needed
+  variables: { ... }
+});
+
+// flow.now.ts — Imports catalog item for getCatalogVariables
+import { myCatalogItem } from "../catalog-item.now";
+
+export const myFlow = Flow(
+  { $id: Now.ID["my_flow"] },
+  wfa.trigger(trigger.application.serviceCatalog, ...),
+  _params => {
+    const vars = wfa.action(action.core.getCatalogVariables, {
+      template_catalog_item: `${myCatalogItem}`,
+      catalog_variables: [myCatalogItem.variables.field1, ...]
+    });
+  }
+);
+```
+
+1. **Flow** → imports CatalogItem (can use `getCatalogVariables` with variables)
+2. **CatalogItem** → uses `Now.ref()` to reference Flow (NO import)
 
 ---
 
@@ -369,15 +414,13 @@ All variable types are imported from `@servicenow/sdk/core`.
 
 | Category | Types |
 |----------|-------|
-| **Text** | `SingleLineTextVariable`, `WideSingleLineTextVariable`, `MultiLineTextVariable`, `MaskedVariable`, `HtmlVariable`, `RichTextLabelVariable` |
-| **Selection** | `SelectBoxVariable`, `MultipleChoiceVariable`, `CheckboxVariable`, `YesNoVariable`, `NumericScaleVariable` |
+| **Text** | `SingleLineTextVariable`, `WideSingleLineTextVariable`, `MultiLineTextVariable`, `EmailVariable`, `UrlVariable`, `IpAddressVariable`, `MaskedVariable` |
+| **Choice** | `SelectBoxVariable`, `MultipleChoiceVariable`, `CheckboxVariable`, `YesNoVariable`, `NumericScaleVariable` |
 | **Lookup** | `LookupSelectBoxVariable`, `LookupMultipleChoiceVariable` |
-| **Reference** | `ReferenceVariable`, `ListCollectorVariable`, `RequestedForVariable` |
-| **Date/Time/Duration** | `DateVariable`, `DateTimeVariable`, `DurationVariable` |
-| **Data** | `EmailVariable`, `UrlVariable`, `IpAddressVariable` |
-| **File** | `AttachmentVariable` |
-| **Layout** | `LabelVariable`, `BreakVariable`, `ContainerStartVariable`, `ContainerSplitVariable`, `ContainerEndVariable` |
-| **Custom UI** | `CustomVariable`, `CustomWithLabelVariable`, `UIPageVariable` |
+| **Reference** | `ReferenceVariable`, `RequestedForVariable`, `ListCollectorVariable` |
+| **Date/Time** | `DateVariable`, `DateTimeVariable`, `DurationVariable` |
+| **Layout** | `ContainerStartVariable`, `ContainerSplitVariable`, `ContainerEndVariable`, `LabelVariable`, `BreakVariable` |
+| **Special** | `AttachmentVariable`, `HtmlVariable`, `RichTextLabelVariable`, `CustomVariable`, `CustomWithLabelVariable`, `UIPageVariable` |
 
 ---
 
@@ -446,6 +489,12 @@ Most types share the properties from `BaseVariableConfig` and `VariableConfig`. 
 **`RichTextLabelVariable`** — Read-only rich text label (no user input)
 - Uses `richText` instead of `question` for the HTML content to display
 - Does not support `mandatory`, `hidden`, or `readOnly`
+
+**`EmailVariable`** — Email address input. No extra options beyond common properties
+
+**`UrlVariable`** — URL input. No extra options beyond common properties
+
+**`IpAddressVariable`** — IPv4/IPv6 address input. No extra options beyond common properties
 
 ---
 
@@ -521,6 +570,22 @@ Lookup variables display choices sourced from a table's field values. Useful whe
 - `referenceQualCondition` — Filter (with `'simple'`)
 - `dynamicRefQual` — Dynamic filter (with `'dynamic'`)
 - `referenceQual` — Advanced qualifier script (with `'advanced'`)
+
+---
+
+#### Date/Time Variables
+
+**`DateVariable`** — Date picker. No extra options beyond common properties
+
+**`DateTimeVariable`** — Date and time picker. No extra options beyond common properties
+
+**`DurationVariable`** — Duration input. No extra options beyond common properties
+
+---
+
+#### Special Variables
+
+**`AttachmentVariable`** — File upload. No extra options beyond common properties. Not supported in multi-row variable sets
 
 ---
 
@@ -610,7 +675,6 @@ Creates a `catalog_ui_policy` record that controls variable behavior on catalog 
 | `global` | Boolean | Whether the policy applies globally across all catalog contexts (default: `false`) |
 | `onLoad` | Boolean | Whether the policy runs when the form loads. If `false`, applies only on variable changes (default: `true`) |
 | `reverseIfFalse` | Boolean | Reverse UI actions when condition evaluates to false (default: `true`) |
-| `inherit` | Boolean | Whether the policy is inherited (default: `false`) |
 | `isolateScript` | Boolean | Whether policy scripts run in isolated scope (default: `true`) |
 | `appliesOnCatalogItemView` | Boolean | Apply to catalog items displayed in order screen (requester view). Default: `true` |
 | `appliesOnTargetRecord` | Boolean | Apply to records created for task-extended tables via record producers. Default: `false` |
@@ -914,9 +978,9 @@ You can create record producers for tables and database views in the same scope,
 | `active` | Boolean | Whether active and available to order (default: `true`) |
 | `order` | Number | Display order within category (default: `0`) |
 | `version` | Number | Item version (default: `1`) |
-| `script` | Script | Server-side script that runs **before** the record is created. Assign field values dynamically. **Don't call `current.update()` or `current.insert()`** as the record is generated by the record producer. Use `Now.include('./script.js')` for external files |
-| `postInsertScript` | Script | Server-side script that runs **after** the record is inserted. Can call `current.update()` to modify inserted record. Overrides target record values and template values. Use `Now.include('./script.js')` for external files |
-| `saveScript` | Script | Script that runs at every step save in Catalog Builder. Executed before main `script`. Use `Now.include('./script.js')` for external files |
+| `script` | String or Function | Server-side script that runs **before** the record is created. Accepts a string, `Now.include('./script.js')`, or a function: `(producer: RecordProducerContext, current: GlideRecord) => void`. **Don't call `current.update()` or `current.insert()`** |
+| `postInsertScript` | String or Function | Server-side script that runs **after** the record is inserted. Accepts a string, `Now.include('./script.js')`, or a function: `(producer: RecordProducerContext, current: GlideRecord, cat_item: RecordProducerDefinition) => void`. Can call `current.update()` |
+| `saveScript` | String or Function | Script that runs at every step save in Catalog Builder. Accepts a string, `Now.include('./script.js')`, or a function: `(producer: RecordProducerContext, current: GlideRecord, cat_item: RecordProducerDefinition) => void`. Executed before main `script` |
 | `saveOptions` | String | Advanced configuration options for saving the record producer |
 | `redirectUrl` | String | Redirect destination after record is generated: `'generatedRecord'` (created task record) or `'catalogHomePage'`. Default: `'generatedRecord'` |
 | `allowEdit` | Boolean | Whether users can edit the created record after submission (default: `false`) |
@@ -953,6 +1017,25 @@ You can create record producers for tables and database views in the same scope,
 - `script(producer, current)` — runs before record creation. `producer.var_name` accesses variables. Do NOT call `current.update()` or `current.insert()`
 - `postInsertScript(producer, current, cat_item)` — runs after insertion. Safe to call `current.update()`. `cat_item` is the Record Producer definition
 - `saveScript(producer, current, cat_item)` — runs at each Catalog Builder step save, before `script`
+
+**Module pattern (function form):** Instead of string scripts, you can pass typed functions directly. The platform serializes them for server-side execution:
+
+```ts
+export const incidentProducer = CatalogItemRecordProducer({
+  $id: Now.ID["incident_producer"],
+  name: "Report Incident",
+  table: "incident",
+  script: (producer, current) => {
+    current.urgency = producer.urgency;
+    current.short_description = producer.summary;
+  },
+  postInsertScript: (producer, current, cat_item) => {
+    current.work_notes = "Created via Record Producer: " + cat_item.name;
+    current.update();
+  },
+  variables: { ... }
+});
+```
 
 **Example — checkbox pricing:**
 

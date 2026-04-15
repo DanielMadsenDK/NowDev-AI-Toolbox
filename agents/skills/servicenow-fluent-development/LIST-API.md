@@ -17,10 +17,12 @@ Lists are the tabular views of records that users interact with when browsing a 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `$id` | String or Number | Yes | Unique ID for the list (e.g., `Now.ID['app_task_view_list']`). Required for referencing the list in other metadata. |
+| `$id` | String or Number | No (deprecated) | Deprecated — List IDs are now derived from other fields. You can omit `$id`. |
 | `table` | String | Yes | The name of the table to which the list applies (e.g., `'incident'`, `'change_request'`, `'cmdb_ci_server'`). |
 | `view` | Reference or String | Yes | The variable identifier or name of the UI view [sys_ui_view] which applies, or the default view. See [View Configuration](#view-configuration) for details. |
-| `columns` | Array | Yes | A list of columns in the table to display in the list. Each column specifies the field name and position. See [Columns Configuration](#columns-configuration) for details. |
+| `columns` | Array | Yes | A list of columns in the table to display in the list. Each element can be a field name string or a `ListElement` object. See [Columns Configuration](#columns-configuration) for details. |
+| `parent` | String | No | The table on which the related list appears. Use when defining a related list on a parent table. |
+| `relationship` | String or `Record<'sys_relationship'>` | No | The relationship to apply to the related list. |
 | `$meta` | Object | No | Metadata for the application metadata controlling installation behavior. See [Metadata Control](#metadata-control) for details. |
 
 ---
@@ -81,14 +83,26 @@ List({
 
 ## Columns Configuration
 
-The `columns` property is an array of column definitions. Each column object specifies which field to display and its position in the list.
+The `columns` property is an array of column definitions. Each element can be a **field name string** or a **ListElement object** specifying the field and display options.
 
-### Column Object Structure
+### String Shorthand
+
+The simplest form — just the field name:
+
+```ts
+columns: ['number', 'short_description', 'priority', 'state']
+```
+
+### ListElement Object Structure
 
 ```ts
 {
-  element: string,   // Field name (e.g., "name", "urgency")
-  position: number   // 0-based position in the list (0 = first column)
+  element: string,        // Field name (e.g., "name", "urgency")
+  position?: number,      // 0-based position in the list (0 = first column)
+  sum?: boolean,          // Show sum aggregate for this column
+  maxValue?: boolean,     // Show maximum value aggregate for this column
+  minValue?: boolean,     // Show minimum value aggregate for this column
+  averageValue?: boolean  // Show average value aggregate for this column
 }
 ```
 

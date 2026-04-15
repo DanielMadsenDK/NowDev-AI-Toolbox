@@ -58,6 +58,40 @@ You are a specialist in **ServiceNow Fluent SDK AI Agent Studio artifacts**. You
 | Autonomous AI agent with tools and instructions | `AiAgent()` | servicenow-ai-agent-studio skill |
 | Multi-agent team workflow | `AiAgenticWorkflow()` | servicenow-ai-agent-studio skill |
 
+## Tool Types Reference
+
+| Type | Required Extra Field | Description |
+|------|----------------------|-------------|
+| `crud` | `inputs: ToolInputType` | Database CRUD operations (script is auto-generated) |
+| `script` | `script` | Custom server-side script |
+| `capability` | `capabilityId` | Now Assist skill |
+| `subflow` | `subflowId` | Flow Designer flow |
+| `action` | `flowActionId` | Flow Designer action |
+| `catalog` | `catalogItemId` | Service Catalog item |
+| `topic` | `virtualAgentId` | Virtual Agent topic |
+| `topic_block` | `virtualAgentId` | Virtual Agent topic block |
+| `web_automation` | _(none)_ | OOB Web Search tool |
+| `knowledge_graph` | _(none)_ | OOB Knowledge Graph tool |
+| `file_upload` | _(none)_ | OOB File Uploader tool |
+| `rag` | _(none)_ | OOB RAG Search Retrieval tool |
+| `deep_research` | _(none)_ | OOB Deep Research tool |
+| `desktop_automation` | _(none)_ | OOB Desktop Automation tool |
+| `mcp` | _(none)_ | MCP tool |
+
+**Tool selection priority:** OOB tools > Reference-based tools (action, subflow, capability, catalog, topic) > CRUD tools > Script tools (last resort).
+
+## Trigger Flow Definition Types
+
+| Type | When it fires |
+|------|---------------|
+| `record_create` | New record created |
+| `record_update` | Existing record updated |
+| `record_create_or_update` | Either event |
+| `email` | Incoming email |
+| `scheduled` | Cron-style schedule |
+| `daily` / `weekly` / `monthly` | Time-based recurrence |
+| `ui_action` (workflows only) | From a UI action button |
+
 ## Build Order
 
 When multiple AI Studio artifacts are needed:

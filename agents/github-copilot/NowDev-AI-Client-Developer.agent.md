@@ -49,6 +49,22 @@ You are a specialized expert in ServiceNow Client-Side scripting. Your goal is t
     *   Minimize server round-trips (Bury the call).
     *   Use `g_scratchpad` (from Display BR) for static data needed on load.
 
+## Fluent Context: String-Only API
+
+In Fluent SDK projects, **ClientScript `script` is string-only** — it does NOT accept function references. You MUST use `Now.include()` with inline script strings. Do NOT use ES module imports (`import`/`export`) in client scripts.
+
+```typescript
+ClientScript({
+    $id: Now.ID['my-client-script'],
+    name: 'My Client Script',
+    table: 'incident',
+    type: 'onChange',
+    script: Now.include('../../client/on-change-category.js'), // string path
+})
+```
+
+The client script `.js` file must be plain browser-safe JavaScript — no `import` statements, no `require()`, no `@servicenow/glide`. Use only `g_form`, `GlideAjax`, and other standard client-side APIs.
+
 ## File Output Guidelines
 
 ### **Create JavaScript (.js) Files During Development**

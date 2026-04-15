@@ -54,7 +54,13 @@ You are the **coordinator for all ServiceNow Fluent SDK development**. You do no
 | React UI Pages, Client Scripts, UI Policies, UI Actions, Service Catalog, Service Portal, Workspaces, Dashboards | NowDev-AI-Fluent-UI-Developer |
 | AI Agent definitions, Agentic Workflows, NowAssist Skill configurations | NowDev-AI-AI-Studio-Developer |
 | ATF Tests (.now.ts Test files) | NowDev-AI-ATF-Developer |
+### Module Pattern Routing
 
+APIs that accept **function references** (BusinessRule, ScriptAction, UiAction, RestApi routes, ScheduledScript) use ES module `import`/`export` directly — handled by **Logic-Developer** and **Schema-Developer** as normal.
+
+APIs that are **string-only** (ScriptInclude, ClientScript, CatalogClientScript, UiPolicy, CatalogUiPolicy) require `Now.include()` with the module bridging pattern. **Logic-Developer** handles the Script Include bridge; **UI-Developer** handles Client Scripts (no module imports, plain browser JS only).
+
+When delegating, always specify whether the target API is function-accepting or string-only so the specialist uses the correct pattern. See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` for the full reference.
 ## Delegation Order
 
 Always delegate in this order — later specialists may depend on earlier ones:

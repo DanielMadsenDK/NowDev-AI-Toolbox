@@ -28,9 +28,10 @@ function onChange(control, oldValue, newValue, isLoading) {
 ```
 
 ### **Fluent SDK Client Scripts** (for SDK projects)
-Use for TypeScript-based projects with `.now.ts` metadata files and `.client.js` handlers.
+Use for TypeScript-based projects with `.now.ts` metadata files and `.client.js` handlers. The ClientScript `script` property is **string-only** — JavaScript modules are NOT supported. Use `Now.include()` to reference external script files.
 
 ```typescript
+import '@servicenow/sdk/global'
 import { ClientScript } from '@servicenow/sdk/core'
 
 export const cs = ClientScript({
@@ -39,19 +40,26 @@ export const cs = ClientScript({
     field: 'field_name',
     table: 'incident',
     name: 'My Script',
-    script: (oldValue, newValue, isLoading) => {
-        if (isLoading || !newValue) return;
-
-        const ga = new GlideAjax('ScriptIncludeName');
-        ga.addParam('sysparm_name', 'methodName');
-        ga.addParam('sysparm_data', newValue);
-
-        ga.getXMLAnswer(function(answer) {
-            g_form.setValue('target_field', answer);
-        });
-    }
+    script: Now.include('./incident-onchange.client.js'),
 })
 ```
+
+```javascript
+// incident-onchange.client.js
+function onChange(control, oldValue, newValue, isLoading) {
+    if (isLoading || !newValue) return;
+
+    var ga = new GlideAjax('ScriptIncludeName');
+    ga.addParam('sysparm_name', 'methodName');
+    ga.addParam('sysparm_data', newValue);
+
+    ga.getXMLAnswer(function(answer) {
+        g_form.setValue('target_field', answer);
+    });
+}
+```
+
+> **Note:** Do NOT pass functions or module imports to ClientScript `script` — it only accepts strings. Use `Now.include()` for external files or inline strings for short scripts.
 
 ## Performance optimization
 

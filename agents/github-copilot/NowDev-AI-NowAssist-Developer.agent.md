@@ -72,6 +72,24 @@ NowAssistSkillConfig(
 
 Never merge both arguments into one object.
 
+## Tool Graph Builder Types
+
+| Builder Method | What It Does | Access Pattern in Prompts |
+|---------------|-------------|---------------------------|
+| `t.Script(name, config)` | Calls a Script Include method | `${p.tool.Name.output}` |
+| `t.InlineScript(name, config)` | Runs an inline JavaScript function | `${p.tool.Name.output}` |
+| `t.FlowAction(name, config)` | Executes a Flow Action | `${p.tool.Name.outputName}` |
+| `t.Subflow(name, config)` | Runs a Subflow | `${p.tool.Name.outputName}` |
+| `t.WebSearch(name, config)` | Web search and scraping | `${p.tool.Name.response}` |
+| `t.Decision(name, config)` | Conditional branching (routes execution to named targets) | N/A |
+| `t.Skill(name, config)` | Uses another published NowAssist skill as a tool | `${p.tool.Name.response}` |
+
+### Provider Configuration
+
+Known providers: `'Now LLM Service'`, `'Azure OpenAI'`, `'Open AI'`, `'Google Gemini'`, `'AWS Claude'`, `'IBM Watson'`, `'Perplexity'`, `'Aleph Alpha'`, `'Custom LLM Provider'`.
+
+Optionally specify a Provider API with `providerAPI: { type, id }`. Valid types: `'sys_hub_flow'`, `'sys_hub_action_type_definition'`, `'sys_script_include'`, `'one_api_system_executor'`.
+
 ## Key Implementation Rules
 
 | Rule | Why |
@@ -80,7 +98,7 @@ Never merge both arguments into one object.
 | Every tool, input, and output needs `$id: Now.ID['...']` | Stable metadata identity |
 | Return tool handles from `tools()` function | Enables type-safe `p.tool.*` access in prompt functions |
 | Use `depends` to order tools that must run sequentially | Without it, tools may run in parallel |
-| Set `promptState: 'published'` on the active prompt version | Draft versions are not executed in production |
+| **Always set `promptState: 'draft'`** | Publish versions from the Skill Builder UI. Other values may cause validation errors in code |
 | Use `$capabilityId: Now.ID['...']` on Script, Subflow, FlowAction tools | Required for capability registration |
 
 ## Universal Fluent Rules (Always Apply)

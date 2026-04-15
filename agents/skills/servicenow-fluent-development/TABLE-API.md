@@ -203,7 +203,6 @@ There are many types of columns based on the field type. Column objects use the 
 | `DayOfWeekColumn` | `day_of_week` | Single day of week selection |
 | `DaysOfWeekColumn` | `days_of_week` | Multiple days of week selection |
 | `RecordsColumn` | `records` | Array of record references |
-| `VersionColumn` | `version` | Version string |
 
 ### Properties
 
@@ -221,6 +220,20 @@ There are many types of columns based on the field type. Column objects use the 
 | `functionDefinition` | String | The definition of a function that the field performs, such as a mathematical operation, field length computation, or day of the week calculation. Each definition begins with `glidefunction:`, followed by the operation (such as `concat`), followed by function parameters. Constants must be enclosed in single quotes. For example: `'glidefunction:concat(short_description, ' ', caller_id.name)'`. For more information about function definitions, see Function field. |
 | `dynamicValueDefinitions` | Object | Default values that are generated dynamically based on dynamic filters. Supports types: `dynamic_default`, `dependent_field`, `calculated_value`, `choices_from_other_table`. For more information, see Dynamic Value Definitions. |
 | `dropdown` | String | An option for how a list of choices displays for list and form views. This property only applies to ChoiceColumn objects and column types that extend choice columns. Valid values: `none` (Choices aren't enforced), `dropdown_without_none` (Menu without -- None -- option), `dropdown_with_none` (Menu with -- None -- option), `suggestion` (Choices are displayed as suggested values). Default: `none` |
+| `array` | Boolean | Creates another table to store the info that will be captured by this field. |
+| `audit` | Boolean | Indicates whether to track the creation, update, and deletion of all records in the table. |
+| `dependent` | String | Limit the values available to select based on the value of the dependent field. |
+| `elementReference` | Boolean | Indicates if the value of this field connotes the "element type". |
+| `help` | String | Help information for the field. |
+| `hint` | String | Describes the field in more verbose form. |
+| `plural` | String | Plural form of the field name. |
+| `primary` | Boolean | Indicates the primary key for a table. |
+| `spellCheck` | Boolean | Enables spell check for this field. |
+| `tableReference` | Boolean | Indicates if the value of this field is a reference to another table in the schema. |
+| `textIndex` | Boolean | Enables a natural language search on this field. |
+| `unique` | Boolean | Creates a unique index on this field. |
+| `widget` | String | Style for the element type such as "radio". |
+| `xmlView` | Boolean | Displays the field value as XML. |
 
 ### Column Names
 
@@ -248,6 +261,74 @@ schema: {
    x_scope_myColumn: StringColumn({...})
 }
 ```
+
+### Type-Specific Properties
+
+#### ReferenceColumn
+
+| Name | Type | Description |
+|------|------|-------------|
+| `referenceTable` | String | **Required.** Reference a different table. Escape with `as any` if definition not present locally. |
+| `cascadeRule` | String | Configure what happens to records that reference a record when that record is deleted. Valid values: `'none'`, `'delete_no_workflow'`, `'cascade'`, `'delete'`, `'restrict'`, `'clear'`. |
+| `dynamicCreation` | Boolean | If a reference is not found for a reference field then it allows the creation of that target. |
+| `dynamicCreationScript` | String | Populate a new record from a reference field based on the field value. |
+| `referenceFloats` | Boolean | Referenced table's form has an "edit" button in the related list for the current table. |
+| `referenceKey` | String | Sets up a many to many relationship. The value specified is the label describing the relationship. |
+| `referenceQual` | String | Filter reference based on a filter condition, referenced value, or sys_filter_option_dynamic sys_id. |
+
+#### ListColumn
+
+| Name | Type | Description |
+|------|------|-------------|
+| `referenceTable` | String | Table containing possible values for this list (for reference-based lists). |
+| `choices` | Object | Choice values definitions as object literal. |
+| `dropdown` | String | How a list of choices displays for users of your form. |
+
+#### IntegerColumn
+
+| Name | Type | Description |
+|------|------|-------------|
+| `min` | Number | Minimum allowed value. |
+| `max` | Number | Maximum allowed value. |
+| `choices` | Object | Choice values definitions as object literal. |
+| `dropdown` | String | How a list of choices displays. |
+| `dynamicValueDefinitions` | Object | Dynamic default value definitions. |
+
+#### FloatColumn
+
+| Name | Type | Description |
+|------|------|-------------|
+| `scale` | Number | Number of decimal places to display. Controls the precision of the floating-point number. |
+
+#### StringColumn
+
+| Name | Type | Description |
+|------|------|-------------|
+| `isFullUTF8` | Boolean | Whether the string should be stored as full UTF-8. Column type will be `string_full_utf8` if `true`. |
+| `choices` | Object | Choice values definitions as object literal. |
+| `dropdown` | String | How a list of choices displays. |
+| `dynamicValueDefinitions` | Object | Dynamic default value definitions. |
+
+#### GenericColumn
+
+| Name | Type | Description |
+|------|------|-------------|
+| `columnType` | String | **Required.** Specify a glide `internal_type` for the column. Escape hatch for any column type not defined elsewhere. |
+| `choices` | Object | Choice values definitions as object literal. |
+| `dropdown` | String | How a list of choices displays. |
+| `dynamicValueDefinitions` | Object | Dynamic default value definitions. |
+
+#### SlushBucketColumn
+
+| Name | Type | Description |
+|------|------|-------------|
+| `script` | String | Script method to populate the slush bucket options. Example: `'getMethod()'`. |
+
+#### FieldListColumn
+
+Table context must be provided via one of:
+- `dependent` — references another column that provides the table at runtime
+- `attributes.table` — specifies the table statically
 
 ---
 
@@ -440,3 +521,177 @@ dynamicValueDefinitions: {
    field: 'display',
 }
 ```
+
+---
+
+## OverrideColumn Object
+
+Define a dictionary override [sys_dictionary_override] for an inherited column. Use to modify properties of a column inherited from a parent table.
+
+### Properties
+
+| Name | Type | Description |
+|------|------|-------------|
+| `baseTable` | String | Specifies the table where this column is originally defined. If not specified, defaults to the table in `extends`. |
+| `mandatory` | Boolean | Override whether the field is mandatory. |
+| `default` | String | Override the default value for this field. |
+| `dependent` | String | Override the dependent field setting. |
+| `display` | Boolean | Whether the field should be displayed in the UI. |
+| `calculation` | String | Override the calculation script for calculated fields. |
+| `readOnlyOption` | String | Override the read-only option. Valid values: `'display_read_only'`, `'client_script_modifiable'`, `'strict_read_only'`, `'instance_configured'`. |
+| `referenceQualifier` | String | Override the reference qualifier for reference fields. |
+| `attributes` | Object | Pairs of any supported dictionary attributes [sys_schema_attribute]. |
+
+### Example
+
+```ts
+import { Table, OverrideColumn } from '@servicenow/sdk/core'
+
+export const x_override_multiple = Table({
+    name: 'x_override_multiple',
+    extends: 'task',
+    schema: {
+        priority: OverrideColumn({
+            baseTable: 'task',
+            mandatory: true,
+            default: '1',
+        }),
+        state: OverrideColumn({
+            baseTable: 'task',
+            mandatory: true,
+            readOnlyOption: 'display_read_only',
+        }),
+        description: OverrideColumn({
+            baseTable: 'task',
+            display: false,
+        }),
+    },
+})
+```
+
+---
+
+## Relationship and Related List Reference
+
+Relationships connect tables and display related records as lists on forms. If a reference field exists between tables, the relationship is implicit (no extra record needed). If not, create an explicit `sys_relationship` record.
+
+### Determine the Relationship Path
+
+1. **Reference field exists** between tables: Implicit relationship (no `sys_relationship` needed).
+2. **No reference field** or custom query: Explicit relationship (create `sys_relationship` record).
+3. **Existing platform relationship**: Use known `REL:` ID.
+
+### Common Platform Relationship IDs
+
+- Attachments: `REL:b9edf0ca0a0a0b010035de2d6b579a03`
+- Applications with Role: `REL:66c422fac0a80a880012fadcb8c2480e`
+- Approval History: `REL:247c6f15670303003b4687cb5685ef32`
+
+### Implicit Relationship Example
+
+```ts
+// Table A has a ReferenceColumn pointing to Table B
+// Only need sys_ui_related_list + sys_ui_related_list_entry
+
+const listRecord = Record({
+  $id: Now.ID['department_related_list'],
+  table: 'sys_ui_related_list',
+  data: { name: 'department', view: 'Default view' },
+});
+
+Record({
+  $id: Now.ID['department_related_list_entry'],
+  table: 'sys_ui_related_list_entry',
+  data: {
+    list_id: listRecord.$id,
+    position: '0',
+    related_list: 'custom_task.department', // table.reference_field format
+  },
+});
+```
+
+### Explicit Relationship Example
+
+```ts
+// No reference field -- need sys_relationship + sys_ui_related_list + sys_ui_related_list_entry
+
+export const departmentRel = Record({
+  $id: Now.ID['department_rel_id'],
+  table: 'sys_relationship',
+  data: {
+    advanced: false,
+    basic_apply_to: 'sn_foo_department',
+    basic_query_from: 'sn_foo_student',
+    name: 'Department Allocation Relationship',
+    query_with: `(function refineQuery(current, parent) {
+    current.addQuery('department', parent.id);
+})(current, parent);`,
+    simple_reference: false,
+  },
+});
+
+const listRecord = Record({
+  $id: Now.ID['department_related_list_id'],
+  table: 'sys_ui_related_list',
+  data: {
+    name: 'sn_foo_department',
+    view: 'Default view',
+  },
+});
+
+Record({
+  $id: Now.ID['department_related_list_entry_id'],
+  table: 'sys_ui_related_list_entry',
+  data: {
+    list_id: listRecord.$id,
+    position: '0',
+    related_list: `REL:${departmentRel.$id}`,
+  },
+});
+```
+
+### Relationship Properties (`sys_relationship`)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | No | Descriptive name |
+| `basic_apply_to` | TableName | No | Parent table (basic mode) |
+| `basic_query_from` | TableName | No | Child table (basic mode) |
+| `reference_field` | FieldName | No | Reference field for the relationship |
+| `query_with` | Script | No | Script to refine the query |
+| `advanced` | Boolean | No | Whether advanced mode (default: `false`) |
+| `simple_reference` | Boolean | No | Whether simple reference relationship |
+
+### Multiple Related Lists Pattern
+
+One `sys_ui_related_list` per table, multiple `sys_ui_related_list_entry` records for different relationships:
+
+```ts
+const productContainer = Record({
+  $id: 'products_related_lists',
+  table: 'sys_ui_related_list',
+  data: { name: 'sn_product_life_products', view: 'Default view' },
+});
+
+Record({
+  $id: 'feature_requests_entry',
+  table: 'sys_ui_related_list_entry',
+  data: { list_id: productContainer.$id, position: 0, related_list: 'feature_requests.product' },
+});
+
+Record({
+  $id: 'testing_reports_entry',
+  table: 'sys_ui_related_list_entry',
+  data: { list_id: productContainer.$id, position: 1, related_list: 'testing_reports.product' },
+});
+```
+
+### query_with Script Format
+
+```javascript
+(function refineQuery(current, parent) {
+    current.addQuery('field', parent.field);
+})(current, parent);
+```
+
+The `current` variable represents the child table query. The `parent` variable represents the record on the form where the related list appears.

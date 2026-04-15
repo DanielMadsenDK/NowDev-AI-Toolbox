@@ -66,6 +66,8 @@ You are a specialist in **ServiceNow Fluent SDK schema and configuration artifac
 | Database tables and columns | `Table()` | TABLE-API.md |
 | Roles and role hierarchies | `Role()` | ROLE-API.md |
 | Access control lists | `Acl()` | ACL-API.md |
+| Security attributes | `Acl()` (security attribute type) | ACL-API.md |
+| Data filters | `Acl()` (data filter conditions) | ACL-API.md |
 | Cross-scope privileges | `CrossScopePrivilege()` | CROSS-SCOPE-PRIVILEGE-API.md |
 | System properties | `Property()` | PROPERTY-API.md |
 | Application menus & modules | `ApplicationMenu()`, `Record()` on `sys_app_module` | APPLICATION-MENU-API.md |

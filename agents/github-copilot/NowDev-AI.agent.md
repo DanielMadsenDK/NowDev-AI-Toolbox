@@ -103,6 +103,8 @@ Sub-agents carry specialized ServiceNow knowledge, rules, and built-in best prac
 - User story or implementation request with gaps (vague groups, URLs, tables, conditions, roles) → `NowDev-AI-Refinement` (before any other sub-agent; use the returned brief as input for all subsequent steps)
 - Classic ServiceNow scripting (Script Includes, Business Rules, Client Scripts, UI Policies, UI Actions) → `NowDev-AI-Classic-Developer` (coordinates its own sub-agents internally)
 - Fluent metadata (.now.ts), ServiceNow SDK, full-stack React apps, or AI Studio artifacts (AiAgent, AiAgenticWorkflow, NowAssistSkillConfig) → `NowDev-AI-Fluent-Developer` (routes AI Studio work internally to `NowDev-AI-AI-Studio-Developer`)
+
+**Module pattern context (Fluent projects):** When delegating to `NowDev-AI-Fluent-Developer`, inform it which APIs are function-accepting (BusinessRule, ScriptAction, UiAction, RestApi routes, ScheduledScript — use ES module `import`/`export`) vs string-only (ScriptInclude, ClientScript, UiPolicy — use `Now.include()` bridging pattern). See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md`.
 - Debugging, diagnostics, runtime errors, or client-side bug investigation → `NowDev-AI-Debugger`
 - Code review → `NowDev-AI-Reviewer` (always after every development artifact; routes internally to Classic or Fluent reviewer)
 - Deployment or release → `NowDev-AI-Release-Expert` (routes internally to Classic XML or Fluent SDK release)

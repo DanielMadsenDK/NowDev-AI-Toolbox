@@ -34,14 +34,14 @@ Cross-scope privileges define which **script operations** and **targets** the sy
 | `$id` | String or Number | Unique ID for the metadata object using `Now.ID[]` format. Hashed into a unique sys_id at build time. | `Now.ID['privilege_name']` |
 | `status` | String | Authorization state for this privilege. | `'requested'`, `'allowed'`, `'denied'` |
 | `operation` | String | The script operation to authorize on the target. | `'create'`, `'delete'`, `'read'`, `'write'`, `'execute'` |
-| `targetName` | String | Name of the table, script include, or script object being requested. | Table name, script include name, or script object name |
-| `targetScope` | String | Application scope from which the resource is requested. | Application scope ID (e.g., `'x_snc_example'`) |
-| `targetType` | String | Type of resource being accessed. | `'sys_script_include'`, `'scriptable'`, `'sys_db_object'` |
 
 ### Optional Properties
 
 | Property | Type | Description | Example |
 |----------|------|-------------|---------|
+| `targetName` | String | Name of the table, script include, or script object being requested. | Table name, script include name, or script object name |
+| `targetScope` | String | Application scope from which the resource is requested. | Application scope ID (e.g., `'x_snc_example'`) |
+| `targetType` | String | Type of resource being accessed. | `'sys_script_include'`, `'scriptable'`, `'sys_db_object'` |
 | `$meta` | Object | Installation metadata with `installMethod` property. | `{ installMethod: 'first install' }` |
 
 ---

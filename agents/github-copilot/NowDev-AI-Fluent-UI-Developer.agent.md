@@ -101,7 +101,7 @@ src/client/global.d.ts               → declare global { Window.g_ck, GlideAjax
 - Every exported object must have a unique `$id: Now.ID['...']`
 - Own metadata references use `constant.$id` — never `Now.ID['...']` in data fields
 - Field names must exactly match `@types/servicenow/schema/`
-- Use `Now.include('./file.js')` for script content — never tagged template literals
+- Use `Now.include('./file.js')` for script content — never tagged template literals. Note: `Now.include()` remains the correct pattern for `ClientScript`, `CatalogClientScript`, `UiPolicy`, `SPWidget`, and other string-only APIs (these do not accept functions, so the module pattern does not apply)
 - Include CSRF token (`g_ck`) in all mutating REST calls from React
 
 ## Session Artifact Registry

@@ -298,3 +298,64 @@ useEffect(() => {
 | Field is needed on every item in a list | Include in bulk load |
 | User may never open the detail view | Always defer |
 | Initial page load performance matters | Split bulk + deferred |
+
+---
+
+## Service Portal Widget Communication
+
+Service Portal widgets use a built-in `c.server` mechanism instead of GlideAjax or REST APIs.
+**Never use GlideAjax in widgets** — use `c.server.get()` instead.
+
+### Server Script (`server_script.js`)
+
+```js
+(function() {
+  // Initial load — populate data for the client
+  data.records = [];
+  data.message = '';
+
+  if (input && input.action === 'refresh') {
+    // Handle client request (c.server.get)
+    var gr = new GlideRecord(options.table || 'incident');
+    gr.addQuery('active', true);
+    gr.setLimit(options.max_records || 25);
+    gr.query();
+    while (gr.next()) {
+      data.records.push({
+        sys_id: gr.getUniqueValue(),
+        name: gr.getValue('short_description')
+      });
+    }
+    return;
+  }
+
+  // Default load
+  data.title = 'My Widget';
+})();
+```
+
+### Client Script (`client_script.js`)
+
+```js
+api.controller = function() {
+  var c = this;
+
+  c.loading = false;
+
+  c.refresh = function() {
+    c.loading = true;
+    c.server.get({ action: 'refresh' }).then(function(response) {
+      c.data.records = response.data.records;
+      c.loading = false;
+    });
+  };
+};
+```
+
+### Communication Methods
+
+| Method | Behavior | Use Case |
+|---|---|---|
+| `c.server.get(input)` | Sends `input` to server, returns response (does not modify `c.data` automatically) | Fetching data without overwriting client state |
+| `c.server.update()` | Sends current `c.data` as `input` to server, updates `c.data` with response | Submitting form data or saving changes |
+| `c.server.refresh()` | Re-executes server script with no input, replaces `c.data` entirely | Full widget reload |

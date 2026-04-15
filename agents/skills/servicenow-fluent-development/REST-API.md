@@ -42,6 +42,13 @@ A REST API definition consists of:
 3. **parameters & headers** — query parameters and HTTP headers for each route
 4. **versions array** — version management for API lifecycle (active, deprecated, default)
 
+### Design Guidance
+
+- **One route per HTTP method per path:** Each route handles a single HTTP method (GET, POST, PUT, PATCH, DELETE). Create separate routes for different methods on the same path.
+- **Use path parameters for resource identifiers:** Define path params with `{id}` syntax in the route path (e.g., `/items/{id}`). Use query parameters for filtering and pagination.
+- **Version your API from the start:** Use the `versions` array on the RestApi and set `version` on each route. This generates versioned URIs and allows non-breaking evolution.
+- **Set ACLs at the right level:** `enforceAcl` on RestApi applies to all routes. `enforceAcl` on individual routes overrides the API-level setting.
+
 ---
 
 ## RestApi Object
@@ -153,7 +160,9 @@ Use the `routes` array within the **RestApi object**.
 
 ### Script Content Formats
 
-#### 1. Imported Function (Recommended for Complex Logic)
+#### 1. Imported Function (Preferred)
+
+Module-based handlers are the preferred pattern for route scripts. Import handler functions from `src/server/` files rather than writing inline scripts. This keeps route definitions clean, scripts testable, and enables full IDE support.
 
 ```ts
 import { handler } from '../server/handler.js'
@@ -416,7 +425,12 @@ Use the `versions` array within the **RestApi object**. When versions are specif
 | `isDefault` | Boolean | No | `false` | Flag indicating whether this version is the default version. Clients can access the default version using either the **versioned** path (`/api/custom_api/v1/path`) or the **non-versioned** path (`/api/custom_api/path`). **Valid values:** `true` (is default), `false` (not default). Only one version should have `isDefault: true`. |
 | `$meta` | Object | No | — | Installation metadata. See `$meta.installMethod`. |
 
-### Versioning Strategy Examples
+### Versioning Strategy
+
+When using versions, every route must specify which `version` it belongs to. Mark one version as `isDefault: true` — clients can access it with or without the version prefix in the URI. Deprecated versions still serve requests but are marked in API documentation.
+
+- **With versioning:** `/api/{scope_name}/v{version}/{serviceId}/{path}`
+- **Without versioning:** `/api/{scope_name}/{serviceId}/{path}`
 
 #### Single Version (Simple API)
 

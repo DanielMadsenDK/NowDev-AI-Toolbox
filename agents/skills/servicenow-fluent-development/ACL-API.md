@@ -22,6 +22,26 @@ import { Acl, Role } from '@servicenow/sdk/core'
 
 An ACL can **allow** or **deny** access to a secured object. Each ACL secures **exactly one operation** on **exactly one object type**.
 
+### Security Layer Hierarchy
+
+| Layer | API | Purpose |
+|-------|-----|--------|
+| Roles | `Role()` | Define personas with permissions |
+| ACLs | `Acl()` | Control access to objects/operations |
+| Security Attributes | `Record` on `sys_security_attribute` | Reusable security predicates |
+| Data Filters | `Record` on `sys_security_data_filter` | Row-level filtering |
+
+1. **Start with Roles:** Define roles first — they are required by ACLs and referenced by Security Attributes.
+2. **Then ACLs:** Create ACL rules to secure tables, fields, and resources. Each ACL secures one operation on one object.
+3. **Use Security Attributes for reusable predicates:** When the same role/condition logic appears in multiple ACLs, extract it into a Security Attribute.
+4. **Add Data Filters for row-level security:** When users should see only certain rows (not the whole table), add Security Data Filters paired with Deny ACLs.
+
+### ACL Evaluation Order
+
+1. Deny-Unless ACLs evaluate first — if any fail, access is denied
+2. Allow-If ACLs evaluate second — at least one must pass to grant access
+3. Within each ACL: roles, condition, and script ALL must pass (the “Trinity”)
+
 ---
 
 ## Properties Reference
@@ -88,9 +108,10 @@ Valid `operation` values depend on `type`:
 | `decisionType` | String | `allow` | `'allow'` to grant access, `'deny'` to block access. |
 | `condition` | String | — | Filter query string specifying fields and values that must be true for access. |
 | `roles` | Array | — | Array of Role constants or role name strings that a user must have. Users with the `admin` role always pass this check. |
-| `securityAttribute` | String | — | Pre-defined condition name (e.g., security attributes for impersonation). Use when `localOrExisting` is `'Existing'`. |
+| `securityAttribute` | Reference or String | — | Security attribute reference or pre-defined condition. Accepts a `Record<'sys_security_attribute'>` reference, or the built-in values `'user_is_authenticated'` or `'has_admin_role'`. Use when `localOrExisting` is `'Existing'`. |
 | `table` | String | — | **Required** if `type` is `record`, `ux_data_broker`, `ux_page`, `ux_route`, or `pd_action`. Table name to secure. |
 | `field` | String | — | **Optional** field name on the table to secure. Use `"*"` to secure all fields. Only applies when `type` is `record`. |
+| `appliesTo` | String | — | Additional filter to specify which records this ACL applies to. Only applies when `type` is `record`. |
 | `name` | String | — | **Required** if `type` is `rest_endpoint`, `ui_page`, `processor`, `graphql`, `client_callable_flow_object`, or `client_callable_script_include`. The ACL name. |
 | `protectionPolicy` | String | — | Intellectual property protection: `'read'` (read-only when installed) or `'protected'` (encrypted, customers can't see contents). |
 | `$meta` | Object | — | Metadata including `installMethod`: `'demo'` or `'first install'`. Controls when the ACL is installed. |
@@ -440,6 +461,102 @@ export const createAcl = Acl({ $id: Now.ID['c'], type: 'record', table, operatio
 export const readAcl = Acl({ $id: Now.ID['r'], type: 'record', table, operation: 'read', roles: allowedRoles })
 export const updateAcl = Acl({ $id: Now.ID['u'], type: 'record', table, operation: 'write', roles: allowedRoles })
 export const deleteAcl = Acl({ $id: Now.ID['d'], type: 'record', table, operation: 'delete', roles: [adminRole] })
+```
+
+---
+
+## Security Attributes
+
+Security Attributes (`sys_security_attribute`) are reusable security predicates. Use the `Record` API to create them. **Only `compound` type** can be referenced in ACLs and Data Filters.
+
+### Security Attribute Types
+
+| Type | Use for | Can use in ACLs? |
+|------|---------|------------------|
+| `compound` | Role/group conditions via encoded query | Yes |
+| `true\|false` | Complex boolean logic via script | No |
+| `string` / `integer` / `list` | Value calculations | No |
+
+### Key Rules
+
+- Use `condition` field for compound types with encoded query syntax (e.g., `"Role=manager^ORRole=admin"`)
+- Never use `current` in security attribute scripts — no record context available
+- Set `is_dynamic: false` for role/group checks that can be cached per session
+
+### Examples
+
+```typescript
+import '@servicenow/sdk/global'
+import { Record } from '@servicenow/sdk/core'
+
+// Compound type (recommended — can be referenced in ACLs)
+export const hasManagerRole = Record({
+    $id: Now.ID['has-manager-role'],
+    table: 'sys_security_attribute',
+    data: {
+        name: 'HasManagerRole',
+        type: 'compound',
+        label: 'Has Manager Role',
+        description: 'Checks if the current user has the manager role',
+        condition: 'Role=manager',
+        is_dynamic: false
+    }
+})
+
+// Boolean script type
+export const hasFinanceRole = Record({
+    $id: Now.ID['has-finance-role'],
+    table: 'sys_security_attribute',
+    data: {
+        name: 'HasFinanceRole',
+        type: 'true|false',
+        label: 'Has Finance Role',
+        script: 'answer = gs.hasRole("finance") || gs.getUser().isMemberOf("finance_users");',
+        is_dynamic: false
+    }
+})
+```
+
+---
+
+## Security Data Filters
+
+Security Data Filters (`sys_security_data_filter`) provide row-level filtering. Use the `Record` API to create them. **Always pair with Deny ACLs** — Data Filters alone do not provide complete security.
+
+### Properties
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `description` | String | Yes | Descriptive name. |
+| `table_name` | String | Yes | Target table. |
+| `mode` | String | Yes | `"if"` (filter when condition met) or `"unless"` (filter unless condition met). |
+| `security_attribute` | Reference | Yes | Reference to `sys_security_attribute` (must be compound type). |
+| `filter` | String | No | Encoded query condition. |
+| `active` | Boolean | No | Default: `true`. |
+
+### Key Rules
+
+- `security_attribute` is required — always reference a compound Security Attribute
+- Use dynamic conditions (e.g., `fieldnameDYNAMIC90d1921e5f510100a9ad2572f2b477fe` for current user) instead of hardcoded values
+- Use indexed columns in filters for performance
+
+### Example
+
+```typescript
+import '@servicenow/sdk/global'
+import { Record } from '@servicenow/sdk/core'
+
+export const filterFinancialRecords = Record({
+    $id: Now.ID['filter-financial-records'],
+    table: 'sys_security_data_filter',
+    data: {
+        description: 'Restrict high-value transactions to authorized personnel',
+        table_name: 'finance_transaction',
+        mode: 'unless',
+        security_attribute: hasFinanceRoleAttribute,
+        filter: 'amount>10000^ORclassification=confidential',
+    }
+})
 ```
 
 ---

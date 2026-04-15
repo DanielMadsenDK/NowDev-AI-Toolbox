@@ -33,13 +33,19 @@ All other properties are optional (the job will still create a record), but a me
 
 Set `frequency` to control how often the job runs:
 
-| Value | When It Runs |
-|-------|-------------|
-| `'once'` | A single run at `executionStart` |
-| `'daily'` | Every day at `executionTime` |
-| `'weekly'` | On `daysOfWeek` at `executionTime` |
-| `'monthly'` | On `dayOfMonth` at `executionTime` |
-| `'periodically'` | Every `executionInterval` starting from `executionStart` |
+| Value | When It Runs | Required Fields |
+|-------|-------------|----------------|
+| `'once'` | A single run at `executionStart` | `executionStart` |
+| `'daily'` | Every day at `executionTime` | `executionTime` |
+| `'weekly'` | On `daysOfWeek` at `executionTime` | `daysOfWeek` (mandatory array) |
+| `'monthly'` | On `dayOfMonth` at `executionTime` | `dayOfMonth` (1–31; 31 = month-end) |
+| `'periodically'` | Every `executionInterval` starting from `executionStart` | `executionInterval` (mandatory) |
+| `'on_demand'` | Never runs automatically; triggered manually | (none) |
+| `'day_and_month_in_year'` | Annually on a fixed date | `month` (1–12), `dayOfMonth` (1–31) |
+| `'week_in_month'` | Specific week ordinal + day each month | `weekInMonth` (1–6), `dayOfWeek` |
+| `'day_week_month_year'` | Specific weekday in a specific week in a specific month each year | `dayOfWeek`, `weekInMonth`, `month` |
+| `'business_calendar_start'` | When a business calendar entry begins | `businessCalendar` (mandatory) |
+| `'business_calendar_end'` | When a business calendar entry ends | `businessCalendar` (mandatory) |
 
 ---
 
@@ -66,6 +72,45 @@ Valid values: `'sunday'`, `'monday'`, `'tuesday'`, `'wednesday'`, `'thursday'`, 
 frequency: 'monthly',
 dayOfMonth: 1,     // 1–31; first day of month
 ```
+
+If the day does not exist in a month (e.g., 31 in February), the job runs on the last day instead. So `dayOfMonth: 31` effectively becomes a month-end job.
+
+### Day of Week (single — for `week_in_month` and `day_week_month_year`)
+
+```typescript
+frequency: 'week_in_month',
+weekInMonth: 2,
+dayOfWeek: 'monday',
+```
+
+Valid values: `'sunday'`, `'monday'`, `'tuesday'`, `'wednesday'`, `'thursday'`, `'friday'`, `'saturday'`
+
+### Week in Month
+
+```typescript
+frequency: 'week_in_month',
+weekInMonth: 2,       // 1=First, 2=Second, 3=Third, 4=Fourth, 5=Fifth, 6=Sixth
+dayOfWeek: 'monday',
+executionTime: { hours: 8, minutes: 0, seconds: 0 },
+```
+
+### Month of Year (for `day_and_month_in_year` and `day_week_month_year`)
+
+```typescript
+frequency: 'day_and_month_in_year',
+month: 1,             // 1–12 (January–December)
+dayOfMonth: 15,
+executionTime: { hours: 9, minutes: 0, seconds: 0 },
+```
+
+### Business Calendar
+
+```typescript
+frequency: 'business_calendar_start',
+businessCalendar: 'sys_id_of_business_calendar',
+```
+
+Both `business_calendar_start` and `business_calendar_end` require `businessCalendar`. Reference business calendar entries by sys_id from the `business_calendar` table. The platform provides standard entries for weeks, months, quarters, and years.
 
 ### Interval (periodically)
 
@@ -114,7 +159,9 @@ The `condition` script must set `answer` to `true` or `false`. The job only runs
 
 ## Script Content
 
-Provide the job logic via `script`. Always prefer `Now.include` for anything beyond trivial scripts:
+Provide the job logic via `script`. The property accepts both strings and functions (`string | (...args: any[]) => void`).
+
+**Preferred: `Now.include()` for file-based scripts:**
 
 ```typescript
 script: Now.include('./jobs/daily-cleanup.js'),
@@ -133,6 +180,22 @@ The linked `.js` file runs as a ServiceNow server-side script — full GlideReco
     gs.info('Cleanup completed: removed log records older than 30 days');
 })();
 ```
+
+**Module functions:** Unlike `Now.include()`, you can also pass a function reference from a module import. This enables IDE support and testability:
+
+```typescript
+import { runCleanup } from '../../server/scheduled-scripts/cleanup'
+
+ScheduledScript({
+    $id: Now.ID['cleanup-job'],
+    name: 'Cleanup Job',
+    frequency: 'daily',
+    executionTime: { hours: 2, minutes: 0, seconds: 0 },
+    script: runCleanup,
+})
+```
+
+> **Note:** The function pattern is supported by the type system (`string | (...args: any[]) => void`), but `Now.include()` remains the most common pattern and supports two-way sync with the instance.
 
 ---
 
@@ -156,6 +219,18 @@ Always set `runAs` when the job performs security-sensitive operations or needs 
 | `userTimeZone` | Timezone context for GlideDateTime calculations inside the script |
 
 For global instances serving multiple time zones, use `timeZone: 'UTC'` for consistency.
+
+---
+
+## Additional Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `maxDrift` | Duration | — | Maximum time the job can drift from its scheduled time before being cancelled |
+| `offset` | Duration | — | Offset duration from the scheduled time |
+| `offsetType` | `'future'` \| `'past'` | — | Direction of offset: `'future'` (run after scheduled time) or `'past'` (run before) |
+| `repeatEvery` | Number | — | For recurring trigger types, repeat only every Nth occurrence (e.g., 3 means every 3rd) |
+| `upgradeSafe` | Boolean | `false` | Whether this scheduled job should be preserved during upgrades |
 
 ---
 

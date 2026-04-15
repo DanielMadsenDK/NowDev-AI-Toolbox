@@ -37,7 +37,7 @@ Roles are fundamental to ServiceNow access control. A role grants specific permi
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `assignableBy` | String or Array | — | Other roles that can assign this role to users. Can be a role name string, role constant reference, or array of both. |
+| `assignableBy` | String | — | Other roles that can assign this role to users. A role name string. |
 | `canDelegate` | Boolean | `true` | Flag indicating if the role can be delegated to other users. When `true`, users with this role can grant it to other users. See [Delegating roles](https://docs.servicenow.com/en-US/bundle/washoe-platform-administration/concept/c_DelegatingRoles.html) for more information. |
 | `description` | String | — | A description of what the role can access and its purpose. |
 | `elevatedPrivilege` | Boolean | `false` | Flag indicating whether manually accepting responsibility of using the role is required before users can access its features. When `true`, users must explicitly accept the role before it takes effect. See [Elevated privilege roles](https://docs.servicenow.com/en-US/bundle/washoe-platform-administration/concept/c_ElevatedPrivilegeRoles.html) for more information. |

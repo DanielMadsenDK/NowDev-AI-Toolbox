@@ -3,15 +3,185 @@
 ## now-sdk Commands
 
 ```bash
-now-sdk transform --auth <alias>     # Sync remote metadata locally (before editing)
-now-sdk dependencies --auth <alias>  # Download types to @types/servicenow/
-now-sdk build                        # Compile to dist/app/
-now-sdk install --auth <alias>       # Deploy (--reinstall removes non-package metadata)
+now-sdk init                           # Scaffold a new project (one-time)
+now-sdk auth --add <url> --type basic  # Add instance credentials
+now-sdk dependencies --auth <alias>    # Download types to @types/servicenow/
+now-sdk build                          # Compile to dist/app/
+now-sdk install --auth <alias>         # Deploy (--reinstall removes non-package metadata)
+now-sdk transform --from .             # Convert XML metadata to fluent source
+now-sdk download --auth <alias>        # Download records or update sets from instance
+now-sdk clean                          # Remove build output and cached artifacts
+now-sdk pack                           # Package app into update set XML
 ```
 
 Use `--auth <alias>` only when multiple auth aliases are configured; otherwise omit it.
 
 `src/fluent/generated/keys.ts` tracks `$id` values for update vs create detection.
+
+### CLI Reference
+
+| Command | Purpose |
+|---------|---------|
+| `init` | Scaffold a new project. Flags: `--appName`, `--packageName`, `--scopeName`, `--template`, `--from`. |
+| `auth` | Authenticate. `--add <url> --type basic\|oauth` to add, `--list` to check, `--use <alias>` to set default. |
+| `build` | Compile fluent source files. Validates syntax and reports errors. |
+| `install` | Push built artifacts to the instance. Requires prior `auth`. |
+| `transform` | Convert XML metadata files into fluent `.now.ts` source files. |
+| `download` | Download specific records or update sets from an instance. |
+| `dependencies` | Fetch TypeScript type definitions for platform APIs. |
+| `clean` | Remove build output and cached artifacts. |
+| `pack` | Package the app into an update set XML. |
+
+---
+
+## Development Workflow
+
+1. **`init`** — Scaffold the project (one-time).
+2. **`npm install`** — Install SDK and dependencies (one-time).
+3. **`auth`** — Authenticate against your instance (or verify existing auth with `--list`).
+4. **Write fluent** — Create `.now.ts` files under `src/fluent/`. Write server scripts in `src/server/`.
+5. **`build`** — Compile and validate fluent definitions.
+6. **`install`** — Install compiled artifacts on the instance.
+7. **Iterate** — Repeat steps 4–6.
+
+For brownfield projects, use `transform` to pull instance artifacts into fluent source first.
+
+---
+
+## Project Initialization (init)
+
+### Non-Interactive (Recommended for Agents)
+
+```bash
+npx @servicenow/sdk init \
+  --appName "My App" \
+  --packageName "my-app" \
+  --scopeName "x_my_app" \
+  --template "base"
+```
+
+> **Important:** Scope name must be formatted as `x_<company_code>_<app_name>` (without maint access). The company code is found under sys_property `glide.appcreator.company.code`.
+
+> `init` creates files in the current working directory. It does not create a subdirectory.
+
+After scaffolding:
+
+```bash
+npm install
+```
+
+### Interactive
+
+```bash
+npx @servicenow/sdk init
+```
+
+Prompts for app scope, name, and target instance. Run `npm install` after completion.
+
+### Project Structure
+
+```
+src/
+  fluent/
+    index.now.ts           # Main fluent entry point
+    example.now.ts         # Example fluent definition
+    tsconfig.json          # Fluent TypeScript config
+  server/
+    script.ts              # Example server-side script
+    tsconfig.json          # Server TypeScript config
+now.config.json            # App metadata: scope, scopeId, name
+package.json
+```
+
+Organize artifacts by type using kebab-case naming:
+
+```
+src/fluent/
+  business-rules/
+    my-rule.now.ts
+  client-scripts/
+    my-script.now.ts
+```
+
+---
+
+## Authentication (auth)
+
+### Check Existing Credentials
+
+```bash
+npx now-sdk auth --list
+```
+
+### Add Credentials (Interactive)
+
+```bash
+npx now-sdk auth --add <instance-url> --type <basic|oauth>
+```
+
+- **`basic`**: Username and password. Suitable for local development and PDIs.
+- **`oauth`**: OAuth-based. Suitable for enterprise instances.
+
+Prompts for alias, username, and password. Credentials stored in `.now-sdk/` (gitignored).
+
+### Set Default
+
+```bash
+npx now-sdk auth --use <alias>
+```
+
+### Non-Interactive (CI/CD)
+
+```bash
+export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
+export SN_SDK_USER=admin
+export SN_SDK_USER_PWD=password
+```
+
+Environment variables take precedence over stored credentials.
+
+---
+
+## Converting Existing Applications
+
+### From an Instance
+
+Convert a scoped application already installed on an instance:
+
+```bash
+npx @servicenow/sdk init --from <sys_id_of_application>
+```
+
+Use `--auth <alias>` to specify which instance credentials to use. Without it, the default alias is used. Run `npm install` after.
+
+### From an Existing Repository
+
+If the app already has a git repo with XML metadata:
+
+```bash
+npx @servicenow/sdk init --from <path_to_repo>
+```
+
+Existing metadata XML and supporting files are placed inside the `metadata` folder, and fluent configuration files are added alongside them.
+
+### Converting XML to Fluent (transform)
+
+After initializing from an instance or repo, metadata will be in `metadata/` in XML form. Use `transform` to convert to fluent code:
+
+```bash
+# Transform a single file
+npx @servicenow/sdk transform --from metadata/update/sys_script_<sys_id>.xml
+
+# Transform the whole app at once
+npx @servicenow/sdk transform --from .
+
+# Transform a specific directory
+npx @servicenow/sdk transform --from metadata/update
+```
+
+Transformed files are scaffolded into the generated directory (configurable in `now.config.json`) and removed from `metadata` upon successful conversion.
+
+> **Note:** Records that exist as both a fluent entity (`.now.ts` file) and an XML file in `metadata` will use the XML version on `build`. Remove converted XML files to avoid conflicts.
 
 ---
 

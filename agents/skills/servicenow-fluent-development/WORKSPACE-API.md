@@ -19,6 +19,18 @@ The Workspace API defines configurable workspace experiences for organizing and 
 
 ---
 
+## Build Order
+
+When building a complete workspace with navigation and a dashboard, create components in this order:
+
+1. **Role** and **Applicability** — referenced by UxListMenuConfig lists and dashboard permissions
+2. **UxListMenuConfig** — must be created before the Workspace that references it
+3. **Workspace** — references `listConfig`; provides the path used by ACLs and dashboard visibilities
+4. **Dashboard** — references the Workspace via `visibilities`; must be created after the Workspace
+5. **Acl** — secures the workspace route with `field: '{path}.*'`
+
+---
+
 ## Workspace Object
 
 Create a workspace for managing business entities in a single focused working area that enables users to complete an entire job.
@@ -341,6 +353,188 @@ const adminApplicability = Applicability({
     description: 'Restricts visibility to admin users',
     active: true,
     roles: ['admin'],
+});
+```
+
+---
+
+## Dashboard Object
+
+Create a Dashboard (`par_dashboard`) as the landing page for a workspace. Dashboards are organized into tabs containing widgets positioned on a 48-point grid. A dashboard is **mandatory** for the workspace to function correctly.
+
+### Properties
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `$id` | String or Number | Yes | A unique ID for the metadata object. Format: `Now.ID['String' or Number]` |
+| `name` | String | Yes | Display name of the dashboard. |
+| `tabs` | Array | Yes | Array of tabs. See [DashboardTab](#dashboardtab). |
+| `visibilities` | Array | Yes | Links the dashboard to workspaces. See [DashboardVisibility](#dashboardvisibility). |
+| `permissions` | Array | Yes | Access control entries (can be an empty array). See [DashboardPermission](#dashboardpermission). |
+| `active` | Boolean | No | Whether the dashboard is active. Default: `true` |
+| `topLayout` | Object | No | Array of top-level widgets displayed outside of tabs. Contains a `widgets` array of DashboardWidget objects. |
+| `$meta` | Object | No | Metadata for installation behavior. `installMethod: 'demo'` or `'first install'`. |
+
+### DashboardTab
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `$id` | String or Number | Yes | Unique identifier for the tab. |
+| `name` | String | Yes | Display name of the tab. |
+| `widgets` | Array | Yes | Array of DashboardWidget objects. |
+| `active` | Boolean | No | Whether the tab is visible. Default: `true` |
+
+### DashboardWidget
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `$id` | String or Number | Yes | Unique identifier for the widget. |
+| `component` | String | Yes | Visualization type in kebab-case (`'single-score'`, `'vertical-bar'`, `'line'`, `'donut'`, `'pie'`, `'area'`, `'horizontal-bar'`, `'dial'`, `'heading'`, `'rich-text'`, `'image'`) or a component sys_id. |
+| `componentProps` | Object | Yes | Component configuration (varies by component type). |
+| `height` | Number | Yes | Height in grid units. |
+| `width` | Number | Yes | Width in grid units. |
+| `position` | Object | Yes | Grid position: `{ x: number, y: number }` (0-based). |
+
+### Grid Layout System
+
+Dashboards use a **48-point grid**. Common layouts:
+
+- **Full width**: `{ width: 48, position: { x: 0, y: 0 } }`
+- **Three columns**: widths 14, 17, 17 at x positions 0, 14, 31
+
+### Widget Component Types
+
+**Visualizations:**
+
+| Component | Description | Data Type |
+|-----------|-------------|----------|
+| `single-score` | Single metric display | Simple |
+| `vertical-bar` | Vertical bar chart | Group |
+| `horizontal-bar` | Horizontal bar chart | Group |
+| `line` | Line chart | Trend |
+| `donut` | Donut chart | Group |
+| `pie` | Pie chart | Group |
+| `area` | Area chart | Trend |
+| `dial` | Dial gauge | Simple |
+
+**Supporting widgets:** `heading`, `rich-text`, `image`.
+
+### Data Type Requirements
+
+- **Simple** (`single-score`, `dial`): requires `dataSources` and `metrics` only.
+- **Group** (`vertical-bar`, `horizontal-bar`, `donut`, `pie`): requires `dataSources`, `metrics`, and `groupBy`.
+- **Trend** (`line`, `area`): requires `dataSources`, `metrics`, and `trendBy`.
+
+### DashboardVisibility
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `$id` | String or Number | Yes | Unique identifier. |
+| `experience` | String or Workspace | Yes | Reference to a workspace — a sys_id string or a `Workspace` variable reference to `sys_ux_page_registry`. |
+
+### DashboardPermission
+
+Each permission uses a discriminated union — exactly one of `user`, `group`, or `role` must be set:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `$id` | String or Number | Yes | Unique identifier. |
+| `user` | String or Record | No | Grant permission to a specific user (mutually exclusive with group/role). |
+| `group` | String or Record | No | Grant permission to a user group (mutually exclusive with user/role). |
+| `role` | String or Record | No | Grant permission to a role (mutually exclusive with user/group). |
+| `canRead` | Boolean | No | Whether the subject can view the dashboard. Default: `true` |
+| `canWrite` | Boolean | No | Whether the subject can edit the dashboard. Default: `false` |
+| `canShare` | Boolean | No | Whether the subject can share the dashboard. Default: `false` |
+| `owner` | Boolean | No | Whether the subject is an owner. Default: `false` |
+
+### Dashboard Example
+
+```ts
+import { Dashboard } from '@servicenow/sdk/core';
+
+Dashboard({
+  $id: Now.ID['incident_dashboard'],
+  name: 'Incident Dashboard',
+  tabs: [{
+    $id: Now.ID['overview_tab'],
+    name: 'Overview',
+    widgets: [
+      {
+        $id: Now.ID['open_incidents_widget'],
+        component: 'single-score',
+        componentProps: {
+          dataSources: [{
+            label: 'Incident', sourceType: 'table',
+            tableOrViewName: 'incident', filterQuery: '',
+            id: 'data_source_1',
+          }],
+          headerTitle: 'Open Incidents',
+          metrics: [{
+            dataSource: 'data_source_1', id: 'metric_1',
+            aggregateFunction: 'COUNT', axisId: 'primary',
+          }],
+        },
+        height: 14, width: 14, position: { x: 0, y: 0 },
+      },
+      {
+        $id: Now.ID['incidents_by_priority_widget'],
+        component: 'vertical-bar',
+        componentProps: {
+          dataSources: [{
+            label: 'Incident', sourceType: 'table',
+            tableOrViewName: 'incident', filterQuery: '',
+            id: 'data_source_1',
+          }],
+          headerTitle: 'Incidents by Priority',
+          metrics: [{
+            dataSource: 'data_source_1', id: 'metric_1',
+            aggregateFunction: 'COUNT', axisId: 'primary',
+          }],
+          groupBy: [{
+            groupBy: [{ dataSource: 'data_source_1', groupByField: 'priority' }],
+            maxNumberOfGroups: 10, showOthers: false,
+          }],
+          sortBy: 'value',
+        },
+        height: 14, width: 17, position: { x: 14, y: 0 },
+      },
+    ],
+  }],
+  visibilities: [{
+    $id: Now.ID['dashboard_visibility'],
+    experience: assetWorkspace,  // Workspace variable reference
+  }],
+  permissions: [],
+});
+```
+
+### Dashboard with Permissions
+
+```ts
+import { Dashboard } from '@servicenow/sdk/core';
+
+Dashboard({
+  $id: Now.ID['secure-dashboard'],
+  name: 'Secure Dashboard',
+  tabs: [],
+  visibilities: [],
+  permissions: [
+    {
+      $id: Now.ID['user-permission'],
+      canRead: true, canShare: true, canWrite: true, owner: true,
+      user: Now.ref('sys_user', { sys_id: '6816f79cc0a8016401c5a33be04be441' }),
+    },
+    {
+      $id: Now.ID['group-permission'],
+      group: Now.ref('sys_user_group', { sys_id: 'abc123def456group' }),
+      canRead: true, canWrite: false, canShare: false, owner: false,
+    },
+    {
+      $id: Now.ID['role-permission'],
+      role: Now.ref('sys_user_role', { sys_id: 'xyz789abc012role' }),
+      canRead: true, canWrite: true, canShare: false, owner: false,
+    },
+  ],
 });
 ```
 

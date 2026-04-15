@@ -6,6 +6,8 @@ description: Execute custom scripts and logic within Flow Designer and Integrati
 
 # Flow Designer Scripting
 
+> **Scope:** This skill covers **Classic FlowAPI** execution \u2014 running flows, subflows, and actions programmatically from server-side scripts using `sn_fd.FlowAPI`. For the **Fluent SDK** `wfa` automation API (declarative `Flow()`, `wfa.trigger()`, `wfa.action()`), see [servicenow-fluent-development/FLOW-API.md](../servicenow-fluent-development/FLOW-API.md).
+
 ## Quick start
 
 **Execute flows programmatically**:

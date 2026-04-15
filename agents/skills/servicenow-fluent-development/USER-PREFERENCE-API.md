@@ -52,8 +52,12 @@ The `type` property uses the same values as the `Property` API's type field:
 | `'choicelist'` | One of a predefined set of values |
 | `'color'` | Hex color code |
 | `'date_format'` | Date formatting pattern |
+| `'time_format'` | Time formatting pattern |
 | `'image'` | Image reference |
+| `'uploaded_image'` | Uploaded image reference |
 | `'password'` | Masked text value |
+| `'password2'` | Masked text value (alternate) |
+| `'short_string'` | Short text (40 chars) |
 | `'timezone'` | Timezone string |
 
 ---

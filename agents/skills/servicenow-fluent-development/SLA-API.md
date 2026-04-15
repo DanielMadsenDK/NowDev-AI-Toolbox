@@ -13,7 +13,7 @@ Creates a `contract_sla` record that controls the timing, conditions, workflows,
 | Property | Type | Description |
 |----------|------|-------------|
 | `$id` | String or Number | **Required.** A unique ID for the metadata object. When you build the application, this ID is hashed into a unique sys_id. Format: `Now.ID['String' or Number]` |
-| `name` | String | **Required.** A name for the SLA definition. |
+| `name` | String | A name for the SLA definition. |
 | `table` | String | The name of the table to which the SLA applies. Default: `incident` |
 | `type` | String | The type of service level agreement. The type is used for reporting purposes only. Valid values: `'SLA'` (service level agreement between service provider and external customer), `'OLA'` (operational level agreement between internal teams), `'Underpinning contract'` (contract with external vendor). Default: `'SLA'` |
 | `active` | Boolean | Flag that indicates whether the SLA definition is active and can be matched against task records. Default: `true` |
@@ -56,7 +56,7 @@ Controls whether the SLA start time is set to a point in the past based on a spe
 | Property | Type | Description |
 |----------|------|-------------|
 | `start` | Boolean | Flag that indicates whether retroactive start is enabled. When enabled, the SLA start time is set to the value of the field specified in `setStartTo` rather than the time when the start condition was first met. Default: `false` |
-| `setStartTo` | String | The field on the task record whose value is used as the SLA start time when retroactive start is enabled. **Required if `start` is `true`.** Valid values: `'work_end'` (actual end), `'work_start'` (actual start), `'approval_set'` (approvals set), `'closed_at'` (closed), `'sys_created_on'` (created), `'due_date'` (due date), `'expected_start'` (expected start), `'follow_up'` (follow up). |
+| `setStartTo` | String | The field on the task record whose value is used as the SLA start time when retroactive start is enabled. **Required if `start` is `true`.** Valid values: `'work_end'` (actual end), `'work_start'` (actual start), `'approval_set'` (approvals set), `'closed_at'` (closed), `'sys_created_on'` (created), `'due_date'` (due date), `'expected_start'` (expected start), `'follow_up'` (follow up), `'opened_at'` (opened), `'resolved_at'` (resolved), `'reopened_time'` (last reopened at), `'sys_updated_on'` (last updated). |
 | `pause` | Boolean | Flag that indicates whether retroactive pause is enabled when retroactive start is active. When enabled, any time that the task was in a paused state before the SLA was attached is subtracted from the elapsed time. Default: `true` |
 
 ## conditions Object

@@ -22,6 +22,31 @@ To create an import set in ServiceNow Fluent code, you must define the required 
 2. **Data Source** (`sys_data_source`) — Defines the connection to external systems (files, databases, APIs) and how to load data into import staging tables
 3. **Transform Map** (`sys_import_set_map`) — Defines how to transform data from staging to target table
 
+All three components **must** use the exact same staging table name. The Data Source references it in `import_set_table_name` and the Transform Map references it in `sourceTable`.
+
+### Format-Specific Mandatory Fields
+
+Before generating data source code, collect format-specific mandatory fields:
+
+| Format | Mandatory Field | Example |
+|--------|-----------------|---------|
+| **XML** | `xpath_root_node` | `//product`, `/root/items/item` |
+| **JSON** | `jpath_root_node` | `$.employees[*]`, `$.data.records` |
+| **JDBC** | `table_name` or `sql_statement` | `'task'`, `'SELECT * FROM employees'` |
+| **LDAP** | Complete LDAP chain (server → OU → data source) | See [LDAP Data Sources](#ldap-data-sources) |
+| **REST** | `request_action` referencing an Integration Hub action | |
+| **CSV/Excel** | None format-specific | |
+
+> **Do not generate XML/JSON data source code without the root node path** — the data source will deploy but fail to import data.
+
+### Password Handling
+
+Pre-populate all configuration fields (hostnames, ports, usernames, database names) with provided values. Leave password fields empty (`''`) with a `// LEAVE EMPTY` comment — passwords are set manually in ServiceNow after deployment.
+
+### LDAP Data Sources
+
+LDAP imports require a chain of records: `ldap_server_config` → `ldap_ou_config` (references server) → optionally `ldap_server_url` (references server) → `sys_data_source` (references OU via `ldap_target`). Use record object references (not hardcoded sys_id strings) for LDAP cross-table references.
+
 ### Key Restrictions
 
 - **NULL is a reserved word** (all capitals) and should NOT be used as a field value in import set transform maps or in First name/Last name fields
@@ -421,3 +446,113 @@ export const userImportSet = ImportSet({
 - **Table API**: Define staging tables that extend `sys_import_set_row` — See [API-REFERENCE.md](./API-REFERENCE.md)
 - **Record API**: Define data sources — See [API-REFERENCE.md](./API-REFERENCE.md)
 - **Import Sets Documentation**: General import set concepts and UI operations
+
+---
+
+## Additional Data Source Examples
+
+### LDAP Data Source (Complete Chain)
+
+```ts
+import '@servicenow/sdk/global'
+import { Record } from '@servicenow/sdk/core'
+
+// Step 1: LDAP Server Configuration
+export const ldapServer = Record({
+    $id: Now.ID['users_ldap_server'],
+    table: 'ldap_server_config',
+    data: {
+        name: 'users_ldap_server',
+        server_url: 'ldap://ldap.company.com',
+        port: 389,
+        dn: 'cn=admin,dc=company,dc=com',
+        rdn: '',
+        password: '', // LEAVE EMPTY - set manually in ServiceNow
+        active: true,
+        ssl: false,
+        authenticate: true,
+        paging: true,
+        vendor: 'openldap',
+    },
+})
+
+// Step 2: LDAP OU Configuration
+export const ldapOU = Record({
+    $id: Now.ID['users_ou'],
+    table: 'ldap_ou_config',
+    data: {
+        name: 'users_ou',
+        ou: 'ou=users,dc=company,dc=com',
+        filter: '(uid=e*)',
+        server: ldapServer, // Reference to record object, NOT sys_id string
+        active: true,
+    },
+})
+
+// Step 3: LDAP Data Source
+export const ldapDataSource = Record({
+    $id: Now.ID['users_datasource'],
+    table: 'sys_data_source',
+    data: {
+        name: 'users_datasource',
+        type: 'LDAP',
+        import_set_table_name: 'u_users_import',
+        import_set_table_label: 'Users Import',
+        ldap_target: ldapOU, // Reference to OU config
+        batch_size: 100,
+        active: true,
+    },
+})
+```
+
+### XML File Data Source
+
+```ts
+import '@servicenow/sdk/global'
+import { Record } from '@servicenow/sdk/core'
+
+export const xmlDataSource = Record({
+    $id: Now.ID['xml-product-import'],
+    table: 'sys_data_source',
+    data: {
+        name: 'Product XML Import',
+        type: 'File',
+        format: 'XML',
+        file_retrieval_method: 'Attachment',
+        // MANDATORY for XML format:
+        xpath_root_node: '/products/product',
+        expand_node_children: true,
+        import_set_table_name: 'u_product_import',
+        import_set_table_label: 'Product Import',
+        batch_size: 100,
+        active: true,
+    },
+})
+```
+
+### JDBC Data Source (MySQL/MariaDB)
+
+```ts
+import '@servicenow/sdk/global'
+import { Record } from '@servicenow/sdk/core'
+
+export const databaseDataSource = Record({
+    $id: Now.ID['test-jdbc'],
+    table: 'sys_data_source',
+    data: {
+        name: 'Test JDBC',
+        type: 'JDBC',
+        format: 'org.mariadb.jdbc.Driver',
+        database_name: 'my_database',
+        database_port: '3306',
+        jdbc_server: 'localhost',
+        jdbc_user_name: '',
+        jdbc_password: '', // LEAVE EMPTY - set manually in ServiceNow
+        table_name: 'task',
+        import_set_table_name: 'u_jdbc_staging',
+        import_set_table_label: 'JDBC Staging',
+        batch_size: 1000,
+        active: true,
+    },
+})
+```

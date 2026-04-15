@@ -45,6 +45,7 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - SLAs (duration, schedule, conditions, retroactive, timezone) → SLA-API.md
   - Scheduled Scripts (frequency, conditional execution, run-as, timezone) → SCHEDULED-SCRIPT-API.md
   - Advanced patterns (Record() seed data, Now.ref, server-side logging, helpers) → ADVANCED-PATTERNS.md
+  - Module pattern for script linking (preferred for function-accepting APIs) → MODULE-GUIDE.md
   - Client-server communication patterns (GlideAjax setup, server methods) → CLIENT-SERVER-PATTERNS.md
 
 If Context7 is available:
@@ -83,7 +84,8 @@ When multiple artifacts are needed:
 ## Script Content Rules
 
 Scripts inside Fluent objects are **ServiceNow JavaScript**, not TypeScript:
-- Use `Now.include('./file.js')` to link external `.server.js` files (enables two-way sync)
+- **Module pattern preferred** for `BusinessRule`, `ScriptAction`, `RestApi`, and `ScheduledScript` — these APIs accept functions, so use `Now.module('./file.js')` to get type-safe linking with automatic parameter injection. See MODULE-GUIDE.md.
+- Use `Now.include('./file.js')` only for string-only APIs (ClientScript, UiPolicy, etc.) or when the module pattern is not supported
 - Business Rules: `current.update()` and `current.insert()` are **forbidden** in scripts
 - Script Includes: `Class.create()` pattern required for client-callable (GlideAjax) includes
 - Always wrap logic in try-catch

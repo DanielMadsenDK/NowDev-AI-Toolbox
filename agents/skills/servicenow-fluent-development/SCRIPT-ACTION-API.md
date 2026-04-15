@@ -35,6 +35,17 @@ The Script Action API defines script actions (`[sysevent_script_action]`) that r
 
 ### Property Details
 
+**Script Execution Context:**
+
+Two additional global objects are available inside the script at runtime:
+
+| Object | Type | Description |
+|--------|------|-------------|
+| `event` | GlideRecord | The `sysevent` record that triggered this script action. Access parameters via `event.parm1`, `event.parm2`. Access timestamp via `event.sys_created_on`. Access the triggering user via `event.user_id`. |
+| `current` | GlideRecord | The record the event was fired on behalf of (e.g., the incident record). |
+
+> **Note:** `event` and `current` are available as globals in inline scripts. For imported module functions, pass them explicitly or use separate GlideRecord queries.
+
 **`script` Property Format:**
 
 Script actions support three content delivery methods:

@@ -171,45 +171,357 @@ Record({
 
 ---
 
-## Now.ref — Cross-Application References
+## Now.ref — Cross-Record References
 
-Use `Now.ref()` to reference records from OTHER applications (not in your current source code). This creates a reference to an existing record by either coalesce keys or sys_id.
+Use `Now.ref()` to create a reference to a record in another table. Use it when a field needs to point to a record that isn't defined in the current file — for example, referencing a role, a flow, or any record identified by its sys_id or coalesce keys.
+
+### Syntax
+
+```ts
+// By coalesce keys — identifies the record by unique field values
+Now.ref(table: string, keys: { [key: string]: string }): any
+
+// By sys_id or Now.ID key — identifies the record by GUID
+Now.ref(table: string, guid: string, keys?: { [key: string]: string }): any
+```
+
+### Reference by coalesce keys
+
+When you know the unique field values that identify a record:
+
+```ts
+import { Acl } from '@servicenow/sdk/core'
+
+Acl({
+  $id: Now.ID['incident-read-acl'],
+  type: 'record',
+  operation: 'read',
+  table: 'incident',
+  roles: [
+    Now.ref('sys_user_role', { name: 'admin' }),
+    Now.ref('sys_user_role', { name: 'itil' }),
+  ],
+})
+```
+
+### Reference by sys_id
+
+When you have the record's sys_id:
 
 ```ts
 import { Record } from '@servicenow/sdk/core'
 
-// Reference by coalesce keys (preferred — install-agnostic)
 Record({
-  $id: Now.ID['my_flow'],
-  table: 'sys_hub_flow',
+  $id: Now.ID['my-catalog-item'],
+  table: 'sc_cat_item',
   data: {
-    run_as: Now.ref('sys_user_role', { name: 'admin' }),
-  },
-})
-
-// Reference by sys_id (use when you have a known, stable sys_id)
-Record({
-  $id: Now.ID['my_sla'],
-  table: 'contract_sla',
-  data: {
-    workflow: Now.ref('wf_workflow', 'a1b2c3d4e5f6...'),
-    flow: Now.ref('sys_hub_flow', 'my-flow-name'),
-  },
-})
-
-// Reference with sys_id + coalesce fallback
-Record({
-  $id: Now.ID['my_record'],
-  table: 'incident',
-  data: {
-    category: Now.ref('sc_category', 'known-sys-id', { name: 'Hardware' }),
+    name: 'Request Laptop',
+    flow: Now.ref('sys_hub_flow', 'a1b2c3d4e5f67890abcdef1234567890'),
   },
 })
 ```
 
-**When to use `Now.ref` vs `$id`:**
-- `Now.ref()` — for records in OTHER apps or system records (roles, flows, categories, users)
-- `constant.$id` — for records YOU define in the SAME project (always prefer this)
+### Reference by Now.ID key
+
+If the target record is also defined in your Fluent project, you can use its `Now.ID` key as the guid:
+
+```ts
+import { Record } from '@servicenow/sdk/core'
+
+Record({
+  $id: Now.ID['my-catalog-item'],
+  table: 'sc_cat_item',
+  data: {
+    name: 'Request Laptop',
+    flow: Now.ref('sys_hub_flow', 'test_flow_for_service_catalog'),
+  },
+})
+```
+
+### Reference with fallback coalesce keys
+
+Provide both a GUID and coalesce keys — the keys act as a fallback identifier:
+
+```ts
+Now.ref('sys_hub_flow', 'a1b2c3d4...', { name: 'My Flow' })
+```
+
+### When to use Now.ref vs direct references
+
+| Scenario | Use |
+|----------|-----|
+| Record defined in same project | Return value of the API function (e.g., `const role = Role({...})`) |
+| Record on the instance, known sys_id | `Now.ref('table', 'sys_id')` |
+| Record on the instance, known unique fields | `Now.ref('table', { field: 'value' })` |
+| Record in same project, different file | `Now.ID['key-name']` or `Now.ref('table', 'key-name')` |
+
+---
+
+## Now.attach — Image Attachments
+
+`Now.attach()` attaches an image file to a record at build time. It reads the file, compresses it, and creates the corresponding `sys_attachment` and `sys_attachment_doc` records in the XML output.
+
+### Syntax
+
+```ts
+Now.attach(path: ImagePath): Image
+```
+
+The file path is **relative to the `.now.ts` file** that contains the call.
+
+### Supported image formats
+
+| Extension | Format |
+|-----------|--------|
+| `.jpg`, `.jpeg` | JPEG |
+| `.png` | PNG |
+| `.gif` | GIF |
+| `.bmp` | Bitmap |
+| `.ico` | Icon |
+| `.svg` | SVG |
+
+Both lowercase and uppercase extensions are accepted (e.g., `.PNG`, `.JPG`).
+
+### How it works
+
+1. The SDK reads the image file from disk
+2. Compresses the file data using gzip
+3. Splits the compressed data into base64-encoded chunks
+4. Generates a SHA-256 hash for deduplication
+5. Creates `sys_attachment` and `sys_attachment_doc` records linked to the parent record
+
+### Examples
+
+```ts
+import { Record } from '@servicenow/sdk/core'
+
+// Portal with a logo
+Record({
+  $id: Now.ID['my-portal'],
+  table: 'sp_portal',
+  data: {
+    title: 'My Portal',
+    icon: Now.attach('../../assets/portal-icon.png'),
+  },
+})
+
+// Reuse the same image across multiple fields (avoids re-reading/compressing)
+const logo = Now.attach('../../assets/company-logo.jpg')
+
+Record({
+  $id: Now.ID['portal-a'],
+  table: 'sp_portal',
+  data: {
+    title: 'Portal A',
+    icon: logo,
+    logo: logo,
+  },
+})
+
+// Share an image across multiple records
+const icon = Now.attach('../../assets/app-icon.png')
+
+Record({
+  $id: Now.ID['portal-one'],
+  table: 'sp_portal',
+  data: { title: 'Portal One', icon: icon },
+})
+
+Record({
+  $id: Now.ID['portal-two'],
+  table: 'sp_portal',
+  data: { title: 'Portal Two', icon: icon },
+})
+```
+
+### File organization
+
+Keep image assets in an `assets/` directory at the project root:
+
+```
+src/
+├── fluent/
+│   ├── portal.now.ts        ← Now.attach('../../assets/logo.png')
+│   └── generated/
+│       └── keys.ts
+├── assets/
+│   ├── logo.png
+│   ├── favicon.ico
+│   └── banner.jpg
+└── now.config.json
+```
+
+---
+
+## Now.include — File Content Inlining
+
+`Now.include()` populates a record field with the contents of a file at build time. It reads the file and inlines its text into the XML output, keeping source files separate for IDE support (syntax highlighting, IntelliSense, linting).
+
+**Where an API supports it, use JavaScript modules instead for server-side scripts.** Modules support `import`/`export`, provide access to typed Glide APIs, and enable code reuse. `Now.include()` is always the right choice for **client-side scripts**, **HTML**, and **CSS**, and is also required for server-side APIs whose `script` property only accepts strings.
+
+### When to use Now.include() vs modules
+
+Not all APIs accept module imports. Some `script` properties are typed as `string` only — attempting to pass a module import will produce a compiler or build error. When that happens, use `Now.include()`.
+
+| Content type | Recommended approach |
+|---|---|
+| Business rules, scripted REST routes, script actions, UI actions, scheduled scripts | **Modules** — these APIs accept function types |
+| Record producer scripts (`script`, `postInsertScript`) | **Modules** — these APIs accept function types |
+| Script includes | **Now.include()** — these APIs only accept strings |
+| Client-side scripts (client scripts, catalog client scripts, UI policy scripts) | **Now.include()** — modules are not available in the browser |
+| HTML templates (UI Pages, widgets) | **Now.include()** |
+| CSS / SCSS (widgets, UI Pages) | **Now.include()** |
+| Record API data fields | **Now.include()** — Record data values are strings |
+| Any API where a module import causes a compiler/build error | **Now.include()** — fall back when the API doesn't support functions |
+
+### Syntax
+
+```ts
+Now.include(filePath: string): string
+```
+
+The file path is **relative to the `.now.ts` file** that contains the call.
+
+### Supported file types
+
+| Type | Common extensions | Use case |
+|------|------------------|----------|
+| JavaScript | `.js`, `.client.js` | Client scripts, UI policy scripts, catalog client scripts |
+| HTML | `.html` | UI Page HTML, widget templates |
+| CSS/SCSS | `.css`, `.scss` | Widget styles, UI Page styles |
+
+### Examples
+
+**Client Script with external file:**
+
+```ts
+import { ClientScript } from '@servicenow/sdk/core'
+
+ClientScript({
+  $id: Now.ID['validate-form'],
+  name: 'Validate Form',
+  table: 'incident',
+  type: 'onSubmit',
+  script: Now.include('../../client/validate-form.client.js'),
+})
+```
+
+**UI Page with HTML, client script, and processing script:**
+
+```ts
+import { UiPage } from '@servicenow/sdk/core'
+
+UiPage({
+  $id: Now.ID['my-ui-page'],
+  endpoint: 'my_custom_page.do',
+  html: Now.include('../../server/UiPage/my-page.html'),
+  clientScript: Now.include('../../server/UiPage/my-page.client-script.client.js'),
+  processingScript: Now.include('../../server/UiPage/my-page.processing-script.server.js'),
+})
+```
+
+**Service Portal Widget:**
+
+Widgets use `Now.include()` for client scripts, HTML, and CSS. Server scripts in widgets also use `Now.include()` because the widget server script runtime does not support modules.
+
+```ts
+import { SPWidget } from '@servicenow/sdk/core'
+
+SPWidget({
+  $id: Now.ID['my-widget'],
+  name: 'My Custom Widget',
+  clientScript: Now.include('../../server/SPWidget/my-widget.client.js'),
+  serverScript: Now.include('../../server/SPWidget/my-widget.server.js'),
+  htmlTemplate: Now.include('../../server/SPWidget/my-widget.html'),
+  customCss: Now.include('../../server/SPWidget/my-widget.scss'),
+})
+```
+
+**Record with HTML content:**
+
+```ts
+import { Record } from '@servicenow/sdk/core'
+
+Record({
+  $id: Now.ID['my-record'],
+  table: 'x_my_table',
+  data: {
+    name: 'My Record',
+    description_html: Now.include('./html/description.html'),
+  },
+})
+```
+
+**Inline alternative** — for very short client scripts, use inline strings instead:
+
+```ts
+ClientScript({
+  $id: Now.ID['simple-onload'],
+  name: 'Welcome Message',
+  table: 'incident',
+  type: 'onLoad',
+  script: `function onLoad() {
+      g_form.addInfoMessage('Welcome!');
+  }`,
+})
+```
+
+---
+
+## The keys.ts File and Now.ID
+
+Every Fluent project has an auto-generated `keys.ts` file that maps human-readable identifiers to ServiceNow sys_ids. It's the registry that makes `Now.ID['my-record']` work.
+
+### Location
+
+```
+src/fluent/generated/keys.ts
+```
+
+This file is **auto-generated by the build system** — you should not normally need to edit it by hand.
+
+### Purpose
+
+ServiceNow identifies every record by a 32-character sys_id. Working with raw sys_ids in source code is error-prone and unreadable. The keys file maps meaningful names to sys_ids:
+
+```ts
+$id: Now.ID['validate-on-insert']  // readable
+// resolves to sys_id: '4103297d12554b488d489c0bf1ceff19'
+```
+
+### Key types
+
+**Explicit keys** — direct mappings from a developer-chosen name to a table and sys_id. Created when you use `$id: Now.ID['some-name']`.
+
+- You choose the key name — it can be any string
+- The sys_id is auto-generated on first build and stable thereafter
+- IDE autocomplete suggests existing keys when you type `Now.ID['`
+
+**Composite keys** — for records identified by a combination of field values (coalesce keys) rather than a single name. Auto-generated for child/descendant records like table columns, documentation entries, and choice values. You don't interact with composite keys directly.
+
+**Deleted keys** — tracks records removed from the project. Prevents sys_id reuse and enables clean uninstall.
+
+### How Now.ID works
+
+**First build (key is new):**
+
+1. Build system sees the key is not in keys.ts
+2. Generates a new sys_id
+3. Adds the entry to keys.ts
+4. Uses that sys_id in the XML output
+
+**Subsequent builds (key exists):**
+
+1. Looks up the key in keys.ts
+2. Finds the existing sys_id
+3. Uses the **same** sys_id — ensuring the record is updated, not duplicated
+
+### Best practices
+
+- **Don't edit keys.ts manually** unless you need to fix a specific mapping
+- **Do commit keys.ts to version control** — it's the source of truth for record identity
+- **Use meaningful key names** — `'validate-priority-on-insert'` is better than `'1'`
+- **Don't worry about composite keys** — they're fully automatic
 
 ---
 
@@ -272,61 +584,153 @@ export const myList = List({
 
 ---
 
-## Global Helper Functions
+## Data Helper Functions
 
-These global functions are available in `.now.ts` files for creating properly-typed data values:
+Fluent provides global helper functions for creating typed values in `Record()` data fields. These functions are available globally — no import needed.
 
 ### Duration()
 
-Create a duration value for `DurationColumn` fields, SLA durations, and scheduled triggers:
+Creates a duration value in ServiceNow format. Used with `DurationColumn` fields.
 
 ```ts
-// All units are optional
 Duration({ days: 1, hours: 6, minutes: 30, seconds: 15 })
-// Returns '1970-01-02 06:30:15' (ServiceNow duration format)
+// Serialized to: '1970-01-02 06:30:15'
+```
 
-Duration({ hours: 4 })
-// Returns '1970-01-01 04:00:00'
+**Parameters:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `days` | `number` | Optional. Number of days |
+| `hours` | `number` | Optional. Number of hours |
+| `minutes` | `number` | Optional. Number of minutes |
+| `seconds` | `number` | Optional. Number of seconds |
+
+**Example:**
+
+```ts
+import { Record } from '@servicenow/sdk/core'
+
+Record({
+  $id: Now.ID['my-sla-record'],
+  table: 'contract_sla',
+  data: {
+    name: 'Priority 1 SLA',
+    duration: Duration({ days: 0, hours: 4 }),
+  },
+})
 ```
 
 ### Time()
 
-Create a time-of-day value for `TimeColumn` fields and daily trigger schedules:
+Creates a time-of-day value in ServiceNow format (UTC). Used with `TimeColumn` fields.
+
+The time is converted from the specified timezone to UTC. If no timezone is provided, the system timezone is used.
 
 ```ts
-// Defaults to system timezone
-Time({ hours: 9, minutes: 0, seconds: 0 })
+// System timezone (default)
+Time({ hours: 14, minutes: 30, seconds: 0 })
 
-// With explicit timezone conversion to UTC
+// Explicit timezone — 14:30 EST converts to 19:30 UTC
 Time({ hours: 14, minutes: 30, seconds: 0 }, 'America/New_York')
-// 14:30 EST → stored as 19:30 UTC
+
+// UTC (no conversion)
+Time({ hours: 9, minutes: 0, seconds: 0 }, 'UTC')
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `value.hours` | `number` | Optional. Hour (0-23) |
+| `value.minutes` | `number` | Optional. Minutes (0-59) |
+| `value.seconds` | `number` | Optional. Seconds (0-59) |
+| `timeZone` | `string` | Optional. IANA timezone (e.g., `'America/New_York'`, `'UTC'`). Defaults to system timezone |
+
+**Example:**
+
+```ts
+import { Record } from '@servicenow/sdk/core'
+
+Record({
+  $id: Now.ID['daily-job'],
+  table: 'sysauto_script',
+  data: {
+    name: 'Daily Data Processing',
+    run_time: Time({ hours: 9, minutes: 0, seconds: 0 }, 'UTC'),
+  },
+})
 ```
 
 ### TemplateValue()
 
-Create a typed record field values object for `TemplateValueColumn` fields:
+Creates a template value serialized as a ServiceNow encoded query string. Used with `TemplateValueColumn` fields.
+
+Supports a generic table parameter for type-safe field IntelliSense.
 
 ```ts
-// Generic (accepts any field)
+// Generic — accepts any key/value pairs
 TemplateValue({ cost: 100, description: 'Item', active: true })
-// Returns: 'cost=100^description=Item^active=true^EQ'
+// Serialized to: 'cost=100^description=Item^active=true^EQ'
 
-// Table-specific (IntelliSense for valid fields)
-TemplateValue<'sc_cat_item'>({ cost: 100, category: 'Hardware' })
+// Table-specific — provides IntelliSense for sc_cat_item fields
+TemplateValue<'sc_cat_item'>({ cost: 100, description: 'Item', category: 'Hardware' })
+```
 
-// Used in flows with action.core.createRecord / updateRecord:
-values: TemplateValue({ state: '2', work_notes: 'Auto-assigned' })
+**Example:**
+
+```ts
+import { Record } from '@servicenow/sdk/core'
+
+Record({
+  $id: Now.ID['onboarding-task'],
+  table: 'sc_cat_item',
+  data: {
+    name: 'New Laptop Request',
+    template: TemplateValue<'sc_req_item'>({
+      short_description: 'Laptop setup',
+      priority: 2,
+      assignment_group: 'IT Hardware',
+    }),
+  },
+})
 ```
 
 ### FieldList()
 
-Create a list of field names (for `FieldListColumn` fields and List view columns):
+Creates a comma-separated list of field names. Used with `FieldListColumn` and `SlushBucketColumn` fields.
+
+Supports a generic table parameter for type-safe field IntelliSense, including dot-walk paths.
 
 ```ts
-// Generic
+// Generic — accepts any strings
 FieldList(['name', 'description', 'cost'])
-// Returns: 'name,description,cost'
+// Serialized to: 'name,description,cost'
 
-// Table-specific (IntelliSense + dot-walk support)
+// Table-specific — provides IntelliSense and dot-walk support
 FieldList<'sc_cat_item'>(['name', 'description', 'cost', 'category', 'assigned_to.name'])
+```
+
+**Example:**
+
+```ts
+import { Table, FieldListColumn, TableNameColumn } from '@servicenow/sdk/core'
+
+Table({
+  name: 'x_myapp_config',
+  label: 'Config',
+  schema: {
+    target_table: TableNameColumn({ label: 'Target Table' }),
+    display_fields: FieldListColumn({ label: 'Display Fields', dependent: 'target_table' }),
+  },
+})
+
+Record({
+  $id: Now.ID['config-record'],
+  table: 'x_myapp_config',
+  data: {
+    target_table: 'sc_cat_item',
+    display_fields: FieldList<'sc_cat_item'>(['name', 'description', 'cost', 'availability']),
+  },
+})
 ```

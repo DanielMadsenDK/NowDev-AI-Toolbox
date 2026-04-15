@@ -174,14 +174,32 @@ atf.form_SP.uiActionVisibilityValidation_SP({ /* properties */ })
 
 ---
 
-### Dashboard Quick Start Tests
+### Reporting Steps
 
-Test responsive dashboard functionality.
+Validate report visibility.
 
 ```ts
-atf.reporting.responsiveDashboard({ /* properties */ })
-atf.reporting.responsiveDashboardSharing({ /* properties */ })
+atf.reporting.reportVisibility({ /* properties */ })
 ```
+
+**Properties:**
+- `report` — sys_id of a `sys_report` record
+- `assert` — `'can_view_report'` or `'cannot_view_report'`
+
+---
+
+### Responsive Dashboard Steps
+
+Test responsive dashboard visibility and sharing.
+
+```ts
+atf.responsiveDashboard.responsiveDashboardVisibility({ /* properties */ })
+atf.responsiveDashboard.responsiveDashboardSharing({ /* properties */ })
+```
+
+**Properties:**
+- `dashboard` — sys_id of a `pa_dashboards` record
+- `assert` — `'dashboard_is_visible'` / `'dashboard_is_not_visible'` (visibility) or `'can_share_dashboard'` / `'cannot_share_dashboard'` (sharing)
 
 ---
 

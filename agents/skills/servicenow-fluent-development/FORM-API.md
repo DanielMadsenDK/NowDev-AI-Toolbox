@@ -70,7 +70,16 @@ Form({ table: 'x_myapp_task', view: opsView, sections: [...] })
 
 ## Sections
 
-Each section has a `caption` and a `content` array of layout blocks:
+Each section has a `caption` and a `content` array of layout blocks.
+
+### Section Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `caption` | String | Yes | Section header text (must not be empty) |
+| `content` | Array | Yes | Array of layout blocks (`one-column` or `two-column`) |
+| `header` | Boolean | No | Whether the section renders as a header |
+| `title` | Boolean | No | Whether the section renders as a title/header row |
 
 ```typescript
 sections: [

@@ -654,9 +654,144 @@ export const employeePortalTheme = SPTheme({
 When building a complete portal, follow this order:
 
 1. `CssInclude` and `JsInclude` — referenced by SPTheme and SPWidgetDependency
-2. `SPTheme` — referenced by ServicePortal
-3. `SPAngularProvider` and `SPWidgetDependency` — referenced by SPWidget
-4. `SPWidget` — referenced by SPMenu and SPPage instances
-5. `SPMenu` — referenced by ServicePortal `mainMenu`
-6. `SPPage` — referenced by ServicePortal page properties
-7. `ServicePortal` — depends on all of the above
+2. `SPHeaderFooter` — referenced by SPTheme `header`/`footer`
+3. `SPTheme` — referenced by ServicePortal
+4. `SPAngularProvider` and `SPWidgetDependency` — referenced by SPWidget
+5. `SPWidget` — referenced by SPMenu and SPPage instances
+6. `SPMenu` — referenced by ServicePortal `mainMenu`
+7. `SPPage` — referenced by ServicePortal page properties
+8. `SPPageRouteMap` — references SPPage objects (created after pages exist)
+9. `ServicePortal` — depends on all of the above
+
+---
+
+## SPHeaderFooter Object
+
+Create a Service Portal header or footer (`sp_header_footer`). Headers and footers are special widgets that extend `sp_widget` with positioning capabilities for consistent placement across portal pages.
+
+> **Note:** `SPHeaderFooter` is a dedicated Fluent API. Do not use `Record()` for headers and footers.
+
+### Key Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `$id` | `Now.ID[...]` | Yes | Unique identifier |
+| `name` | string | Yes | The name of the header/footer widget |
+| `htmlTemplate` | string | No | HTML template for the widget content |
+| `serverScript` | string | No | Server-side script |
+| `clientScript` | string | No | Client-side script |
+| `customCss` | string | No | Custom CSS/SCSS |
+| `static` | boolean | No | Whether this header/footer appears on all portal pages. Default: `false` |
+| `id` | string | No | Unique widget ID (alphanumeric, `-`, `_`) |
+| `hasPreview` | boolean | No | Show preview in Widget Editor. Default: `false` |
+| `description` | string | No | Description of the widget |
+| `angularProviders` | array | No | Array of Angular providers |
+| `dependencies` | array | No | Array of widget dependencies |
+| `roles` | array | No | Roles that can access the widget |
+| `optionSchema` | array | No | Configurable widget options |
+| `category` | string | No | Widget category. Default: `'custom'` |
+| `controllerAs` | string | No | Controller alias. Default: `'c'` |
+| `$meta` | Object | No | Installation metadata (`installMethod: 'demo'` or `'first install'`) |
+
+### OOTB Headers and Footers
+
+Always reuse OOTB headers and footers first. Only create custom when explicitly requested.
+
+| Record        | Sys ID                             |
+| ------------- | ---------------------------------- |
+| Stock Header  | `bf5ec2f2cb10120000f8d856634c9c0c` |
+| Sample Footer | `feb4f763df121200ba13a4836bf26320` |
+
+### SPHeaderFooter Example
+
+```typescript
+import { SPHeaderFooter } from '@servicenow/sdk/core'
+
+SPHeaderFooter({
+    $id: Now.ID['static-header'],
+    name: 'Static Portal Header',
+    id: 'static-header',
+    description: 'A static header that appears on all portal pages',
+    htmlTemplate: Now.include('./header_template.html'),
+    serverScript: Now.include('./header_server.js'),
+    clientScript: Now.include('./header_client.js'),
+    customCss: Now.include('./header_styles.css'),
+    static: true,
+    hasPreview: true,
+})
+```
+
+---
+
+## SPPageRouteMap Object
+
+Create a page route map (`sp_page_route_map`) — a redirect rule that automatically routes users from one page to another within a portal. Route maps can be scoped to specific portals and roles, and support priority ordering when multiple rules match the same source page.
+
+### Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `$id` | `Now.ID[...]` | Yes | Unique identifier |
+| `routeFromPage` | string or SPPage | Yes | Source page — when a user navigates here, they are redirected |
+| `routeToPage` | string or SPPage | Yes | Destination page the user is redirected to |
+| `active` | boolean | No | Whether the route is active. Default: `true` |
+| `order` | number | No | Evaluation priority (lower = evaluated first). Default: `10` |
+| `portals` | array | No | Portals this mapping is scoped to. Omit to apply to all portals. |
+| `roles` | array | No | Roles whose members follow this route. Omit to apply to all users. |
+| `shortDescription` | string | No | Admin-facing description |
+
+### SPPageRouteMap Example
+
+```typescript
+import { SPPageRouteMap } from '@servicenow/sdk/core'
+
+export const dashboardRedirect = SPPageRouteMap({
+    $id: Now.ID['dashboard-redirect'],
+    routeFromPage: 'b5f4d31047132100ba13a5554ee49002',
+    routeToPage: 'c6e5e42047132100ba13a5554ee49003',
+    shortDescription: 'Redirect to new dashboard for ITIL users',
+    portals: ['fe12dbbed14bd3f712f0787141c2f656'],
+    roles: ['itil', 'admin'],
+    active: true,
+    order: 50,
+})
+```
+
+---
+
+## Bootstrap 3 and AngularJS Reference
+
+Service Portal uses **Bootstrap 3** (not 4/5) and **AngularJS 1.x** (not Angular 2+).
+
+### Bootstrap 3 Grid Patterns
+
+| Layout Type             | Bootstrap Classes                  |
+| ----------------------- | ---------------------------------- |
+| Full-width              | `col-md-12`                        |
+| Main + sidebar          | `col-md-8` + `col-md-4`           |
+| Equal 2-column          | `col-md-6 col-xs-12` x 2          |
+| 3-column cards          | `col-md-4 col-sm-6 col-xs-12` x 3 |
+| 4-column stat tiles     | `col-md-3 col-sm-6 col-xs-12` x 4 |
+
+Always add `col-xs-12` — every column must stack on mobile.
+
+### AngularJS Binding Reference
+
+| Pattern                 | Usage                                                  |
+| ----------------------- | ------------------------------------------------------ |
+| Two-way data binding    | `ng-model="c.data.fieldName"`                          |
+| Display only            | `ng-bind="c.data.value"` or `{{c.data.value}}`        |
+| Remove from DOM         | `ng-if="c.data.showSection"`                           |
+| Hide/show (keep in DOM) | `ng-show="c.loading"`                                  |
+| List iteration          | `ng-repeat="item in c.data.rows track by item.sys_id"` |
+| Click handler           | `ng-click="c.methodName()"`                            |
+| Dynamic class           | `ng-class="{'sp-active': c.selected === item.sys_id}"` |
+| Disable button          | `ng-disabled="c.submitting"`                           |
+
+### Key Rules
+
+- Use controller alias `c` (not `$scope`): `var c = this;`
+- Every `ng-repeat` must have `track by` (e.g., `track by item.sys_id`)
+- Use `.panel`, `.btn-default`, `.col-xs-*` through `.col-lg-*` (Bootstrap 3 classes)
+- Never use GlideAjax in widgets — use `c.server.get()` instead
+- Never add bundled libraries (jQuery, AngularJS, Bootstrap) — they are already included

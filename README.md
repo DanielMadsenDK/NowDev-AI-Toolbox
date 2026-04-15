@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.3.8-blue)
+  ![Version](https://img.shields.io/badge/version-0.4.0-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.113+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -18,7 +18,7 @@
 
 NowDev AI Toolbox is a Visual Studio Code extension that provides specialized AI agents for ServiceNow development within GitHub Copilot Chat. Acting as a Lead Architect, the system orchestrates specialized sub-agents to plan, build, review, and deploy full-stack solutions.
 
-The extension integrates ServiceNow Best Practice Skills directly into GitHub Copilot, ensuring generated code adheres to strict performance and security standards. It features an AI Orchestrator that breaks down requirements, visualizes architecture with Mermaid diagrams, and delegates tasks to specialized agents for scripting, business logic, and deployment.
+Developed using the **ServiceNow SDK** official documentation, the extension integrates ServiceNow Best Practice Skills directly into GitHub Copilot, ensuring generated code adheres to strict performance and security standards. It features an AI Orchestrator that breaks down requirements, visualizes architecture with Mermaid diagrams, and delegates tasks to specialized agents for scripting, business logic, and deployment.
 
 ### Key Features
 
@@ -36,7 +36,7 @@ The extension integrates ServiceNow Best Practice Skills directly into GitHub Co
 - GitHub Copilot Chat extension
 - **Enable nested sub-agents** — add `"chat.subagents.allowInvocationsFromSubagents": true` to your VS Code `settings.json`. Without this setting, the multi-level agent hierarchy will not function (coordinators cannot invoke their specialists).
 
-The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development.
+The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development. The extension's knowledge base is built from ServiceNow SDK official documentation, ensuring all recommendations align with the latest platform standards.
 
 [<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/Install%20in%20VS%20Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white">](https://insiders.vscode.dev/redirect?url=vscode:mcp/by-name/io.github.upstash/context7)
 
@@ -253,11 +253,13 @@ The project includes comprehensive code examples from the official [ServiceNow S
 
 ## Included Skills
 
-These best practice modules are now natively registered as Copilot Skills:
+These best practice modules are now natively registered as Copilot Skills, sourced from **ServiceNow SDK official documentation**:
 - **ServiceNow Scripting**: Naming conventions, `GlideAggregate` vs `GlideRecord`, and forbidden patterns (`eval`).
 - **Business Rules**: Execution timing (`before`/`after`/`async`), recursion prevention, and IIFE wrapping.
 - **Client Scripts**: `GlideAjax` patterns, performance optimization, and `g_scratchpad` usage.
 - **Deployment**: Update Set hygiene, batching strategies, and XML migration rules.
+- **JavaScript Modules**: Module import/export patterns, `@servicenow/glide` APIs, Script Include bridging.
+- **Full Fluent SDK Coverage**: Tables (52 column types), Service Catalog (29+ variables), Flows, UI Pages, Workspaces, AI Agent Studio, and more.
 
 ### Agent Definitions
 Each AI agent is defined in declarative format:
@@ -274,6 +276,21 @@ For details on third-party licenses and attribution, see [THIRD_PARTY.md](THIRD_
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 Code examples adapted from the ServiceNow SDK Examples Repository are licensed under the MIT License - see [LICENSES/MIT-ServiceNow-SDK.txt](LICENSES/MIT-ServiceNow-SDK.txt) for details.
+
+## Using NowDev AI Toolbox with Claude Code
+
+Claude Code users can leverage the same best practice skills as Copilot users:
+
+1. **Copy the Claude instructions** to your project:
+   ```bash
+   cp agents/claude-code/CLAUDE.md .claude/instructions.md
+   ```
+
+2. **Reference the skills** directly in Claude — all `agents/skills/` documentation works seamlessly with Claude's tools.
+
+3. **Use the official SDK docs** — `package/docs/` contains 157 API reference files and 40+ guides that Claude can consult.
+
+See [agents/claude-code/README.md](agents/claude-code/README.md) for detailed setup instructions.
 
 ## Author
 

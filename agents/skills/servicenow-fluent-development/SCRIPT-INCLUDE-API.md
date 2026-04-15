@@ -28,6 +28,23 @@ Script includes remain useful for:
 - **Legacy compatibility** — existing code calling script includes
 - **GlideAjax client-callable scripts** — server methods invoked from client-side forms
 - **Cross-scope access** — exposing functionality across application boundaries with `callerAccess` controls
+- **Module bridging** — exposing module logic to legacy callers via a thin Script Include wrapper (see [MODULE-GUIDE.md](./MODULE-GUIDE.md) for full details)
+
+---
+
+## Glide Import Rules: Class Files vs Module Files
+
+**Script Include class files** (`Class.create()` pattern) must **NOT** import Glide APIs — they are auto-available in the Script Include execution context. Adding `import { GlideRecord } from '@servicenow/glide'` to a class file will cause build errors or runtime issues.
+
+**Module files** (ES module syntax with `import`/`export`) **MUST** import Glide APIs from `@servicenow/glide` — they are NOT auto-available in module context.
+
+| File Type | Glide APIs Available? | Import Required? |
+|-----------|----------------------|------------------|
+| Script Include class file (`.js` with `Class.create`) | Auto-available | **No** — do not import |
+| Module file (`.js` with `import`/`export`) | Not available | **Yes** — `import { GlideRecord } from '@servicenow/glide'` |
+| Fluent metadata (`.now.ts`) | N/A | N/A (no server script execution) |
+
+When bridging a module through a script include, the wrapper `.js` file uses `Class.create` (no imports) and calls `require()` to load the bundled module from `./dist/modules/`. The module file uses `import` from `@servicenow/glide`. See [MODULE-GUIDE.md](./MODULE-GUIDE.md) for the complete bridging pattern.
 
 ---
 

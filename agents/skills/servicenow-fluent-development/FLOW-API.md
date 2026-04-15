@@ -8,8 +8,9 @@ Import from `@servicenow/sdk/automation`:
 
 ```ts
 import { Flow, Subflow, wfa, trigger, action } from '@servicenow/sdk/automation'
-import { TemplateValue } from '@servicenow/sdk/core'
 ```
+
+**Note:** `TemplateValue`, `Time`, and `Duration` are available globally — do not import them.
 
 ---
 
@@ -26,7 +27,7 @@ A `Flow` consists of:
 - **One `wfa.trigger` function** — defines when to run the flow
 - **One Flow body function** — defines what actions and flow logic to run
 - **Zero or more `wfa.action` functions** — perform specific tasks
-- **Zero or more `wfa.flow_logic` functions** — control flow execution
+- **Zero or more `wfa.flowLogic` functions** — control flow execution
 
 ### Flow Configuration Properties
 
@@ -93,7 +94,7 @@ A `Subflow` consists of:
 - **Zero or one flowVariables object** — defines flow-scoped variables
 - **One Flow body function** — defines what actions and flow logic to run
 - **Zero or more `wfa.action` functions**
-- **Zero or more `wfa.flow_logic` functions**
+- **Zero or more `wfa.flowLogic` functions**
 
 ### Subflow Configuration Properties
 
@@ -223,6 +224,7 @@ The following trigger types are supported:
 - `trigger.application.slaTask` — when an SLA task event occurs
 - `trigger.application.knowledgeManagement` — when knowledge articles change
 - `trigger.application.remoteTableQuery` — when a remote table query completes
+- `trigger.application.serviceCatalog` — when a Service Catalog request item is submitted
 
 ### wfa.trigger Structure
 
@@ -248,7 +250,7 @@ wfa.trigger(
 | `run_when_setting` | String | When to run the flow | `'both'`, `'non_interactive'`, `'interactive'` |
 | `run_when_user_setting` | String | Filter by user | `'any'`, `'one_of'`, `'not_one_of'` |
 | `run_when_user_list` | Array | Specific user sys_ids | Array of user sys_ids (when setting is `'one_of'` or `'not_one_of'`) |
-| `trigger_strategy` | String | Strategy for triggering | `'unique_changes'` (prevents re-trigger on unchanged fields) |
+| `trigger_strategy` | String | Strategy for triggering | `'once'`, `'unique_changes'`, `'every'`, `'always'` |
 
 ### Record Trigger Examples
 
@@ -581,18 +583,6 @@ wfa.action(
 )
 ```
 
-**waitForApproval:**
-```ts
-wfa.action(
-  action.core.waitForApproval,
-  { $id: Now.ID['wait_approval'] },
-  {
-    table_name: 'change_request',
-    record: wfa.dataPill(params.trigger.current.sys_id, 'reference'),
-  }
-)
-```
-
 ### Task Actions
 
 **createTask:**
@@ -652,7 +642,7 @@ wfa.action(
 
 ---
 
-## wfa.flow_logic Function
+## wfa.flowLogic Function
 
 Run a specific flow logic instance from a flow or subflow. Flow logic determines how and when data is used.
 
@@ -936,26 +926,26 @@ wfa.action(
         {
           action: 'Approves',
           conditionType: 'AND',
-          rules: [
+          rules: [[
             {
-              rule_type: 'Any',           // 'Any' | 'All' | 'Res' | 'Count' | 'Percent'
+              ruleType: 'Any',           // 'Any' | 'All' | 'Count' | 'Percent'
               users: ['user_sys_id_1'],   // Array of user sys_ids
               groups: ['group_sys_id_1'], // Array of group sys_ids
               manual: false,
             },
-          ],
+          ]],
         },
         {
           action: 'Rejects',
           conditionType: 'AND',
-          rules: [
+          rules: [[
             {
-              rule_type: 'Any',
+              ruleType: 'Any',
               users: [],
               groups: ['cab_group_sys_id'],
               manual: false,
             },
-          ],
+          ]],
         },
       ],
     }),
@@ -966,7 +956,6 @@ wfa.action(
 **Rule types:**
 - `'Any'` — Any user or group member can approve/reject
 - `'All'` — All users and group members must approve/reject
-- `'Res'` — All responded and anyone approves/rejects
 - `'Count'` — Specific number of approvals required
 - `'Percent'` — Percentage of approvals required
 
@@ -980,7 +969,7 @@ due_date: wfa.approvalDueDate({
   action: 'approve',            // 'none' | 'approve' | 'reject' | 'cancel'
   dateType: 'relative',         // 'actual' | 'relative'
   duration: 5,
-  durationType: 'days',         // 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'
+  durationType: 'days',         // 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes'
   daysSchedule: '',             // Optional: cmn_schedule sys_id for business hours
 })
 
@@ -1003,8 +992,8 @@ For Subflows and custom Actions with complex structured inputs/outputs, use `Flo
 Create a complex object type for nested input/output structures:
 
 ```ts
-import { FlowObject, FlowArray, StringColumn, IntegerColumn, BooleanColumn } from '@servicenow/sdk/core'
-import { SubflowDefinition as Subflow } from '@servicenow/sdk/automation'
+import { StringColumn, IntegerColumn, BooleanColumn } from '@servicenow/sdk/core'
+import { FlowObject, FlowArray, Subflow } from '@servicenow/sdk/automation'
 
 const addressSchema = FlowObject({
   label: 'Address',
@@ -1046,7 +1035,8 @@ export const createUserSubflow = Subflow(
 Create an array type for a collection of items in subflow inputs/outputs:
 
 ```ts
-import { FlowArray, StringColumn, ReferenceColumn } from '@servicenow/sdk/core'
+import { StringColumn, ReferenceColumn } from '@servicenow/sdk/core'
+import { FlowArray } from '@servicenow/sdk/automation'
 
 const incidentListSchema = FlowArray({
   label: 'Incidents',
@@ -1174,15 +1164,15 @@ FDTransform.complexData.toXml(obj)   // Serialize object to XML string
 
 ---
 
-## ActionDefinition (Creating Custom Flow Actions)
+## Action (Creating Custom Flow Actions)
 
 Define reusable, installable Flow Actions that appear in Flow Designer's action picker. Custom actions encapsulate structured inputs, outputs, and action steps.
 
 ```ts
-import { ActionDefinition } from '@servicenow/sdk/automation'
+import { Action, wfa, actionStep } from '@servicenow/sdk/automation'
 import { StringColumn, BooleanColumn, ReferenceColumn, TableNameColumn, DocumentIdColumn } from '@servicenow/sdk/core'
 
-export const enrichIncidentAction = ActionDefinition(
+export const enrichIncidentAction = Action(
   {
     $id: Now.ID['enrich_incident_action'],
     name: 'Enrich Incident with CMDB Data',
@@ -1211,7 +1201,7 @@ export const enrichIncidentAction = ActionDefinition(
 )
 ```
 
-### ActionDefinition Properties
+### Action Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
@@ -1226,39 +1216,26 @@ export const enrichIncidentAction = ActionDefinition(
 
 ---
 
-## ActionStepDefinition and ActionStep (Custom Action Steps)
+## wfa.actionStep (Custom Action Steps)
 
-Define typed steps within a custom `ActionDefinition` body. Each step corresponds to a platform step type.
+Embed OOB steps within a custom `Action` body. Each step corresponds to a platform step type and returns typed outputs for downstream steps.
 
 ```ts
-import { ActionStepDefinition, ActionStep } from '@servicenow/sdk/automation'
-import { StringColumn, ChoiceColumn, IntegerColumn } from '@servicenow/sdk/core'
+import { Action, wfa, actionStep } from '@servicenow/sdk/automation'
+import { StringColumn, IntegerColumn } from '@servicenow/sdk/core'
 
-// Define a custom step type
-const myScriptStep = ActionStepDefinition({
-  $id: Now.ID['my_script_step_def'],
-  name: 'Run Custom Script',
-  category: 'utilities',
-  inputs: {
-    input_value: StringColumn({ label: 'Input', mandatory: true }),
-    retry_count: IntegerColumn({ label: 'Retry Count', default: 3 }),
-  },
-  outputs: {
-    result: StringColumn({ label: 'Result' }),
-    status: ChoiceColumn({
-      label: 'Status',
-      choices: { success: { label: 'Success' }, failed: { label: 'Failed' } },
-    }),
-  },
-})
-
-// Use the step inside an ActionDefinition body:
-ActionDefinition(
+// Use wfa.actionStep inside an Action body:
+Action(
   { $id: Now.ID['my_action'], name: 'My Action', inputs: {}, outputs: {} },
   (params) => {
-    ActionStep(myScriptStep, { $id: Now.ID['run_script'] }, {
-      input_value: 'hello',
-      retry_count: 2,
+    wfa.actionStep(actionStep.log, { $id: Now.ID['log_step'], label: 'Log start' }, {
+      log_message: 'Action started',
+      log_level: 'info',
+    })
+
+    wfa.actionStep(actionStep.createRecord, { $id: Now.ID['create_step'], label: 'Create record' }, {
+      create_record_table_name: 'incident',
+      create_record_field_values: TemplateValue({ short_description: 'Auto-created' }),
     })
   }
 )
@@ -1269,13 +1246,13 @@ ActionDefinition(
 ```ts
 import { actionStep } from '@servicenow/sdk/automation'
 
-// Available: actionStep.log, actionStep.script, actionStep.rest, actionStep.createRecord,
+// Available: actionStep.log, actionStep.script, actionStep.createRecord,
 //            actionStep.updateRecord, actionStep.deleteRecord, actionStep.lookUpRecord,
 //            actionStep.lookUpRecords, actionStep.createOrUpdateRecord, actionStep.updateMultipleRecords,
 //            actionStep.deleteMultipleRecords, actionStep.createTask, actionStep.waitForCondition,
 //            actionStep.waitForEmailReply, actionStep.waitForMessage, actionStep.fireEvent,
 //            actionStep.notification, actionStep.email, actionStep.sms, actionStep.askForApproval,
-//            actionStep.getLatestResponseTextFromEmail, actionStep.createTemplatedObject,
+//            actionStep.getLatestResponseTextFromEmail,
 //            actionStep.createRecordForRemoteTable, actionStep.collectActivityContext,
 //            actionStep.createAppFromPayload
 ```

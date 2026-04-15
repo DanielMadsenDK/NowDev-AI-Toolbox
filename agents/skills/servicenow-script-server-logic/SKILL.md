@@ -1,7 +1,7 @@
 ---
 name: servicenow-script-server-logic
 user-invocable: false
-description: General server-side operations including Script Includes, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes using ES6 classes for SDK projects. Use for reusable utilities, system-level tasks, user context operations, and event publishing via gs.eventQueue(). For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns. For event-triggered automation, see servicenow-fluent-development: SCRIPT-ACTION-API.md.
+description: General server-side operations including Script Includes, JavaScript modules, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes and modules for SDK projects. Use for reusable utilities, system-level tasks, user context operations, and event publishing via gs.eventQueue(). JavaScript modules are the preferred approach for new server-side logic in Fluent projects — Script Includes remain necessary for GlideAjax, cross-scope APIs, and extension points. Use the module bridging pattern when logic lives in a module but must be accessible via Script Include. For event-triggered automation, see servicenow-fluent-development: SCRIPT-ACTION-API.md.
 ---
 
 # General Server Logic
@@ -125,6 +125,24 @@ user.savePreference('my_app.my_key', null);
 | GlideLocale | Locale and formatting |
 | GlideScopedEvaluator | Safe script evaluation |
 | GlideImpersonate | Admin user context switching |
+
+## JavaScript Modules vs Script Includes
+
+In Fluent projects, JavaScript modules are the **preferred** approach for new server-side logic. However, Script Includes are still required for:
+
+- **GlideAjax** — client-side code calls script includes by name
+- **Cross-scope APIs** — other scoped apps access script includes by name
+- **Extension points** — platform features that expect script include names
+- **Dynamic reference qualifiers / condition scripts** — platform expects script includes
+
+### Module vs Script Include Rules
+
+| File Type | Import Glide APIs? | Why |
+|-----------|-------------------|-----|
+| **Module files** (normal functions) | **YES** — `import { gs } from '@servicenow/glide'` | Glide APIs NOT auto-available |
+| **Script Include class files** (`Class.create`) | **NO** — do NOT import Glide APIs | Glide APIs ARE auto-available |
+
+When your logic lives in a module but needs to be accessible via one of the mechanisms above, use the **module bridging pattern**: create a thin Script Include wrapper that uses `require()` to load the module. See servicenow-fluent-development: [MODULE-GUIDE.md](../servicenow-fluent-development/MODULE-GUIDE.md) for the full pattern.
 
 ## Detailed Patterns
 

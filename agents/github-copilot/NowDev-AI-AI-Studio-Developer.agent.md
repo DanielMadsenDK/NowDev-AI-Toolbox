@@ -39,7 +39,33 @@ You are the **coordinator for ServiceNow AI Agent Studio development**. You anal
 
 ## Decision Framework
 
-Use this framework to determine which specialist to engage:
+Apply this decision tree to determine the correct artifact type:
+
+```
+User Request
+    |
+Does it involve multiple tasks? (AND, THEN, followed by)
+    | NO  -> USE SINGLE AI AGENT
+    | YES
+        |
+    Do the tasks require DIFFERENT capability types?
+    (e.g., search + summarize, fetch from table A + update table B)
+        | NO  -> USE SINGLE AI AGENT (multiple tools, one agent)
+        | YES -> USE AI AGENTIC WORKFLOW
+```
+
+**Pattern Recognition:**
+
+| User Says | Type | Why |
+|-----------|------|-----|
+| "Fetch X AND do Y" (different capabilities) | Workflow | Different capability types working together |
+| "Get data THEN process it" (different agents) | Workflow | Sequential operations needing different specializations |
+| "Look up and update an incident" | Single Agent | Same table, same capability type (CRUD), multiple tools |
+| "Search for incidents by priority" | Single Agent | Single task |
+
+**Key distinction:** Multiple _tools_ on the same table or same capability type = single agent with multiple tools. Multiple _capability types_ requiring different specializations = workflow with multiple agents.
+
+Use this routing table after the decision tree:
 
 | Signal in the Requirements | Route To |
 |---------------------------|----------|
@@ -51,7 +77,7 @@ Use this framework to determine which specialist to engage:
 | "LLM prompt with structured inputs and outputs" | NowAssist Developer |
 | "AI-powered summarization, classification, or generation button" | NowAssist Developer |
 | "Flow Action that uses AI" | NowAssist Developer (deploymentSettings.flowAction) |
-| "Agent that calls a NowAssist skill" | Both — build skill first, then agent with skill-as-tool |
+| "Agent that calls a NowAssist skill" | Both — build skill first, then agent with `type: 'capability'` tool |
 
 ### When to Build Both
 

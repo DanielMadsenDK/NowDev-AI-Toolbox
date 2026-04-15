@@ -58,6 +58,7 @@ All four check types share a common set of required and optional properties:
 | `'performance'` | Slow patterns, resource-heavy operations |
 | `'upgradability'` | Deprecated APIs, customisations that block upgrades |
 | `'manageability'` | Orphaned records, hygiene, data quality |
+| `'user_experience'` | Accessibility, UI patterns, user-facing issues |
 
 ### Priorities
 
@@ -67,6 +68,37 @@ All four check types share a common set of required and optional properties:
 | `'2'` | High |
 | `'3'` | Moderate |
 | `'4'` | Low |
+
+---
+
+## Script Signatures by Check Type
+
+| Check Type | Signature | Key Objects |
+|-----------|-----------|-------------|
+| TableCheck (advanced) | `(function(engine, current) {...})(engine, current)` | `engine.finding`, `current` (filtered record) |
+| ScriptOnlyCheck | `(function(finding) {...})(finding)` or `(function(engine) {...})(engine)` | `finding` / `engine.finding` |
+| ColumnTypeCheck | `(function(engine, current, columnValue) {...})(engine, current, columnValue)` | `engine.finding`, `current`, `columnValue` |
+| LinterCheck | `(function(engine) {...})(engine)` | `engine.finding`, `engine.rootNode` (AST root) |
+
+### Finding API
+
+| Method | Description |
+|--------|-------------|
+| `engine.finding.increment()` | Register a finding |
+| `engine.finding.setCurrentSource(record)` | Set the source GlideRecord |
+| `engine.finding.setValue('finding_details', '...')` | Add descriptive text |
+| `engine.finding.setValue('count', number)` | Set the finding count |
+
+### LinterCheck Engine API
+
+| Property / Method | Description |
+|-------------------|-------------|
+| `engine.rootNode` | The AST root node |
+| `engine.rootNode.visit(callback)` | Walk the AST tree |
+| `node.getTypeName()` | AST node type (`"NAME"`, `"CALL"`, `"FUNCTION"`) |
+| `node.getNameIdentifier()` | Identifier name for NAME nodes |
+| `node.getParent()` | Parent AST node |
+| `node.getLineNo()` | Line number (0-based) |
 
 ---
 
@@ -254,11 +286,12 @@ Set `scoreMin` and `scoreMax` to normalise extreme finding counts. For binary ch
 | Rule | Why |
 |------|-----|
 | Every check needs a unique `$id: Now.ID['...']` | Prevents duplicate check records on install |
-| `finding.increment()` is the **only** way to report violations | Platform-provided variable injected into check scripts |
-| Use `Now.include('./check.js')` for scripts with more than a few lines | Enables IDE support, syntax highlighting, and source control |
+| `finding.increment()` / `engine.finding.increment()` is the **only** way to report violations | Platform-provided variable injected into check scripts |
+| Prefer inline scripts for check logic | Official guidance recommends inline scripts over `Now.include()` for scan checks |
 | `advanced: true` is required to use a `script` in `TableCheck` | Without it, only `conditions` is evaluated |
 | Set meaningful `resolutionDetails` | Appears in scan results to guide remediation |
 | Test checks with `active: false` initially | Prevents noisy or incorrect findings in production |
+| Use ES5 syntax in scripts | `var` (not `const`/`let`), `function() {}` (not arrow functions), no template literals, no `for...of` |
 
 ---
 
@@ -274,6 +307,19 @@ src/
         security-checks.now.ts        ← ColumnTypeCheck, ScriptOnlyCheck
         performance-checks.now.ts     ← LinterCheck, TableCheck
         scripts/
-          check-admin-overuse.js      ← External script files
+          check-admin-overuse.js      ← External script files (if needed)
           check-large-attachments.js
 ```
+
+---
+
+## Metadata
+
+Control when checks are installed using `$meta.installMethod`:
+
+```javascript
+$meta: { installMethod: "demo" }          // Installed with "Load demo data"
+$meta: { installMethod: "first install" } // Installed only on first app install
+```
+
+Omit `$meta` for checks that should always be installed.

@@ -62,7 +62,7 @@ The UI Action API defines custom user interface (UI) actions (`[sys_ui_action]`)
 | `condition` | String | N/A | A JavaScript conditional statement that specifies the fields and values that must be true for the script to run. | `"current.type == 'SUV'"` |
 | `script` | Script | N/A | A client-side or server-side script that runs when the UI action is executed. Supports inline JavaScript or a reference to another file. | See [Script Content Options](#script-content-options) |
 | `comments` | String | N/A | Internal notes about the UI action. | `'Displays car information modal'` |
-| `messages` | String | N/A | Text strings that the UI action can use as keys to look up localized message alternatives from the Message [sys_ui_message] table. Each message key is on a separate line. | `'msg_confirm\nmsg_success'` |
+| `messages` | Array | N/A | Text strings that the UI action can use as keys to look up localized message alternatives from the Message [sys_ui_message] table. Array of message key strings. | `['msg_confirm', 'msg_success']` |
 | `hint` | String | N/A | A short description of the UI action that displays as a tooltip when hovering over it. | `'View car info'` |
 | `order` | Number | `100` | The order in which the UI action appears. The order applies to buttons from left to right and to menu actions from top to bottom. | `100` |
 | `isolateScript` | Boolean | `false` | Flag indicating whether the script runs in strict mode, with access to direct DOM, jQuery, prototype, and the window object turned off. | `false` |

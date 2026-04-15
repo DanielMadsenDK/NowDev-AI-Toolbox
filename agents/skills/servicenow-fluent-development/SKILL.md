@@ -1,7 +1,7 @@
 ---
 name: servicenow-fluent-development
 user-invocable: false
-description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK. Use this skill when developing full-stack React applications, creating tables (with all 43 column types), records, business rules, ACLs, cross-scope privileges, script includes, flows and subflows (with wfa, triggers, actions, FDTransform), SLAs, service catalog, service portal (ServicePortal, SPMenu, SPPage, SPTheme, SPWidget), UI pages, dashboards, workspaces, email notifications, form layouts, scheduled scripts, instance scan checks, or any other ServiceNow metadata using the Fluent API. Also covers Now.ID, Now.ref, Now.include, Now.attach, Now.UNRESOLVED, AnnotationType, default_view, and global helpers (Duration, Time, TemplateValue, FieldList).
+description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK. Use this skill when developing full-stack React applications, creating tables (with all 52 column types), records, business rules, ACLs, cross-scope privileges, script includes, flows and subflows (with wfa, triggers, actions, FDTransform), SLAs, service catalog (29+ variable types), service portal (ServicePortal, SPMenu, SPPage, SPTheme, SPWidget), UI pages, dashboards, workspaces, email notifications, form layouts, scheduled scripts, instance scan checks, or any other ServiceNow metadata using the Fluent API. Also covers JavaScript modules (import/export from @servicenow/glide), Now.ID, Now.ref, Now.include, Now.attach, Now.UNRESOLVED, AnnotationType, default_view, and global helpers (Duration, Time, TemplateValue, FieldList).
 ---
 
 # ServiceNow Fluent Development
@@ -56,13 +56,39 @@ data: { application: Now.ID['menu'] }
 
 ### Script Patterns
 
+JavaScript modules are the **preferred approach** for server-side scripts. Modules provide typed Glide API access via `import { gs, GlideRecord } from '@servicenow/glide'`, code reuse, and full IDE support. Not all APIs support modules — some `script` properties only accept strings.
+
+**APIs that accept functions (use modules):**
+
+| API | Module-compatible properties |
+|-----|-----------------------------|
+| BusinessRule | `script` |
+| ScriptAction | `script` |
+| UiAction | `script` |
+| RestApi route handlers | `script` |
+| CatalogItemRecordProducer | `script`, `postInsertScript` |
+| ScheduledScript | `script` |
+
+**APIs that require `Now.include()` or inline strings (string-only):**
+
+| API | String-only properties |
+|-----|------------------------|
+| ScriptInclude | `script` |
+| ClientScript | `script` |
+| CatalogClientScript | `script` |
+| CatalogUiPolicy | script fields |
+| UiPolicy | script fields |
+| SPWidget | all script fields |
+| Record | data values |
+
 ```ts
-// TypeScript module import (server-side) — compiled to .js
+// PREFERRED: JavaScript module import (server-side) — typed Glide APIs
 import { fn } from '../server/module.js'
 BusinessRule({ script: fn })
 
-// Now.include() for ServiceNow JavaScript — enables two-way sync
+// Now.include() for string-only APIs — enables two-way sync
 ClientScript({ script: Now.include('./script.client.js') })
+ScriptInclude({ script: Now.include('./my-include.js') })
 
 // Inline ServiceNow JavaScript (NOT TypeScript)
 ClientScript({ script: `function onLoad() { g_form.addInfoMessage('Hi'); }` })
@@ -70,6 +96,8 @@ ClientScript({ script: `function onLoad() { g_form.addInfoMessage('Hi'); }` })
 // script tagged template literal
 RestApi({ routes: [{ script: script`(function(req,res){ res.setBody({ok:true}) })(request,response)` }] })
 ```
+
+See [MODULE-GUIDE.md](./MODULE-GUIDE.md) for the complete module pattern reference.
 
 **Sync directives:** `@fluent-ignore`, `@fluent-disable-sync`, `@fluent-disable-sync-for-file` — use sparingly with a comment explaining why.
 
@@ -153,11 +181,12 @@ The following reference files contain detailed guidance on specific topics. **Sc
 | **Script Includes:** ScriptInclude object, properties, class-based and classless patterns, client-callable via GlideAjax, access control, examples | [SCRIPT-INCLUDE-API.md](./SCRIPT-INCLUDE-API.md) |
 | **Application Menus & Navigation:** ApplicationMenu and sys_app_module for module navigation | [APPLICATION-MENU-API.md](./APPLICATION-MENU-API.md) |
 | **SLAs:** Sla object, duration, schedule, conditions, retroactive start, whenTo, timezone, flow/workflow linkage, examples | [SLA-API.md](./SLA-API.md) |
+| **JavaScript Modules:** import/export, @servicenow/glide, Script Include bridging, function-vs-string API table, third-party libs | [MODULE-GUIDE.md](./MODULE-GUIDE.md) |
 | Build commands, tsconfig, now-sdk workflows | [BUILD-WORKFLOW.md](./BUILD-WORKFLOW.md) |
 | Error diagnosis, troubleshooting steps, verification | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) |
 | Advanced topics: Record() seed data, cross-scope pattern, server-side logging, GlideRecord, Now.UNRESOLVED, Now.ref(), AnnotationType, default_view, global helpers (Duration, Time, TemplateValue, FieldList) | [ADVANCED-PATTERNS.md](./ADVANCED-PATTERNS.md) |
 | Flow API: triggers, actions, data pills | [FLOW-API.md](./FLOW-API.md) |
-| **Service Catalog:** CatalogItem, CatalogItemRecordProducer, VariableSet, all 22 variable types with full options, CatalogUiPolicy, CatalogClientScript | [SERVICE-CATALOG.md](./SERVICE-CATALOG.md) |
+| **Service Catalog:** CatalogItem, CatalogItemRecordProducer, VariableSet, all 29+ variable types with full options, CatalogUiPolicy, CatalogClientScript | [SERVICE-CATALOG.md](./SERVICE-CATALOG.md) |
 | **Service Portal:** ServicePortal (portal definition), SPMenu, SPPage, SPTheme, SPWidget, Angular providers, dependencies, CSS/JS includes, portal build order | [SERVICE-PORTAL-API.md](./SERVICE-PORTAL-API.md) |
 | **Scheduled Scripts:** ScheduledScript object, frequency (daily/weekly/monthly/periodically), conditional execution, run-as user, timezone, offset, protection policy | [SCHEDULED-SCRIPT-API.md](./SCHEDULED-SCRIPT-API.md) |
 | **Form Layouts:** Form object, views, sections, one/two-column layouts, element types (table_field, annotation, formatter, related_list), role/user scoping | [FORM-API.md](./FORM-API.md) |
@@ -168,6 +197,7 @@ The following reference files contain detailed guidance on specific topics. **Sc
 | **Client Scripts:** ClientScript object, script types (onLoad/onChange/onSubmit/onCellEdit), uiType, field targeting, view scoping, isolateScript, messages, examples | [CLIENT-SCRIPTS-API.md](./CLIENT-SCRIPTS-API.md) |
 | **User Preferences:** UserPreference object, per-user defaults, type values, system-wide defaults, runtime retrieval | [USER-PREFERENCE-API.md](./USER-PREFERENCE-API.md) |
 | **Sys Attachments:** SysAttachment object, deploying static files as record attachments, MIME types | [SYS-ATTACHMENT-API.md](./SYS-ATTACHMENT-API.md) |
+| **Instance Scan Checks:** ColumnTypeCheck, LinterCheck, ScriptOnlyCheck, TableCheck, finding API, categories, examples | [INSTANCE-SCAN-API.md](./INSTANCE-SCAN-API.md) |
 | Adding npm packages: CSS, context, TypeScript, build | [THIRD-PARTY-LIBRARIES.md](./THIRD-PARTY-LIBRARIES.md) |
 
 ## Detailed References
@@ -195,7 +225,8 @@ Load these files when you need detailed guidance on specific topics:
 - **[ADVANCED-PATTERNS.md](./ADVANCED-PATTERNS.md)** — Record() for seed data and fallback metadata; cross-scope module pattern; server-side logging and typed GlideRecord; common script APIs (g_form, GlideRecord query, GlideAggregate); `Now.UNRESOLVED` sentinel value; `Now.ref()` cross-application references; `AnnotationType` pre-defined UI annotation type constants; `default_view` default system view reference; global helper functions (`Duration()`, `Time()`, `TemplateValue()`, `FieldList()`)
 - **[FLOW-API.md](./FLOW-API.md)** — Flow API: triggers (record/scheduled/application), Flow, Subflow, wfa.trigger, wfa.action (30+ built-in actions with examples), wfa.dataPill, wfa.inlineScript, wfa.approvalRules, wfa.approvalDueDate, wfa.flowLogic (if/elseIf/else, forEach, waitForADuration, setFlowVariables, assignSubflowOutputs, exitLoop, endFlow, skipIteration), FDTransform (string/math/dateTime/utilities/sanitize/complexData), FlowObject/FlowArray complex types, ActionDefinition (custom actions), ActionStepDefinition/ActionStep (custom action steps), TriggerDefinition (custom triggers), complete production examples
 - **[SLA-API.md](./SLA-API.md)** — **Service Level Agreements:** Sla object, name, table, type, duration (fixed and relative), schedule config (scheduleSource, scheduleSourceField), conditions (start/stop/pause/resume/reset/cancel), advancedConditionType, resetAction, whenTo (resume/cancel), retroactive start (retroactive.start, retroactive.setStartTo, retroactive.pause), timezoneSource, timezone, overrides, flow/workflow linkage, enableLogging, $meta installMethod, complete working examples
-- **[SERVICE-CATALOG.md](./SERVICE-CATALOG.md)** — **Service Catalog:** CatalogItem (all properties: fulfillment, pricing, portal settings, access), VariableSet (singleRow/multiRow, roles, layout), all 22 variable types with full per-type options, complete BaseVariableConfig/VariableConfig common properties (width, readOnly, hidden, helpText, mapToField, visibleBundle, pricingDetails, dynamic defaults, etc.), ExtendedChoices per-choice pricing, CatalogUiPolicy (conditions, actions array, scripts, appliesOn* scopes), CatalogClientScript (onLoad/onChange/onSubmit, isolateScript, appliesOn* scopes), CatalogItemRecordProducer (script/postInsertScript/saveScript context, mapToField, redirectUrl)
+- **[MODULE-GUIDE.md](./MODULE-GUIDE.md)** — **JavaScript Modules:** Complete module pattern reference — `import`/`export` syntax, `@servicenow/glide` imports, Script Include module rules (class files vs module files), bridging modules through Script Includes, subpath imports, third-party library integration, function-accepting vs string-only API table, avoidance patterns
+- **[SERVICE-CATALOG.md](./SERVICE-CATALOG.md)** — **Service Catalog:** CatalogItem (all properties: fulfillment, pricing, portal settings, access), VariableSet (singleRow/multiRow, roles, layout), all 29+ variable types with full per-type options, complete BaseVariableConfig/VariableConfig common properties (width, readOnly, hidden, helpText, mapToField, visibleBundle, pricingDetails, dynamic defaults, etc.), ExtendedChoices per-choice pricing, CatalogUiPolicy (conditions, actions array, scripts, appliesOn* scopes), CatalogClientScript (onLoad/onChange/onSubmit, isolateScript, appliesOn* scopes), CatalogItemRecordProducer (script/postInsertScript/saveScript context, mapToField, redirectUrl)
 - **[UI-PAGE-API.md](./UI-PAGE-API.md)** — **UI Pages (React):** UiPage object properties ($id, endpoint, html, direct, category, clientScript, processingScript, $meta), React application development patterns with full-stack examples (index.html, main.jsx, app.tsx), `<sdk:now-ux-globals>` tag requirement for ServiceNow globals initialization, navigation integration via ApplicationMenu and sys_app_module modules, one-way HTML synchronization behavior, GlideAjax vs REST API decision guide for server communication, best practices for React development, security and ACL patterns, complete working examples
 - **[SERVICE-PORTAL-API.md](./SERVICE-PORTAL-API.md)** — **Service Portal:** SPWidget object (properties, client/server scripts, option schemas, templates), SPAngularProvider object (directives, factories, services), SPWidgetDependency object (CSS/JS includes, load order, portal targeting), CssInclude and JsInclude objects, ServicePortal portal container (title, urlSuffix, pages, theme, catalog, knowledge base, favorites, AI search), SPMenu (navigation items, nested menus, role restrictions), SPPage (containers/rows/columns/instances layout hierarchy), SPTheme (header/footer, SCSS variables, fixed layout, Next Experience theme mapping), complete portal build order, best practices
 - **[SCHEDULED-SCRIPT-API.md](./SCHEDULED-SCRIPT-API.md)** — **Scheduled Scripts:** ScheduledScript object, frequency options (once/daily/weekly/monthly/periodically), time and day scheduling (executionTime, daysOfWeek, dayOfMonth, executionInterval), conditional execution (conditional + condition script), date range (executionStart/executionEnd), run-as user, timezone, offset, upgradeSafe, protection policy, complete examples
@@ -205,4 +236,5 @@ Load these files when you need detailed guidance on specific topics:
 - **[CLIENT-SCRIPTS-API.md](./CLIENT-SCRIPTS-API.md)** — **Client Scripts:** ClientScript object properties ($id, name, table, type, uiType, active, global, view, field, appliesExtended, isolateScript, messages, script, $meta), script types (onLoad/onChange/onSubmit/onCellEdit), client script file patterns (onChange isLoading guard, onSubmit cancel), when to use vs UI Policies, best practices, complete examples
 - **[USER-PREFERENCE-API.md](./USER-PREFERENCE-API.md)** — **User Preferences:** UserPreference object properties ($id, name, type, value, description, system), type values reference, per-user defaults vs system-wide defaults, runtime read/write via gs.getPreference()/gs.setPreference(), naming conventions, comparison with Property API
 - **[SYS-ATTACHMENT-API.md](./SYS-ATTACHMENT-API.md)** — **Sys Attachments:** SysAttachment object properties (id, fileName, contentType, filePath, tableName, tableSysId), deploying static files as record attachments at build time, common MIME types reference, best practices
+- **[INSTANCE-SCAN-API.md](./INSTANCE-SCAN-API.md)** — **Instance Scan Checks:** Four check types (ColumnTypeCheck for column content scanning, LinterCheck for code linting with AST, ScriptOnlyCheck for standalone scripts, TableCheck for record-level scanning), full properties, script signatures, Finding API, LinterCheck Engine API, categories, scoring, examples for each type
 - **[THIRD-PARTY-LIBRARIES.md](./THIRD-PARTY-LIBRARIES.md)** — Adding npm packages to Fluent React apps: `package.json` layout, Rollup prebuild script, CSS imports, context providers, TypeScript declarations, build-warning suppression, and a full checklist

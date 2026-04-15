@@ -6,19 +6,26 @@
 - [Import Patterns](#import-patterns)
 - [Table](#table)
 - [List](#list)
+- [Form](#form)
 - [ApplicationMenu and Navigation Modules](#applicationmenu-and-navigation-modules)
 - [BusinessRule](#businessrule)
 - [ClientScript](#clientscript)
 - [ScriptInclude](#scriptinclude)
+- [ScheduledScript](#scheduledscript)
+- [ScriptAction](#scriptaction)
 - [Record](#record)
 - [REST API](#rest-api)
 - [UiPage](#uipage)
+- [UiAction](#uiaction)
 - [SPWidget](#spwidget)
 - [ATF Test](#atf-test)
 - [UiPolicy](#uipolicy)
 - [ImportSet](#importset)
 - [Utility Helpers](#utility-helpers)
 - [EmailNotification](#emailnotification)
+- [InboundEmailAction](#inboundemailaction)
+- [Property](#property)
+- [UserPreference](#userpreference)
 - [Role](#role)
 - [Acl (Access Control List)](#acl-access-control-list)
 - [CrossScopePrivilege](#crossscopeprivilege)
@@ -224,11 +231,17 @@ Record({
 ```ts
 import '@servicenow/sdk/global'                                     // Global Now.* helpers (Now.ID, Now.ref, Now.include, Now.attach, Now.UNRESOLVED)
 import { Table, BusinessRule, UiPage, ScriptInclude } from '@servicenow/sdk/core'
-import { UiPolicy, ImportSet, RestApi } from '@servicenow/sdk/core'
-import { EmailNotification, Workspace, Sla } from '@servicenow/sdk/core'
-import { Role, Applicability, UxListMenuConfig, Dashboard } from '@servicenow/sdk/core'
+import { UiPolicy, UiAction, ImportSet, RestApi } from '@servicenow/sdk/core'
+import { Form, List, Property, UserPreference } from '@servicenow/sdk/core'        // UI layout & config
+import { ScheduledScript, ScriptAction } from '@servicenow/sdk/core'               // Server automation
+import { EmailNotification, InboundEmailAction } from '@servicenow/sdk/core'       // Email
+import { Workspace, Sla, Dashboard } from '@servicenow/sdk/core'
+import { Role, Applicability, UxListMenuConfig } from '@servicenow/sdk/core'
 import { CatalogItem, CatalogClientScript, CatalogUiPolicy, VariableSet } from '@servicenow/sdk/core'
 import { CatalogItemRecordProducer } from '@servicenow/sdk/core'
+import { ServicePortal, SPPage, SPWidget, SPTheme, SPMenu } from '@servicenow/sdk/core'  // Service Portal
+import { SPAngularProvider, SPWidgetDependency, SPPageRouteMap } from '@servicenow/sdk/core'
+import { CssInclude, JsInclude } from '@servicenow/sdk/core'         // SP CSS/JS includes
 import { Acl, CrossScopePrivilege } from '@servicenow/sdk/core'     // Security & Privileges
 import { AnnotationType, default_view } from '@servicenow/sdk/core' // Pre-defined UI constants
 import { FlowObject, FlowArray } from '@servicenow/sdk/core'        // Complex flow types
@@ -350,6 +363,37 @@ export const customList = List({
     ],
 });
 ```
+
+---
+
+## Form
+
+Creates a form layout definition (`sys_ui_form`) for a ServiceNow table with sections and field elements.
+
+**Comprehensive documentation:** See [FORM-API.md](./FORM-API.md)
+
+```ts
+Form({
+  $id: Now.ID['incident_form'],
+  table: 'incident',
+  view: default_view,
+  sections: [{
+    caption: 'Details',
+    columns: 1,
+    elements: [
+      { field: 'short_description' },
+      { field: 'description' },
+    ]
+  }]
+})
+```
+
+Key properties:
+- `table` — target table name
+- `view` — UI view reference or `default_view`
+- `sections` — array of section objects with `caption`, `columns`, and `elements`
+- `user` — optional user personalization
+- `roles` — optional role-based access control
 
 ---
 
@@ -700,6 +744,49 @@ ScriptInclude({
 
 ---
 
+## ScheduledScript
+
+Creates a scheduled script execution (`sys_script_execution`) — a server-side script that runs automatically on a defined schedule.
+
+**Comprehensive documentation:** See [SCHEDULED-SCRIPT-API.md](./SCHEDULED-SCRIPT-API.md)
+
+```ts
+ScheduledScript({
+  $id: Now.ID['job.daily_cleanup'],
+  name: 'Daily Cleanup',
+  active: true,
+  runType: 'periodically',
+  repeatType: 'daily',
+  runTime: Time({ hours: 2, minutes: 0, seconds: 0 }, 'UTC'),
+  script: Now.include('./daily-cleanup.server.js')
+})
+```
+
+Key properties: `name`, `active`, `runType` (`'periodically'` | `'once'` | `'on_demand'`), `repeatType`, `runTime`, `script`.
+
+---
+
+## ScriptAction
+
+Creates a script action (`sysevent_script_action`) that executes server-side scripts when specific events occur.
+
+**Comprehensive documentation:** See [SCRIPT-ACTION-API.md](./SCRIPT-ACTION-API.md)
+
+```ts
+ScriptAction({
+  $id: Now.ID['sa.process_event'],
+  name: 'Process Custom Event',
+  eventName: 'x_app.custom_event',
+  active: true,
+  order: 100,
+  script: Now.include('./process-event.server.js')
+})
+```
+
+Key properties: `eventName` (required — event to trigger on), `name`, `active`, `order`, `script`, `conditionScript`.
+
+---
+
 ## Record
 
 Creates records in any table using the Record API. Use this to define application metadata that doesn't have a dedicated ServiceNow Fluent API (such as menu categories, demo data, sample incidents, or configuration records).
@@ -862,6 +949,30 @@ UiPage({
 - Import your React app's `index.html` entry point
 - Include `<sdk:now-ux-globals>` in your HTML to initialize ServiceNow globals (`window.g_ck`, `GlideAjax`)
 - Use GlideAjax or REST APIs for server communication (defined in ScriptInclude or RestApi objects)
+
+---
+
+## UiAction
+
+Creates a UI Action (`sys_ui_action`) — a button, link, or context menu item that executes server-side or client-side logic on forms and lists.
+
+**Comprehensive documentation:** See [UI-ACTION-API.md](./UI-ACTION-API.md)
+
+```ts
+UiAction({
+  $id: Now.ID['ua.close_incident'],
+  name: 'Close Incident',
+  table: 'incident',
+  actionName: 'close_incident',
+  form: true,
+  list: false,
+  script: Now.include('./close-incident.server.js'),
+  active: true,
+  order: 200
+})
+```
+
+Key properties: `name` (required — unique within table), `table` (required), `actionName`, `form`, `list`, `script`, `clientScript`, `condition`, `roles`, `order`, `active`.
 
 ---
 
@@ -1178,6 +1289,70 @@ Key properties:
 - `recipientDetails` — `{ recipientFields, recipientUsers, recipientGroups, sendToCreator, isSubscribableByAllUsers, eventParm1WithRecipient }` — `recipientFields` are field names on the table that hold user references
 - `emailContent` — `{ contentType, subject, messageHtml, messageText, importance, forceDelivery, from, replyTo }` — subject/body support `${field}` variable substitution
 - `digest` — `{ allow, default, type, defaultInterval, subject, html, text }` — optional email digest configuration for summarized notifications
+
+---
+
+## InboundEmailAction
+
+Creates an inbound email action (`sys_email_action`) that defines how ServiceNow processes incoming emails — creating records, updating existing records, or running custom logic.
+
+```ts
+InboundEmailAction({
+  $id: Now.ID['ie.create_incident'],
+  name: 'Create Incident from Email',
+  table: 'incident',
+  type: 'new',
+  action: 'record_action',
+  active: true,
+  order: 100,
+  eventName: 'email.read',
+  stopProcessing: false
+})
+```
+
+Key properties: `name`, `table`, `type` (`'new'` | `'reply'` | `'forward'`), `action`, `eventName`, `active`, `order`, `stopProcessing`.
+
+---
+
+## Property
+
+Creates a system property (`sys_properties`) — a key-value configuration setting read at runtime via `gs.getProperty()`.
+
+**Comprehensive documentation:** See [PROPERTY-API.md](./PROPERTY-API.md)
+
+```ts
+Property({
+  $id: Now.ID['prop.feature_flag'],
+  name: 'x_app.enable_feature',
+  type: 'boolean',
+  value: 'true',
+  description: 'Enable the new feature',
+  readRoles: 'x_app.admin',
+  writeRoles: 'x_app.admin'
+})
+```
+
+Key properties: `name` (required), `type` (`'string'` | `'boolean'` | `'integer'` | `'choicelist'` | etc.), `value`, `description`, `readRoles`, `writeRoles`.
+
+---
+
+## UserPreference
+
+Creates a user preference (`sys_user_preference`) — a per-user configuration setting.
+
+**Comprehensive documentation:** See [USER-PREFERENCE-API.md](./USER-PREFERENCE-API.md)
+
+```ts
+UserPreference({
+  $id: Now.ID['pref.default_view'],
+  name: 'x_app.default_view',
+  type: 'string',
+  value: 'list',
+  description: 'Default landing view'
+})
+```
+
+Key properties: `name` (required), `type` (required — same type options as Property), `value`, `description`.
 
 ---
 

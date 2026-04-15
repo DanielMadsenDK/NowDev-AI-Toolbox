@@ -68,3 +68,71 @@ Parent Update Set (orchestrates order)
 ## Reference
 
 For capture lists, what moves vs what stays, and batching patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
+
+---
+
+## Fluent SDK Deployment Workflow
+
+For Fluent SDK applications, use the `now-sdk` CLI instead of Update Sets. The CLI manages authentication, building, and deploying fluent artifacts directly from source.
+
+### CLI Commands
+
+| Command | Purpose |
+|---------|---------|
+| `npx @servicenow/sdk init` | Scaffold a new project. Flags: `--appName`, `--packageName`, `--scopeName`, `--template`. Use `--from <sys_id>` to convert an existing app. |
+| `npx @servicenow/sdk auth` | Manage instance credentials. `--add <url> --type basic\|oauth` to add, `--list` to check, `--use <alias>` to set default. |
+| `npx @servicenow/sdk build` | Compile fluent source files. Validates syntax and reports errors. |
+| `npx @servicenow/sdk install` | Push built artifacts to the instance. Requires prior `auth`. Use `--scope <name>` for multi-scope. |
+| `npx @servicenow/sdk transform` | Convert existing instance artifacts (XML) into fluent `.now.ts` source files. |
+| `npx @servicenow/sdk download` | Download specific records or update sets from an instance. |
+| `npx @servicenow/sdk dependencies` | Fetch TypeScript type definitions for platform APIs. |
+| `npx @servicenow/sdk clean` | Remove build output and cached artifacts. |
+| `npx @servicenow/sdk pack` | Package the app into an update set XML. |
+
+### Workflow
+
+```
+1. init         \u2190 Scaffold (one-time)
+2. npm install  \u2190 Install dependencies (one-time)
+3. auth         \u2190 Authenticate against instance
+4. Write fluent \u2190 Create .now.ts files under src/fluent/
+5. build        \u2190 Compile and validate
+6. install      \u2190 Deploy to instance
+7. Iterate      \u2190 Repeat steps 4\u20136
+```
+
+### Authentication
+
+```bash
+# Add credentials (interactive)
+npx @servicenow/sdk auth --add https://myinstance.service-now.com --type basic
+
+# Check existing credentials
+npx @servicenow/sdk auth --list
+
+# Set default alias
+npx @servicenow/sdk auth --use <alias>
+
+# Non-interactive (CI/CD) — use environment variables:
+export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
+export SN_SDK_USER=admin
+export SN_SDK_USER_PWD=password
+```
+
+### Converting Existing Applications
+
+```bash
+# From an instance (convert scoped app by sys_id)
+npx @servicenow/sdk init --from <sys_id_of_application>
+
+# From an existing repo with XML metadata
+npx @servicenow/sdk init --from <path_to_repo>
+
+# Transform XML to Fluent DSL after init
+npx @servicenow/sdk transform --from metadata/update/sys_script_<sys_id>.xml
+npx @servicenow/sdk transform --from .          # transform whole app
+```
+
+> **Note:** Records that exist as both a fluent `.now.ts` file and an XML file in `metadata/` will use the XML version on `build`. Remove converted XML files to avoid conflicts.
+
+For CI/CD pipeline patterns, multi-scope deployments, and rollback procedures, see [FLUENT-PIPELINE.md](./FLUENT-PIPELINE.md)

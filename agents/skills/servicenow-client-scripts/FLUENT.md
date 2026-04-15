@@ -22,6 +22,8 @@ In SDK projects, client scripts are defined using `.now.ts` files (metadata) wit
 
 Client scripts are created via the `ClientScript` object and define when JavaScript runs on the client (web browser) during form events such as form load, field changes, or form submission.
 
+> **Important:** The ClientScript `script` property is **string-only** — JavaScript modules and `import`/`export` are NOT supported in client scripts. Use `Now.include()` to reference external `.client.js` files (recommended) or inline strings for short scripts. Do NOT pass functions or module imports.
+
 ### Key Properties
 
 The `ClientScript` object requires:
@@ -516,6 +518,14 @@ export const cs = ClientScript({
 ---
 
 ## JavaScript Modules in Client Scripts
+
+Client scripts do **NOT** support JavaScript modules, `import`/`export`, or third-party libraries. The `script` property only accepts strings. Always use:
+
+- `Now.include('./file.client.js')` for external files (recommended — enables two-way sync)
+- Inline strings for very short scripts
+- `g_form` API and standard browser JavaScript only
+
+This is different from server-side APIs like BusinessRule and ScriptAction, which accept function references from modules. See servicenow-fluent-development: [MODULE-GUIDE.md](../../servicenow-fluent-development/MODULE-GUIDE.md) for details on which APIs accept functions vs strings.
 
 JavaScript modules enable you to organize and reuse code within client-side scripts. A module is a JavaScript file containing related code shared and reused across forms and applications.
 

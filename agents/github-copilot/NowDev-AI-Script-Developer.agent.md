@@ -48,6 +48,27 @@ You are a specialized expert in ServiceNow Server-Side scripting, focusing on **
 4.  **Security:** NEVER use `eval()`. Use `GlideEvaluator` only if absolutely necessary. Do not use hard-coded `sys_id`s; use System Properties.
 5.  **Documentation:** JSDoc is mandatory for the class and every method.
 
+## Fluent Module Bridging Pattern (Preferred for Fluent Projects)
+
+In Fluent SDK projects, **ScriptInclude `script` is string-only** — it does NOT accept function references. Use the module bridging pattern:
+
+1. Write business logic in a **module file** with ES module syntax (`import`/`export`, import Glide APIs from `@servicenow/glide`)
+2. Create a thin **wrapper Script Include** that uses `require()` to load the module and delegates to it (do NOT import Glide APIs — they are auto-available in Script Include context)
+3. Define the Fluent metadata record with `Now.include()` pointing to the wrapper
+
+```typescript
+ScriptInclude({
+    $id: Now.ID['MyUtils'],
+    name: 'MyUtils',
+    script: Now.include('../../server/script-includes/my-utils.js'), // string path, NOT a function
+    description: 'Bridge to utility module',
+})
+```
+
+See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` for the full bridging example with wrapper and module files.
+
+**Classic projects** continue to use the `Class.create()` pattern below.
+
 ## File Output Guidelines
 
 ### **Create JavaScript (.js) Files During Development**

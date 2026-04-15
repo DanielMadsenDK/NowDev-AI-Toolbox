@@ -175,6 +175,117 @@ ServiceNow's build system supports a specific subset of CSS patterns:
 
 Because CSS Modules aren't available, use consistent naming conventions (e.g., BEM) to prevent class name conflicts across components.
 
+## Horizon Design System Theming
+
+The Horizon Design System defines foundational rules for generating ServiceNow-compliant UIs. Include `<sdk:now-ux-globals></sdk:now-ux-globals>` in your HTML to enable theming support.
+
+### Core Principles
+
+1. **Fluid**: Use relative units (`rem`, `%`, `auto`) and spacing tokens, not fixed pixels.
+2. **Symphonic**: Consistent radius, shadows, and typography ensure unified experience.
+3. **Accessible**: WCAG 2.1 AA compliance: text contrast >= 4.5:1, visible focus states, keyboard navigation, semantic HTML.
+
+### Foundation Token Patterns
+
+| Property | Token Pattern | Available Values |
+| --- | --- | --- |
+| **Spacing** | `--now-static-space--{size}` | xxs (0.125rem), xs (0.25rem), sm (0.5rem), md (0.75rem), lg (1rem), xl (1.5rem), xxl (2rem), 3xl (2.5rem) |
+| **Drop Shadows** | `--now-static-drop-shadow--{size}` | sm, md, lg, xl, xxl |
+| **Border Radius** | `--now-static-border-radius--{size}` | sm (0.125rem), md (0.25rem), lg (0.5rem) |
+| **Font Sizes** | `--now-static-font-size--{size}` | sm (0.75rem), md (1rem), lg (1.25rem), xl (1.5rem) |
+| **Line Height** | `--now-static-line-height` | 1.25 (unitless) |
+| **Font Family** | `--now-font-family` | Lato, Arial, sans-serif |
+
+### Semantic Token Categories
+
+| Element Type | Token Category | Example |
+| --- | --- | --- |
+| Buttons, CTAs | `actionable` | `--now-actionable--primary--background-color` |
+| Inputs, Checkboxes | `form-control` | `--now-form-control-input--primary--border-color` |
+| Containers, Cards | `container` | `--now-container-card--background-color-alpha` |
+| Windows, Modals | `window` | `--now-window--border-color` |
+| Menus, Lists | `menu` | `--now-menu-list--primary--background-color` |
+| Navigation | `navigation` | `--now-navigation-page_tabs--primary--background-color` |
+| Alerts, Banners | `messaging` | `--now-messaging--primary_warning--border-color` |
+| Status Indicators | `indicator` | `--now-indicator--primary_critical--background-color` |
+| Typography | `display-type` | `--now-display-type_label--font-weight` |
+
+### Token Integrity Rules
+
+1. Each visual property MUST use a valid design token
+2. Tokens MUST belong to correct semantic category
+3. Fallbacks MUST follow chained `var()` structure
+4. Colors MUST be wrapped with `rgb()` or `rgba()`
+5. No hard-coded color values — use tokens
+
+```css
+/* Correct fallback chain */
+var(--now-actionable--primary--background-color, var(--now-color--primary-1, 0,128,163))
+
+/* Correct color wrapping */
+background-color: rgb(var(--now-color_background--primary, 255, 255, 255));
+```
+
+### Alias Layer
+
+Provide stable, reusable names mapping to instance tokens:
+
+```css
+:root {
+  /* Surfaces & borders */
+  --snx-color-surface: rgb(var(--now-container--color, 255, 255, 255));
+  --snx-color-surface-alt: rgb(var(--now-heading--header-primary--color, 245, 247, 249));
+  --snx-color-border: rgb(var(--now-container--border-color, 207, 213, 215));
+
+  /* Text */
+  --snx-color-text: rgb(var(--now-color_text--primary, 16, 23, 26));
+  --snx-color-text-muted: rgb(var(--now-color_text--secondary, 75, 85, 89));
+
+  /* Actions & focus */
+  --snx-color-primary: rgb(var(--now-actionable--primary--background-color, 0, 128, 163));
+  --snx-color-on-primary: rgb(var(--now-actionable_label--primary--color, 255, 255, 255));
+  --snx-color-focus: rgb(var(--now-color_focus-ring, 53, 147, 37));
+
+  /* Spacing */
+  --snx-space-inner: var(--now-static-space--md, 0.75rem);
+  --snx-space-outer: var(--now-static-space--lg, 1rem);
+
+  /* Border radius — component-specific */
+  --snx-radius-button: var(--now-actionable--border-radius, 6px);
+  --snx-radius-input: var(--now-form-control-input--primary--border-radius, 2px);
+  --snx-radius-container: var(--now-container--border-radius, 8px);
+
+  /* Typography */
+  --snx-font-body: var(--now-font-family, system-ui, sans-serif);
+  --snx-line-height: var(--now-static-line-height, 1.25);
+}
+```
+
+Rules: NEVER create generic aliases that ignore component requirements. ALWAYS use component-specific aliases. Aliases MUST remain stable between generations.
+
+### Dark Mode
+
+Each token has light and dark mode values. The theme system handles switching automatically:
+
+```css
+/* Token automatically switches between light/dark */
+background-color: rgb(var(--now-container--color, 255, 255, 255));
+color: rgb(var(--now-color_text--primary, 16, 23, 26));
+```
+
+### Severity Variant Reference
+
+All messaging, alert, and indicator components use these semantic variants:
+
+| Display Name | Token Variant | Use For |
+| --- | --- | --- |
+| Success | `positive` | Successful operations, valid states |
+| Error | `critical` | Errors, failures, urgent issues |
+| Warning | `warning` | Warnings, cautions |
+| Info | `info` | Informational messages |
+
+ALWAYS use `positive`, `critical`, `warning`, `info` — NEVER "success", "error", or "informational".
+
 ## React Development Patterns
 
 ### Full-Stack React Example
@@ -266,6 +377,317 @@ The `<sdk:now-ux-globals>` tag initializes ServiceNow global variables and requi
 - `window.g_ck` — User token required for authenticating Table API fetch calls
 - ServiceNow styling and utilities
 
+## Record List Pattern
+
+ALWAYS use `NowRecordListConnected` for displaying ServiceNow records — NEVER manual `fetch()` + `.map()` + `<table>`.
+
+```tsx
+import React from "react";
+import { NowRecordListConnected } from "@servicenow/react-components/NowRecordListConnected";
+
+export default function TicketList({ onSelectTicket, onNewClicked }) {
+  return (
+    <NowRecordListConnected
+      table="incident"
+      listTitle="Incidents"
+      columns="number,short_description,priority,state,assigned_to"
+      onRowClicked={e => onSelectTicket(e.detail.payload.sys_id)}
+      onNewActionClicked={onNewClicked}
+      limit={25}
+    />
+  );
+}
+```
+
+**Filtering:** `NowRecordListConnected` has no `query` prop. Use the React `key` prop with an encoded query string to force a re-mount with filtered data:
+
+```tsx
+<NowRecordListConnected
+  key="active=true^priority=1"
+  table="incident"
+  listTitle="Critical Incidents"
+  columns="number,short_description,priority"
+/>
+```
+
+**`onNewActionClicked`:** REQUIRED unless `hideHeader={true}`. MUST navigate to the create view — NEVER use an empty function `() => {}`.
+
+## RecordProvider Pattern
+
+ALWAYS use `RecordProvider` for viewing/editing a single record — NEVER standalone Input components with manual Table API calls.
+
+```tsx
+import React from "react";
+import { RecordProvider } from "@servicenow/react-components/RecordContext";
+import { FormActionBar } from "@servicenow/react-components/FormActionBar";
+import { FormColumnLayout } from "@servicenow/react-components/FormColumnLayout";
+
+export default function TicketDetail({ ticketId, onBack }) {
+  return (
+    <RecordProvider
+      table="incident"
+      sysId={ticketId}
+      isReadOnly={false}
+    >
+      <FormActionBar />
+      <FormColumnLayout />
+    </RecordProvider>
+  );
+}
+```
+
+**RecordProvider usage notes:**
+
+- `table`: ServiceNow table name
+- `sysId`: Record sys_id to load (use `"-1"` for new records, NEVER `null`/`undefined`)
+- `isReadOnly={false}`: Required for editable forms and new records
+- `FormColumnLayout`: Renders ALL fields automatically — there is NO `RecordField` component
+- `FormActionBar`: Provides save/update/delete action buttons
+- `useRecord()`: Hook to access `form.isDirty`, `header.data`, etc.
+- Use `key` prop on `RecordProvider` when switching records to fully remount the form
+
+## URL-Based Navigation
+
+ALWAYS use URLSearchParams for navigation. Each view MUST have its own URL. NEVER use `window.location.reload()` — use React state. NEVER use hash-based routing (`#/path`) — ALWAYS use query strings (`?view=details`).
+
+Implement iframe detection for Polaris compatibility:
+
+```tsx
+interface ViewState {
+  view: string;
+  recordId: string | null;
+}
+
+function getViewFromUrl(): ViewState {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    view: params.get("view") || "list",
+    recordId: params.get("id") || null
+  };
+}
+
+export default function TaskApp() {
+  const [currentView, setCurrentView] = useState<ViewState>(getViewFromUrl);
+
+  useEffect(() => {
+    const onPopState = () => setCurrentView(getViewFromUrl());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const navigateToView = useCallback(
+    (viewName: string, recordId?: string | null, { title = "" } = {}) => {
+      const params = new URLSearchParams({ view: viewName });
+      if (recordId) params.set("id", recordId);
+      const relativePath = `${window.location.pathname}?${params}`;
+      const pageTitle =
+        title ||
+        `Task Manager - ${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`;
+
+      if (window.self !== window.top) {
+        (window as any).CustomEvent.fireTop("magellanNavigator.permalink.set", {
+          relativePath,
+          title: pageTitle
+        });
+      }
+
+      window.history.pushState({ viewName, recordId }, "", relativePath);
+      document.title = pageTitle;
+      setCurrentView({ view: viewName, recordId: recordId || null });
+    },
+    []
+  );
+
+  const { view, recordId } = currentView;
+
+  if (view === "list") {
+    return (
+      <NowRecordListConnected
+        table="incident"
+        listTitle="Incidents"
+        columns="number,short_description,priority,state,assigned_to"
+        onRowClicked={e => {
+          const sysId = e.detail.payload.sys_id;
+          const number = e.detail.payload.number;
+          navigateToView("detail", sysId, { title: `Incident ${number}` });
+        }}
+        onNewActionClicked={() => {
+          navigateToView("create", null, { title: "New Incident" });
+        }}
+      />
+    );
+  }
+
+  if (view === "create") {
+    return (
+      <RecordProvider table="incident" sysId="-1" isReadOnly={false}>
+        <FormActionBar
+          onSubmit={() =>
+            navigateToView("list", null, { title: "Incident List" })
+          }
+          onCancel={() =>
+            navigateToView("list", null, { title: "Incident List" })
+          }
+        />
+        <FormColumnLayout />
+      </RecordProvider>
+    );
+  }
+
+  if (view === "detail" && recordId) {
+    return (
+      <RecordProvider table="incident" sysId={recordId} isReadOnly={false}>
+        <FormActionBar
+          onSubmit={() =>
+            navigateToView("list", null, { title: "Incident List" })
+          }
+          onCancel={() =>
+            navigateToView("list", null, { title: "Incident List" })
+          }
+        />
+        <FormColumnLayout />
+      </RecordProvider>
+    );
+  }
+}
+```
+
+### Navigation Key Points
+
+- Each view needs its own URL with URLSearchParams
+- Use React state (`setCurrentView`) to trigger re-renders — NEVER `window.location.reload()`
+- Check `window.self !== window.top` for iframe context
+- Use `window.CustomEvent.fireTop` in Polaris iframe
+- Use `history.pushState()` for URL updates
+- Listen for `popstate` events for browser back/forward
+- NEVER use hash-based routing (`#/path`)
+
+## Dirty State Management
+
+MANDATORY for ANY view that creates, edits, or views records with a form. `RecordProvider` tracks dirty state internally — do NOT implement manual field diffing. The ONLY way to check dirty state is `useRecord().form.isDirty`. NEVER use `window.confirm()` or `window.alert()` — use the ServiceNow `Modal` component.
+
+### Standard Pattern
+
+```tsx
+import React, { useEffect } from "react";
+import { RecordProvider } from "@servicenow/react-components/RecordContext";
+import { FormActionBar } from "@servicenow/react-components/FormActionBar";
+import { FormColumnLayout } from "@servicenow/react-components/FormColumnLayout";
+import { Alert } from "@servicenow/react-components/Alert";
+import { useRecord } from "@servicenow/react-components";
+
+function FormWithDirtyTracking() {
+  const { form } = useRecord();
+
+  useEffect(() => {
+    if (!form.isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [form.isDirty]);
+
+  return (
+    <>
+      {form.isDirty && (
+        <Alert status="warning" content="Unsaved changes" />
+      )}
+      <FormActionBar />
+      <FormColumnLayout />
+    </>
+  );
+}
+
+export default function RecordForm({ sysId }: { sysId: string }) {
+  return (
+    <RecordProvider table="incident" sysId={sysId} isReadOnly={false}>
+      <FormWithDirtyTracking />
+    </RecordProvider>
+  );
+}
+```
+
+### Warn on In-App Navigation (Modal)
+
+```tsx
+import React, { useState, useCallback } from "react";
+import {
+  Modal,
+  ModalOpenedSet,
+  ModalFooterActionClicked
+} from "@servicenow/react-components/Modal";
+
+function UnsavedChangesModal({ opened, onDiscard, onCancel }) {
+  const handleOpenedSet = useCallback<ModalOpenedSet>(() => {
+    onCancel();
+  }, [onCancel]);
+
+  const handleFooterAction = useCallback<ModalFooterActionClicked>(
+    e => {
+      if (e.detail.payload.action.label === "Discard") {
+        onDiscard();
+      } else {
+        onCancel();
+      }
+    },
+    [onDiscard, onCancel]
+  );
+
+  return (
+    <Modal
+      opened={opened}
+      size="sm"
+      headerLabel="Unsaved Changes"
+      content="You have unsaved changes. Are you sure you want to leave? Your changes will be lost."
+      footerActions={[
+        { label: "Cancel", variant: "secondary" },
+        { label: "Discard", variant: "primary-negative" }
+      ]}
+      onOpenedSet={handleOpenedSet}
+      onFooterActionClicked={handleFooterAction}
+    />
+  );
+}
+```
+
+Integrate with navigation — wrap `navigateToView` with a dirty check:
+
+```tsx
+const { form } = useRecord();
+const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+
+const safeNavigate = useCallback(
+  (viewName: string, recordId?: string | null, options?: { title?: string }) => {
+    if (form.isDirty) {
+      setPendingNavigation(() => () => navigateToView(viewName, recordId, options));
+      return;
+    }
+    navigateToView(viewName, recordId, options);
+  },
+  [form.isDirty, navigateToView]
+);
+
+// In JSX — use safeNavigate instead of navigateToView:
+<UnsavedChangesModal
+  opened={pendingNavigation !== null}
+  onDiscard={() => {
+    pendingNavigation?.();
+    setPendingNavigation(null);
+  }}
+  onCancel={() => setPendingNavigation(null)}
+/>
+```
+
+### Dirty State Key Points
+
+- ONLY use `useRecord().form.isDirty` to check dirty state
+- NEVER use `window.confirm()` or `window.alert()` — use the ServiceNow `Modal` component
+- `FormActionBar` handles save/submit/cancel automatically — dirty state resets on successful save
+- Use `key` prop on `RecordProvider` when switching records to fully remount the form
+- For new records: pass `sysId="-1"` — NEVER `null` or `undefined`
+
 ## ServiceNow Field Extraction
 
 When fetching records with `sysparm_display_value=all` (recommended), reference fields, choice fields, and `sys_id` are returned as objects rather than plain strings. React cannot render objects directly — always extract the primitive value before rendering or using in API calls.
@@ -283,6 +705,55 @@ const sysId = typeof record.sys_id === 'object'
 ```
 
 Apply this pattern to every field that could be a reference or choice field. Also note: fields with numeric or boolean types defined in the table schema are returned as **strings** — convert with `Number()` or compare with `String(value) === 'true'` as needed.
+
+### Field Extraction Utilities
+
+ALWAYS create these utility functions in every project:
+
+```ts
+// src/client/utils/fields.ts
+export const display = field => {
+  if (typeof field === "string") {
+    return field;
+  }
+  return field?.display_value || "";
+};
+
+export const value = field => {
+  if (typeof field === "string") {
+    return field;
+  }
+  return field?.value || "";
+};
+```
+
+Usage:
+
+```tsx
+import { display, value } from "./utils/fields";
+
+// For UI display:
+<td>{display(record.short_description)}</td>
+<td>{display(record.assigned_to)}</td>
+
+// For operations/keys:
+await updateRecord(value(record.sys_id), data);
+{records.map(r => <li key={value(r.sys_id)}>)}
+```
+
+Common mistakes:
+
+```tsx
+// WRONG — accessing object directly
+<span>{record.assigned_to}</span>
+
+// WRONG — using value for display
+<span>{value(record.state)}</span>  // Shows "2" instead of "In Progress"
+
+// CORRECT — display for UI, value for operations
+<span>{display(record.state)}</span>  // Shows "In Progress"
+await api.update(value(record.sys_id), data);  // Uses sys_id value
+```
 
 ## Authentication and Table API Calls
 
@@ -380,7 +851,7 @@ export const navigationModule = Record({
 React UI pages in Fluent have the following build and runtime constraints:
 
 - **CSS**: No CSS Modules, no `@import` in CSS files, no `<link>` stylesheet tags in HTML
-- **Routing**: Only hash-based routing (e.g., `#/route`) is supported — no browser history API routing
+- **Routing**: Use URLSearchParams (e.g., `?view=details`), NOT hash routing (`#/route`)
 - **No SSR**: React Server Components and server-side rendering are not available
 - **No media**: Audio, video, and WASM files are not supported
 - **No preloading**: `<link rel="preload">` is not supported

@@ -35,6 +35,7 @@ STOP if implementing Business Rules, Script Includes, or UI artifacts — those 
 
 <documentation>
 The primary reference for all automation work is FLOW-API.md in the servicenow-fluent-development skill.
+The official WFA guides from the ServiceNow SDK documentation are authoritative — always prefer them over inferred patterns.
 It covers:
   - Flow triggers: record-based, scheduled, application-event
   - wfa.trigger, wfa.action (30+ built-in actions with full signatures)

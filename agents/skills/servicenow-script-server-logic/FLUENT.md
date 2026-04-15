@@ -14,7 +14,9 @@ Patterns for server-side Script Includes in ServiceNow SDK projects using TypeSc
 
 ## Overview
 
-In SDK projects, Script Includes are defined using `.now.ts` files (metadata) with handler implementation in accompanying `.server.js` files.
+In SDK projects, Script Includes are defined using `.now.ts` files (metadata) with handler implementation in accompanying `.js` files. The ScriptInclude API only accepts **strings** for its `script` property, so use `Now.include()` to reference external files.
+
+> **Important:** JavaScript modules are the preferred approach for new server-side logic in Fluent projects. Script Include class files (`Class.create`) must **NOT** import Glide APIs — they are auto-available. Module files **MUST** import Glide APIs from `@servicenow/glide`. When module logic needs to be accessible via GlideAjax, cross-scope, or extension points, use the **module bridging pattern** — see servicenow-fluent-development: [MODULE-GUIDE.md](../../servicenow-fluent-development/MODULE-GUIDE.md).
 
 ### Key Fluent Language Constructs
 

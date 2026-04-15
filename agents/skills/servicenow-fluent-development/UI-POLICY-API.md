@@ -22,8 +22,8 @@ Create a UI policy `sys_ui_policy` to configure form behavior.
 | Name | Type | Description | Required | Default |
 |------|------|-------------|----------|---------|
 | `$id` | String or Number | A unique ID for the metadata object. When you build the application, this ID is hashed into a unique sys_id. Format: `Now.ID['String' or Number]` | ✅ Yes | N/A |
-| `table` | String | The table of the form to modify. | ✅ Yes | N/A |
-| `view` | Reference or String | The variable identifier or name of the UI view (`sys_ui_view`) which applies, or the default view. To use the default view, import it: `import { default_view } from '@servicenow/sdk/core'` | ✅ Yes | N/A |
+| `table` | String | The table of the form to modify. | No | N/A |
+| `view` | Reference or String | The variable identifier or name of the UI view (`sys_ui_view`) which applies, or the default view. To use the default view, import it: `import { default_view } from '@servicenow/sdk/core'`. If `global` is `true`, the policy applies to all form views. If `global` is `false`/undefined, specify a view to make the policy view-specific. | No | N/A |
 | `shortDescription` | String | A description of the policy and its purpose. | ✅ Yes | N/A |
 | `active` | Boolean | Flag that indicates whether the policy is applied to the form. | No | `true` |
 | `global` | Boolean | Flag that indicates to which form views the policy applies. If `true`, the policy applies to all views of the table. If `false`, the policy is specific to the form view specified with the `view` property. | No | `true` |

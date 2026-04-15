@@ -20,10 +20,11 @@ Use for direct ServiceNow instance customizations created in the Business Rules 
 ```
 
 ### **Fluent SDK Business Rules** (for SDK projects)
-Use for TypeScript-based projects with `.now.ts` metadata files and `.server.js` handlers.
+Use for TypeScript-based projects with `.now.ts` metadata files. JavaScript modules are the **preferred** approach — the BusinessRule `script` property accepts functions, so write logic in module files with typed Glide API imports.
 
 ```typescript
 import { BusinessRule } from '@servicenow/sdk/core'
+import { autoSetUrgency } from '../../server/business-rules/auto-set-urgency'
 
 export default BusinessRule({
     $id: Now.ID['incident_before_rule'],
@@ -31,10 +32,20 @@ export default BusinessRule({
     active: true,
     table: 'incident',
     when: 'before',
-    script: (current, previous) => {
-        // Your code here - runs in SDK context
-    }
+    action: ['insert', 'update'],
+    order: 100,
+    filterCondition: 'priority=1^ORpriority=2',
+    script: autoSetUrgency,
 })
+```
+
+```javascript
+// server/business-rules/auto-set-urgency.js
+import { gs } from '@servicenow/glide'
+
+export function autoSetUrgency(current, previous) {
+    current.setValue('urgency', '1');
+}
 ```
 
 ---
@@ -84,7 +95,10 @@ if (current.start_date > current.end_date) {
 
 ## Best Practices (All Approaches)
 
-- Use IIFE wrapper for all rules (JavaScript context isolation)
+- **Prefer `filterCondition` over script guards** — the platform evaluates conditions before loading the script, which is more efficient
+- **Set `order`** — lower numbers run first; default is 100. Set explicitly when rules may interact
+- **Set `access`** — use `'public'` for cross-scope rules, `'package_private'` (default) for internal rules
+- Use IIFE wrapper for all Classic rules (JavaScript context isolation)
 - Check execution timing before using `current.update()`
 - Only modify `current` in Before rules without calling `update()`
 - Call `update()` explicitly in After rules
