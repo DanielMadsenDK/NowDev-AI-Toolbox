@@ -1,7 +1,7 @@
 ---
 name: servicenow-instance-scan
 user-invocable: false
-description: Create Instance Scan checks using the Fluent SDK to detect security vulnerabilities, deprecated API usage, performance anti-patterns, and data quality issues across a ServiceNow instance. Covers four check types: ColumnTypeCheck (scan columns by content type), LinterCheck (code linting rules), ScriptOnlyCheck (standalone scripts), and TableCheck (record-level condition or script scanning). Use when building automated governance rules that run as part of instance health checks.
+description: Create Instance Scan checks using the Fluent SDK to detect security vulnerabilities, deprecated API usage, performance anti-patterns, and data quality issues across a ServiceNow instance. Covers four check types: ColumnTypeCheck (scan columns by content type), LinterCheck (code linting rules), ScriptOnlyCheck (standalone scripts), and TableCheck (record-level condition or script scanning). Use when building automated governance rules that run as part of instance health checks. Trigger this skill whenever the user mentions instance scan, automated governance checks, instance health rules, code linting for ServiceNow, or building checks that detect security or quality issues across an instance.
 ---
 
 # ServiceNow Instance Scan — Fluent SDK

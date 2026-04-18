@@ -1,7 +1,7 @@
 ---
 name: servicenow-ui-forms
 user-invocable: false
-description: Manipulate form field state using g_form APIs — no server calls required. Covers field value get/set, mandatory/read-only/hidden control, inline validation and error messages, section and tab visibility, and form state checks. Use for dynamic/runtime field manipulation triggered by user actions (onChange, onLoad, onSubmit). For static field behavior based on conditions, prefer UI Policies instead — they load faster and don't require scripting. For scripts requiring GlideAjax server communication, use the servicenow-client-scripts skill.
+description: Manipulate form field state using g_form APIs — no server calls required. Covers field value get/set, mandatory/read-only/hidden control, inline validation and error messages, section and tab visibility, and form state checks. Use for dynamic/runtime field manipulation triggered by user actions (onChange, onLoad, onSubmit). For static field behavior based on conditions, prefer UI Policies instead — they load faster and don't require scripting. For scripts requiring GlideAjax server communication, use the servicenow-client-scripts skill. Trigger this skill whenever the user needs to control field visibility, mandatory state, read-only state, field values, or form messages in a ServiceNow client script without making server calls.
 ---
 
 # Customize UI Forms

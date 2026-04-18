@@ -4,7 +4,7 @@ user-invocable: false
 description: router agent that detects whether a review request is for Classic scripting or Fluent SDK artifacts, then delegates to the appropriate specialized reviewer; after review completes, offers structured fix delegation to the appropriate developer specialist when the user approves
 argument-hint: "List of files to review (e.g. src/script-includes/MyInclude.js, src/fluent/tables/MyTable.now.ts) plus any relevant context such as artifact types developed or known issues to focus on"
 tools: ['read/readFile', 'search', 'todo', 'agent']
-agents: ["NowDev-AI-Fluent-Reviewer", "NowDev-AI-Classic-Reviewer"]
+agents: ['NowDev-AI-Fluent-Reviewer', 'NowDev-AI-Classic-Reviewer']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent

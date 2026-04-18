@@ -4,7 +4,7 @@ user-invocable: false
 description: router agent that detects whether a release request is for Classic scripting or Fluent SDK artifacts, then delegates to the appropriate specialized release agent
 argument-hint: "List of artifact files to release (e.g. src/script-includes/MyInclude.js, src/fluent/tables/MyTable.now.ts), desired Update Set name (Classic only), and target auth alias (Fluent only)"
 tools: ['read/readFile', 'search', 'todo', 'agent']
-agents: ["NowDev-AI-Classic-Release", "NowDev-AI-Fluent-Release"]
+agents: ['NowDev-AI-Classic-Release', 'NowDev-AI-Fluent-Release']
 handoffs:
   - label: Back to Architect
     agent: NowDev AI Agent

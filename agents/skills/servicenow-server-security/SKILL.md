@@ -1,7 +1,7 @@
 ---
 name: servicenow-server-security
 user-invocable: false
-description: Secure data and credentials using cryptographic operations, encryption, and authentication primitives. Covers GlideDigest (hashing), GlideCertificateEncryption, KMFCryptoOperation, OAuth credential lifecycle, and request signing. Use when encrypting sensitive data, managing cryptographic keys, signing requests, verifying certificates, performing hash operations, or managing stored credentials. For setting up outbound HTTP API connections to external systems, use the servicenow-http-integrations skill.
+description: Secure data and credentials using cryptographic operations, encryption, and authentication primitives. Covers GlideDigest (hashing), GlideCertificateEncryption, KMFCryptoOperation, OAuth credential lifecycle, and request signing. Use when encrypting sensitive data, managing cryptographic keys, signing requests, verifying certificates, performing hash operations, or managing stored credentials. For setting up outbound HTTP API connections to external systems, use the servicenow-http-integrations skill. Trigger this skill whenever the user mentions encryption, hashing, certificate operations, credential management, request signing, or cryptographic security in ServiceNow server-side scripts.
 ---
 
 # Server Security
