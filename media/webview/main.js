@@ -67,6 +67,70 @@
         vscode.postMessage({ command: 'initFluentProject' });
     });
 
+    // ── SDK tab ───────────────────────────────────────────────────
+
+    document.getElementById('rescanAuthAliases').addEventListener('click', () => {
+        vscode.postMessage({ command: 'rescanAuthAliases' });
+    });
+    document.getElementById('sdkAuthAdd').addEventListener('click', () => {
+        vscode.postMessage({ command: 'sdkAuthAdd' });
+    });
+
+    // Command help (?) buttons
+    document.querySelectorAll('.sdk-help-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            vscode.postMessage({ command: 'sdkCommandHelp', cmd: btn.dataset.cmd });
+        });
+    });
+
+    // Options gear toggle
+    document.querySelectorAll('.sdk-opts-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var optsId = btn.dataset.opts;
+            var optsEl = document.getElementById(optsId);
+            if (!optsEl) { return; }
+            var isOpen = optsEl.classList.contains('open');
+            optsEl.classList.toggle('open', !isOpen);
+            btn.textContent = isOpen ? '\u2699' : '\u2715';
+            btn.title = isOpen ? 'Show options' : 'Hide options';
+        });
+    });
+
+    // Run buttons
+    document.querySelectorAll('.sdk-run-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var cmd = btn.dataset.cmd;
+            var auth = document.getElementById('sdkCmdAuth') ? document.getElementById('sdkCmdAuth').value : '';
+            var args = { auth: auth };
+            if (cmd === 'build') {
+                args.frozenKeys = !!(document.getElementById('buildFrozenKeys') && document.getElementById('buildFrozenKeys').checked);
+            } else if (cmd === 'install') {
+                args.reinstall = !!(document.getElementById('installReinstall') && document.getElementById('installReinstall').checked);
+                args.openBrowser = !!(document.getElementById('installOpenBrowser') && document.getElementById('installOpenBrowser').checked);
+            } else if (cmd === 'transform') {
+                args.preview = !!(document.getElementById('transformPreview') && document.getElementById('transformPreview').checked);
+            } else if (cmd === 'dependencies') {
+                args.mode = document.getElementById('depsMode') ? document.getElementById('depsMode').value : 'all';
+            } else if (cmd === 'download') {
+                args.incremental = !(document.getElementById('downloadIncremental') && !document.getElementById('downloadIncremental').checked);
+            }
+            vscode.postMessage({ command: 'sdkCommand', cmd: cmd, args: args });
+        });
+    });
+
+    document.getElementById('runExplain').addEventListener('click', function () {
+        var api = document.getElementById('explainApiInput').value.trim();
+        if (!api) { return; }
+        vscode.postMessage({ command: 'sdkExplain', api: api });
+    });
+    document.getElementById('explainApiInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            var api = e.target.value.trim();
+            if (!api) { return; }
+            vscode.postMessage({ command: 'sdkExplain', api: api });
+        }
+    });
+
     // ── Tools tab: rescan ──────────────────────────────────────────
     document.getElementById('rescanTools').addEventListener('click', () => {
         vscode.postMessage({ command: 'rescanTools' });
@@ -81,12 +145,16 @@
                 updateSettings(msg.settings);
                 updateFluentApp(msg.fluentApp);
                 updateEnvironment(msg.environment);
+                if (msg.sdkStatus) { updateSdkStatus(msg.sdkStatus); }
                 break;
             case 'updateAgents':
                 renderAgentTree(msg.tree);
                 break;
             case 'updateArtifacts':
                 renderArtifacts(msg.artifacts, msg.sessionActive);
+                break;
+            case 'updateSdkData':
+                renderAuthAliases(msg.authAliases);
                 break;
         }
     });
@@ -383,6 +451,85 @@
     function isDone(s) { return /done|complete|\u2705/i.test(s); }
     function isInProgress(s) { return /progress|building|\uD83C\uDFD7/i.test(s); }
     function isError(s) { return /error|fail|\u274C/i.test(s); }
+
+    // ── Auth Aliases rendering ─────────────────────────────────────
+
+    function renderAuthAliases(aliases) {
+        var list = document.getElementById('authAliasesList');
+        var authSelect = document.getElementById('sdkCmdAuth');
+        if (!list) { return; }
+
+        if (!aliases || aliases.length === 0) {
+            list.innerHTML = '<div class="field-desc" style="font-style:italic;">No aliases found. Use the <strong>Add&hellip;</strong> button or run <code>now-sdk auth --add</code>.</div>';
+            if (authSelect) { authSelect.innerHTML = '<option value="">(SDK default)</option>'; }
+            return;
+        }
+
+        // Rebuild auth select options, preserving current selection
+        if (authSelect) {
+            var current = authSelect.value;
+            authSelect.innerHTML = '<option value="">(SDK default)</option>' +
+                aliases.map(function (a) {
+                    return '<option value="' + esc(a.alias) + '"' + (a.alias === current ? ' selected' : '') + '>' + esc(a.alias) + '</option>';
+                }).join('');
+        }
+
+        list.innerHTML = aliases.map(function (a) {
+            var defaultBadge = a.isDefault ? '<span class="auth-alias-default-badge">default</span>' : '';
+            var setDefaultBtn = !a.isDefault
+                ? '<button class="fix-btn" data-action="setDefault" data-alias="' + esc(a.alias) + '" title="Set as SDK default">Default</button>'
+                : '';
+            return '<div class="auth-alias-row">' +
+                '<div class="auth-alias-info">' +
+                '<div><span class="auth-alias-name">' + esc(a.alias) + '</span>' + defaultBadge + '</div>' +
+                '<div class="auth-alias-host">' + esc(a.host) + '</div>' +
+                '</div>' +
+                '<span class="auth-alias-type">' + esc(a.type || '?') + '</span>' +
+                '<div class="auth-alias-actions">' +
+                setDefaultBtn +
+                '<button class="fix-btn auth-alias-delete" data-action="remove" data-alias="' + esc(a.alias) + '" title="Delete alias">Delete</button>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+
+        list.querySelectorAll('[data-action="setDefault"]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                vscode.postMessage({ command: 'sdkAuthSetDefault', alias: btn.dataset.alias });
+            });
+        });
+        list.querySelectorAll('[data-action="remove"]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                vscode.postMessage({ command: 'sdkAuthRemove', alias: btn.dataset.alias });
+            });
+        });
+    }
+
+    // ── SDK command status ─────────────────────────────────────────
+
+    function updateSdkStatus(sdkStatus) {
+        var cmds = ['build', 'install', 'transform', 'dependencies', 'download', 'clean', 'pack'];
+        cmds.forEach(function (cmd) {
+            var el = document.getElementById('sdkStatus-' + cmd);
+            if (!el) { return; }
+            var s = sdkStatus[cmd];
+            if (!s) {
+                el.textContent = '';
+                el.className = 'sdk-cmd-status';
+                return;
+            }
+            var timeAgo = formatTimeAgo(new Date(s.timestamp));
+            el.textContent = (s.ok ? '\u2713 ' : '\u2717 ') + s.message + ' \u2014 ' + timeAgo;
+            el.className = 'sdk-cmd-status ' + (s.ok ? 'ok' : 'fail');
+        });
+    }
+
+    function formatTimeAgo(date) {
+        var seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (seconds < 5) { return 'just now'; }
+        if (seconds < 60) { return seconds + 's ago'; }
+        if (seconds < 3600) { return Math.floor(seconds / 60) + 'm ago'; }
+        return Math.floor(seconds / 3600) + 'h ago';
+    }
 
     // ── Utility ────────────────────────────────────────────────────
 

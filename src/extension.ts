@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as cp from 'child_process';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
+import { showSdkExplainPanel } from './SdkExplainPanel';
 
 export function activate(context: vscode.ExtensionContext) {
     // Ensure .vscode/nowdev-ai-config.json is listed in .gitignore
@@ -162,6 +163,197 @@ export function activate(context: vscode.ExtensionContext) {
                 } else {
                     outputChannel.appendLine(`\n✗ now-sdk init failed with exit code ${code}.`);
                     vscode.window.showErrorMessage(`now-sdk init failed (exit code ${code}). See the output channel for details.`);
+                }
+            });
+        })
+    );
+
+    // ── SDK CLI commands ──────────────────────────────────────────
+
+    function getWorkspaceFolder(): string | undefined {
+        return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    }
+
+    function spawnSdkCmd(
+        label: string,
+        cmdArgs: string[],
+        cwd: string,
+        statusKey: string,
+        onSuccess?: () => void
+    ): void {
+        const chan = vscode.window.createOutputChannel(`NowDev: SDK ${label}`);
+        chan.show(true);
+        chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
+
+        const proc = cp.spawn('now-sdk', cmdArgs, { cwd, shell: true });
+        proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
+        proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
+        proc.on('close', (code: number | null) => {
+            const ok = code === 0;
+            if (ok) {
+                chan.appendLine(`\n✓ ${label} completed successfully.`);
+                onSuccess?.();
+            } else {
+                chan.appendLine(`\n✗ ${label} failed (exit code ${code}).`);
+            }
+            welcomeProvider.setSdkCommandStatus(statusKey, ok, ok ? `${label} succeeded` : `Failed (exit ${code})`);
+        });
+    }
+
+    context.subscriptions.push(
+        // Build
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkBuild', (args: { frozenKeys?: boolean } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            const cmdArgs = ['build', '.'];
+            if (args.frozenKeys) { cmdArgs.push('--frozenKeys', 'true'); }
+            spawnSdkCmd('Build', cmdArgs, cwd, 'build');
+        }),
+
+        // Install
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkInstall', (args: { reinstall?: boolean; openBrowser?: boolean; auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            const cmdArgs = ['install'];
+            if (args.reinstall) { cmdArgs.push('--reinstall'); }
+            if (args.openBrowser) { cmdArgs.push('--open-browser'); }
+            if (args.auth) { cmdArgs.push('--auth', args.auth); }
+            spawnSdkCmd('Install', cmdArgs, cwd, 'install');
+        }),
+
+        // Transform
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', (args: { preview?: boolean; auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            const cmdArgs = ['transform'];
+            if (args.preview) { cmdArgs.push('--preview'); }
+            if (args.auth) { cmdArgs.push('--auth', args.auth); }
+            spawnSdkCmd('Transform', cmdArgs, cwd, 'transform');
+        }),
+
+        // Dependencies
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkDependencies', (args: { mode?: string; auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            const cmdArgs = ['dependencies'];
+            if (args.mode === 'script') { cmdArgs.push('--type-defs-only'); }
+            else if (args.mode === 'fluent') { cmdArgs.push('--fluent-only'); }
+            if (args.auth) { cmdArgs.push('--auth', args.auth); }
+            spawnSdkCmd('Dependencies', cmdArgs, cwd, 'dependencies');
+        }),
+
+        // Clean
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkClean', () => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            spawnSdkCmd('Clean', ['clean', '.'], cwd, 'clean');
+        }),
+
+        // Pack
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkPack', () => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            spawnSdkCmd('Pack', ['pack', '.'], cwd, 'pack');
+        }),
+
+        // Download
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkDownload', (args: { incremental?: boolean; auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            const downloadDir = path.join(cwd, 'metadata');
+            const cmdArgs = ['download', downloadDir];
+            if (args.incremental !== false) { cmdArgs.push('--incremental'); }
+            if (args.auth) { cmdArgs.push('--auth', args.auth); }
+            spawnSdkCmd('Download', cmdArgs, cwd, 'download');
+        }),
+
+        // Explain — opens a formatted webview panel with the API docs
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkExplain', (api: string) => {
+            if (!api?.trim()) { return; }
+            showSdkExplainPanel(api.trim());
+        }),
+
+        // Auth — Add
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkAuthAdd', async () => {
+            const instance = await vscode.window.showInputBox({
+                prompt: 'Instance URL or name to authenticate with',
+                placeHolder: 'https://dev12345.service-now.com',
+                validateInput: (v) => v.trim() ? undefined : 'Instance is required',
+            });
+            if (!instance) { return; }
+
+            const alias = await vscode.window.showInputBox({
+                prompt: 'Alias name for this credential (optional — leave blank to use instance name)',
+                placeHolder: 'my-dev-instance',
+            });
+
+            const typePick = await vscode.window.showQuickPick(
+                [
+                    { label: 'oauth', description: 'OAuth 2.0 (recommended)' },
+                    { label: 'basic', description: 'Username / Password' },
+                ],
+                { placeHolder: 'Select authentication type' }
+            );
+            if (!typePick) { return; }
+
+            const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Add');
+            chan.show(true);
+            const cmdArgs = ['auth', '--add', instance.trim(), '--type', typePick.label];
+            if (alias?.trim()) { cmdArgs.push('--alias', alias.trim()); }
+            chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
+
+            const proc = cp.spawn('now-sdk', cmdArgs, { shell: true });
+            proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
+            proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
+            proc.on('close', (code: number | null) => {
+                if (code === 0) {
+                    chan.appendLine('\n✓ Auth alias added.');
+                    welcomeProvider.refreshAuthAliases();
+                } else {
+                    chan.appendLine(`\n✗ Auth add failed (exit code ${code}).`);
+                }
+            });
+        }),
+
+        // Auth — Remove
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkAuthRemove', async (alias: string) => {
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete auth alias "${alias}"?`,
+                { modal: true },
+                'Delete'
+            );
+            if (confirm !== 'Delete') { return; }
+
+            const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Remove');
+            chan.show(true);
+            chan.appendLine(`> now-sdk auth --delete ${alias}\n`);
+            const proc = cp.spawn('now-sdk', ['auth', '--delete', alias], { shell: true });
+            proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
+            proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
+            proc.on('close', (code: number | null) => {
+                if (code === 0) {
+                    chan.appendLine('\n✓ Auth alias removed.');
+                    welcomeProvider.refreshAuthAliases();
+                } else {
+                    chan.appendLine(`\n✗ Auth remove failed (exit code ${code}).`);
+                }
+            });
+        }),
+
+        // Auth — Set Default
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkAuthSetDefault', async (alias: string) => {
+            const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Default');
+            chan.show(true);
+            chan.appendLine(`> now-sdk auth --use ${alias}\n`);
+            const proc = cp.spawn('now-sdk', ['auth', '--use', alias], { shell: true });
+            proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
+            proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
+            proc.on('close', (code: number | null) => {
+                if (code === 0) {
+                    chan.appendLine(`\n✓ "${alias}" set as default.`);
+                    welcomeProvider.refreshAuthAliases();
+                } else {
+                    chan.appendLine(`\n✗ Failed to set default (exit code ${code}).`);
                 }
             });
         })

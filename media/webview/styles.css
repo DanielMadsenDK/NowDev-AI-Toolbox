@@ -657,3 +657,245 @@ hr {
     font-size: 11px;
     font-style: italic;
 }
+
+/* ── SDK Tab ── */
+
+.sdk-auth-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.sdk-auth-row select {
+    flex: 1;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-family: var(--vscode-font-family);
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    outline: none;
+}
+.sdk-auth-row select:focus {
+    border-color: var(--vscode-focusBorder);
+}
+
+/* Compact command card */
+.sdk-cmd-card {
+    border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 5px;
+}
+.sdk-cmd-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.sdk-cmd-info {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+.sdk-cmd-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.sdk-cmd-tagline {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sdk-cmd-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Gear / options toggle button */
+.sdk-opts-btn {
+    font-size: 12px;
+    padding: 1px 5px;
+    background: none;
+    color: var(--vscode-descriptionForeground);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s;
+}
+.sdk-opts-btn:hover {
+    color: var(--vscode-foreground);
+    border-color: var(--vscode-input-border, var(--vscode-panel-border));
+}
+
+/* Help (?) button */
+.sdk-help-btn {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 5px;
+    background: none;
+    color: var(--vscode-textLink-foreground, #4ec9b0);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.sdk-help-btn:hover {
+    background: var(--vscode-textLink-foreground, #4ec9b0);
+    color: var(--vscode-editor-background, #1e1e1e);
+    border-color: var(--vscode-textLink-foreground, #4ec9b0);
+}
+
+/* Collapsible options panel */
+.sdk-cmd-opts {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    padding: 6px 0 2px 0;
+    margin-top: 4px;
+    border-top: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+}
+.sdk-cmd-opts.open {
+    display: flex;
+}
+.sdk-opt {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+}
+.sdk-opt input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    accent-color: var(--vscode-button-background);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.sdk-opt code {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+    color: var(--vscode-symbolIcon-functionForeground, #dcdcaa);
+}
+.sdk-opt-hint {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+.sdk-opt-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+}
+.sdk-opt-row select {
+    flex: 1;
+    padding: 2px 5px;
+    font-size: 11px;
+    font-family: var(--vscode-font-family);
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    outline: none;
+}
+
+.sdk-cmd-status {
+    font-size: 10px;
+    margin-top: 3px;
+    min-height: 13px;
+    transition: color 0.2s;
+}
+.sdk-cmd-status.ok  { color: var(--vscode-testing-iconPassed, #388a34); }
+.sdk-cmd-status.fail { color: var(--vscode-testing-iconFailed, #f14c4c); }
+
+.sdk-explain-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.sdk-explain-row input {
+    flex: 1;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: var(--vscode-font-family);
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    outline: none;
+}
+.sdk-explain-row input:focus {
+    border-color: var(--vscode-focusBorder);
+}
+
+/* ── Auth Alias list ── */
+.auth-alias-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+}
+.auth-alias-row:last-child { border-bottom: none; }
+.auth-alias-info {
+    flex: 1;
+    min-width: 0;
+}
+.auth-alias-name {
+    font-weight: 600;
+    color: var(--vscode-foreground);
+}
+.auth-alias-default-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    margin-left: 5px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.auth-alias-host {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+.auth-alias-type {
+    flex-shrink: 0;
+    font-size: 9px;
+    color: var(--vscode-descriptionForeground);
+    padding: 1px 5px;
+    border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.auth-alias-actions {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+}
+.auth-alias-delete {
+    color: var(--vscode-errorForeground) !important;
+    border-color: var(--vscode-errorForeground) !important;
+}

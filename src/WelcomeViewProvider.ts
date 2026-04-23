@@ -4,14 +4,35 @@ import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { AGENT_TREE } from './AgentTopology';
 import { parseArtifactsMarkdown } from './ArtifactParser';
+import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
+import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
+
+interface SdkCommandStatus {
+    ok: boolean;
+    timestamp: string;
+    message: string;
+}
 
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
     private _view?: vscode.WebviewView;
     private _environmentInfo: EnvironmentInfo | null = null;
     private _artifactFilePath: string | null = null;
+    private _sdkStatus: Record<string, SdkCommandStatus | null> = {};
+    private _authAliases: AuthAlias[] = [];
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
+
+    /** Called by extension.ts commands after SDK CLI operations complete. */
+    public setSdkCommandStatus(cmd: string, ok: boolean, message: string): void {
+        this._sdkStatus[cmd] = { ok, message, timestamp: new Date().toISOString() };
+        this._updateStatus();
+    }
+
+    /** Re-scans auth aliases and pushes them to the webview. */
+    public refreshAuthAliases(): void {
+        this._sendSdkData();
+    }
 
     /**
      * Runs the environment scan, respecting user-disabled tools.
@@ -125,6 +146,27 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'initFluentProject':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.initFluentProject');
                     break;
+                case 'sdkCommand':
+                    vscode.commands.executeCommand(`nowdev-ai-toolbox.sdk${capitalize(message.cmd)}`, message.args ?? {});
+                    break;
+                case 'sdkAuthAdd':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthAdd');
+                    break;
+                case 'sdkAuthRemove':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthRemove', message.alias);
+                    break;
+                case 'sdkAuthSetDefault':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthSetDefault', message.alias);
+                    break;
+                case 'sdkExplain':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.sdkExplain', message.api);
+                    break;
+                case 'sdkCommandHelp':
+                    showSdkCommandHelpPanel(message.cmd);
+                    break;
+                case 'rescanAuthAliases':
+                    this._sendSdkData();
+                    break;
             }
         });
 
@@ -161,6 +203,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             this._sendAgentTree();
             this._onConfigFileChanged();
             this._sendArtifacts();
+            this._sendSdkData();
         }, 200);
     }
 
@@ -198,13 +241,22 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
     private _sendAgentTree() {
         if (!this._view) { return; }
         this._view.webview.postMessage({ command: 'updateAgents', tree: AGENT_TREE });
+    }
+
+    private _sendSdkData(): void {
+        if (!this._view) { return; }
+        this._authAliases = scanAuthAliases();
+        this._view.webview.postMessage({
+            command: 'updateSdkData',
+            authAliases: this._authAliases,
+        });
     }
 
     private _sendArtifacts() {
@@ -460,6 +512,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     <!-- Tab Bar -->
     <div class="tab-bar">
         <button class="tab-btn active" data-tab="setup">Setup</button>
+        <button class="tab-btn" data-tab="sdk">SDK</button>
         <button class="tab-btn" data-tab="tools">Tools</button>
         <button class="tab-btn" data-tab="agents">Agents</button>
         <button class="tab-btn" data-tab="session">Session</button>
@@ -590,6 +643,182 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
+    <!-- ═══════════ TAB: SDK ═══════════ -->
+    <div id="tab-sdk" class="tab-content">
+
+        <!-- Auth Aliases -->
+        <div class="section">
+            <div class="section-title">
+                <span>Auth Aliases</span>
+                <div style="display:flex;gap:4px;">
+                    <button class="fix-btn" id="rescanAuthAliases" title="Re-scan auth aliases">Rescan</button>
+                    <button class="fix-btn" id="sdkAuthAdd" title="Add a new auth alias">Add&hellip;</button>
+                </div>
+            </div>
+            <div class="field-desc" style="margin-bottom:8px;">
+                Credentials stored by <code style="font-size:10px;">now-sdk auth --add</code>
+            </div>
+            <div id="authAliasesList">
+                <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- SDK Commands -->
+        <div class="section">
+            <div class="section-title">SDK Commands</div>
+            <div class="sdk-auth-row">
+                <label for="sdkCmdAuth" style="font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;">Auth alias</label>
+                <select id="sdkCmdAuth">
+                    <option value="">(SDK default)</option>
+                </select>
+            </div>
+
+            <!-- Build -->
+            <div class="sdk-cmd-card">
+                <div class="sdk-cmd-row">
+                    <div class="sdk-cmd-info">
+                        <span class="sdk-cmd-name">Build</span>
+                        <span class="sdk-cmd-tagline">Compile source files</span>
+                    </div>
+                    <div class="sdk-cmd-actions">
+                        <button class="sdk-help-btn" data-cmd="build" title="Build help">?</button>
+                        <button class="sdk-opts-btn" data-opts="opts-build" title="Build options">&#9881;</button>
+                        <button class="fix-btn sdk-run-btn" data-cmd="build">Run</button>
+                    </div>
+                </div>
+                <div class="sdk-cmd-opts" id="opts-build">
+                    <label class="sdk-opt"><input type="checkbox" id="buildFrozenKeys"> <code>--frozenKeys</code> <span class="sdk-opt-hint">validate keys.ts — use in CI</span></label>
+                </div>
+                <div class="sdk-cmd-status" id="sdkStatus-build"></div>
+            </div>
+
+            <!-- Install -->
+            <div class="sdk-cmd-card">
+                <div class="sdk-cmd-row">
+                    <div class="sdk-cmd-info">
+                        <span class="sdk-cmd-name">Install</span>
+                        <span class="sdk-cmd-tagline">Deploy to instance</span>
+                    </div>
+                    <div class="sdk-cmd-actions">
+                        <button class="sdk-help-btn" data-cmd="install" title="Install help">?</button>
+                        <button class="sdk-opts-btn" data-opts="opts-install" title="Install options">&#9881;</button>
+                        <button class="fix-btn sdk-run-btn" data-cmd="install">Run</button>
+                    </div>
+                </div>
+                <div class="sdk-cmd-opts" id="opts-install">
+                    <label class="sdk-opt"><input type="checkbox" id="installReinstall"> <code>--reinstall</code> <span class="sdk-opt-hint">uninstall first</span></label>
+                    <label class="sdk-opt"><input type="checkbox" id="installOpenBrowser"> <code>--open-browser</code> <span class="sdk-opt-hint">open app record after install</span></label>
+                </div>
+                <div class="sdk-cmd-status" id="sdkStatus-install"></div>
+            </div>
+
+            <!-- Transform -->
+            <div class="sdk-cmd-card">
+                <div class="sdk-cmd-row">
+                    <div class="sdk-cmd-info">
+                        <span class="sdk-cmd-name">Transform</span>
+                        <span class="sdk-cmd-tagline">Sync instance → source</span>
+                    </div>
+                    <div class="sdk-cmd-actions">
+                        <button class="sdk-help-btn" data-cmd="transform" title="Transform help">?</button>
+                        <button class="sdk-opts-btn" data-opts="opts-transform" title="Transform options">&#9881;</button>
+                        <button class="fix-btn sdk-run-btn" data-cmd="transform">Run</button>
+                    </div>
+                </div>
+                <div class="sdk-cmd-opts" id="opts-transform">
+                    <label class="sdk-opt"><input type="checkbox" id="transformPreview"> <code>--preview</code> <span class="sdk-opt-hint">show output without saving</span></label>
+                </div>
+                <div class="sdk-cmd-status" id="sdkStatus-transform"></div>
+            </div>
+
+            <!-- Dependencies -->
+            <div class="sdk-cmd-card">
+                <div class="sdk-cmd-row">
+                    <div class="sdk-cmd-info">
+                        <span class="sdk-cmd-name">Dependencies</span>
+                        <span class="sdk-cmd-tagline">Download type definitions</span>
+                    </div>
+                    <div class="sdk-cmd-actions">
+                        <button class="sdk-help-btn" data-cmd="dependencies" title="Dependencies help">?</button>
+                        <button class="sdk-opts-btn" data-opts="opts-deps" title="Dependencies options">&#9881;</button>
+                        <button class="fix-btn sdk-run-btn" data-cmd="dependencies">Run</button>
+                    </div>
+                </div>
+                <div class="sdk-cmd-opts" id="opts-deps">
+                    <div class="sdk-opt-row">
+                        <label style="font-size:11px;font-weight:600;">Scope</label>
+                        <select id="depsMode">
+                            <option value="all">All (scripts + Fluent)</option>
+                            <option value="script">Scripts only</option>
+                            <option value="fluent">Fluent only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sdk-cmd-status" id="sdkStatus-dependencies"></div>
+            </div>
+
+            <!-- Download -->
+            <div class="sdk-cmd-card">
+                <div class="sdk-cmd-row">
+                    <div class="sdk-cmd-info">
+                        <span class="sdk-cmd-name">Download</span>
+                        <span class="sdk-cmd-tagline">Fetch metadata from instance</span>
+                    </div>
+                    <div class="sdk-cmd-actions">
+                        <button class="sdk-help-btn" data-cmd="download" title="Download help">?</button>
+                        <button class="sdk-opts-btn" data-opts="opts-download" title="Download options">&#9881;</button>
+                        <button class="fix-btn sdk-run-btn" data-cmd="download">Run</button>
+                    </div>
+                </div>
+                <div class="sdk-cmd-opts" id="opts-download">
+                    <label class="sdk-opt"><input type="checkbox" id="downloadIncremental" checked> <code>--incremental</code> <span class="sdk-opt-hint">only changed records</span></label>
+                </div>
+                <div class="sdk-cmd-status" id="sdkStatus-download"></div>
+            </div>
+
+            <!-- Clean + Pack side by side -->
+            <div style="display:flex;gap:6px;">
+                <div class="sdk-cmd-card" style="flex:1;">
+                    <div class="sdk-cmd-row">
+                        <span class="sdk-cmd-name">Clean</span>
+                        <div class="sdk-cmd-actions">
+                            <button class="sdk-help-btn" data-cmd="clean" title="Clean help">?</button>
+                            <button class="fix-btn sdk-run-btn" data-cmd="clean">Run</button>
+                        </div>
+                    </div>
+                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Remove build artifacts</div>
+                    <div class="sdk-cmd-status" id="sdkStatus-clean"></div>
+                </div>
+                <div class="sdk-cmd-card" style="flex:1;">
+                    <div class="sdk-cmd-row">
+                        <span class="sdk-cmd-name">Pack</span>
+                        <div class="sdk-cmd-actions">
+                            <button class="sdk-help-btn" data-cmd="pack" title="Pack help">?</button>
+                            <button class="fix-btn sdk-run-btn" data-cmd="pack">Run</button>
+                        </div>
+                    </div>
+                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Package into ZIP</div>
+                    <div class="sdk-cmd-status" id="sdkStatus-pack"></div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Explain API -->
+        <div class="section">
+            <div class="section-title">Explain API</div>
+            <div class="field-desc" style="margin-bottom:8px;">Open documentation for a ServiceNow Fluent API</div>
+            <div class="sdk-explain-row">
+                <input type="text" id="explainApiInput" placeholder="e.g. UiPage, Table, Acl" spellcheck="false">
+                <button class="fix-btn" id="runExplain">Explain</button>
+            </div>
+        </div>
+
+    </div>
+
     <!-- ═══════════ TAB: Tools ═══════════ -->
     <div id="tab-tools" class="tab-content">
         <div class="section">
@@ -634,4 +863,8 @@ function getNonce(): string {
         nonce += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return nonce;
+}
+
+function capitalize(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
 }
