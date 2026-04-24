@@ -11,6 +11,7 @@
         tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
         tabContents.forEach(c => c.classList.toggle('active', c.id === 'tab-' + tabId));
         vscode.setState({ activeTab: tabId });
+        vscode.postMessage({ command: 'tabActivated', tab: tabId });
     }
 
     tabButtons.forEach(btn => {

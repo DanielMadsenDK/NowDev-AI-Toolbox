@@ -119,7 +119,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             const proc = cp.spawn('now-sdk', ['init', ...args.flatMap(a => a.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [a])], {
                 cwd: resolvedTargetDir,
-                shell: true,
+                shell: getShell(),
             });
 
             proc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
@@ -132,7 +132,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                     const npmProc = cp.spawn('npm', ['install'], {
                         cwd: resolvedTargetDir,
-                        shell: true,
+                        shell: getShell(),
                     });
 
                     npmProc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
@@ -174,6 +174,14 @@ export function activate(context: vscode.ExtensionContext) {
         return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     }
 
+    function getShell(): string {
+        const configured = vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('terminalShell', 'auto');
+        if (configured === 'auto' || !configured) {
+            return process.platform === 'win32' ? 'powershell' : '/bin/sh';
+        }
+        return configured;
+    }
+
     function spawnSdkCmd(
         label: string,
         cmdArgs: string[],
@@ -185,7 +193,7 @@ export function activate(context: vscode.ExtensionContext) {
         chan.show(true);
         chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
 
-        const proc = cp.spawn('now-sdk', cmdArgs, { cwd, shell: true });
+        const proc = cp.spawn('now-sdk', cmdArgs, { cwd, shell: getShell() });
         proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
         proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
         proc.on('close', (code: number | null) => {

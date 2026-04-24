@@ -20,6 +20,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _artifactFilePath: string | null = null;
     private _sdkStatus: Record<string, SdkCommandStatus | null> = {};
     private _authAliases: AuthAlias[] = [];
+    private _initializedTabs = new Set<string>();
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -167,6 +168,17 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'rescanAuthAliases':
                     this._sendSdkData();
                     break;
+                case 'tabActivated': {
+                    const tab = message.tab as string;
+                    if (tab === 'sdk' && !this._initializedTabs.has('sdk')) {
+                        this._initializedTabs.add('sdk');
+                        this._sendSdkData();
+                    } else if (tab === 'agents' && !this._initializedTabs.has('agents')) {
+                        this._initializedTabs.add('agents');
+                        this._sendAgentTree();
+                    }
+                    break;
+                }
             }
         });
 
@@ -200,10 +212,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         // Initial data pushes
         setTimeout(() => {
             this._updateStatus();
-            this._sendAgentTree();
             this._onConfigFileChanged();
             this._sendArtifacts();
-            this._sendSdkData();
         }, 200);
     }
 

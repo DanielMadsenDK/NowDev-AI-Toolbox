@@ -3,6 +3,14 @@ import * as cp from 'child_process';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
 
+function getShell(): string {
+    const configured = vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('terminalShell', 'auto');
+    if (configured === 'auto' || !configured) {
+        return process.platform === 'win32' ? 'powershell' : '/bin/sh';
+    }
+    return configured;
+}
+
 /**
  * Opens (or reveals) a webview panel showing nicely formatted CLI help
  * for a ServiceNow SDK command by running `now-sdk <command> --help`
@@ -29,7 +37,7 @@ export function showSdkCommandHelpPanel(command: string): void {
     panel.onDidDispose(() => _panels.delete(key));
     panel.webview.html = loadingHtml(label);
 
-    cp.exec(`now-sdk ${command} --help`, { timeout: 10000, encoding: 'utf-8' }, (_err, stdout, stderr) => {
+    cp.exec(`now-sdk ${command} --help`, { timeout: 10000, encoding: 'utf-8', shell: getShell() }, (_err, stdout, stderr) => {
         // Commander.js sends --help to stdout; some CLIs use stderr
         const output = String(stdout || stderr || '').trim();
         if (!output) {

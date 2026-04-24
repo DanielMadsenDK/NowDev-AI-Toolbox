@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -174,6 +174,30 @@
           "default": [],
           "description": "List of tool keys that are manually force-enabled, even when auto-detection did not find them. Auto-detection is skipped for these tools at startup.",
           "order": 5
+        },
+        "nowdev-ai-toolbox.terminalShell": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "powershell",
+            "pwsh",
+            "cmd",
+            "bash",
+            "sh",
+            "zsh"
+          ],
+          "enumDescriptions": [
+            "Auto: uses PowerShell on Windows, /bin/sh on Unix/macOS (recommended)",
+            "Windows PowerShell (powershell.exe)",
+            "PowerShell 7+ cross-platform (pwsh)",
+            "Windows Command Prompt (cmd.exe)",
+            "Bash",
+            "Bourne Shell",
+            "Z Shell"
+          ],
+          "description": "Shell used when running SDK CLI commands (explain, help, build, install, etc.) from the plugin UI.",
+          "order": 6
         }
       }
     },

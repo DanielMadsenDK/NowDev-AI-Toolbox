@@ -3,6 +3,14 @@ import * as cp from 'child_process';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
 
+function getShell(): string {
+    const configured = vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('terminalShell', 'auto');
+    if (configured === 'auto' || !configured) {
+        return process.platform === 'win32' ? 'powershell' : '/bin/sh';
+    }
+    return configured;
+}
+
 /**
  * Opens (or reveals) a webview panel showing nicely formatted documentation
  * for a ServiceNow Fluent API by running `now-sdk explain <api>` and
@@ -29,7 +37,7 @@ export function showSdkExplainPanel(apiName: string): void {
     panel.onDidDispose(() => _panels.delete(key));
     panel.webview.html = loadingHtml(apiName);
 
-    cp.exec(`now-sdk explain ${apiName}`, { timeout: 15000, encoding: 'utf-8' }, (_err, stdout, stderr) => {
+    cp.exec(`now-sdk explain ${apiName}`, { timeout: 15000, encoding: 'utf-8', shell: getShell() }, (_err, stdout, stderr) => {
         const output = String(stdout || stderr || '').trim();
         if (!output) {
             panel.webview.html = errorHtml(`No documentation found for "${apiName}". Check that the API name is correct and now-sdk is installed.`);
@@ -46,7 +54,7 @@ export function showSdkExplainPanel(apiName: string): void {
             ).then(selected => {
                 if (!selected) { return; }
                 panel.webview.html = loadingHtml(selected.label);
-                cp.exec(`now-sdk explain ${selected.label}`, { timeout: 15000, encoding: 'utf-8' }, (_e, out, err) => {
+                cp.exec(`now-sdk explain ${selected.label}`, { timeout: 15000, encoding: 'utf-8', shell: getShell() }, (_e, out, err) => {
                     const o = String(out || err || '').trim();
                     panel.webview.html = o ? renderHtml(selected.label, o) : errorHtml(`No documentation found for "${selected.label}".`);
                 });
