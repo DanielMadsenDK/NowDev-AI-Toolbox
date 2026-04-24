@@ -1,15 +1,8 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
+import { getShell } from './shellConfig';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
-
-function getShell(): string {
-    const configured = vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('terminalShell', 'auto');
-    if (configured === 'auto' || !configured) {
-        return process.platform === 'win32' ? 'powershell' : '/bin/sh';
-    }
-    return configured;
-}
 
 /**
  * Opens (or reveals) a webview panel showing nicely formatted CLI help

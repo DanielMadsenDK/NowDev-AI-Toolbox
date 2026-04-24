@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import { getShell } from './shellConfig';
 
 export interface AuthAlias {
     alias: string;
@@ -25,6 +26,7 @@ export function scanAuthAliases(): AuthAlias[] {
             timeout: 8000,
             encoding: 'utf-8',
             stdio: ['pipe', 'pipe', 'pipe'],
+            shell: getShell(),
         });
         return parseAuthListOutput(String(raw));
     } catch (err: any) {

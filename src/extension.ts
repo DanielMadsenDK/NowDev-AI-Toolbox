@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as cp from 'child_process';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
+import { getShell } from './shellConfig';
 
 export function activate(context: vscode.ExtensionContext) {
     // Ensure .vscode/nowdev-ai-config.json is listed in .gitignore
@@ -174,14 +175,6 @@ export function activate(context: vscode.ExtensionContext) {
         return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     }
 
-    function getShell(): string {
-        const configured = vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('terminalShell', 'auto');
-        if (configured === 'auto' || !configured) {
-            return process.platform === 'win32' ? 'powershell' : '/bin/sh';
-        }
-        return configured;
-    }
-
     function spawnSdkCmd(
         label: string,
         cmdArgs: string[],
@@ -310,7 +303,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (alias?.trim()) { cmdArgs.push('--alias', alias.trim()); }
             chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
 
-            const proc = cp.spawn('now-sdk', cmdArgs, { shell: true });
+            const proc = cp.spawn('now-sdk', cmdArgs, { shell: getShell() });
             proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.on('close', (code: number | null) => {
@@ -335,7 +328,7 @@ export function activate(context: vscode.ExtensionContext) {
             const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Remove');
             chan.show(true);
             chan.appendLine(`> now-sdk auth --delete ${alias}\n`);
-            const proc = cp.spawn('now-sdk', ['auth', '--delete', alias], { shell: true });
+            const proc = cp.spawn('now-sdk', ['auth', '--delete', alias], { shell: getShell() });
             proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.on('close', (code: number | null) => {
@@ -353,7 +346,7 @@ export function activate(context: vscode.ExtensionContext) {
             const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Default');
             chan.show(true);
             chan.appendLine(`> now-sdk auth --use ${alias}\n`);
-            const proc = cp.spawn('now-sdk', ['auth', '--use', alias], { shell: true });
+            const proc = cp.spawn('now-sdk', ['auth', '--use', alias], { shell: getShell() });
             proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.on('close', (code: number | null) => {
