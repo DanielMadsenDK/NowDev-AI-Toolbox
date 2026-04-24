@@ -1,10 +1,78 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import * as cp from 'child_process';
+import * as https from 'https';
+import { URL } from 'url';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
 import { getShell } from './shellConfig';
+
+// ── Shared helpers ─────────────────────────────────────────────────────────
+
+function captureSpawnOutput(
+    cmd: string,
+    args: string[],
+    cwd: string
+): Promise<{ stdout: string; stderr: string; code: number | null }> {
+    return new Promise((resolve) => {
+        const proc = cp.spawn(cmd, args, { cwd, shell: getShell() });
+        let stdout = '';
+        let stderr = '';
+        proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+        proc.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+        proc.on('close', (code: number | null) => resolve({ stdout, stderr, code }));
+        proc.on('error', () => resolve({ stdout, stderr, code: -1 }));
+    });
+}
+
+function checkInstanceReachability(
+    instanceUrl: string
+): Promise<{ reachable: boolean; statusCode?: number; responseTime?: number; error?: string }> {
+    return new Promise((resolve) => {
+        if (!instanceUrl) {
+            resolve({ reachable: false, error: 'No instance URL configured' });
+            return;
+        }
+        let normalizedUrl = instanceUrl.trim();
+        if (!normalizedUrl.startsWith('http')) { normalizedUrl = 'https://' + normalizedUrl; }
+        const start = Date.now();
+        try {
+            const parsed = new URL(normalizedUrl + '/api/now/ping');
+            const req = https.request(
+                { hostname: parsed.hostname, port: parsed.port || 443, path: '/api/now/ping', method: 'GET', timeout: 10000, rejectUnauthorized: false },
+                (res) => {
+                    resolve({ reachable: true, statusCode: res.statusCode, responseTime: Date.now() - start });
+                    res.resume();
+                }
+            );
+            req.on('timeout', () => { req.destroy(); resolve({ reachable: false, error: 'Timed out (10s)' }); });
+            req.on('error', (err: NodeJS.ErrnoException) => {
+                const msg = err.code === 'ENOTFOUND' ? 'Host not found' :
+                            err.code === 'ECONNREFUSED' ? 'Connection refused' : err.message;
+                resolve({ reachable: false, error: msg });
+            });
+            req.end();
+        } catch (err: any) {
+            resolve({ reachable: false, error: err.message });
+        }
+    });
+}
+
+function listFilesRecursive(dir: string): string[] {
+    const results: string[] = [];
+    try {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) { results.push(...listFilesRecursive(fullPath)); }
+            else { results.push(fullPath); }
+        }
+    } catch { /* ignore */ }
+    return results;
+}
+
+// ── Extension activation ───────────────────────────────────────────────────
 
 export function activate(context: vscode.ExtensionContext) {
     // Ensure .vscode/nowdev-ai-config.json is listed in .gitignore
@@ -222,13 +290,34 @@ export function activate(context: vscode.ExtensionContext) {
             spawnSdkCmd('Install', cmdArgs, cwd, 'install');
         }),
 
-        // Transform
-        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', (args: { preview?: boolean; auth?: string } = {}) => {
+        // Transform (with preview → virtual document)
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', async (args: { preview?: boolean; auth?: string } = {}) => {
             const cwd = getWorkspaceFolder();
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
             const cmdArgs = ['transform'];
             if (args.preview) { cmdArgs.push('--preview'); }
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
+
+            if (args.preview) {
+                const chan = vscode.window.createOutputChannel('NowDev: Transform Preview');
+                chan.show(true);
+                chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
+                const result = await captureSpawnOutput('now-sdk', cmdArgs, cwd);
+                const output = (result.stdout + result.stderr).trim();
+                chan.appendLine(output);
+                const ok = result.code === 0;
+                chan.appendLine(ok ? '\n✓ Preview complete.' : `\n✗ Preview failed (exit ${result.code}).`);
+                welcomeProvider.setSdkCommandStatus('transform', ok, ok ? 'Preview completed' : `Failed (exit ${result.code})`);
+                if (ok && output.length > 0) {
+                    try {
+                        const tmpFile = path.join(os.tmpdir(), 'nowdev-transform-preview.ts');
+                        fs.writeFileSync(tmpFile, output, 'utf-8');
+                        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(tmpFile));
+                        await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.Beside });
+                    } catch { /* output channel is sufficient fallback */ }
+                }
+                return;
+            }
             spawnSdkCmd('Transform', cmdArgs, cwd, 'transform');
         }),
 
@@ -339,6 +428,51 @@ export function activate(context: vscode.ExtensionContext) {
                     chan.appendLine(`\n✗ Auth remove failed (exit code ${code}).`);
                 }
             });
+        }),
+
+        // Install Info — last deployment status (no install)
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkInstallInfo', async (args: { auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            welcomeProvider.setInstallInfo({ loading: true, ok: false, output: '', timestamp: new Date().toISOString() });
+            const cmdArgs = ['install', '--info'];
+            if (args.auth) { cmdArgs.push('--auth', args.auth); }
+            const result = await captureSpawnOutput('now-sdk', cmdArgs, cwd);
+            const output = (result.stdout + result.stderr).trim();
+            welcomeProvider.setInstallInfo({ loading: false, ok: result.code === 0, output, timestamp: new Date().toISOString() });
+        }),
+
+        // Connection health check
+        vscode.commands.registerCommand('nowdev-ai-toolbox.checkConnection', async () => {
+            const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
+            const instanceUrl = config.get<string>('instanceUrl', '');
+            if (!instanceUrl) {
+                vscode.window.showWarningMessage('No instance URL configured. Set it in the NowDev Setup tab first.');
+                return;
+            }
+            welcomeProvider.setConnectionStatus({ checking: true, reachable: false, timestamp: new Date().toISOString() });
+            const result = await checkInstanceReachability(instanceUrl);
+            welcomeProvider.setConnectionStatus({ checking: false, ...result, timestamp: new Date().toISOString() });
+        }),
+
+        // Check for instance changes via incremental download to temp dir
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkCheckChanges', async (args: { auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            welcomeProvider.setCheckChangesResult({ checking: true, ok: false, count: 0, timestamp: new Date().toISOString() });
+            const tmpDir = path.join(os.tmpdir(), `nowdev-changes-${Date.now()}`);
+            try { fs.mkdirSync(tmpDir, { recursive: true }); } catch (err: any) {
+                welcomeProvider.setCheckChangesResult({ checking: false, ok: false, count: 0, error: err.message, timestamp: new Date().toISOString() });
+                return;
+            }
+            const cmdArgs = ['download', tmpDir, '--incremental'];
+            if (args.auth) { cmdArgs.push('--auth', args.auth); }
+            const result = await captureSpawnOutput('now-sdk', cmdArgs, cwd);
+            const files = listFilesRecursive(tmpDir);
+            const count = files.length;
+            try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
+            const output = (result.stdout + result.stderr).trim();
+            welcomeProvider.setCheckChangesResult({ checking: false, ok: result.code === 0, count, output, timestamp: new Date().toISOString() });
         }),
 
         // Auth — Set Default

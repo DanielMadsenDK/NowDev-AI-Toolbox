@@ -13,6 +13,31 @@ interface SdkCommandStatus {
     message: string;
 }
 
+interface InstallInfoState {
+    loading: boolean;
+    ok: boolean;
+    output: string;
+    timestamp: string;
+}
+
+interface ConnectionState {
+    checking: boolean;
+    reachable: boolean;
+    statusCode?: number;
+    responseTime?: number;
+    error?: string;
+    timestamp: string;
+}
+
+interface CheckChangesState {
+    checking: boolean;
+    ok: boolean;
+    count: number;
+    output?: string;
+    error?: string;
+    timestamp: string;
+}
+
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
     private _view?: vscode.WebviewView;
@@ -21,6 +46,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _sdkStatus: Record<string, SdkCommandStatus | null> = {};
     private _authAliases: AuthAlias[] = [];
     private _initializedTabs = new Set<string>();
+    private _installInfo: InstallInfoState | null = null;
+    private _connectionStatus: ConnectionState | null = null;
+    private _checkChangesResult: CheckChangesState | null = null;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -33,6 +61,30 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     /** Re-scans auth aliases and pushes them to the webview. */
     public refreshAuthAliases(): void {
         this._sendSdkData();
+    }
+
+    public setInstallInfo(state: InstallInfoState): void {
+        this._installInfo = state;
+        if (this._view) {
+            this._view.webview.postMessage({ command: 'updateInstallInfo', state });
+        }
+    }
+
+    public setConnectionStatus(state: ConnectionState): void {
+        this._connectionStatus = state;
+        if (this._view) {
+            this._view.webview.postMessage({ command: 'updateConnectionStatus', state });
+        }
+        if (!state.checking) {
+            this._writeConnectionStatusToConfig(state);
+        }
+    }
+
+    public setCheckChangesResult(state: CheckChangesState): void {
+        this._checkChangesResult = state;
+        if (this._view) {
+            this._view.webview.postMessage({ command: 'updateCheckChanges', state });
+        }
     }
 
     /**
@@ -167,6 +219,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'rescanAuthAliases':
                     this._sendSdkData();
+                    break;
+                case 'checkConnection':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.checkConnection');
+                    break;
+                case 'sdkInstallInfo':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.sdkInstallInfo', { auth: message.auth });
+                    break;
+                case 'sdkCheckChanges':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.sdkCheckChanges', { auth: message.auth });
                     break;
                 case 'tabActivated': {
                     const tab = message.tab as string;
@@ -449,6 +510,24 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    private _writeConnectionStatusToConfig(state: ConnectionState): void {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) { return; }
+        const configPath = path.join(workspaceFolders[0].uri.fsPath, '.vscode', 'nowdev-ai-config.json');
+        try {
+            if (!fs.existsSync(configPath)) { return; }
+            const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+            existing.instanceConnection = {
+                reachable: state.reachable,
+                statusCode: state.statusCode,
+                responseTime: state.responseTime,
+                error: state.error,
+                checkedAt: state.timestamp,
+            };
+            fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n', 'utf-8');
+        } catch { /* ignore */ }
+    }
+
     private _checkSetting(section: string, key: string, expected: unknown): boolean {
         const config = vscode.workspace.getConfiguration(section);
         return config.get(key) === expected;
@@ -581,7 +660,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div class="field">
                 <label for="instanceUrl">Instance URL</label>
                 <div class="field-desc">Used by agents for context (e.g. https://mydev.service-now.com)</div>
-                <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
+                <div class="instance-url-row">
+                    <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
+                    <button class="fix-btn" id="testConnection" title="Test reachability of the configured instance">Test</button>
+                </div>
+                <div id="connectionStatus" class="connection-status"></div>
             </div>
 
             <div class="field">
@@ -714,6 +797,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <div class="sdk-cmd-actions">
                         <button class="sdk-help-btn" data-cmd="install" title="Install help">?</button>
                         <button class="sdk-opts-btn" data-opts="opts-install" title="Install options">&#9881;</button>
+                        <button class="fix-btn" id="installInfoBtn" title="Check last deployment status (--info)">Status</button>
                         <button class="fix-btn sdk-run-btn" data-cmd="install">Run</button>
                     </div>
                 </div>
@@ -722,6 +806,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <label class="sdk-opt"><input type="checkbox" id="installOpenBrowser"> <code>--open-browser</code> <span class="sdk-opt-hint">open app record after install</span></label>
                 </div>
                 <div class="sdk-cmd-status" id="sdkStatus-install"></div>
+                <div id="installInfoPanel" class="install-info-panel" style="display:none;"></div>
             </div>
 
             <!-- Transform -->
@@ -779,6 +864,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <div class="sdk-cmd-actions">
                         <button class="sdk-help-btn" data-cmd="download" title="Download help">?</button>
                         <button class="sdk-opts-btn" data-opts="opts-download" title="Download options">&#9881;</button>
+                        <button class="fix-btn" id="checkChangesBtn" title="Count incremental changes on instance without downloading">Check</button>
                         <button class="fix-btn sdk-run-btn" data-cmd="download">Run</button>
                     </div>
                 </div>
@@ -786,6 +872,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <label class="sdk-opt"><input type="checkbox" id="downloadIncremental" checked> <code>--incremental</code> <span class="sdk-opt-hint">only changed records</span></label>
                 </div>
                 <div class="sdk-cmd-status" id="sdkStatus-download"></div>
+                <div id="checkChangesStatus" class="changes-status" style="display:none;"></div>
             </div>
 
             <!-- Clean + Pack side by side -->

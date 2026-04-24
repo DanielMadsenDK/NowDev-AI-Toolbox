@@ -899,3 +899,154 @@ hr {
     color: var(--vscode-errorForeground) !important;
     border-color: var(--vscode-errorForeground) !important;
 }
+
+/* ── Instance URL row (input + Test button) ── */
+.instance-url-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.instance-url-row input {
+    flex: 1;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    outline: none;
+}
+.instance-url-row input:focus {
+    border-color: var(--vscode-focusBorder);
+}
+
+/* ── Connection status indicator ── */
+.connection-status {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+}
+.connection-status.checking,
+.connection-status.reachable,
+.connection-status.unreachable {
+    display: flex;
+}
+.conn-dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--vscode-descriptionForeground);
+}
+.connection-status.checking .conn-dot {
+    background: var(--vscode-editorWarning-foreground, #cca700);
+    animation: pulse 1.2s ease-in-out infinite;
+}
+.connection-status.reachable .conn-dot {
+    background: var(--vscode-testing-iconPassed, #388a34);
+}
+.connection-status.unreachable .conn-dot {
+    background: var(--vscode-testing-iconFailed, #f14c4c);
+}
+.connection-status.reachable { color: var(--vscode-testing-iconPassed, #388a34); }
+.connection-status.unreachable { color: var(--vscode-testing-iconFailed, #f14c4c); }
+.conn-detail {
+    font-weight: normal;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.8;
+}
+
+/* ── Install info panel ── */
+.install-info-panel {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+    background: var(--vscode-input-background);
+    font-size: 10px;
+}
+.install-info-panel.ok { border-color: var(--vscode-testing-iconPassed, #388a34); }
+.install-info-panel.fail { border-color: var(--vscode-testing-iconFailed, #f14c4c); }
+.install-info-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+.install-info-icon {
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.install-info-panel.ok .install-info-icon { color: var(--vscode-testing-iconPassed, #388a34); }
+.install-info-panel.fail .install-info-icon { color: var(--vscode-testing-iconFailed, #f14c4c); }
+.install-info-label {
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    flex: 1;
+}
+.install-info-time {
+    color: var(--vscode-descriptionForeground);
+    font-size: 10px;
+}
+.install-info-loading {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+.install-info-output {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 10px;
+    color: var(--vscode-foreground);
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 2px 0;
+}
+.install-info-empty {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+
+/* ── Check changes status ── */
+.changes-status {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+}
+.changes-status.checking,
+.changes-status.synced,
+.changes-status.has-changes,
+.changes-status.fail {
+    display: flex;
+}
+.changes-dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--vscode-descriptionForeground);
+}
+.changes-status.checking .changes-dot {
+    background: var(--vscode-editorWarning-foreground, #cca700);
+    animation: pulse 1.2s ease-in-out infinite;
+}
+.changes-status.synced .changes-dot { background: var(--vscode-testing-iconPassed, #388a34); }
+.changes-status.synced { color: var(--vscode-testing-iconPassed, #388a34); }
+.changes-status.has-changes .changes-dot { background: var(--vscode-editorWarning-foreground, #cca700); }
+.changes-status.has-changes { color: var(--vscode-editorWarning-foreground, #cca700); }
+.changes-status.fail .changes-dot { background: var(--vscode-testing-iconFailed, #f14c4c); }
+.changes-status.fail { color: var(--vscode-testing-iconFailed, #f14c4c); }
+.changes-detail {
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.8;
+    font-weight: normal;
+}

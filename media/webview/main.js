@@ -70,6 +70,21 @@
 
     // ── SDK tab ───────────────────────────────────────────────────
 
+    // ── Setup tab: connection test ─────────────────────────────────
+    document.getElementById('testConnection').addEventListener('click', () => {
+        vscode.postMessage({ command: 'checkConnection' });
+    });
+
+    // ── SDK tab: install info + check changes ──────────────────────
+    document.getElementById('installInfoBtn').addEventListener('click', () => {
+        var auth = document.getElementById('sdkCmdAuth') ? document.getElementById('sdkCmdAuth').value : '';
+        vscode.postMessage({ command: 'sdkInstallInfo', auth: auth });
+    });
+    document.getElementById('checkChangesBtn').addEventListener('click', () => {
+        var auth = document.getElementById('sdkCmdAuth') ? document.getElementById('sdkCmdAuth').value : '';
+        vscode.postMessage({ command: 'sdkCheckChanges', auth: auth });
+    });
+
     document.getElementById('rescanAuthAliases').addEventListener('click', () => {
         vscode.postMessage({ command: 'rescanAuthAliases' });
     });
@@ -156,6 +171,15 @@
                 break;
             case 'updateSdkData':
                 renderAuthAliases(msg.authAliases);
+                break;
+            case 'updateConnectionStatus':
+                renderConnectionStatus(msg.state);
+                break;
+            case 'updateInstallInfo':
+                renderInstallInfo(msg.state);
+                break;
+            case 'updateCheckChanges':
+                renderCheckChanges(msg.state);
                 break;
         }
     });
@@ -530,6 +554,91 @@
         if (seconds < 60) { return seconds + 's ago'; }
         if (seconds < 3600) { return Math.floor(seconds / 60) + 'm ago'; }
         return Math.floor(seconds / 3600) + 'h ago';
+    }
+
+    // ── Connection status rendering ────────────────────────────────
+
+    function renderConnectionStatus(state) {
+        var el = document.getElementById('connectionStatus');
+        if (!el) { return; }
+        if (!state) { el.style.display = 'none'; return; }
+        el.style.display = 'block';
+        if (state.checking) {
+            el.className = 'connection-status checking';
+            el.innerHTML = '<span class="conn-dot"></span><span>Checking&hellip;</span>';
+            return;
+        }
+        if (state.reachable) {
+            var code = state.statusCode || '';
+            var ms = state.responseTime ? state.responseTime + 'ms' : '';
+            var detail = [code ? 'HTTP ' + code : '', ms].filter(Boolean).join(' · ');
+            el.className = 'connection-status reachable';
+            el.innerHTML = '<span class="conn-dot"></span><span>Reachable' + (detail ? ' <span class="conn-detail">' + esc(detail) + '</span>' : '') + '</span>';
+        } else {
+            el.className = 'connection-status unreachable';
+            el.innerHTML = '<span class="conn-dot"></span><span>Unreachable' + (state.error ? ' <span class="conn-detail">' + esc(state.error) + '</span>' : '') + '</span>';
+        }
+    }
+
+    // ── Install info rendering ─────────────────────────────────────
+
+    function renderInstallInfo(state) {
+        var panel = document.getElementById('installInfoPanel');
+        if (!panel) { return; }
+        if (!state) { panel.style.display = 'none'; return; }
+        panel.style.display = 'block';
+        if (state.loading) {
+            panel.className = 'install-info-panel';
+            panel.innerHTML = '<span class="install-info-loading">Fetching deployment status&hellip;</span>';
+            return;
+        }
+        var timeAgo = state.timestamp ? formatTimeAgo(new Date(state.timestamp)) : '';
+        var statusIcon = state.ok ? '✓' : '✗';
+        var cls = state.ok ? 'install-info-panel ok' : 'install-info-panel fail';
+        panel.className = cls;
+        var lines = state.output ? state.output.split('\n').slice(0, 12) : [];
+        var bodyHtml = lines.length > 0
+            ? '<pre class="install-info-output">' + esc(lines.join('\n')) + '</pre>'
+            : '<span class="install-info-empty">No deployment info available.</span>';
+        panel.innerHTML =
+            '<div class="install-info-header">' +
+            '  <span class="install-info-icon">' + statusIcon + '</span>' +
+            '  <span class="install-info-label">' + (state.ok ? 'Deployment status' : 'Could not fetch status') + '</span>' +
+            (timeAgo ? '  <span class="install-info-time">' + esc(timeAgo) + '</span>' : '') +
+            '</div>' +
+            bodyHtml;
+    }
+
+    // ── Check changes rendering ────────────────────────────────────
+
+    function renderCheckChanges(state) {
+        var el = document.getElementById('checkChangesStatus');
+        if (!el) { return; }
+        if (!state) { el.style.display = 'none'; return; }
+        el.style.display = 'block';
+        if (state.checking) {
+            el.className = 'changes-status checking';
+            el.innerHTML = '<span class="changes-dot"></span><span>Checking for changes&hellip;</span>';
+            return;
+        }
+        var timeAgo = state.timestamp ? formatTimeAgo(new Date(state.timestamp)) : '';
+        if (!state.ok) {
+            el.className = 'changes-status fail';
+            el.innerHTML = '<span class="changes-dot"></span><span>Check failed' +
+                (state.error ? ': <span class="changes-detail">' + esc(state.error) + '</span>' : '') +
+                (timeAgo ? ' — ' + esc(timeAgo) : '') + '</span>';
+            return;
+        }
+        if (state.count === 0) {
+            el.className = 'changes-status synced';
+            el.innerHTML = '<span class="changes-dot"></span><span>Up to date' +
+                (timeAgo ? ' <span class="changes-detail">' + esc(timeAgo) + '</span>' : '') + '</span>';
+        } else {
+            el.className = 'changes-status has-changes';
+            el.innerHTML = '<span class="changes-dot"></span><span>' + state.count + ' change' + (state.count !== 1 ? 's' : '') + ' on instance' +
+                (timeAgo ? ' <span class="changes-detail">' + esc(timeAgo) + '</span>' : '') +
+                ' — run Transform to sync</span>';
+        }
     }
 
     // ── Utility ────────────────────────────────────────────────────
