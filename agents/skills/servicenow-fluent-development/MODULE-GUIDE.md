@@ -236,6 +236,29 @@ import { calculate } from 'math'
 - CommonJS modules from third-party libs are not supported unless they define exports
 - Only a subset of ECMAScript features are supported
 
+---
+
+## Module Resolver Version
+
+Source: https://servicenow.github.io/sdk/config/now-config-reference
+
+The `packageResolverVersion` setting in `now.config.json` controls which Rhino module resolver is used at runtime:
+
+| Value | Notes |
+|-------|-------|
+| `"1.0.0"` | Default for scoped applications |
+| `"2.0.0"` | **Required for Global scope applications.** Also recommended for new scoped apps. |
+
+```json
+{
+  "scope": "x_myapp",
+  "scopeId": "...",
+  "packageResolverVersion": "2.0.0"
+}
+```
+
+Set `packageResolverVersion` to `"2.0.0"` when targeting the Global scope or when you encounter module resolution errors with the default resolver.
+
 ## Avoidance
 
 - **Never use Glide APIs without importing them in module files** — they are NOT globally available in module context

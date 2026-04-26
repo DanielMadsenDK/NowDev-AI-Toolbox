@@ -47,6 +47,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - Advanced patterns (Record() seed data, Now.ref, server-side logging, helpers) → ADVANCED-PATTERNS.md
   - Module pattern for script linking (preferred for function-accepting APIs) → MODULE-GUIDE.md
   - Client-server communication patterns (GlideAjax setup, server methods) → CLIENT-SERVER-PATTERNS.md
+  - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for Script Actions → registering-events-guide.md
+  - Data helpers for Record() fields (Duration(), Time(), TemplateValue(), FieldList()) → data-helpers-guide.md
 
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for SDK object patterns

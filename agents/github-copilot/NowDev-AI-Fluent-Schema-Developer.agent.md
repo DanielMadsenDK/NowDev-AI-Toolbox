@@ -47,6 +47,10 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - Form layouts (views, sections, one/two-column, element types) → FORM-API.md
   - Instance Scan checks (ColumnTypeCheck, LinterCheck, ScriptOnlyCheck, TableCheck) → servicenow-instance-scan skill
   - Fluent language constructs (Now.ID, Now.ref, Now.include, Now.attach) → API-REFERENCE.md
+  - Security Attributes (sys_security_attribute, compound/true|false/string types) and Data Filters (sys_security_data_filter, row-level filtering) → security-guide.md
+  - Views, View Rules (sysrule_view), List Controls (sys_ui_list_control), Relationships (sys_relationship) → platform-view-lists-guide.md
+  - UI Formatters (sys_ui_formatter), decision table for approach selection → platform-view-guide.md
+  - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for flows and Script Actions → registering-events-guide.md
 
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for SDK object patterns

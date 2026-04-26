@@ -208,6 +208,20 @@ export const demoPrivilege = CrossScopePrivilege({
 
 ---
 
+## Relationship to Table-Level Access Controls
+
+Cross-scope privileges work **alongside** — not instead of — table-level access controls. Both must authorize an operation for it to succeed:
+
+- **`accessible_from`** on a `Table` object controls which application scopes can access the table at the platform level (`'public'` or `'package_private'`)
+- **`callerAccess`** on a `Table` object controls how cross-scope calls are approved (`'none'`, `'tracking'`, or `'restricted'`)
+- **`CrossScopePrivilege`** authorizes the specific script operation targeting that table or resource
+
+If a table has `accessibleFrom: 'package_private'` and `callerAccess: 'restricted'`, a `CrossScopePrivilege` with `status: 'allowed'` is still required for scripts in other scopes to access that table at runtime.
+
+Source: https://servicenow.github.io/sdk/guides/cross-scope-privilege-guide
+
+---
+
 ## Key Differences: ACLs vs Cross-Scope Privileges
 
 | Aspect | ACLs | Cross-Scope Privileges |

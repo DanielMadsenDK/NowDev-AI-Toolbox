@@ -8,19 +8,30 @@ description: Secure data and credentials using cryptographic operations, encrypt
 
 ## Quick start
 
-**OAuth token management**:
+**Data encryption** (KMF — preferred for new code):
 
 ```javascript
-var oauth = new sn_auth.GlideOAuthClient();
-oauth.setCredentialId('credential_sys_id_here');
+var operation = new sn_kmf_ns.KMFCryptoOperation()
+    .setCryptoModuleID('module_sys_id')
+    .setOperation('symmetric_encrypt')
+    .setData('sensitive_data');
 
-// Get new access token
-var token = oauth.getNewAccessToken();
-var accessToken = token.getAccessToken();
-var expiresIn = token.getExpiresIn();
+var encrypted = operation.doOperation();
+```
 
-// Refresh token
-var refreshed = oauth.refreshAccessToken('refresh_token_value');
+**Message digest** (hashing):
+
+```javascript
+var digest = new GlideDigest('SHA256');
+var hash = digest.hexDigest('input_string');
+```
+
+**Certificate operations**:
+
+```javascript
+var cert = new GlideCertificateEncryption();
+var signature = cert.sign('data_to_sign', 'private_key');
+var verified = cert.verify('signature', 'public_key', 'data');
 ```
 
 **Request signing** (AWS, OAuth, custom):
@@ -39,24 +50,19 @@ var signedRequest = new sn_auth.RequestAuthAPI()
 var authedData = signedRequest.getAuthorizedRequest();
 ```
 
-**Data encryption**:
+**OAuth token management** (credential lifecycle — for HTTP flows, see `servicenow-http-integrations`):
 
 ```javascript
-// Modern: Use Key Management Framework (KMF)
-var operation = new sn_kmf_ns.KMFCryptoOperation()
-    .setCryptoModuleID('module_sys_id')
-    .setOperation('symmetric_encrypt')
-    .setData('sensitive_data');
+var oauth = new sn_auth.GlideOAuthClient();
+oauth.setCredentialId('credential_sys_id_here');
 
-var encrypted = operation.doOperation();
-```
+// Get new access token
+var token = oauth.getNewAccessToken();
+var accessToken = token.getAccessToken();
+var expiresIn = token.getExpiresIn();
 
-**Certificate operations**:
-
-```javascript
-var cert = new GlideCertificateEncryption();
-var signature = cert.sign('data_to_sign', 'private_key');
-var verified = cert.verify('signature', 'public_key', 'data');
+// Refresh token
+var refreshed = oauth.refreshAccessToken('refresh_token_value');
 ```
 
 **Message digest** (hash generation):
@@ -80,16 +86,18 @@ var hash = digest.hexDigest('input_string');
 
 ## Best practices
 
-- Use credentials stored in discovery_credentials table
-- Never hardcode credentials or API keys in scripts
-- Use KMF for new cryptography needs
-- Validate SSL certificates in production
-- Rotate OAuth tokens before expiration
-- Use HMAC for message integrity verification
-- Test authentication flows on sub-production first
-- Log security operations for audit trails
-- Always use HTTPS for outbound requests
-- Follow principle of least privilege for credentials
+| Practice | Why it matters |
+|----------|----------------|
+| Use credentials stored in `discovery_credentials` | Centralises rotation and audit without touching code |
+| Never hardcode credentials or API keys | Hardcoded secrets end up in version control and logs |
+| Use KMF for new cryptographic operations | Platform-managed keys; older GlideEncrypter is deprecated |
+| Validate SSL certificates in production | Prevents man-in-the-middle attacks on outbound calls |
+| Rotate OAuth tokens before expiration | Prevents silent auth failures mid-transaction |
+| Use HMAC for message integrity | Detects tampering even when encryption is not required |
+| Test auth flows on sub-production first | Auth errors can lock accounts or exhaust token quotas |
+| Log security operations for audit trails | Required for compliance; helps debug failures |
+| Use HTTPS for all outbound requests | HTTP exposes credentials and data in transit |
+| Follow principle of least privilege | Compromise of a low-privilege credential limits blast radius |
 
 ## Authentication patterns
 

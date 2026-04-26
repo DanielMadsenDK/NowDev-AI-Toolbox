@@ -45,10 +45,15 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - UI Actions (form/list/client/workspace objects, conditions, roles) → UI-ACTION-API.md
   - Service Catalog (CatalogItem, 22 variable types, CatalogUiPolicy, CatalogClientScript) → SERVICE-CATALOG.md
   - Service Portal (SPWidget, SPAngularProvider, SPWidgetDependency, CssInclude) → SERVICE-PORTAL-API.md
+  - Service Portal extended (11 menu types, 19 OOTB widgets, Coral SCSS vars, Angular provider rules, CSS anti-patterns) → SERVICE-PORTAL-EXTENDED.md
   - Workspaces (Workspace, UxListMenuConfig, categories, lists, Applicability) → WORKSPACE-API.md
   - Dashboards (Dashboard, tabs, widgets, dataSources, metrics, trendBy) → DASHBOARD-API.md
+  - UI Formatters, view/view-rule/list-control decision table → platform-view-guide.md
+  - Views (sys_ui_view), View Rules (sysrule_view), List Controls (sys_ui_list_control), Relationships (sys_relationship) → platform-view-lists-guide.md
   - Third-party npm libraries in React (Rollup, CSS, context providers) → THIRD-PARTY-LIBRARIES.md
   - React UI components → use the servicenow-react-ui-components skill for @servicenow/react-components
+  - UI Page patterns (dirty state, field extraction, CSS constraints, build system) → servicenow-react-ui-components skill: ui-page-patterns-guide.md
+  - Horizon Design System theming (tokens, color roles, dark mode) → servicenow-react-ui-components skill: ui-page-theming-guide.md
 
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for Fluent SDK patterns

@@ -61,7 +61,7 @@ Property({
 | `choices` | Array | N/A | Comma-separated list of valid values (when `type: 'choicelist'`) | `['Option1', 'Option2']` or `['Label=value', 'Label2=value2']` |
 | `roles` | Object | N/A | Role access control for read/write permissions | See [Role Access](#role-access) |
 | `ignoreCache` | Boolean | `false` | Whether to skip cache flushing when property value changes | `true` or `false` |
-| `isPrivate` | Boolean | `false` | Whether to exclude from update set imports (prevents instance-specific values from overwriting) | `true` or `false` |
+| `isPrivate` | Boolean | `false` | Whether to hide the property from the property list UI (e.g., for API keys and internal thresholds). Source: https://servicenow.github.io/sdk/guides/property-guide | `true` or `false` |
 | `$meta` | Object | N/A | Installation metadata | See [$meta Reference](#meta-reference) |
 
 ---
@@ -190,13 +190,13 @@ Property({
 
 ## isPrivate Flag
 
-Controls whether property is included in update sets:
+Controls whether the property is visible in the property list UI:
 
 ```typescript
 Property({
    $id: Now.ID['local_setting'],
    name: 'x_snc_app.instance_local_setting',
-   isPrivate: true,  // Exclude from update sets
+   isPrivate: true,  // Hide from property list UI
 })
 ```
 
@@ -204,10 +204,12 @@ Property({
 
 | Value | Behavior | Use Case |
 |-------|----------|----------|
-| `false` (default) | Property is included in update sets and deployed across instances | Shared configuration that should be consistent everywhere |
-| `true` | Property is excluded from update sets (not exported) | Instance-specific values (API keys, environment-specific URLs, local customizations) |
+| `false` (default) | Property is visible in the property list UI | Standard configuration properties |
+| `true` | Property is hidden from the property list UI | Sensitive values that should not be browseable (API keys, internal thresholds) |
 
-**Example**: Development instance uses a test API key, production uses a different one—mark as `isPrivate: true`.
+**Example**: An API key or internal threshold value that should not appear in the property list UI — mark as `isPrivate: true`.
+
+Source: https://servicenow.github.io/sdk/guides/property-guide
 
 ---
 

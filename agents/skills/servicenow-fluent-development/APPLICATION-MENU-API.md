@@ -236,6 +236,38 @@ export const setupMenu = ApplicationMenu({
 
 ---
 
+## link_type Values
+
+The `link_type` field on `sys_app_module` records determines what the module navigates to. All values are strings.
+
+| `link_type` | Purpose | Required Properties |
+|-------------|---------|-------------------|
+| `LIST` | Shows a record list for a table | `name` (table name) |
+| `NEW` | Opens a blank new-record form | `name` (table name) |
+| `DIRECT` | Navigates to a relative URL | `query` (relative path, e.g. `'my_page.do'`) |
+| `SEPARATOR` | Renders a visual grouping divider | None additional |
+| `REPORT` | Links to a report | `report` (report identifier) |
+| `FILTER` | Shows a filtered record list | `name` (table), `filter` (encoded query string) |
+| `TIMELINE` | Opens a timeline view | Varies |
+| `DETAIL` | Opens a detail view | Varies |
+| `HTML` | Renders HTML content | Varies |
+| `ASSESSMENT` | Links to an assessment | Varies |
+| `SCRIPT` | Executes a client-side script | Varies |
+| `CONTENT_PAGE` | Links to a content page | Varies |
+| `SEARCH` | Opens a search interface | Varies |
+| `SURVEY` | Links to a survey | Varies |
+| `DOC_LINK` | Links to a document | Varies |
+| `MAP` | Opens a map view | Varies |
+
+**Important notes:**
+- Modules default to `active: false`. Always set `active: true` explicitly or the module will not appear.
+- Never hardcode sys_ids in `query` or `filter` — use encoded queries or relative references instead.
+- The `application` field accepts either `menu.$id` (string) or the menu object itself (`menu`) — both are valid references to the parent ApplicationMenu.
+
+Source: https://servicenow.github.io/sdk/guides/application-menu-guide
+
+---
+
 ## Relationship with Navigation Modules
 
 After defining an ApplicationMenu, you create `sys_app_module` records (navigation modules) that define the individual links within the menu. Each module references the menu's `$id`:
@@ -351,6 +383,85 @@ Export from your main fluent file:
 // src/fluent/index.now.ts
 export { menu, listModule, newModule, dashboardModule } from './navigation.now.js'
 ```
+
+---
+
+## Official Guide Example
+
+The following example is the canonical pattern from the official SDK guide. Note that `roles` on modules is a **comma-separated string** (not an array), and `application` can reference the menu object directly (not just `.$id`):
+
+```ts
+import { ApplicationMenu, Record } from '@servicenow/sdk/core'
+
+// Define a menu category for custom styling
+export const appCategory = Record({
+  table: 'sys_app_category',
+  $id: Now.ID[9],
+  data: {
+    name: 'example',
+    style: 'border-color: #a7cded; background-color: #e3f3ff;',
+  },
+})
+
+// Create the top-level Application Menu
+const applicationMenu = ApplicationMenu({
+  $id: Now.ID['my_app_menu'],
+  title: 'My App Menu',
+  hint: 'This is a hint',
+  description: 'This is a description',
+  category: appCategory,
+  roles: ['admin'],
+  active: true,
+})
+
+// Module: link to a table list
+const tableSubMenu = Record({
+  $id: Now.ID['my_app_module_1'],
+  table: 'sys_app_module',
+  data: {
+    title: 'My Table',
+    application: applicationMenu.$id,
+    link_type: 'LIST',
+    name: 'x_snc_example_to_do',
+    hint: 'Link to my table',
+    roles: 'admin,itil',   // comma-separated string on sys_app_module
+    active: true,
+    order: 100,
+  },
+})
+
+// Module: separator to group items
+const separatorSubMenu = Record({
+  $id: Now.ID['my_app_module_separator'],
+  table: 'sys_app_module',
+  data: {
+    title: 'UI Pages',
+    application: applicationMenu.$id,
+    link_type: 'SEPARATOR',
+    roles: 'admin,itil',
+    active: true,
+    order: 200,
+  },
+})
+
+// Module: direct link to a UI page
+const uiPageSubMenu = Record({
+  $id: Now.ID['my_app_module_2'],
+  table: 'sys_app_module',
+  data: {
+    title: 'My UI Page',
+    application: applicationMenu,   // object reference also accepted
+    link_type: 'DIRECT',
+    query: 'my_ui_page.do',
+    hint: 'Link to my UI Page',
+    roles: 'admin,itil',
+    active: true,
+    order: 300,
+  },
+})
+```
+
+Source: https://servicenow.github.io/sdk/guides/application-menu-guide
 
 ---
 

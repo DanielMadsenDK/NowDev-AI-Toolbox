@@ -291,16 +291,76 @@ wfa.trigger(
 
 ### Scheduled Trigger Examples
 
-**Daily trigger at 9 AM:**
+**Daily trigger at 9 AM (UTC):**
 ```ts
 wfa.trigger(
   trigger.scheduled.daily,
   { $id: Now.ID['daily_report_trigger'], annotation: 'Runs daily at 9 AM' },
   {
-    time: Time({ hours: 9, minutes: 0, seconds: 0 })
+    time: Time({ hours: 9, minutes: 0, seconds: 0 }, 'UTC')
   }
 )
 ```
+
+**Weekly trigger — every Monday at 9 AM:**
+```ts
+wfa.trigger(
+  trigger.scheduled.weekly,
+  { $id: Now.ID['weekly_trigger'] },
+  {
+    day_of_week: 1,  // 1=Monday, 2=Tuesday, ..., 7=Sunday
+    time: Time({ hours: 9, minutes: 0, seconds: 0 }, 'UTC'),
+  }
+)
+```
+
+**Monthly trigger — first day of month at midnight:**
+```ts
+wfa.trigger(
+  trigger.scheduled.monthly,
+  { $id: Now.ID['monthly_trigger'] },
+  {
+    day_of_month: 1,  // 1–31; if value exceeds days in month, uses last day
+    time: Time({ hours: 0, minutes: 0, seconds: 0 }, 'UTC'),
+  }
+)
+```
+
+**Repeat trigger — every 15 minutes:**
+```ts
+wfa.trigger(
+  trigger.scheduled.repeat,
+  { $id: Now.ID['repeat_trigger'] },
+  {
+    repeat: Duration({ minutes: 15 })  // Also supports: hours, days, seconds
+  }
+)
+```
+
+**RunOnce trigger — single execution at a future time:**
+```ts
+wfa.trigger(
+  trigger.scheduled.runOnce,
+  { $id: Now.ID['run_once_trigger'] },
+  {
+    run_in: '2026-03-15 02:00:00'  // ISO 8601 date-time string (UTC)
+  }
+)
+```
+
+### Scheduled Trigger Parameter Reference
+
+| Trigger | Parameter | Type | Description |
+|---------|-----------|------|-------------|
+| `daily` | `time` | `Time` | `Time({ hours, minutes, seconds }, timezone)` — UTC recommended |
+| `weekly` | `day_of_week` | integer | 1=Monday … 7=Sunday |
+| `weekly` | `time` | `Time` | `Time({ hours, minutes, seconds }, timezone)` |
+| `monthly` | `day_of_month` | integer | 1–31; last day of month if value exceeds month length |
+| `monthly` | `time` | `Time` | `Time({ hours, minutes, seconds }, timezone)` |
+| `repeat` | `repeat` | `Duration` | `Duration({ minutes, hours, days, seconds })` |
+| `runOnce` | `run_in` | string | ISO 8601 date-time string |
+
+Source: https://servicenow.github.io/sdk/guides/wfa-flow-guide
 
 ### Inbound Email Trigger
 
@@ -323,6 +383,83 @@ wfa.trigger(
   const emailFrom = params.trigger.email.from             // Sender email address
 }
 ```
+
+---
+
+## wfa.subflow Function
+
+Invoke a `Subflow` from within a `Flow` or another `Subflow`. Import the exported subflow constant and pass it as the first argument.
+
+### wfa.subflow Signature
+
+```ts
+const result = wfa.subflow(
+  mySubflow,                              // Exported Subflow constant (required)
+  {
+    $id: Now.ID['invoke_id'],             // Required: unique identifier
+    annotation: 'Optional description',   // Optional
+  },
+  {
+    inputField: wfa.dataPill(someValue, 'string'),  // Values matching input schema
+    waitForCompletion: true,              // Boolean — wait for outputs (default false)
+  }
+)
+
+// Access subflow outputs (only when waitForCompletion: true):
+wfa.dataPill(result.outputField, 'string')
+```
+
+### wfa.subflow Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `subflow` | Subflow constant | Yes | Exported `Subflow` constant imported from its file |
+| `$id` | `Now.ID[...]` | Yes | Unique invocation identifier |
+| `annotation` | string | No | Human-readable description of the invocation |
+| `inputs.*` | varies | Depends on subflow | Values matching the subflow's declared input schema |
+| `waitForCompletion` | boolean | No | If `true`, flow waits and subflow outputs become available; default `false` |
+
+### Using a Subflow in a Flow
+
+```ts
+import { Flow, wfa, trigger, action } from '@servicenow/sdk/automation'
+import { newUserOnboardingSubflow } from './subflows/new-user-onboarding.now'
+
+Flow(
+  {
+    $id: Now.ID['user_created_flow'],
+    name: 'User Created Flow',
+  },
+  wfa.trigger(trigger.record.created, { $id: Now.ID['user_trigger'] }, { table: 'sys_user' }),
+  (params) => {
+    const result = wfa.subflow(
+      newUserOnboardingSubflow,
+      { $id: Now.ID['invoke_onboarding'], annotation: 'Run onboarding subflow' },
+      {
+        user_sys_id: wfa.dataPill(params.trigger.current.sys_id, 'reference'),
+        office_location: wfa.dataPill(params.trigger.current.location, 'reference'),
+        waitForCompletion: true,
+      }
+    )
+
+    // Access outputs when waitForCompletion: true
+    wfa.flowLogic.if(
+      {
+        $id: Now.ID['check_laptop'],
+        condition: `${wfa.dataPill(result.laptop_assigned, 'boolean')}=true`,
+      },
+      () => {
+        wfa.action(action.core.log, { $id: Now.ID['log_laptop'] }, {
+          log_level: 'info',
+          log_message: `Laptop assigned: ${wfa.dataPill(result.laptop_number, 'string')}`,
+        })
+      }
+    )
+  }
+)
+```
+
+Source: https://servicenow.github.io/sdk/guides/wfa-subflow-guide
 
 ---
 
@@ -454,6 +591,176 @@ The following action instances are supported:
 
 ### Record Actions
 
+### Action Input/Output Parameter Reference
+
+Complete parameter tables for all built-in actions.
+
+Source: https://servicenow.github.io/sdk/guides/wfa-flow-actions-guide
+
+#### Record Operations
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `createRecord` | `table_name` | string | Yes | Target table |
+| `createRecord` | `values` | TemplateValue | Yes | Field values to set |
+| `createRecord` | **Output** `record` | reference | — | Created record |
+| `createRecord` | **Output** `table_name` | string | — | Table name |
+| `updateRecord` | `table_name` | string | Yes | Target table |
+| `updateRecord` | `record` | reference | Yes | Record to update |
+| `updateRecord` | `values` | TemplateValue | Yes | Field values to set |
+| `updateRecord` | **Output** `record` | reference | — | Updated record |
+| `deleteRecord` | `record` | reference | Yes | Record to delete (no outputs) |
+| `lookUpRecord` | `table` | string | Yes | Table to search |
+| `lookUpRecord` | `conditions` | string | Yes | Encoded query filter |
+| `lookUpRecord` | `sort_column` | string | No | Field to sort on |
+| `lookUpRecord` | `sort_type` | string | No | `'sort_asc'` or `'sort_desc'` |
+| `lookUpRecord` | `if_multiple_records_are_found_action` | string | No | `'use_first_record'` |
+| `lookUpRecord` | **Output** `Record` | reference | — | Found record (uppercase R) |
+| `lookUpRecord` | **Output** `status` | string | — | `'0'`=success, `'1'`=error |
+| `lookUpRecord` | **Output** `error_message` | string | — | Error details if status=1 |
+| `lookUpRecords` | `table` | string | Yes | Table to search |
+| `lookUpRecords` | `conditions` | string | Yes | Encoded query filter |
+| `lookUpRecords` | `max_results` | integer | No | Max records to return (default 1000) |
+| `lookUpRecords` | **Output** `Records` | array | — | Found records array (uppercase R) |
+| `lookUpRecords` | **Output** `Count` | integer | — | Number of records found (uppercase C) |
+| `updateMultipleRecords` | `table_name` | string | Yes | Target table |
+| `updateMultipleRecords` | `conditions` | string | Yes | Encoded query filter |
+| `updateMultipleRecords` | `field_values` | TemplateValue | Yes | Field values to set |
+| `updateMultipleRecords` | **Output** `count` | integer | — | Number of records updated |
+| `createOrUpdateRecord` | `table_name` | string | Yes | Target table |
+| `createOrUpdateRecord` | `fields` | TemplateValue | Yes | Field values (coalesce fields determine match) |
+| `createOrUpdateRecord` | **Output** `record` | reference | — | Created or updated record |
+| `createOrUpdateRecord` | **Output** `status` | string | — | `'created'`, `'updated'`, or `'error'` |
+
+#### Communication Actions
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `sendEmail` | `ah_to` | string | Yes | Recipient email address(es) |
+| `sendEmail` | `ah_subject` | string | Yes | Email subject (supports template literals) |
+| `sendEmail` | `ah_body` | html | No | Email body — **static strings only**, no data pills |
+| `sendEmail` | `record` | reference | No | Related record reference |
+| `sendEmail` | `table_name` | string | No | Table of the related record |
+| `sendEmail` | `ah_cc` | string | No | CC recipients |
+| `sendEmail` | `ah_bcc` | string | No | BCC recipients |
+| `sendEmail` | `watermark_email` | boolean | No | Embeds watermark for reply tracking |
+| `sendEmail` | **Output** `email` | reference | — | Reference to created `sys_email` record |
+| `sendNotification` | `notification` | reference | Yes | Notification name or sys_id |
+| `sendNotification` | `record` | reference | No | Related record |
+| `sendNotification` | `table_name` | string | No | Table of the related record |
+| `sendSms` | `recipients` | string | Yes | Phone number in E.164 format |
+| `sendSms` | `message` | string | Yes | SMS body (plain text) |
+| `associateRecordToEmail` | `target_record` | reference | Yes | Business record to associate |
+| `associateRecordToEmail` | `email_record` | reference | Yes | `sys_email` record |
+| `getEmailHeader` | `target_header` | string | Yes | Header name to retrieve |
+| `getEmailHeader` | `email_record` | reference | Yes | `sys_email` record |
+| `getEmailHeader` | **Output** `header_value` | string | — | Value of the specified header |
+| `getLatestResponseTextFromEmail` | `email_record` | reference | Yes | `sys_email` record |
+| `getLatestResponseTextFromEmail` | **Output** `latest_response_text` | string | — | Latest reply text |
+
+#### Control Actions
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `log` | `log_level` | string | Yes | `'info'`, `'warn'`, or `'error'` |
+| `log` | `log_message` | string | Yes | Message text (max 255 chars); supports template literals |
+| `fireEvent` | `event_name` | reference | Yes | Registered event name |
+| `fireEvent` | `record` | reference | Yes | Record that triggered the event |
+| `fireEvent` | `table` | string | No | Table name of the record |
+| `fireEvent` | `parm1` | string | No | First event parameter |
+| `fireEvent` | `parm2` | string | No | Second event parameter |
+| `waitForCondition` | `record` | reference | Yes | Record to monitor |
+| `waitForCondition` | `conditions` | string | Yes | Encoded query condition to satisfy |
+| `waitForCondition` | `table_name` | string | No | Table of the record |
+| `waitForCondition` | `timeout_flag` | boolean | No | Enable timeout |
+| `waitForCondition` | `timeout_duration` | Duration | No | How long to wait before timeout |
+| `waitForCondition` | `timeout_schedule` | reference | No | `cmn_schedule` sys_id for business hours |
+| `waitForCondition` | **Output** `state` | string | — | `'0'`=condition met, `'1'`=timeout |
+| `waitForEmailReply` | `record` | reference | Yes | `sys_email` record to wait on |
+| `waitForEmailReply` | `enable_timeout` | boolean | No | Enable timeout |
+| `waitForEmailReply` | `timeout_duration` | Duration | No | How long to wait |
+| `waitForEmailReply` | **Output** `state` | string | — | `'0'`=reply received, `'1'`=timeout |
+| `waitForEmailReply` | **Output** `email_reply` | reference | — | The reply `sys_email` record |
+| `waitForMessage` | `message` | string | Yes | Message identifier to wait for |
+| `waitForMessage` | `enable_timeout` | boolean | No | Enable timeout |
+| `waitForMessage` | `timeout` | Duration | No | How long to wait |
+| `waitForMessage` | **Output** `payload` | string | — | Received message payload |
+
+#### Approval Actions
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `askForApproval` | `record` | reference | Yes | Record to approve |
+| `askForApproval` | `table` | string | No | Table of the record |
+| `askForApproval` | `approval_conditions` | object | Yes | `wfa.approvalRules({...})` |
+| `askForApproval` | `approval_reason` | string | No | Reason shown to approvers (max 160 chars) |
+| `askForApproval` | `approval_field` | string | No | Field name that stores approval state (default `approval`) |
+| `askForApproval` | `journal_field` | string | No | Field name for comments (default `comments`) |
+| `askForApproval` | `due_date` | datetime | No | `wfa.approvalDueDate({...})` |
+| `askForApproval` | **Output** `approval_state` | string | — | `approved`, `rejected`, `requested`, `not_required`, `cancelled` |
+
+#### Task Actions
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `createTask` | `task_table` | string | Yes | Task table (e.g., `'sc_task'`, `'change_task'`) |
+| `createTask` | `field_values` | TemplateValue | No | Field values for the task |
+| `createTask` | `wait` | boolean | No | If `true`, flow waits for task to complete (default `false`) |
+| `createTask` | **Output** `Record` | reference | — | Created task record (uppercase R) |
+| `createTask` | **Output** `Table` | string | — | Table name (uppercase T) |
+
+#### Service Catalog Actions
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `submitCatalogItemRequest` | `catalog_item` | reference | Yes | Catalog item sys_id |
+| `submitCatalogItemRequest` | `catalog_item_inputs` | string | No | Variable values in `^`-delimited format: `varname=value^varname2=value2` |
+| `submitCatalogItemRequest` | `sysparm_quantity` | integer | No | Quantity (default 1) |
+| `submitCatalogItemRequest` | `sysparm_requested_for` | reference | No | `sys_user` for whom the request is made |
+| `submitCatalogItemRequest` | **Output** `requested_item` | reference | — | Created `sc_req_item` record |
+| `submitCatalogItemRequest` | **Output** `status` | string | — | `'0'`=success, `'1'`=error, `'2'`=timeout |
+| `getCatalogVariables` | `requested_item` | reference | Yes | `sc_req_item` reference |
+| `getCatalogVariables` | `template_catalog_item` | string | Yes | Catalog item name for variable schema |
+| `getCatalogVariables` | `catalog_variables` | array | Yes | Array of variable names to retrieve |
+| `getCatalogVariables` | **Output** | named | — | One output per variable (e.g., `catalogVars.memory`) |
+| `createCatalogTask` | `ah_requested_item` | reference | Yes | `sc_req_item` reference |
+| `createCatalogTask` | `ah_short_description` | string | Yes | Task description |
+| `createCatalogTask` | `ah_fields` | TemplateValue | No | Additional field values |
+
+#### SLA Actions
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `slaPercentageTimer` | `percentage` | integer | Yes | SLA completion percentage to wait for (0–100) |
+| `slaPercentageTimer` | **Output** `status` | string | — | `completed`, `paused`, `repair`, `skipped`, `cancelled` |
+| `slaPercentageTimer` | **Output** `scheduled_end_date_time` | datetime | — | Projected SLA end time |
+
+#### Attachment Actions
+
+| Action | Input | Type | Req | Description |
+|--------|-------|------|-----|-------------|
+| `getAttachmentsOnRecord` | `source_record` | reference | Yes | Record with attachments |
+| `getAttachmentsOnRecord` | **Output** `parameter` | records | — | List of attachment records |
+| `getAttachmentsOnRecord` | **Output** `parameter1` | integer | — | Count of attachments |
+| `copyAttachment` | `source_record` | reference | Yes | Source attachment record |
+| `copyAttachment` | `target_record` | reference | Yes | Destination record |
+| `copyAttachment` | **Output** `sys_attachment` | reference | — | New attachment record |
+| `moveAttachment` | `source_record` | reference | Yes | Attachment to move |
+| `moveAttachment` | `target_record` | reference | Yes | Destination record |
+| `moveAttachment` | **Output** `sys_attachment` | reference | — | Moved attachment record |
+| `deleteAttachment` | `source_record` | reference | Yes | Attachment(s) to delete (no outputs) |
+| `lookupAttachment` | `source_record` | reference | Yes | Record to search on |
+| `lookupAttachment` | `file_name` | string | Yes | Filename to match |
+| `lookupAttachment` | **Output** `sys_id` | reference | — | Matching attachment sys_id |
+| `lookupAttachment` | **Output** `file_names` | string | — | Matched filenames |
+| `lookUpEmailAttachments` | `email_record` | reference | Yes | `sys_email` record |
+| `lookUpEmailAttachments` | **Output** `parameter` | records | — | Attachment records |
+| `lookUpEmailAttachments` | **Output** `parameter1` | integer | — | Count of attachments |
+| `moveEmailAttachmentsToRecord` | `email_record` | reference | Yes | Source `sys_email` |
+| `moveEmailAttachmentsToRecord` | `target_record` | reference | Yes | Destination record (no outputs) |
+
+---
+
 **lookUpRecord:**
 ```ts
 const found = wfa.action(
@@ -467,7 +774,6 @@ const found = wfa.action(
   }
 )
 // Access result: found.Record.fieldName
-```
 
 **lookUpRecords (returns multiple records):**
 ```ts

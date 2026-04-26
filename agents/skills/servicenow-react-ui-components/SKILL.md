@@ -1,9 +1,7 @@
 ---
 name: servicenow-react-ui-components
 user-invocable: false
-description: >
-  Comprehensive guide for using @servicenow/react-components when building UI in ServiceNow Fluent React applications.
-  Use this skill whenever you are designing or building React UI for a ServiceNow application — especially when creating UiPage components, workspace UIs, forms, lists, dashboards, or any custom React UI that integrates with ServiceNow. This skill ensures your UI uses native ServiceNow Horizon Design System components, which guarantees visual consistency and seamless integration with the rest of the ServiceNow platform. Always use this skill rather than generic React component libraries when building for ServiceNow. This skill also covers CSS Modules, Horizon design tokens, and styling custom components to match the platform aesthetic.
+description: Comprehensive guide for using @servicenow/react-components when building UI in ServiceNow Fluent React applications. Covers the full Horizon Design System component library, CSS Modules, design tokens, and styling patterns. Trigger this skill whenever the user is building any React UI for ServiceNow — UiPage components, workspace UIs, forms, lists, dashboards, or any custom interface that integrates with the platform. Use this instead of generic React libraries (Material UI, Ant Design, plain HTML) — even if the user doesn't mention 'Horizon Design System' or specific component names. Also use when styling or theming custom components to match the ServiceNow platform aesthetic.
 ---
 
 # ServiceNow React UI Components
@@ -274,4 +272,6 @@ Load the relevant reference file for detailed props, examples, and patterns:
 | Alert, Loader, ProgressBar, Tooltip, Heading, Badge, HighlightedValue, LabelValue, Avatar, Icon, Breadcrumbs, TemplateMessage | [FEEDBACK-DISPLAY-COMPONENTS.md](./FEEDBACK-DISPLAY-COMPONENTS.md) |
 | Full import list and event pattern cheatsheet | [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md) |
 | CSS Modules setup, Horizon design tokens, custom component styling, theming | [STYLING.md](./STYLING.md) |
+| **Horizon Design System theming:** token categories, color roles, layout patterns, controls, dark mode | [ui-page-theming-guide.md](./ui-page-theming-guide.md) |
+| **UI Page patterns:** dirty state management, field extraction, service layer, CSS constraints, build system | [ui-page-patterns-guide.md](./ui-page-patterns-guide.md) |
 | Complete working examples (form, list, dashboard, styled components, modal) | [EXAMPLES.md](./EXAMPLES.md) |

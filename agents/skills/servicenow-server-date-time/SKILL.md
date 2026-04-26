@@ -1,7 +1,7 @@
 ---
 name: servicenow-server-date-time
 user-invocable: false
-description: Perform date arithmetic, time calculations, timezone conversions, and schedule management using server-side APIs. Use this skill whenever you need to add or subtract time from dates, compare date ranges, calculate durations, work with business calendars, format dates for display or storage, query scheduled jobs, calculate SLA time windows, handle relative time expressions, or implement any time-based business logic. Covers GlideDateTime, GlideDate, GlideDuration, GlideSchedule, and related scheduling operations.
+description: Perform date arithmetic, time calculations, timezone conversions, and schedule management using server-side APIs. Covers GlideDateTime, GlideDate, GlideDuration, GlideSchedule, and related scheduling operations. Trigger this skill whenever you need to add or subtract time from dates, compare date ranges, calculate durations, work with business calendars, format dates for display or storage, query scheduled jobs, calculate SLA time windows, handle relative time expressions, or implement any time-based business logic — even for simple date comparisons or timestamp formatting.
 ---
 
 # Server Date & Time
@@ -81,15 +81,14 @@ var dueDate = calc.calculateDueDate(startDate, duration);
 
 ## Best practices
 
-- Always use GlideDateTime for timezone-safe operations
-- Avoid JavaScript Date objects for ServiceNow data
-- Use GlideSchedule for business hours calculations
-- Store dates in UTC internally; format for display only
-- Use GlideDuration for time spans and calculations
-- Test date calculations with different timezones
-- Remember: GlideDateTime automatically handles DST
-- Use appropriate granularity (Date vs DateTime vs Time)
-- Consider user timezone when displaying dates
+| Practice | Why it matters |
+|----------|----------------|
+| Use GlideDateTime, not JavaScript `Date` | JS Date ignores instance timezone settings and DST; GlideDateTime handles both automatically |
+| Store dates in UTC; format for display only | Prevents timezone-shifted data when records move between instances or exports |
+| Use GlideSchedule for business hours | Ensures SLA calculations respect holidays and working hours defined on the instance |
+| Use GlideDuration for time spans | Enables arithmetic with ServiceNow duration fields directly |
+| Test calculations across timezones | DST transitions can shift results by an hour; verify with users in different regions |
+| Match granularity to the use case (Date vs DateTime vs Time) | Storing time in a Date-only field silently discards the time component |
 
 ## Key APIs
 

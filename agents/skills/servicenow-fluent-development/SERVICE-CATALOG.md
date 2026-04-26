@@ -1298,3 +1298,384 @@ if (!current.assignment_group.nil()) {
 - Use `displayTitle: true` on VariableSet to group related variables under collapsible sections
 - Minimize the number of UI policies and scripts that run on page load — they can slow form rendering
 - Use `appliesOnRequestedItems: true` and `appliesOnCatalogTasks: true` on client scripts to ensure they run through the full order lifecycle (order → fulfillment → completion)
+
+---
+
+## Decision Guide
+
+Source: https://servicenow.github.io/sdk/guides/service-catalog-guide
+
+### Catalog Item vs Record Producer
+
+| Aspect | Catalog Item | Record Producer |
+|--------|-------------|-----------------|
+| Creates | REQ + RITM + Fulfillment Tasks | Record in target table (incident, change_request, etc.) |
+| Fulfillment | Flow Designer / Workflow / Delivery Plan | Server-side scripts |
+| Use when | Ordering goods/services with approvals | Creating task records directly |
+| Examples | "Request Laptop", "Software License" | "Report Incident", "Submit HR Case" |
+
+**Core Rule:** Ordering/requesting something → Catalog Item. Creating a task record → Record Producer.
+
+### When to Use What
+
+1. Ordering goods/services → **CatalogItem** with variables and Flow Designer
+2. Creating task records → **CatalogItemRecordProducer** with field mapping
+3. Reusable form fields → **VariableSet** (`singleRow` or `multiRow`)
+4. Simple show/hide/mandatory logic → **CatalogUiPolicy**
+5. Complex validation/calculations/async calls → **CatalogClientScript**
+6. Grid/table data entry → Multi-Row Variable Set (MRVS)
+
+### UI Policy vs Client Script
+
+| Use Case | UI Policy | Client Script |
+|----------|-----------|---------------|
+| Show/hide variables | **Preferred** | Supported |
+| Make variables mandatory | **Preferred** | Supported |
+| Make variables read-only | **Preferred** | Supported |
+| Set variable values | Supported | Supported |
+| Complex validation | Limited | **Preferred** |
+| Dynamic calculations | Limited | **Preferred** |
+| API calls / async operations | Not supported | **Preferred** |
+| Form submission control | Not supported | **Preferred** |
+
+### Validation Scenarios
+
+| Validation Type | Implementation | Script Type |
+|-----------------|----------------|-------------|
+| No past dates | Client Script | onChange |
+| Date range (start < end) | Client Script | onChange |
+| Min/max numeric values | Client Script | onChange |
+| Text min/max length | Client Script | onSubmit |
+| Format validation (regex) | Client Script | onChange or onSubmit |
+| Required based on another field | UI Policy (preferred) or Client Script | onChange |
+| Lookup / async validation | Client Script with GlideAjax | onChange |
+
+---
+
+## Things to Avoid
+
+Source: https://servicenow.github.io/sdk/guides/service-catalog-guide
+
+- Never use catalog items for creating task records directly — use Record Producers
+- Never create record producers for `sc_request`, `sc_req_item`, `sc_task`
+- Never call `current.update()` or `current.insert()` in pre-insert `script` — use `postInsertScript` instead
+- Never call `current.setAbortAction()` in Record Producer scripts
+- Never set `current.sys_class_name` in scripts (triggers reparent flow, can cause data loss)
+- Never use GlideAjax in `onSubmit` scripts — async calls won't complete before submission
+- Never manipulate the DOM directly — always use `g_form` API
+- Never use the same variable name as a target table field name
+- Never skip the `order` property on variables
+- Never skip `catalogs` or `categories` assignment on catalog items
+- Never hard-code sys_ids without documenting their source
+- Variables without names cannot be accessed by client scripts
+- Mandatory variables without values that should be hidden by UI policies will block hiding
+- Multi-row variable sets do not support: `AttachmentVariable`, container variables, `HtmlVariable`, macro variables
+- Container variables must be properly paired (`ContainerStartVariable` / `ContainerSplitVariable` / `ContainerEndVariable`)
+- Multi-row variable sets will not display if added inside a container
+
+---
+
+## CatalogUiPolicy — Advanced Details
+
+Source: https://servicenow.github.io/sdk/guides/service-catalog-variables-guide
+
+### Condition Syntax Examples
+
+```ts
+// Simple equality
+catalogCondition: `${catalogItem.variables.priority}=high^EQ`;
+
+// Multiple conditions with AND
+catalogCondition: `${catalogItem.variables.env}=prod^${catalogItem.variables.critical}=true^EQ`;
+
+// Multiple conditions with OR
+catalogCondition: `${catalogItem.variables.env}=prod^OR${catalogItem.variables.critical}=true^EQ`;
+
+// Not empty check
+catalogCondition: `${catalogItem.variables.reference}ISNOTEMPTY^EQ`;
+```
+
+### UI Policy Priority Rules
+
+1. **Mandatory** has highest priority
+2. If a variable is mandatory and has no value, `readOnly` / `hidden` actions **do not work** on it
+3. If a variable set or container contains a mandatory variable without a value, the **entire set cannot be hidden**
+4. The "Clear value" action does not work on variable sets and containers
+
+### Variable Type Limitations (UI Policy Actions)
+
+| Action Type | Not Applicable To |
+|-------------|-------------------|
+| Mandatory | Fraction, ContainerSplitVariable, ContainerEndVariable, UI Macro, LabelVariable, UIPageVariable |
+| Read-only | Fraction, ContainerSplitVariable, ContainerEndVariable, UI Macro, LabelVariable, UIPageVariable |
+| Visibility | Fraction, ContainerSplitVariable, ContainerEndVariable |
+
+### Policy with Client Scripts
+
+When `runScripts: true`, provide `executeIfTrue` / `executeIfFalse` via `Now.include(...)`. These scripts run **client-side in the browser** where TypeScript modules are not available. Scripts must be wrapped in `function onCondition() {}`.
+
+```ts
+CatalogUiPolicy({
+  $id: Now.ID["vm_prod_controls_policy"],
+  shortDescription: "VM: Prod/BizCritical Controls",
+  catalogItem: cloudVmRequest,
+  catalogCondition: `${cloudVmRequest.variables.environment}=prod^OR${cloudVmRequest.variables.business_critical}=true^EQ`,
+  active: true,
+  onLoad: true,
+  reverseIfFalse: true,
+  runScripts: true,
+  runScriptsInUiType: "all",
+  actions: [
+    {
+      variableName: cloudVmRequest.variables.backup_required,
+      value: "true",
+      valueAction: "setValue",
+      readOnly: true,
+      order: 100
+    },
+    {
+      variableName: cloudVmRequest.variables.cost_center,
+      mandatory: true,
+      order: 200
+    }
+  ],
+  executeIfTrue: Now.include("../../scripts/vm-production-controls.js"),
+  executeIfFalse: Now.include("../../scripts/vm-development-controls.js")
+});
+```
+
+```js
+// vm-production-controls.js
+function onCondition() {
+  var PROD_REGIONS = [
+    ["AP-South-1", "AP-South-1 (Mumbai)"],
+    ["EU-West-1", "EU-West-1 (Ireland)"]
+  ];
+  g_form.clearOptions("region");
+  PROD_REGIONS.forEach(function (pair) {
+    g_form.addOption("region", pair[0], pair[1]);
+  });
+  g_form.showFieldMsg(
+    "environment",
+    "Production VMs enforce backup and require cost center.",
+    "info"
+  );
+}
+```
+
+### Policy Scoped to a Variable Set
+
+```ts
+export const internationalShippingPolicy = CatalogUiPolicy({
+  $id: Now.ID["international_shipping_policy"],
+  shortDescription: "Show customs fields for international shipping",
+  variableSet: shippingVariableSet,
+  appliesTo: "set",
+  catalogCondition: `${shippingVariableSet.variables.shipping_country}!=US^EQ`,
+  appliesOnCatalogItemView: true,
+  appliesOnRequestedItems: true,
+  actions: [
+    {
+      variableName: shippingVariableSet.variables.customs_declaration,
+      visible: true,
+      mandatory: true,
+      variableMessage: "Required for international shipping",
+      variableMessageType: "warning"
+    }
+  ]
+});
+```
+
+---
+
+## CatalogClientScript — Advanced Details
+
+Source: https://servicenow.github.io/sdk/guides/service-catalog-variables-guide
+
+### Catalog Client Script vs Standard Client Script
+
+| Aspect | Catalog Client Script | Standard Client Script |
+|--------|-----------------------|------------------------|
+| Scope | Catalog item or variable set | Table (e.g., Incident) |
+| onChange target | Links to a **variable** | Links to a **field** |
+| Context | Catalog ordering, RITM, Catalog Task forms | Table forms |
+| Variable access | Direct by variable name | Use `variables.variable_name` prefix |
+| Applies to | `item` or `set` | Specific table |
+
+### Scripts on Variable Sets
+
+Scope scripts to a variable set using `variableSet` and `appliesTo: 'set'` so they apply to **all** catalog items using that set. Always use `hasField()` checks since the variable may not exist on every item that includes the set.
+
+When multiple variable sets are attached to a catalog item, scripts execute in the order the variable sets are listed on the item. If both a variable set script and an item-level script target the same variable, the item-level script runs last and takes precedence.
+
+### g_form API Reference
+
+| Method | Description |
+|--------|-------------|
+| `getValue(fieldName)` | Get variable value |
+| `setValue(fieldName, value)` | Set variable value |
+| `setDisplay(fieldName, display)` | Show/hide variable |
+| `setMandatory(fieldName, mandatory)` | Set mandatory state |
+| `setReadOnly(fieldName, readOnly)` | Set read-only state |
+| `clearValue(fieldName)` | Clear variable value |
+| `hasField(fieldName)` | Check if field exists on the current form |
+| `showFieldMsg(fieldName, message, type, scrollForm)` | Show inline field message |
+| `hideFieldMsg(fieldName, clearAll)` | Hide field message |
+| `addErrorMessage(message)` | Add banner error message |
+| `clearMessages()` | Clear all banner messages |
+| `clearOptions(fieldName)` | Clear all select options |
+| `addOption(fieldName, value, label)` | Add a select option |
+| `getReference(fieldName, callback)` | Get referenced record (legacy — prefer GlideAjax for complex lookups) |
+
+### GlideAjax Method Comparison
+
+| Method | Execution | Use When | Avoid When |
+|--------|-----------|----------|------------|
+| `getXMLAnswer()` | **Async** | Simple lookups, returning a single value/string | You need the full XML response object |
+| `getXML()` | **Async** | Need full XML response, complex response parsing | Simple value returns (use `getXMLAnswer`) |
+| `getXMLWait()` | **Sync** | Almost never — legacy/global scope only | Scoped apps, any production code |
+
+### GlideAjax Parameter Rules
+
+- All custom parameters **must** start with `sysparm_`
+- The **first** `addParam` call must always be `sysparm_name` with the method name
+
+```js
+var ga = new GlideAjax("MyScriptInclude");
+ga.addParam("sysparm_name", "methodName");    // REQUIRED: always first
+ga.addParam("sysparm_user_id", userSysId);    // Custom param: must start with sysparm_
+ga.getXMLAnswer(function(response) { ... });
+```
+
+### Script Include Patterns for GlideAjax
+
+Script includes used by GlideAjax must be **Client callable = true** and extend `global.AbstractAjaxProcessor`. Retrieve parameters with `this.getParameter('sysparm_param_name')`.
+
+**Security note:** Client callable Script Includes run in the logged-in user's session context. ACLs still apply to GlideRecord queries. Always validate parameters from `this.getParameter()`. Never trust client-side input.
+
+**Single method:**
+```js
+var AssetLookupUtil = Class.create();
+AssetLookupUtil.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+  getWarrantyStatus: function() {
+    var assetTag = this.getParameter("sysparm_asset_tag");
+    var gr = new GlideRecord("alm_asset");
+    gr.addQuery("asset_tag", assetTag);
+    gr.setLimit(1);
+    gr.query();
+    if (gr.next()) {
+      return JSON.stringify({ status: gr.getValue("warranty_expiration") });
+    }
+    return JSON.stringify({ status: null });
+  },
+  type: "AssetLookupUtil"
+});
+```
+
+**Multi-method pattern:**
+```js
+var CatalogUtils = Class.create();
+CatalogUtils.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+  getItemPrice: function() {
+    var itemId = this.getParameter("sysparm_item_id");
+    var gr = new GlideRecord("sc_cat_item");
+    if (gr.get(itemId)) { return gr.getValue("price"); }
+    return "0";
+  },
+  getManagerName: function() {
+    var userId = this.getParameter("sysparm_user_id");
+    var gr = new GlideRecord("sys_user");
+    if (gr.get(userId)) {
+      return JSON.stringify({
+        manager_sys_id: gr.getValue("manager"),
+        manager_name: gr.getDisplayValue("manager"),
+        department: gr.getDisplayValue("department")
+      });
+    }
+    return JSON.stringify({ error: "User not found" });
+  },
+  type: "CatalogUtils"
+});
+```
+
+**Input validation pattern:**
+```js
+getUserInfo: function() {
+  var userId = this.getParameter("sysparm_user_id");
+  // Validate: check it looks like a sys_id
+  if (!userId || userId.length !== 32) {
+    return JSON.stringify({ error: "Invalid user ID" });
+  }
+  var gr = new GlideRecord("sys_user");
+  if (gr.get(userId)) {
+    return JSON.stringify({ name: gr.getDisplayValue("name") });
+  }
+  return JSON.stringify({ error: "User not found" });
+}
+```
+
+### onChange — Dynamic Options via GlideAjax
+
+```js
+// Client script (onChange on 'department' variable)
+function onChange(control, oldValue, newValue, isLoading) {
+  if (isLoading) return;
+  g_form.clearOptions("category");
+  g_form.addOption("category", "", "-- Select --");
+  if (!newValue) return;
+  var ga = new GlideAjax("CatalogOptionLoader");
+  ga.addParam("sysparm_name", "getCategoriesByDept");
+  ga.addParam("sysparm_department", newValue);
+  ga.getXMLAnswer(function(answer) {
+    if (!answer) return;
+    var categories = JSON.parse(answer);
+    categories.forEach(function(cat) {
+      g_form.addOption("category", cat.value, cat.label);
+    });
+  });
+}
+```
+
+### onSubmit — Validation with Field Message
+
+```js
+function onSubmit() {
+  var justification = (g_form.getValue("justification") || "").trim();
+  if (justification.length < 20) {
+    g_form.showFieldMsg("justification", "Please provide at least 20 characters.", "error", true);
+    g_form.addErrorMessage("Justification is too short.");
+    return false;
+  }
+  return true;
+}
+```
+
+### Client Script Scoped to Variable Set
+
+```ts
+import { requesterInfoSet } from "./variable-sets/requester-info-set.now";
+
+CatalogClientScript({
+  $id: Now.ID["department_change_script"],
+  name: "Department Change - Clear Manager",
+  type: "onChange",
+  variableSet: requesterInfoSet,
+  appliesTo: "set",
+  variableName: requesterInfoSet.variables.department,
+  script: Now.include("../../client/department-change.js"),
+  active: true,
+  uiType: "all"
+});
+```
+
+```js
+// department-change.js
+function onChange(control, oldValue, newValue, isLoading) {
+  if (isLoading) return;
+  // Use hasField() because this set may be attached to items that don't have manager
+  if (!g_form.hasField("manager")) return;
+  g_form.clearValue("manager");
+  if (!newValue) return;
+  g_form.showFieldMsg("manager", "Please select a manager from the new department", "info", false);
+}
+```

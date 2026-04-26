@@ -105,16 +105,18 @@ user.savePreference('my_app.my_key', null);
 
 ## Best practices
 
-- Use descriptive variable names (`grIncident` for GlideRecord)
-- Use PascalCase for classes, camelCase for functions
-- Never use `eval()` or dynamic code execution
-- Never hardcode `sys_id`s; use System Properties
-- Avoid global synchronous calls like `getXMLWait()`
-- Log important actions for audit trails
-- Use domain context for multi-tenant operations
-- Queue async work instead of waiting for results
-- Follow IIFE pattern for Script Includes
-- Test thoroughly on sub-production first
+| Practice | Why it matters |
+|----------|----------------|
+| Descriptive variable names (`grIncident`) | Reviewed scripts are much easier to debug and update |
+| PascalCase classes, camelCase functions | ServiceNow convention; wrong case breaks GlideAjax lookups |
+| Never use `eval()` or dynamic code execution | Security vulnerability; can execute attacker-controlled code |
+| Never hardcode `sys_id`s; use System Properties | Hardcoded IDs break on instance clones and cross-environment deployments |
+| Avoid `getXMLWait()` | Synchronous; blocks the browser and causes timeout errors |
+| Log important actions | Required for audit trails and debugging in production |
+| Use domain context for multi-tenant operations | Without it, scripts inadvertently read/write across domain boundaries |
+| Queue async work | Foreground scripts have strict time limits; long work must be async |
+| Follow IIFE pattern for Script Includes | Prevents accidental global variable pollution |
+| Test on sub-production first | Prevents production data corruption during script changes |
 
 ## Key APIs
 

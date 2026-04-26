@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.4.4-blue)
+  ![Version](https://img.shields.io/badge/version-0.4.5-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.113+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -101,7 +101,7 @@ Once `now-sdk init` completes, the sidebar will automatically detect the new `no
 
 ### Recommended Workflow
 
-**Always start with the NowDev-AI-Orchestrator** for any new task or feature. The orchestrator will:
+**Always start with NowDev AI Agent** for any new task or feature. The orchestrator will:
 - Analyze your requirements and create a detailed implementation plan
 - Break down complex tasks into manageable steps
 - Coordinate between specialized agents as needed
@@ -159,7 +159,7 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 
 | Agent | Description |
 |-------|-------------|
-| NowDev-AI-Orchestrator | Lead Architect — triages requests, plans solutions, and coordinates all other agents |
+| NowDev AI Agent | Lead Architect — triages requests, plans solutions, and coordinates all other agents |
 
 ### Tier 2 — Domain Coordinators & Routers
 
@@ -169,7 +169,7 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-Refinement | User story refinement and feasibility validation before development | — |
 | NowDev-AI-Classic-Developer | Classic scripting coordinator — analyzes requirements and delegates to Classic sub-agents | Script, BusinessRule, Client developers |
 | NowDev-AI-Fluent-Developer | Fluent SDK coordinator — analyzes requirements and delegates to Fluent specialists | Schema, Logic, Automation, UI, AI Studio developers |
-| NowDev-AI-AI-Studio-Developer | AI Studio coordinator (SDK 4.5.0+) — routes based on whether request needs an AiAgent/AiAgenticWorkflow or a NowAssist Skill | AI Agent Developer, NowAssist Developer |
+| NowDev-AI-AI-Studio-Developer | AI Studio coordinator (SDK 4.4.0+) — routes based on whether request needs an AiAgent/AiAgenticWorkflow or a NowAssist Skill | AI Agent Developer, NowAssist Developer |
 | NowDev-AI-Reviewer | Review router — detects Classic vs Fluent and delegates to the right reviewer | Classic Reviewer, Fluent Reviewer |
 | NowDev-AI-Release-Expert | Release router — detects Classic vs Fluent and delegates to the right release agent | Classic Release, Fluent Release |
 | NowDev-AI-Pipeline-Expert | CI/CD pipeline generator — creates GitHub Actions, Azure DevOps, and Jenkins pipeline YAML for Fluent SDK deployments; covers credential management, branch strategies, and multi-scope deployments | — |
@@ -243,13 +243,13 @@ graph TD
 
 The project includes comprehensive code examples from the official [ServiceNow SDK Examples Repository](https://github.com/servicenow/sdk-examples) integrated directly into the skills. Each skill in the `agents/skills/` directory includes an `EXAMPLES.md` file with code examples:
 
-- **[servicenow-fluent-development/references/EXAMPLES.md](agents/skills/servicenow-fluent-development/references/EXAMPLES.md)** — Tables, business rules, REST APIs, ACLs, UI actions, service catalog
-- **[servicenow-business-rules/references/EXAMPLES.md](agents/skills/servicenow-business-rules/references/EXAMPLES.md)** — Before/after/async rules, validation, recursion prevention
-- **[servicenow-http-integrations/references/EXAMPLES.md](agents/skills/servicenow-http-integrations/references/EXAMPLES.md)** — REST APIs, OAuth, error handling, SOAP
-- **[servicenow-client-scripts/references/EXAMPLES.md](agents/skills/servicenow-client-scripts/references/EXAMPLES.md)** — Form initialization, GlideAjax, validation
-- **[servicenow-script-server-logic/references/EXAMPLES.md](agents/skills/servicenow-script-server-logic/references/EXAMPLES.md)** — Script includes, utilities, database queries
-- **[servicenow-flow-designer/references/EXAMPLES.md](agents/skills/servicenow-flow-designer/references/EXAMPLES.md)** — Workflow automation, escalation, approval workflows
-- **[servicenow-ui-forms/references/EXAMPLES.md](agents/skills/servicenow-ui-forms/references/EXAMPLES.md)** — Form field manipulation, UI actions, dynamic behavior
+- **[servicenow-fluent-development/EXAMPLES.md](agents/skills/servicenow-fluent-development/EXAMPLES.md)** — Tables, business rules, REST APIs, ACLs, UI actions, service catalog
+- **[servicenow-business-rules/EXAMPLES.md](agents/skills/servicenow-business-rules/EXAMPLES.md)** — Before/after/async rules, validation, recursion prevention
+- **[servicenow-http-integrations/EXAMPLES.md](agents/skills/servicenow-http-integrations/EXAMPLES.md)** — REST APIs, OAuth, error handling, SOAP
+- **[servicenow-client-scripts/EXAMPLES.md](agents/skills/servicenow-client-scripts/EXAMPLES.md)** — Form initialization, GlideAjax, validation
+- **[servicenow-script-server-logic/EXAMPLES.md](agents/skills/servicenow-script-server-logic/EXAMPLES.md)** — Script includes, utilities, database queries
+- **[servicenow-flow-designer/EXAMPLES.md](agents/skills/servicenow-flow-designer/EXAMPLES.md)** — Workflow automation, escalation, approval workflows
+- **[servicenow-ui-forms/EXAMPLES.md](agents/skills/servicenow-ui-forms/EXAMPLES.md)** — Form field manipulation, UI actions, dynamic behavior
 
 ## Included Skills
 

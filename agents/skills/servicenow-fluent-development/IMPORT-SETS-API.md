@@ -39,6 +39,21 @@ Before generating data source code, collect format-specific mandatory fields:
 
 > **Do not generate XML/JSON data source code without the root node path** — the data source will deploy but fail to import data.
 
+### File Retrieval Methods
+
+When the data source type is `'File'`, set `file_retrieval_method` to one of the following:
+
+| Method | Description |
+|--------|-------------|
+| `'Attachment'` | File attached directly to the data source record in ServiceNow |
+| `'FTP'` | Retrieve file via FTP |
+| `'SCP'` | Retrieve file via SCP (Secure Copy Protocol) |
+| `'SFTP'` | Retrieve file via SFTP (SSH File Transfer Protocol) |
+| `'HTTP'` | Retrieve file via HTTP |
+| `'HTTPS'` | Retrieve file via HTTPS |
+
+Source: https://servicenow.github.io/sdk/guides/importing-data-guide
+
 ### Password Handling
 
 Pre-populate all configuration fields (hostnames, ports, usernames, database names) with provided values. Leave password fields empty (`''`) with a `// LEAVE EMPTY` comment — passwords are set manually in ServiceNow after deployment.
@@ -46,6 +61,33 @@ Pre-populate all configuration fields (hostnames, ports, usernames, database nam
 ### LDAP Data Sources
 
 LDAP imports require a chain of records: `ldap_server_config` → `ldap_ou_config` (references server) → optionally `ldap_server_url` (references server) → `sys_data_source` (references OU via `ldap_target`). Use record object references (not hardcoded sys_id strings) for LDAP cross-table references.
+
+### Complex Transform Script Logic
+
+For complex transformation logic exceeding 10–15 lines, extract the logic to TypeScript functions defined in server modules and import them into the transform map. This improves maintainability, enables unit testing, and separates business logic from metadata definitions.
+
+```ts
+// server/user-validation.ts
+export function validateUserData(source: any, map: any, log: any, target: any) {
+    // complex logic here
+}
+
+// now-file.ts
+import { validateUserData } from './server/user-validation'
+
+ImportSet({
+    // ...
+    scripts: [
+        {
+            $id: Now.ID['validate'],
+            when: 'onBefore',
+            script: validateUserData,
+        }
+    ]
+})
+```
+
+Source: https://servicenow.github.io/sdk/guides/importing-data-guide
 
 ### Key Restrictions
 

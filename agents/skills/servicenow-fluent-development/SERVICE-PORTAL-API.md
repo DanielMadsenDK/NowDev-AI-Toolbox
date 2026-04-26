@@ -1,10 +1,221 @@
 # Service Portal API
 
+Source: https://servicenow.github.io/sdk/guides/service-portal-guide
+
 ## Overview
 
 The Service Portal API enables you to define custom widgets, Angular providers, and dependencies for Service Portal pages. Service Portals provide self-service interfaces for end users.
 
 For general information about portals, see [Service Portal](https://docs.servicenow.com/bundle/washingtondc-servicenow-platform/page/build/service-portal/concept_building_a_service_portal.html).
+
+---
+
+## When to Use Service Portal
+
+- Building branded self-service portals for employees, customers, or partners
+- Creating custom portal pages with responsive layouts
+- Developing interactive widgets with client-server communication
+- Customizing portal appearance through themes, headers, and footers
+- Setting up navigation menus for portal structure
+- Creating shared AngularJS services, directives, and factories
+- Managing external JavaScript and CSS library dependencies
+
+## When NOT to Use Service Portal
+
+- Platform UI Pages — use UI Page API instead
+- Next Experience / UI Builder pages
+- Backend scripts without UI components
+- Flow Designer workflows
+- Workspace components in Next Experience
+
+---
+
+## Key Instructions
+
+1. **Always use dedicated Fluent APIs** — Never use `Record()` for Service Portal components (except `sp_header_footer`)
+2. **Check OOTB components first** — Verify out-of-the-box equivalents exist before creating custom ones
+3. **Verify uniqueness** — Confirm `urlSuffix`, `pageId`, and widget `name`/`id` are unique across the instance
+4. **Bootstrap 3 only** — Service Portal uses Bootstrap 3, not versions 4 or 5
+5. **AngularJS 1.x only** — Use controller alias `c` instead of `$scope`
+6. **Separate files for widgets** — Use `Now.include()` for scripts, templates, and styles
+7. **No placeholders** — Replace all placeholder values with actual data
+8. **Query only when referencing existing components** — Don't query before creating new ones
+9. **Scoped app restrictions** — Use scoped-safe APIs only (see table below)
+10. **Run UI diagnostics after install** — Verify portal loads without errors
+
+---
+
+## Component Hierarchy
+
+```
+Portal (sp_portal)
+├── Theme (sp_theme)
+│   ├── Header (sp_header_footer)
+│   └── Footer (sp_header_footer)
+├── Main Menu (sp_instance_menu)
+└── Pages (sp_page)
+    └── Containers → Rows → Columns → Widget Instances (sp_instance)
+        └── Widgets (sp_widget)
+            ├── Dependencies (sp_dependency)
+            └── Angular Providers (sp_angular_provider)
+```
+
+## API to Table Mapping
+
+| Component | Fluent API | ServiceNow Table |
+|-----------|-----------|-----------------|
+| Portal | `ServicePortal()` | `sp_portal` |
+| Page | `SPPage()` | `sp_page` |
+| Widget | `SPWidget()` | `sp_widget` |
+| Theme | `SPTheme()` | `sp_theme` |
+| Menu | `SPMenu()` | `sp_instance_menu` |
+| Angular Provider | `SPAngularProvider()` | `sp_angular_provider` |
+| Widget Dependency | `SPWidgetDependency()` | `sp_dependency` |
+| Header/Footer | `SPHeaderFooter()` | `sp_header_footer` |
+
+---
+
+## Scoped Application Restrictions
+
+Use only scoped-safe APIs in widget scripts:
+
+| Global (NOT Allowed in Scoped) | Scoped Alternative |
+|------------------------------|-------------------|
+| `nowDateTime()` | `new GlideDateTime()` |
+| `getXMLWait()` | `c.server.get()` or REST API |
+| `gs.print()` | `gs.info()`, `gs.error()` |
+
+---
+
+## Widget Script Communication
+
+**Server Script Context variables:**
+- `data` — object passed to client
+- `input` — client input from `c.server.get()` or `c.server.update()`
+- `options` — widget option values
+
+**Client Script Context variables:**
+- `c.data` — data from server
+- `c.options` — widget options
+- `c.server.get(input)` — call server (GET)
+- `c.server.update()` — call server (POST with `c.data` as input)
+- `c.server.refresh()` — reload widget entirely
+
+---
+
+## Avoidance Patterns
+
+Never do any of the following in Service Portal:
+
+- Use `Record()` for Service Portal components
+- Use GlideAjax in widgets
+- Omit `setLimit()` on GlideRecord queries
+- Omit `track by` on `ng-repeat`
+- Use Bootstrap 4/5 classes
+- Use `$scope` directly (use controller alias `c`)
+- Use hardcoded hex colors in widget CSS (use theme SCSS variables)
+- Use raw `px` values for `font-size` (use `$sp-text-*` variables)
+- Use `!important` in widget CSS
+- Use inline `style=""` attributes
+- Re-add bundled libraries (jQuery, AngularJS, Bootstrap)
+- Use `includeOnPageLoad: true` unless truly global
+- Use `href="#"` on anchor elements
+- Use `alert()` or `console.log()` in production widgets
+
+---
+
+## Implementation Workflow
+
+1. Understand requirements and identify needed components
+2. Check OOTB reusability — always prefer existing components
+3. Create components bottom-up: dependencies → providers → widgets → pages → themes → portal
+4. Verify unique identifiers (`urlSuffix`, `pageId`, widget `id` and `name`)
+5. Validate configuration (menus require theme + header + mainMenu)
+6. Generate code using dedicated Fluent API constructors
+7. Run UI diagnostics after install
+8. Share portal URL with user
+
+---
+
+## OOTB Themes Available
+
+Verify existence on target instance before referencing.
+
+| Name | Sys ID | Description |
+|------|--------|-------------|
+| Coral | `281507c44317d210ca4c1f425db8f2fd` | Coral color-scheme branding |
+| La Jolla | `a7a6e78277002300a6e592718a10617a` | Modern flat design |
+| Stock | `79315153cb33310000f8d856634c9c4b` | Default baseline |
+| Stock - High Contrast | `f84873986711320023c82e08f585ef6a` | Accessibility-compliant |
+| EC Theme | `9b6f06d71bb8f85047582171604bcb9c` | Employee Center default |
+| Portal Next Experience | `f548bd34845a1110f87767389929c667` | Next-gen portal (Polaris) |
+
+**Recommendation:** Prefer Coral first, then La Jolla. Always verify existence before referencing.
+
+---
+
+## CSS Variable Rules for Themes
+
+- Only `--now-*` tokens exist as platform CSS custom properties
+- Use `sp-rgb(--now-token, #hex) !default` when token exists
+- Use hex directly when no token exists
+- Always add `!default` for per-portal variable overrides
+
+### Navbar Color Alignment
+
+When `customCss` declares a custom `$brand-primary`, also set these 8 navbar variables to keep the navigation consistent:
+
+- `$navbar-inverse-bg`
+- `$navbar-inverse-border`
+- `$navbar-inverse-link-color`
+- `$navbar-inverse-link-hover-color`
+- `$navbar-inverse-link-active-color`
+- `$navbar-inverse-brand-color`
+- `$navbar-inverse-toggle-icon-bar-bg`
+- `$navbar-inverse-toggle-border-color`
+
+---
+
+## File Organization Structure
+
+```
+fluent/
+├── service-portal/
+│   └── portal.now.ts
+├── sp-page/
+│   ├── home/
+│   │   └── home-page.now.ts
+│   └── login/
+│       └── login-page.now.ts
+├── sp-widget/
+│   └── my_widget/
+│       ├── widget.now.ts
+│       ├── server_script.js
+│       ├── client_script.js
+│       ├── template.html
+│       └── styles.css
+├── sp-theme/
+│   └── theme.now.ts
+├── sp-instance-menu/
+│   └── menu.now.ts
+├── sp-angular-provider/
+│   └── provider.now.ts
+├── sp-dependency/
+│   └── dependency.now.ts
+└── sp-header-footer/
+    └── header.now.ts
+```
+
+---
+
+## Menu Display Prerequisites
+
+Navigation menus require ALL THREE of the following:
+1. Portal has `theme` configured
+2. Theme has `header` configured (`sp_header_footer` record)
+3. Portal has `mainMenu` configured
+
+---
 
 ---
 

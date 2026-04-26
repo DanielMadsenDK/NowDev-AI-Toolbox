@@ -136,6 +136,10 @@ export const x_snc_example_to_do = Table({
 
 **Note:** For typeahead support for columns, assign the Table object to an exported variable with the same name as the `name` property.
 
+> **Critical:** Set `allowWebServiceAccess: true` for any table that needs to be accessed via REST API. Without it, REST calls return `403 User Not Authorized` even when ACLs are correctly configured. Source: https://servicenow.github.io/sdk/guides/table-guide
+
+> **Build warning:** Only import column types that are actually used in the schema. Importing unused column types causes build errors. Source: https://servicenow.github.io/sdk/guides/table-guide
+
 ---
 
 ## Column Object

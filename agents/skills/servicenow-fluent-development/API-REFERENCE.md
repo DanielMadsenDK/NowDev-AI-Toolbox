@@ -35,6 +35,68 @@
 
 ---
 
+## Fluent Overview
+
+Source: https://servicenow.github.io/sdk/guides/fluent-overview
+
+ServiceNow Fluent is a domain-specific language (DSL) based on TypeScript for defining the metadata files (`sys_metadata`) that comprise applications. It enables developers to define metadata in code rather than through UI forms or builders.
+
+**Key capabilities:**
+- Two-way synchronization between source code and platform metadata
+- Support for tables, roles, ACLs, business rules, automated tests, and more
+- Full IDE support with TypeScript typing
+- Current version: see `@servicenow/sdk` on npm
+
+### Typical File Structure
+
+```
+src/
+  fluent/
+    business-rules/
+      log-state-change.now.ts
+    tables/
+      to-do.now.ts
+  server/
+    show-state-update.js
+now.config.json
+package.json
+```
+
+Metadata definitions use the `.now.ts` file extension.
+
+### UI Page vs. UI Formatter
+
+| Component | Usage |
+|-----------|-------|
+| **UI Formatter** | Used inside forms for non-field content (activities, timelines, checklists) |
+| **UI Page** | Standalone pages/applications outside forms |
+
+Use `UiPage` when building a full React application; use a formatter record when embedding a custom UI element within an existing form.
+
+### AI Integration with the LLM API
+
+For AI capabilities in server-side scripts, use `sn_generative_ai.LLMClient`:
+
+```javascript
+var llmClient = new sn_generative_ai.LLMClient()
+var prompt = 'Your specific AI task prompt here'
+
+try {
+    var result = llmClient.call({ prompt: prompt })
+    if (result.status === 'Success') {
+        var response = result.response.trim()
+    } else {
+        gs.error(result.response)
+    }
+} catch (e) {
+    gs.error(e.message)
+}
+```
+
+**Recommended pattern:** Create a Script Include for LLM operations, then invoke it from Business Rules, Scripted REST APIs, or client scripts via GlideAjax.
+
+---
+
 ## Fluent Language Constructs
 
 ServiceNow Fluent provides specialized language constructs for metadata definition and management. These are built-in helpers that integrate with the Fluent SDK.

@@ -110,12 +110,20 @@ function _buildHtml(version: string): string {
         <span class="feat-desc">Browse ServiceNow Fluent API documentation inline — powered by <code>now-sdk explain</code> with full syntax highlighting.</span>
       </li>
       <li>
+        <span class="feat-title">AI Agent Studio — Extended Properties</span>
+        <span class="feat-desc">The AI Agent Studio skill now documents the full set of <code>AiAgent</code> optional properties, including <code>agentType</code>, <code>memoryCategories</code>, <code>iconUrl</code>, <code>docUrl</code>, <code>externalAgentConfiguration</code>, <code>parent</code>, <code>compiledHandbook</code>, and more.</span>
+      </li>
+      <li>
+        <span class="feat-title">Improved Skill Quality</span>
+        <span class="feat-desc">Best practices across multiple skills now include a &ldquo;Why it matters&rdquo; column instead of bare rules. Skill descriptions tuned for more reliable Copilot triggering. <code>performancePolicy</code> property names corrected in the build reference.</span>
+      </li>
+      <li>
         <span class="feat-title">SDK Commands in Sidebar</span>
         <span class="feat-desc">Run <code>build</code>, <code>install</code>, <code>transform</code>, <code>pack</code>, <code>clean</code>, and <code>download</code> directly from the NowDev SDK tab without touching the terminal.</span>
       </li>
       <li>
         <span class="feat-title">Auth Alias Management</span>
-        <span class="feat-desc">Add, remove, and set a default auth alias from within VS Code — no more manual CLI auth flows.</span>
+        <span class="feat-desc">Add, remove, and set a default auth alias from within VS Code &mdash; no more manual CLI auth flows.</span>
       </li>
       <li>
         <span class="feat-title">Connection Status Checks</span>

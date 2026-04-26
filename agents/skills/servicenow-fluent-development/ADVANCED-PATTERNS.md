@@ -290,6 +290,10 @@ Both lowercase and uppercase extensions are accepted (e.g., `.PNG`, `.JPG`).
 4. Generates a SHA-256 hash for deduplication
 5. Creates `sys_attachment` and `sys_attachment_doc` records linked to the parent record
 
+**Round-trip transformation:** When importing existing ServiceNow XML metadata back into a Fluent project (XML-to-Fluent transform), the SDK reverses this process — it extracts the attachment data back into an image file on disk and regenerates the `Now.attach()` call in the `.now.ts` output. This ensures image assets are always maintained as standalone files.
+
+Source: https://servicenow.github.io/sdk/guides/now-attach-guide
+
 ### Examples
 
 ```ts
@@ -465,6 +469,32 @@ ClientScript({
   }`,
 })
 ```
+
+### Round-trip transformation
+
+`Now.include()` supports a clean round-trip workflow:
+
+- **Build time:** The SDK reads the external file and inlines its contents into the XML output field.
+- **Transform time (XML → Fluent):** When importing existing ServiceNow XML metadata back into a Fluent project, the SDK reverses the process — it extracts field content into separate files on disk and regenerates `Now.include()` calls in the `.now.ts` output.
+
+This ensures scripts, HTML, and CSS are always maintained as standalone files with full IDE support regardless of the direction of transformation.
+
+### Bridging module logic through string-only APIs
+
+Some APIs (such as Script Includes) only accept strings, but you may want to reuse logic written as a TypeScript module. The bridging pattern is to write a thin wrapper script that uses `require()` to load the compiled module output:
+
+```js
+// my-script-include.server.js  (included via Now.include())
+(function() {
+  var logic = require('./dist/server/my-logic.js');
+  // expose methods on the Script Include or call module exports
+  answer = logic.myFunction(current);
+})();
+```
+
+This is particularly common for Script Includes that need to bridge TypeScript module code to legacy callers such as GlideAjax or cross-scope APIs. The full pattern for cross-scope Script Include wrappers is covered in the [Cross-Scope Module Pattern](#cross-scope-module-pattern-advanced) section above.
+
+Source: https://servicenow.github.io/sdk/guides/now-include-guide
 
 ---
 
@@ -734,3 +764,81 @@ Record({
   },
 })
 ```
+
+---
+
+## AI / LLM Integration with sn_generative_ai
+
+Use `sn_generative_ai.LLMClient` to call the platform's generative AI capabilities from server-side scripts. This API is available in Script Includes, Business Rules, Scripted REST APIs, and any server-side execution context.
+
+### Pattern: Script Include Wrapper (Recommended)
+
+Create a **Script Include** as a wrapper for all LLM calls so the logic is reusable and testable:
+
+```javascript
+var LLMHelper = Class.create();
+LLMHelper.prototype = {
+    initialize: function() {},
+
+    generateSummary: function(text) {
+        var llmClient = new sn_generative_ai.LLMClient();
+        var prompt = 'Summarize the following text in 2-3 sentences:\n\n' + text;
+        try {
+            var result = llmClient.call({ prompt: prompt });
+            if (result.status === 'Success') {
+                return result.response.trim();
+            } else {
+                gs.error('LLM call failed: ' + result.response);
+                return '';
+            }
+        } catch (e) {
+            gs.error('LLM exception: ' + e.message);
+            return '';
+        }
+    },
+
+    type: 'LLMHelper'
+};
+```
+
+### Calling Pattern
+
+The `llmClient.call()` method accepts a `prompt` string and returns a result object:
+
+```javascript
+var llmClient = new sn_generative_ai.LLMClient();
+var prompt = 'Your specific AI task prompt here';
+try {
+    var result = llmClient.call({ prompt: prompt });
+    if (result.status === 'Success') {
+        var response = result.response.trim();
+        // use response
+    } else {
+        gs.error('LLM error: ' + result.response);
+    }
+} catch (e) {
+    gs.error('LLM exception: ' + e.message);
+}
+```
+
+### Result Object
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `status` | string | `'Success'` when the call succeeded; other values indicate failure |
+| `response` | string | The LLM-generated text response (or error message if status ≠ 'Success') |
+
+### Integration Points
+
+| Caller | Pattern |
+|--------|---------|
+| Business Rules | Call the Script Include directly in rule script |
+| Scripted REST API | Call the Script Include in the REST handler function |
+| Client Script (via GlideAjax) | Call a Script Include method that wraps `sn_generative_ai.LLMClient` |
+
+### Best Practices
+
+- Always wrap `llmClient.call()` in `try/catch` — the call can throw if the AI service is unavailable
+- Always check `result.status === 'Success'` before using `result.response`
+- Create a Script Include for LLM calls so the prompt logic is reusable and not duplicated
+- Trim the response (`result.response.trim()`) to remove leading/trailing whitespace

@@ -48,7 +48,11 @@ For detailed Fluent API guidance, the `servicenow-fluent-development` skill has 
 | ACLs (security attributes, data filters) | `agents/skills/servicenow-fluent-development/ACL-API.md` |
 | Script Includes (bridging, GlideAjax) | `agents/skills/servicenow-fluent-development/SCRIPT-INCLUDE-API.md` |
 | Client-Server Patterns | `agents/skills/servicenow-fluent-development/CLIENT-SERVER-PATTERNS.md` |
-| Advanced Patterns (Now.ref, Now.attach, helpers) | `agents/skills/servicenow-fluent-development/ADVANCED-PATTERNS.md` |
+| Advanced Patterns (cross-scope, data helpers) | `agents/skills/servicenow-fluent-development/ADVANCED-PATTERNS.md` |
+| `Now.include()` — string-only API bridging | `agents/skills/servicenow-fluent-development/now-include-guide.md` |
+| `Now.attach()` — embed metadata inline | `agents/skills/servicenow-fluent-development/now-attach-guide.md` |
+| `Now.ref()` — cross-app metadata references | `agents/skills/servicenow-fluent-development/now-ref-guide.md` |
+| Creating Workspaces | `agents/skills/servicenow-fluent-development/creating-workspaces-guide.md` |
 | Build Workflow (now-sdk commands) | `agents/skills/servicenow-fluent-development/BUILD-WORKFLOW.md` |
 | Instance Scan Checks (4 types) | `agents/skills/servicenow-fluent-development/INSTANCE-SCAN-API.md` |
 | All other sub-docs | See Reference Navigation in SKILL.md |
@@ -57,7 +61,7 @@ For detailed Fluent API guidance, the `servicenow-fluent-development` skill has 
 
 Authoritative API reference and guides are in `package/docs/`:
 - **API reference:** `package/docs/api/` (157 files covering all Fluent APIs)
-- **Guides:** `package/docs/guides/` (40+ topic guides)
+- **Guides:** `package/docs/guides/` (41 topic guides)
 - **Config reference:** `package/docs/now-config-reference.md`
 
 When conflicts exist between skills and official docs, the official docs take precedence.

@@ -225,6 +225,155 @@ Run when: project first initialized, `now.config.json` dependencies change, new 
 - Only wildcard support is at the org prefix level — arbitrary glob patterns are not supported
 - ⚠️ Only add packages you fully trust to execute Glide/ServiceNow code
 
+---
+
+## now.config.json — Full Property Reference
+
+Source: https://servicenow.github.io/sdk/config/now-config-reference
+
+The `now.config.json` file at the project root configures all aspects of the Fluent SDK application.
+
+### Required Properties
+
+| Property | Type | Pattern / Length | Purpose |
+|----------|------|-----------------|---------|
+| `scope` | string | `^((x\|sn)_[a-z0-9_]+\|global)$`, 4–18 chars | Application scope identifier (e.g. `x_myapp`) |
+| `scopeId` | string | 32-char hex or `"global"` | Application scope sys_id |
+
+### Directory Configuration
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| `fluentDir` | string | `"src/fluent"` | Directory containing `.now.ts` fluent files |
+| `clientDir` | string | `"src/client"` | Client files (HTML, TypeScript); empty string disables |
+| `serverModulesDir` | string | `"src/server"` | Server modular files for `sys_modules` |
+| `metadataDir` | string | `"metadata"` | Metadata XML directory |
+| `staticContentDir` | string | `"dist/static"` | Static asset files |
+| `generatedDir` | string | `"generated"` | Generated files (relative to `fluentDir`) |
+
+### Output Configuration
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| `appOutputDir` | string | `"dist/app"` | Built application output for packaging |
+| `packOutputDir` | string | `"target"` | Zip file output location |
+
+### Build Settings
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| `jsLevel` | enum | `"es_latest"` | JavaScript level: `"es_latest"`, `"helsinki_es5"`, `"traditional"` |
+| `tsconfigPath` | string | — | Path to TypeScript configuration file |
+| `packageResolverVersion` | enum | `"1.0.0"` | Rhino module resolver: `"1.0.0"` or `"2.0.0"`. **Use `"2.0.0"` for Global scope apps.** |
+
+### Application Metadata
+
+| Property | Type | Max Length | Purpose |
+|----------|------|-----------|---------|
+| `name` | string | 100 (min 3) | Application display name |
+| `description` | string | — | Application description |
+| `active` | boolean | — | Application activation status |
+| `logo` | string | 32 (SysID) | Application logo sys_id |
+| `menu` | string | 32 (SysID) | Primary menu for default table modules |
+
+### Runtime Policy Configuration
+
+```json
+{
+  "applicationRuntimePolicy": "none",
+  "performancePolicy": {
+    "$id": "optional-sys-id",
+    "name": "My App Policy",
+    "apiTransactionLimit": 30,
+    "eventHandlerLimit": 20,
+    "interactiveTransactionLimit": 30,
+    "scheduledJobLimit": 20,
+    "mode": "disabled"
+  }
+}
+```
+
+- **`applicationRuntimePolicy`**: `"none"` | `"tracking"` | `"enforcing"` — enables policy records
+- **`performancePolicy`**: Sets resource limits with quotas
+  - `apiTransactionLimit`, `eventHandlerLimit`, `interactiveTransactionLimit`, `scheduledJobLimit`: quota percentages 1–100
+  - `mode`: `"disabled"` | `"logOnly"` | `"enforced"` — auto-derived from `applicationRuntimePolicy` if not set
+
+### Access Controls
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| `canEditInStudio` | boolean | `true` | Developer Studio access |
+| `hideOnUI` | boolean | `false` | UI visibility |
+| `private` | boolean | `false` | Privacy setting |
+| `restrictTableAccess` | boolean | `false` | Design-time table access restriction |
+| `scopedAdministration` | boolean | `false` | Prevent system admin access |
+| `trackable` | boolean | `true` | Trackability setting |
+| `uninstallBlocked` | boolean | `false` | Uninstall prevention |
+| `userRole` | string | — | Required role for end users |
+| `runtimeAccessTracking` | enum | `"permissive"` | `"none"`, `"permissive"`, or `"enforcing"` |
+
+### Licensing Configuration
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| `licensable` | boolean | `true` | Mark as licensable package |
+| `enforceLicense` | enum | `"log"` | `"none"`, `"log"`, or `"enforce"` |
+| `licenseCategory` | enum | `"none"` | `"none"`, `"general"`, or `"beta"` |
+| `licenseModel` | enum | `"none"` | `"none"`, `"fulfiller"`, `"producer"`, `"capacity"`, `"mixed"`, `"app_use"` |
+| `subscriptionEntitlement` | string | — | Subscription entitlement SysID |
+
+### Advanced Properties
+
+**`tableOutputFormat`**
+- `"bootstrap"` (default) or `"component"` — controls the artifact type for table definitions
+
+**`defaultLanguage`**
+- BCP 47 language tag (e.g. `"en"`) — resolves multi-language documentation labels
+
+**`taxonomy`**
+- `fallbackFolderName`: default folder for unmapped tables
+- `mapping`: table name → folder path mappings
+
+**`trustedModules`** (also covered under Dependencies above)
+- Exact package names (`"lodash"`) or org wildcards (`"@servicenow/_"`)
+- Blanket wildcards (`"_"`) are NOT permitted
+
+**`wildcardPolicy`**
+- Configures Application Resource Limit (ARL) and segmentation policy
+- Properties: `active`, `shortDescription`, `record`, `arl`, `network`, `scripting`
+
+**`modulePaths`** / **`staticContentPaths`**
+- Key-value mappings: keys are file glob patterns, values are runtime paths or static output paths
+
+**`type`**
+- `"package"` (default) — for scoped or global apps and record changes
+
+**`guidedSetupGuid`**
+- SysID of Guided Setup to launch on upgrade
+
+**`ignoreTransformTableList`**
+- Array of table names ignored during entity transformation
+
+**`npmUpdateCheck`**
+- Number (default: `10`) or boolean — interval for npm update checks
+
+**`scripts`**
+- Task runner scripts (async, executed before build)
+
+---
+
+## SDK Version History
+
+Source: https://servicenow.github.io/sdk/guides/developing-apps-guide
+
+| Version | Key Changes |
+|---------|------------|
+| **3.0** | Initial release: fluent language, `init`/`build`/`install`, and `transform` commands |
+| **4.0** | Breaking: object-based API, new `now.config.json` format, added `download` and `pack` commands |
+| **4.1** | Flow Designer support |
+| **4.2** | Service Catalog items, UI Pages (including React), Import Set API |
+| **4.3** | UI Policy support, stability improvements, enhanced `transform` |
+
 ### `#now:` Import Alias
 
 Add to `package.json` to enable instance constant imports:

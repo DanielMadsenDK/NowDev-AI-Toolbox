@@ -51,11 +51,15 @@ Reference the correct sub-document for each artifact type:
   - Email Notifications → EMAIL-NOTIFICATION-API.md
   - System Properties → PROPERTY-API.md
   - Script Actions → SCRIPT-ACTION-API.md
-  - Service Portal → SERVICE-PORTAL-API.md
+  - Service Portal → SERVICE-PORTAL-API.md + SERVICE-PORTAL-EXTENDED.md (menu types, OOTB widgets, Coral SCSS, Angular provider rules)
   - Import Sets → IMPORT-SETS-API.md
   - Advanced patterns (Now.ref, AnnotationType, Record(), helpers) → ADVANCED-PATTERNS.md
   - Fluent language constructs (Now.ID, Now.include, Now.attach, Now.ref) → API-REFERENCE.md
-  - ATF Tests → ATF-API.md
+  - ATF Tests → ATF-API.md + atf-guide.md (11 namespaces, strategy, email/reporting/dashboard/SP steps)
+  - Security Attributes & Data Filters (sys_security_attribute, sys_security_data_filter) → security-guide.md
+  - UI Formatters (activity, process flow, checklist) → platform-view-guide.md
+  - Views, View Rules, List Controls, Relationships → platform-view-lists-guide.md
+  - Event registration (sysevent_register, scoped vs global, custom queues) → registering-events-guide.md
 
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for Fluent SDK object patterns

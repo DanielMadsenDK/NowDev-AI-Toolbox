@@ -105,12 +105,24 @@ export const myAgent = AiAgent({
 | Property | Type | Default | Purpose |
 |----------|------|---------|---------|
 | `active` | boolean | `true` | Whether the agent is active |
+| `advancedMode` | boolean | `false` | Enables advanced configuration options |
+| `agentLearning` | boolean | `false` | Enable agent learning from interactions |
+| `agentType` | string | `'internal'` | `'internal'`, `'external'`, `'voice'`, or `'aia_internal'` |
 | `channel` | string | `'nap_and_va'` | `'nap'` (Now Assist Panel only) or `'nap_and_va'` (Panel + Virtual Agent) |
+| `compiledHandbook` | string | — | Compiled handbook content for the agent |
+| `contextProcessingScript` | function/string | — | Server-side script for data enrichment before agent execution (not for behavioral guidance) |
 | `dataAccess` | object | — | **Required when `runAsUser` not set** |
+| `docUrl` | string | — | Documentation URL for the agent |
+| `externalAgentConfiguration` | string/Record | — | Reference to `sn_aia_external_agent_configuration` (for external agents) |
+| `iconUrl` | string | — | Icon URL for the agent in the UI |
 | `memoryCategories` | array | — | Long-term memory: `'device_and_software'`, `'meetings_and_events'`, `'projects'`, `'workplace'` |
+| `parent` | string/Record | — | Reference to parent AI Agent (`sn_aia_agent`) |
 | `processingMessage` | string | — | Message displayed while agent is processing |
 | `postProcessingMessage` | string | — | Message displayed after agent completes |
+| `public` | boolean | `false` | Whether the agent is publicly accessible |
+| `recordType` | string | `'template'` | Lifecycle stage: `'template'`, `'aia_internal'`, `'custom'`, or `'promoted'` |
 | `runAsUser` | string/Record | — | User sys_id to always run as |
+| `sourceId` | string/Record | — | Reference to source agent (for cloned agents) |
 | `tools` | array | — | Array of tools the agent can use |
 | `triggerConfig` | array | — | Array of trigger configurations |
 | `versionDetails` | array | — | Array of version details with instructions |

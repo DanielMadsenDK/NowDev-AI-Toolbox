@@ -29,6 +29,18 @@ When building a complete workspace with navigation and a dashboard, create compo
 4. **Dashboard** — references the Workspace via `visibilities`; must be created after the Workspace
 5. **Acl** — secures the workspace route with `field: '{path}.*'`
 
+## Post-Build: Verify and Share Access URLs
+
+After `snc-sdk build` and `snc-sdk install` succeed:
+
+1. **Extract the workspace sys_id** — read `src/fluent/generated/keys.ts` and find the entry for `sys_ux_page_registry` with your workspace's `$id` key. The generated value is the real `sys_id`.
+
+2. **Provide the user with two clickable URLs:**
+   - **Access the workspace:** `/now/{path}/{landingPath}` (e.g., `/now/asset-management/home`)
+   - **Edit in UI Builder:** `/now/builder/ui/experience/{workspace_sys_id}` (replace `{workspace_sys_id}` with the value extracted from `keys.ts`)
+
+> **File organization:** Place workspace files under `src/fluent/workspaces/{workspace-name}/`: `workspace.now.ts`, `list-menu.now.ts`, `dashboard.now.ts`
+
 ---
 
 ## Workspace Object

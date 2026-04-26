@@ -35,13 +35,14 @@ STOP if skipping Context Sync — test files MUST use actual artifact names, not
 </stopping_rules>
 
 <documentation>
-Always consult ATF-API.md from the servicenow-fluent-development skill for all test step patterns:
+Always consult the servicenow-fluent-development skill for ATF test patterns:
   - Form tests (openNewForm, openExistingRecord, setField, submit, assert) → ATF-API.md
   - REST API tests (sendRequest, assertResponseCode, assertResponseBody) → ATF-API.md
   - Server-side tests (executeScript, assertRecord) → ATF-API.md
   - Service Catalog tests (orderItem, assertOrderCreated) → ATF-API.md
   - Navigation tests (navigateTo) → ATF-API.md
   - Output variable chaining between steps → ATF-API.md
+  - ATF strategy, all 11 namespace API surfaces, email/reporting/dashboard steps, Service Portal variants → atf-guide.md
 
 If Context7 is available:
   - query-docs('/servicenow/sdk-examples') for Test() SDK object patterns
