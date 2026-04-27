@@ -7,7 +7,6 @@ import * as https from 'https';
 import { URL } from 'url';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
-import { showWelcomePanelIfNeeded, showWelcomePanel } from './WelcomePanel';
 import { getShell } from './shellConfig';
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
@@ -545,13 +544,6 @@ export function activate(context: vscode.ExtensionContext) {
     // Agents are now registered via package.json chatAgents contribution
     // No additional installation logic needed
 
-    context.subscriptions.push(
-        vscode.commands.registerCommand('nowdev-ai-toolbox.showWelcomePanel', () => {
-            showWelcomePanel(context);
-        })
-    );
-
-    showWelcomePanelIfNeeded(context);
 }
 
 function ensureGitignoreEntry() {

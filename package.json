@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -114,11 +114,6 @@
       {
         "command": "nowdev-ai-toolbox.sdkAuthSetDefault",
         "title": "SDK: Set Default Auth Alias",
-        "category": "NowDev AI"
-      },
-      {
-        "command": "nowdev-ai-toolbox.showWelcomePanel",
-        "title": "Show Welcome Panel",
         "category": "NowDev AI"
       }
     ],
