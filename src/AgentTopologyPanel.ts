@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { AgentManifest } from './AgentRegistry';
 import { AgentOverride } from './WorkspaceAgentManager';
+import { getSharedPanelStyles } from './SharedPanelStyles';
 
 let _panel: vscode.WebviewPanel | undefined;
 
@@ -292,68 +293,60 @@ function noAgentsHtml(): string {
 
 function css(): string {
     return `
-*, *::before, *::after { box-sizing: border-box; }
+${getSharedPanelStyles()}
+
+/* ── Topology-specific layout ─────────────────────────────────────── */
 
 body {
-    margin: 0;
     padding: 0;
-    background: var(--vscode-editor-background, #1e1e2e);
-    color: var(--vscode-editor-foreground, #cdd6f4);
-    font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-    font-size: 13px;
-    min-height: 100vh;
+    max-width: none;
 }
 
 .page {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 32px 24px 48px;
+    padding: var(--nd-sp-6) var(--nd-sp-5) calc(var(--nd-sp-6) * 1.5);
 }
 
 .page-header {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: calc(var(--nd-sp-6) * 1.25);
 }
 
-.page-logo {
-    margin-bottom: 12px;
-}
-
+.page-logo { margin-bottom: var(--nd-sp-3); }
 .page-logo svg {
-    filter: drop-shadow(0 4px 12px rgba(0, 255, 65, 0.18));
+    filter: drop-shadow(0 4px 14px rgba(129, 181, 161, 0.22));
 }
 
 .page-title {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 600;
-    margin: 0 0 6px;
-    color: var(--vscode-editor-foreground, #cdd6f4);
-    letter-spacing: -0.3px;
+    margin: 0 0 var(--nd-sp-2);
+    color: var(--nd-fg);
+    letter-spacing: -0.4px;
 }
 
 .page-subtitle {
-    margin: 0 0 12px;
-    opacity: 0.55;
-    font-size: 12px;
+    margin: 0 0 var(--nd-sp-3);
+    color: var(--nd-fg-mute);
+    font-size: 12.5px;
 }
 
 .stats {
     display: inline-flex;
-    gap: 16px;
-    background: var(--vscode-badge-background, rgba(255,255,255,0.06));
-    border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.08));
-    border-radius: 20px;
-    padding: 4px 14px;
+    gap: var(--nd-sp-4);
+    background: var(--nd-bg-elev);
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-pill);
+    padding: var(--nd-sp-1) var(--nd-sp-4);
 }
 
 .stat {
     font-size: 11.5px;
-    opacity: 0.75;
+    color: var(--nd-fg-mute);
 }
-
-.stat-warn strong {
-    color: #f9b35a;
-}
+.stat strong { color: var(--nd-fg); }
+.stat-warn strong { color: var(--nd-warning); }
 
 /* ─── Topology layout ────────────────────────── */
 
@@ -366,20 +359,19 @@ body {
 
 .tier-label-row {
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.2px;
-    color: var(--vscode-descriptionForeground, #888);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--nd-fg-mute);
     text-align: center;
-    margin-bottom: 14px;
-    margin-top: 4px;
-    opacity: 0.7;
+    margin: var(--nd-sp-1) 0 var(--nd-sp-3);
+    text-transform: uppercase;
 }
 
 .connector-v {
     width: 1px;
     height: 36px;
-    background: var(--vscode-widget-border, rgba(255,255,255,0.12));
-    margin: 4px 0;
+    background: var(--nd-border);
+    margin: var(--nd-sp-1) 0;
 }
 
 /* ─── Tiers ──────────────────────────────────── */
@@ -388,133 +380,139 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 14px;
+    gap: var(--nd-sp-3);
     width: 100%;
 }
 
-/* ─── Tier 1 card ────────────────────────────── */
+/* ─── Tier 1 card (orchestrator) ─────────────── */
 
 .card-orchestrator {
-    background: linear-gradient(135deg, rgba(124,77,255,0.18) 0%, rgba(88,56,210,0.22) 100%);
-    border: 1px solid rgba(124,77,255,0.45);
-    border-radius: 14px;
-    padding: 28px 36px;
+    background: linear-gradient(135deg,
+        rgba(129,181,161,0.18) 0%,
+        rgba(90,138,120,0.22) 100%);
+    border: 1px solid rgba(168,212,196,0.50);
+    border-radius: var(--nd-r-lg);
+    padding: var(--nd-sp-6) calc(var(--nd-sp-6) * 1.2);
     text-align: center;
     min-width: 280px;
     max-width: 420px;
     cursor: default;
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .card-orchestrator:hover {
-    box-shadow: 0 4px 24px rgba(124,77,255,0.25);
+    box-shadow: 0 6px 28px rgba(129,181,161,0.28);
+    border-color: var(--nd-accent-hi);
 }
 
 .card-icon {
     font-size: 26px;
-    margin-bottom: 10px;
-    opacity: 0.85;
-    color: #a78bfa;
+    margin-bottom: var(--nd-sp-3);
+    color: var(--nd-accent-hi);
 }
 
 .card-name {
     font-size: 16px;
     font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--vscode-editor-foreground, #e2e8f0);
+    margin-bottom: var(--nd-sp-2);
+    color: var(--nd-fg);
 }
 
 .card-desc {
     font-size: 11.5px;
-    opacity: 0.65;
+    color: var(--nd-fg-mute);
     line-height: 1.5;
-    margin-bottom: 14px;
+    margin: 0 auto var(--nd-sp-3);
     max-width: 320px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .card-tags {
     display: flex;
-    gap: 6px;
+    gap: var(--nd-sp-2);
     justify-content: center;
     flex-wrap: wrap;
 }
 
+/* Unified mint-family role tags — single product family, subtle role hue */
 .tag {
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 600;
     padding: 2px 8px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.15);
-    opacity: 0.8;
+    border-radius: var(--nd-r-pill);
+    letter-spacing: 0.4px;
+    background: rgba(129,181,161,0.10);
+    color: var(--nd-accent-hi);
+    border: 1px solid rgba(129,181,161,0.32);
+    text-transform: capitalize;
 }
-
-.tag-orchestrator { color: #c4b5fd; border-color: rgba(167,139,250,0.4); background: rgba(124,77,255,0.12); }
-.tag-coordinator  { color: #7dd3fc; border-color: rgba(125,211,252,0.3); background: rgba(14,165,233,0.08); }
-.tag-developer    { color: #86efac; border-color: rgba(134,239,172,0.3); background: rgba(34,197,94,0.08); }
-.tag-reviewer     { color: #6ee7b7; border-color: rgba(110,231,183,0.3); background: rgba(16,185,129,0.08); }
-.tag-release      { color: #fdba74; border-color: rgba(253,186,116,0.3); background: rgba(249,115,22,0.08); }
-.tag-support      { color: #cbd5e1; border-color: rgba(203,213,225,0.2); background: rgba(148,163,184,0.06); }
-.tag-planning     { color: #93c5fd; border-color: rgba(147,197,253,0.25); background: rgba(59,130,246,0.06); }
-.tag-delegation   { color: #c4b5fd; border-color: rgba(196,181,253,0.25); background: rgba(139,92,246,0.06); }
-.tag-architecture { color: #f9a8d4; border-color: rgba(249,168,212,0.25); background: rgba(236,72,153,0.06); }
-.tag-unknown      { color: #94a3b8; border-color: rgba(148,163,184,0.2); }
+.tag-orchestrator { background: rgba(168,212,196,0.20); color: #c5e6d8; border-color: rgba(168,212,196,0.55); }
+.tag-coordinator  { background: rgba(129,181,161,0.16); color: #a8d4c4; border-color: rgba(129,181,161,0.45); }
+.tag-developer    { background: rgba(129,181,161,0.10); color: #b8dcc8; border-color: rgba(129,181,161,0.32); }
+.tag-reviewer     { background: rgba(90,138,120,0.18); color: #9ec8b6; border-color: rgba(90,138,120,0.45); }
+.tag-release      { background: rgba(205,220,57,0.10); color: #d8e26e; border-color: rgba(205,220,57,0.32); }
+.tag-support      { background: rgba(148,163,184,0.10); color: #cbd5e1; border-color: rgba(148,163,184,0.30); }
+.tag-planning     { background: rgba(129,181,161,0.10); color: #a8d4c4; border-color: rgba(129,181,161,0.30); }
+.tag-delegation   { background: rgba(168,212,196,0.12); color: #b8dcc8; border-color: rgba(168,212,196,0.35); }
+.tag-architecture { background: rgba(129,181,161,0.12); color: #a8d4c4; border-color: rgba(129,181,161,0.35); }
+.tag-unknown      { background: var(--nd-bg-code); color: var(--nd-fg-mute); border-color: var(--nd-border); }
 
 /* ─── Tier 2 cards ───────────────────────────── */
 
 .card-tier2 {
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
-    padding: 16px 18px;
+    border-radius: var(--nd-r-md);
+    border: 1px solid var(--nd-border);
+    padding: var(--nd-sp-4) calc(var(--nd-sp-4) + 2px);
     min-width: 140px;
     max-width: 190px;
     text-align: center;
-    background: var(--vscode-sideBar-background, rgba(255,255,255,0.03));
+    background: var(--nd-bg-elev);
     cursor: default;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
 }
 
 .card-tier2:hover {
-    box-shadow: 0 2px 14px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.30);
+    transform: translateY(-1px);
 }
 
-.card-role-orchestrator { border-color: rgba(124,77,255,0.35); }
-.card-role-coordinator  { border-color: rgba(14,165,233,0.35); }
-.card-role-coordinator:hover { border-color: rgba(14,165,233,0.6); }
-.card-role-developer    { border-color: rgba(34,197,94,0.3); }
-.card-role-developer:hover { border-color: rgba(34,197,94,0.55); }
-.card-role-reviewer     { border-color: rgba(16,185,129,0.35); }
-.card-role-reviewer:hover { border-color: rgba(16,185,129,0.6); }
-.card-role-release      { border-color: rgba(249,115,22,0.35); }
-.card-role-release:hover { border-color: rgba(249,115,22,0.6); }
-.card-role-support      { border-color: rgba(148,163,184,0.25); }
-.card-role-support:hover { border-color: rgba(148,163,184,0.5); }
-.card-role-unknown      { border-color: rgba(148,163,184,0.2); }
+/* All role borders share the mint family with subtle saturation steps */
+.card-role-orchestrator { border-left: 3px solid rgba(168,212,196,0.55); }
+.card-role-coordinator  { border-left: 3px solid rgba(129,181,161,0.50); }
+.card-role-coordinator:hover { border-color: var(--nd-accent); }
+.card-role-developer    { border-left: 3px solid rgba(129,181,161,0.40); }
+.card-role-developer:hover { border-color: var(--nd-accent); }
+.card-role-reviewer     { border-left: 3px solid rgba(90,138,120,0.55); }
+.card-role-reviewer:hover { border-color: var(--nd-accent); }
+.card-role-release      { border-left: 3px solid rgba(205,220,57,0.45); }
+.card-role-release:hover { border-color: rgba(205,220,57,0.7); }
+.card-role-support      { border-left: 3px solid rgba(148,163,184,0.40); }
+.card-role-support:hover { border-color: rgba(148,163,184,0.65); }
+.card-role-unknown      { border-left: 3px solid var(--nd-border); }
 
 .card-icon-sm {
     font-size: 18px;
-    margin-bottom: 7px;
-    opacity: 0.7;
+    margin-bottom: var(--nd-sp-2);
+    color: var(--nd-accent-hi);
+    opacity: 0.85;
 }
 
 .card-name-sm {
     font-size: 12.5px;
     font-weight: 600;
-    margin-bottom: 5px;
-    color: var(--vscode-editor-foreground, #e2e8f0);
+    margin-bottom: var(--nd-sp-1);
+    color: var(--nd-fg);
 }
 
 .card-sub {
     font-size: 10.5px;
-    opacity: 0.5;
+    color: var(--nd-fg-mute);
     line-height: 1.4;
 }
 
 /* ─── Tier 3 groups ──────────────────────────── */
 
 .tier-3 {
-    gap: 18px;
+    gap: var(--nd-sp-5);
     align-items: flex-start;
 }
 
@@ -522,36 +520,13 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: var(--nd-sp-3);
 }
 
 .t3-group-label {
     font-size: 10px;
-    font-weight: 600;
-    opacity: 0.4;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    text-align: center;
-}
-
-/* ─── Tier 3 groups ──────────────────────────── */
-
-.tier-3 {
-    gap: 24px;
-    align-items: flex-start;
-}
-
-.t3-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.t3-group-label {
-    font-size: 10px;
-    font-weight: 600;
-    opacity: 0.4;
+    font-weight: 700;
+    color: var(--nd-fg-mute);
     letter-spacing: 1px;
     text-transform: uppercase;
     text-align: center;
@@ -560,48 +535,40 @@ body {
 .t3-group-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--nd-sp-3);
     justify-content: center;
 }
 
 /* ─── Tier 3 cards ───────────────────────────── */
 
 .card-tier3 {
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
-    padding: 12px 14px;
+    border-radius: var(--nd-r-md);
+    border: 1px solid var(--nd-border);
+    padding: var(--nd-sp-3) var(--nd-sp-3);
     min-width: 120px;
     max-width: 160px;
     text-align: center;
-    background: var(--vscode-sideBar-background, rgba(255,255,255,0.03));
+    background: var(--nd-bg-elev);
     cursor: default;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
 }
 
 .card-tier3:hover {
-    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    box-shadow: 0 3px 14px rgba(0,0,0,0.28);
+    transform: translateY(-1px);
 }
 
-.card-tier3 .card-icon-sm {
-    font-size: 15px;
-    margin-bottom: 6px;
-}
-
-.card-tier3 .card-name-sm {
-    font-size: 11.5px;
-}
-
-.card-tier3 .card-sub {
-    font-size: 10px;
-}
+.card-tier3 .card-icon-sm { font-size: 15px; margin-bottom: var(--nd-sp-1); }
+.card-tier3 .card-name-sm { font-size: 11.5px; }
+.card-tier3 .card-sub { font-size: 10px; }
 
 /* Nested depth-4+ cards inside a tier-3 card */
 .t3-nested {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--nd-sp-2);
     justify-content: center;
-    margin-top: 10px;
+    margin-top: var(--nd-sp-3);
 }
 `;
 }

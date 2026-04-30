@@ -782,30 +782,29 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <h1>NowDev AI Toolbox</h1>
             <span class="version">v${version}</span>
         </div>
+        <button class="header-chat-btn" id="openChatHeader" title="Open Copilot Chat (Ctrl+Shift+I)">Chat &rsaquo;</button>
     </div>
-
-    <p class="desc">
-        AI-powered multi-agent system for ServiceNow development in VS Code Copilot Chat.
-    </p>
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-        <button class="tab-btn active" data-tab="setup">Setup</button>
+        <button class="tab-btn active" data-tab="home">Home</button>
+        <button class="tab-btn" data-tab="project">Project</button>
         <button class="tab-btn" data-tab="sdk">SDK</button>
-        <button class="tab-btn" data-tab="tools">Tools</button>
         <button class="tab-btn" data-tab="agents">Agents</button>
-        <button class="tab-btn" data-tab="session">Session</button>
+        <button class="tab-btn" data-tab="tools">Tools</button>
+        <button class="tab-btn" data-tab="activity">Activity</button>
     </div>
 
-    <!-- ═══════════ TAB: Setup ═══════════ -->
-    <div id="tab-setup" class="tab-content active">
+    <!-- ═══════════ TAB: Home ═══════════ -->
+    <div id="tab-home" class="tab-content active">
+
+        <!-- At-a-glance workspace status (rendered by main.js) -->
+        <div id="workspaceStatus" class="workspace-status"></div>
 
         <!-- Quick Action -->
         <div class="section">
-            <button class="btn-primary" id="openChat">Open Copilot Chat (Ctrl+Shift+I)</button>
+            <button class="btn-primary" id="openChat">Open Copilot Chat &nbsp;&middot;&nbsp; Ctrl+Shift+I</button>
         </div>
-
-        <hr>
 
         <!-- Prerequisites Status -->
         <div class="section">
@@ -839,6 +838,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         </div>
 
         <hr>
+
+        <!-- Resources -->
+        <div class="section">
+            <div class="section-title">Resources</div>
+            <ul class="info-list">
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox">GitHub Repository</a></li>
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox#readme">Documentation</a></li>
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/issues">Report an Issue</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ═══════════ TAB: Project ═══════════ -->
+    <div id="tab-project" class="tab-content">
 
         <!-- ServiceNow Settings -->
         <div class="section">
@@ -876,7 +889,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <span>Fluent App</span>
             </div>
             <div class="field-desc" style="margin-bottom: 8px;">
-                Detected from <code style="font-size:10px;">now.config.json</code> in the workspace root.
+                Detected from <code>now.config.json</code> in the workspace root.
             </div>
             <div class="app-info" id="fluentAppInfo"></div>
         </div>
@@ -889,7 +902,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <span>Fluent Project</span>
             </div>
             <div class="field-desc" style="margin-bottom: 8px;">
-                No <code style="font-size:10px;">now.config.json</code> detected. Run <code style="font-size:10px;">now-sdk init</code> in a terminal to create a new Fluent SDK project.
+                No <code>now.config.json</code> detected. Run <code>now-sdk init</code> to scaffold a new Fluent SDK project.
             </div>
             <button class="btn-secondary" id="initFluentProject">Initialize Fluent Project&hellip;</button>
         </div>
@@ -911,78 +924,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 </div>
                 <div class="file-path" id="filePath" style="display:none;"></div>
             </div>
-        </div>
-
-        <hr>
-
-        <!-- MCP Integrations -->
-        <div class="section">
-            <div class="section-title">
-                <span>MCP Integrations</span>
-                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
-            </div>
-            <div class="field-desc" style="margin-bottom: 8px;">
-                Select MCP servers to expose as agent tools. Agent files are automatically kept in sync when servers are toggled or the extension updates. Add servers via the Extensions view <code style="font-size:10px;">@mcp</code> or <code style="font-size:10px;">.vscode/mcp.json</code>.
-            </div>
-            <div id="mcpServersList">
-                <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
-            </div>
-
-            <div class="field-label" style="margin-top:12px;margin-bottom:6px;">ServiceNow Documentation Sources</div>
-            <div class="field-desc" style="margin-bottom:8px;">
-                Choose which MCP server agents should use to look up ServiceNow API docs, and optionally provide a library or topic hint. Click the gear icon to configure each source. When set to <em>none</em>, agents fall back to built-in skill knowledge.
-            </div>
-            <div id="mcpDocSourcesList">
-                <!-- rendered by main.js updateMcpDocSources() -->
-            </div>
-        </div>
-
-        <hr>
-
-        <!-- DevOps Integration -->
-        <div class="section">
-            <div class="section-title">
-                <span>DevOps Integration</span>
-                <label class="tool-toggle" title="Enable/disable DevOps agent">
-                    <input type="checkbox" id="devopsEnabled">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="field-desc" style="margin-bottom: 8px;">
-                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
-            </div>
-            <div id="devopsConfig" style="display:none;">
-                <div class="field">
-                    <label for="devopsMcpServer">MCP Server</label>
-                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
-                    <select id="devopsMcpServer">
-                        <option value="">(select a server)</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Custom Instructions</label>
-                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
-                    <div class="file-picker">
-                        <div class="file-picker-row">
-                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
-                            <button class="btn-clear" id="clearDevopsFile" title="Remove instructions file" style="display:none;">&#10005;</button>
-                        </div>
-                        <div class="file-path" id="devopsFilePath" style="display:none;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <hr>
-
-        <!-- Resources -->
-        <div class="section">
-            <div class="section-title">Resources</div>
-            <ul class="info-list">
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox">GitHub Repository</a></li>
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox#readme">Documentation</a></li>
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/issues">Report an Issue</a></li>
-            </ul>
         </div>
     </div>
 
@@ -1166,18 +1107,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     </div>
 
-    <!-- ═══════════ TAB: Tools ═══════════ -->
-    <div id="tab-tools" class="tab-content">
-        <div class="section">
-            <div class="section-title">
-                <span>Environment &amp; Tools</span>
-                <button class="fix-btn" id="rescanTools" title="Re-scan for available tools">Rescan</button>
-            </div>
-            <div id="envSummary" class="env-summary"></div>
-            <div id="toolsList"></div>
-        </div>
-    </div>
-
     <!-- ═══════════ TAB: Agents ═══════════ -->
     <div id="tab-agents" class="tab-content">
         <div class="section">
@@ -1193,12 +1122,84 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             </div>
             <div id="agentCards"></div>
         </div>
+
+        <hr>
+
+        <!-- MCP Integrations -->
+        <div class="section">
+            <div class="section-title">
+                <span>MCP Integrations</span>
+                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code> or in <code>.vscode/mcp.json</code>.
+            </div>
+            <div id="mcpServersList">
+                <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
+            </div>
+
+            <div class="field-label" style="margin-top:12px;margin-bottom:6px;">ServiceNow Documentation Sources</div>
+            <div class="field-desc" style="margin-bottom:8px;">
+                Choose which MCP server agents use to look up ServiceNow API docs. Click the gear to configure each source. When set to <em>none</em>, agents fall back to built-in skill knowledge.
+            </div>
+            <div id="mcpDocSourcesList">
+                <!-- rendered by main.js updateMcpDocSources() -->
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- DevOps Integration -->
+        <div class="section">
+            <div class="section-title">
+                <span>DevOps Integration</span>
+                <label class="tool-toggle" title="Enable/disable DevOps agent">
+                    <input type="checkbox" id="devopsEnabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
+            </div>
+            <div id="devopsConfig" style="display:none;">
+                <div class="field">
+                    <label for="devopsMcpServer">MCP Server</label>
+                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
+                    <select id="devopsMcpServer">
+                        <option value="">(select a server)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Custom Instructions</label>
+                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
+                    <div class="file-picker">
+                        <div class="file-picker-row">
+                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
+                            <button class="btn-clear" id="clearDevopsFile" title="Remove instructions file" style="display:none;">&#10005;</button>
+                        </div>
+                        <div class="file-path" id="devopsFilePath" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- ═══════════ TAB: Session ═══════════ -->
-    <div id="tab-session" class="tab-content">
+    <!-- ═══════════ TAB: Tools ═══════════ -->
+    <div id="tab-tools" class="tab-content">
         <div class="section">
-            <div class="section-title">Artifact Registry</div>
+            <div class="section-title">
+                <span>Environment &amp; Tools</span>
+                <button class="fix-btn" id="rescanTools" title="Re-scan for available tools">Rescan</button>
+            </div>
+            <div id="envSummary" class="env-summary"></div>
+            <div id="toolsList"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════ TAB: Activity ═══════════ -->
+    <div id="tab-activity" class="tab-content">
+        <div class="section">
+            <div class="section-title">Session Artifacts</div>
             <div id="artifactsView"></div>
         </div>
     </div>

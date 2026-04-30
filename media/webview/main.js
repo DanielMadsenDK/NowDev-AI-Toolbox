@@ -18,14 +18,18 @@
         btn.addEventListener('click', () => activateTab(btn.dataset.tab));
     });
 
-    // Restore last active tab (or default to 'setup')
+    // Restore last active tab (or default to 'home').
+    // Migrate legacy state values from before the tab restructure.
     const saved = vscode.getState();
-    activateTab((saved && saved.activeTab) || 'setup');
+    const TAB_MIGRATIONS = { setup: 'home', session: 'activity' };
+    const initialTab = (saved && saved.activeTab) || 'home';
+    activateTab(TAB_MIGRATIONS[initialTab] || initialTab);
 
-    // ── Setup tab: buttons ─────────────────────────────────────────
-    document.getElementById('openChat').addEventListener('click', () => {
-        vscode.postMessage({ command: 'openCopilotChat' });
-    });
+    // ── Open Chat (primary CTA + header pill share the same handler) ──
+    function openChat() { vscode.postMessage({ command: 'openCopilotChat' }); }
+    document.getElementById('openChat').addEventListener('click', openChat);
+    var chatHeaderBtn = document.getElementById('openChatHeader');
+    if (chatHeaderBtn) { chatHeaderBtn.addEventListener('click', openChat); }
     document.getElementById('openSettings').addEventListener('click', () => {
         vscode.postMessage({ command: 'openSettings' });
     });
@@ -195,6 +199,7 @@
                 updateMcpServers(msg.mcpServers, msg.selectedMcp);
                 updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
                 updateDevopsSection(msg.devopsConfig, msg.mcpServers);
+                refreshWorkspaceStatus();
                 break;
             case 'updateAgents':
                 renderAgentCards(msg.manifests, msg.overrides);
@@ -222,14 +227,21 @@
 
     // ── Update helpers ─────────────────────────────────────────────
 
+    // Track latest snapshot pieces so the workspace-status strip can be rebuilt
+    // independently of which message arrived last.
+    var _wsState = { prereqsOk: 0, prereqsTotal: 0, conn: null, fluentScope: null };
+
     function updateChecks(checks) {
         let allOk = true;
+        let okCount = 0, total = 0;
         document.querySelectorAll('#checks .check-row').forEach(row => {
             const key = row.dataset.key;
             const ok = checks[key];
             const icon = row.querySelector('.check-icon');
             const btn = row.querySelector('.fix-btn');
+            total++;
             if (ok) {
+                okCount++;
                 icon.className = 'check-icon ok';
                 icon.innerHTML = '\u2713';
                 btn.style.display = 'none';
@@ -240,8 +252,46 @@
                 allOk = false;
             }
         });
-        document.getElementById('allGood').style.display = allOk ? 'block' : 'none';
+        document.getElementById('allGood').style.display = allOk ? 'flex' : 'none';
         document.getElementById('fixAll').style.display = allOk ? 'none' : '';
+        _wsState.prereqsOk = okCount;
+        _wsState.prereqsTotal = total;
+    }
+
+    // ── Workspace status strip (Home tab) ──────────────────────────
+    function refreshWorkspaceStatus() {
+        var el = document.getElementById('workspaceStatus');
+        if (!el) { return; }
+        var parts = [];
+
+        // Prerequisites
+        if (_wsState.prereqsTotal > 0) {
+            if (_wsState.prereqsOk === _wsState.prereqsTotal) {
+                parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>Prerequisites ready</span>');
+            } else {
+                var missing = _wsState.prereqsTotal - _wsState.prereqsOk;
+                parts.push('<span class="ws-stat warn"><span class="ws-dot"></span>' + missing + ' setting' + (missing !== 1 ? 's' : '') + ' to fix</span>');
+            }
+        }
+
+        // Instance connection
+        var c = _wsState.conn;
+        if (c) {
+            if (c.checking) {
+                parts.push('<span class="ws-stat"><span class="ws-dot"></span>Checking instance\u2026</span>');
+            } else if (c.reachable) {
+                parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>Instance reachable</span>');
+            } else {
+                parts.push('<span class="ws-stat fail"><span class="ws-dot"></span>Instance unreachable</span>');
+            }
+        }
+
+        // Fluent scope (when present)
+        if (_wsState.fluentScope) {
+            parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>' + esc(_wsState.fluentScope) + '</span>');
+        }
+
+        el.innerHTML = parts.length > 0 ? parts.join('<span class="ws-sep"></span>') : '';
     }
 
     function updateSettings(settings) {
@@ -276,8 +326,10 @@
             hr.style.display = 'none';
             initSection.style.display = '';
             initHr.style.display = '';
+            _wsState.fluentScope = null;
             return;
         }
+        _wsState.fluentScope = fluentApp.scope || null;
         section.style.display = '';
         hr.style.display = '';
         initSection.style.display = 'none';
@@ -363,8 +415,18 @@
         });
 
         var html = '';
+        var lastGroup = null;
         for (var i = 0; i < sorted.length; i++) {
             var m = sorted[i];
+            var thisGroup = m.userInvocable ? 'picker' : 'sub';
+            if (thisGroup !== lastGroup) {
+                html += '<div class="agent-group-label">' +
+                    (thisGroup === 'picker'
+                        ? 'User-invocable Agents (Pickers)'
+                        : 'Sub-agents') +
+                    '</div>';
+                lastGroup = thisGroup;
+            }
             var override = (overrides && overrides[m.name]) || { enabled: true, disabledTools: [] };
             var agentEnabled = override.enabled !== false;
             var disabledSet = {};
@@ -823,6 +885,8 @@
 
     function renderConnectionStatus(state) {
         var el = document.getElementById('connectionStatus');
+        _wsState.conn = state || null;
+        refreshWorkspaceStatus();
         if (!el) { return; }
         if (!state) { el.style.display = 'none'; return; }
         el.style.display = 'block';
