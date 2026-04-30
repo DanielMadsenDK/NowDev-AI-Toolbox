@@ -1,7 +1,6 @@
 ---
 name: NowDev-AI-Fluent-Logic-Developer
 user-invocable: false
-disable-model-invocation: true
 description: Fluent SDK specialist for server-side logic artifacts — Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs, and Scheduled Scripts
 argument-hint: "The server-side logic requirements from the implementation brief — what data processing, validation, API endpoints, notifications, or SLAs need to be implemented. Include any table names and role/schema context already built by the Schema Developer."
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']

@@ -39,5 +39,12 @@
         "description": "Command-line HTTP client"
       }
     }
+  },
+  "mcpIntegrations": [],
+  "agentOverrides": {
+    "NowDev-AI-AI-Agent-Developer": {
+      "enabled": true,
+      "disabledTools": []
+    }
   }
 }

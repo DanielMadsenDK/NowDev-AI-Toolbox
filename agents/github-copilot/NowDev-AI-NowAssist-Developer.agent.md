@@ -1,7 +1,6 @@
 ---
 name: NowDev-AI-NowAssist-Developer
 user-invocable: false
-disable-model-invocation: true
 description: Fluent SDK specialist for NowAssist Skill configurations — NowAssistSkillConfig with tool graph (Script, InlineScript, FlowAction, Subflow, WebSearch, Decision), LLM provider and prompt versioning, security controls, and deployment settings
 argument-hint: "The NowAssist skill requirements — describe what the skill should do, what inputs it receives, what data it needs to fetch (via Script Include, Subflow, or web search), what the LLM should generate, and where the skill should be available (Now Assist Panel, UI Action on a table, Flow Action)."
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']

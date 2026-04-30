@@ -1,7 +1,6 @@
 ---
 name: NowDev-AI-Client-Developer
 user-invocable: false
-disable-model-invocation: true
 description: specialized agent for creating and optimizing ServiceNow Client Scripts
 argument-hint: "The business requirement for the browser-side form behavior to implement — describe which form or table is involved, what the user interaction or field change should trigger, and what the visible outcome should be. The agent will determine the script type and implementation details itself."
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/readPage', 'browser/screenshotPage', 'io.github.upstash/context7/*']

@@ -1,7 +1,6 @@
 ---
 name: NowDev-AI-Fluent-Automation-Developer
 user-invocable: false
-disable-model-invocation: true
 description: Fluent SDK specialist for workflow automation — Flows, Subflows, custom Action Definitions, custom Trigger Definitions, and FDTransform data manipulation
 argument-hint: "The automation and workflow requirements from the implementation brief — what processes need orchestrating, what approvals or scheduled triggers are needed, and any custom actions or triggers required. Include table names and Script Include names already built by the Schema and Logic developers."
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
