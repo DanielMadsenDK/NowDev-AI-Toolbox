@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES } from './WorkspaceAgentManager';
+import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG } from './WorkspaceAgentManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
@@ -56,6 +56,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _mcpDocSources: McpDocSources = { ...DEFAULT_MCP_DOC_SOURCES };
     private _agentManifests: AgentManifest[] = [];
     private _agentOverrides: Record<string, AgentOverride> = {};
+    private _devopsConfig: DevOpsConfig = { ...DEFAULT_DEVOPS_CONFIG };
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -219,6 +220,42 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._mcpServers = scanMcpServers();
                     this._updateStatus();
                     break;
+                case 'updateDevopsEnabled': {
+                    this._devopsConfig = { ...this._devopsConfig, enabled: message.enabled as boolean };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'updateDevopsMcp': {
+                    this._devopsConfig = { ...this._devopsConfig, mcpServer: message.server as string };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'browseDevopsInstructionsFile': {
+                    const uris = await vscode.window.showOpenDialog({
+                        canSelectMany: false,
+                        filters: { 'Instruction files': ['md', 'txt'] },
+                        openLabel: 'Select DevOps Instructions File',
+                    });
+                    if (uris && uris.length > 0) {
+                        try {
+                            const content = fs.readFileSync(uris[0].fsPath, 'utf-8');
+                            this._devopsConfig = { ...this._devopsConfig, customInstructions: content };
+                            this._syncWorkspaceAgents();
+                            this._updateStatus();
+                            this._view?.webview.postMessage({ command: 'updateDevopsConfig', devopsConfig: this._devopsConfig });
+                        } catch { /* ignore read errors */ }
+                    }
+                    break;
+                }
+                case 'clearDevopsInstructions': {
+                    this._devopsConfig = { ...this._devopsConfig, customInstructions: '' };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._view?.webview.postMessage({ command: 'updateDevopsConfig', devopsConfig: this._devopsConfig });
+                    break;
+                }
                 case 'toggleAgent': {
                     const agentName = message.name as string;
                     const agentEnabled = message.enabled as boolean;
@@ -409,7 +446,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpDocSources: this._mcpDocSources });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpDocSources: this._mcpDocSources, devopsConfig: this._devopsConfig });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
@@ -480,6 +517,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 this._agentOverrides = config.agentOverrides as Record<string, AgentOverride>;
             }
 
+            // Load DevOps integration config
+            if (config.devopsConfig && typeof config.devopsConfig === 'object') {
+                this._devopsConfig = { ...DEFAULT_DEVOPS_CONFIG, ...(config.devopsConfig as Partial<DevOpsConfig>) };
+            }
+
             // Sync agents whenever config changes
             this._syncWorkspaceAgents();
 
@@ -507,7 +549,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             this._extensionUri.fsPath,
             workspaceFolders[0].uri.fsPath,
             this._agentManifests,
-            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, mcpDocSources: this._mcpDocSources, autoUpdate }
+            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, mcpDocSources: this._mcpDocSources, autoUpdate, devopsConfig: this._devopsConfig }
         );
     }
 
@@ -629,6 +671,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         // MCP documentation sources
         configData.mcpDocSources = this._mcpDocSources;
+
+        // DevOps integration config
+        configData.devopsConfig = this._devopsConfig;
 
         // Per-agent overrides
         if (Object.keys(this._agentOverrides).length > 0) {
@@ -889,6 +934,42 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             </div>
             <div id="mcpDocSourcesList">
                 <!-- rendered by main.js updateMcpDocSources() -->
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- DevOps Integration -->
+        <div class="section">
+            <div class="section-title">
+                <span>DevOps Integration</span>
+                <label class="tool-toggle" title="Enable/disable DevOps agent">
+                    <input type="checkbox" id="devopsEnabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
+            </div>
+            <div id="devopsConfig" style="display:none;">
+                <div class="field">
+                    <label for="devopsMcpServer">MCP Server</label>
+                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
+                    <select id="devopsMcpServer">
+                        <option value="">(select a server)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Custom Instructions</label>
+                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
+                    <div class="file-picker">
+                        <div class="file-picker-row">
+                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
+                            <button class="btn-clear" id="clearDevopsFile" title="Remove instructions file" style="display:none;">&#10005;</button>
+                        </div>
+                        <div class="file-path" id="devopsFilePath" style="display:none;"></div>
+                    </div>
+                </div>
             </div>
         </div>
 

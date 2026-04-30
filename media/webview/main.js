@@ -72,6 +72,24 @@
         vscode.postMessage({ command: 'rescanMcp' });
     });
 
+    // ── Setup tab: DevOps integration ──────────────────────────────
+    document.getElementById('devopsEnabled').addEventListener('change', function () {
+        var enabled = this.checked;
+        document.getElementById('devopsConfig').style.display = enabled ? '' : 'none';
+        vscode.postMessage({ command: 'updateDevopsEnabled', enabled: enabled });
+    });
+
+    document.getElementById('devopsMcpServer').addEventListener('change', function () {
+        vscode.postMessage({ command: 'updateDevopsMcp', server: this.value });
+    });
+
+    document.getElementById('browseDevopsFile').addEventListener('click', function () {
+        vscode.postMessage({ command: 'browseDevopsInstructionsFile' });
+    });
+    document.getElementById('clearDevopsFile').addEventListener('click', function () {
+        vscode.postMessage({ command: 'clearDevopsInstructions' });
+    });
+
     document.getElementById('resyncAgents').addEventListener('click', () => {
         vscode.postMessage({ command: 'resyncAgents' });
     });
@@ -176,6 +194,7 @@
                 if (msg.sdkStatus) { updateSdkStatus(msg.sdkStatus); }
                 updateMcpServers(msg.mcpServers, msg.selectedMcp);
                 updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
+                updateDevopsSection(msg.devopsConfig, msg.mcpServers);
                 break;
             case 'updateAgents':
                 renderAgentCards(msg.manifests, msg.overrides);
@@ -194,6 +213,9 @@
                 break;
             case 'updateCheckChanges':
                 renderCheckChanges(msg.state);
+                break;
+            case 'updateDevopsConfig':
+                updateDevopsSection(msg.devopsConfig, null);
                 break;
         }
     });
@@ -522,6 +544,47 @@
     function isDone(s) { return /done|complete|\u2705/i.test(s); }
     function isInProgress(s) { return /progress|building|\uD83C\uDFD7/i.test(s); }
     function isError(s) { return /error|fail|\u274C/i.test(s); }
+
+    // ── DevOps Integration rendering ───────────────────────────────
+
+    function updateDevopsSection(devopsConfig, servers) {
+        var cfg = devopsConfig || { enabled: false, mcpServer: '', customInstructions: '' };
+
+        var enabledCb = document.getElementById('devopsEnabled');
+        var configDiv = document.getElementById('devopsConfig');
+        var serverSel = document.getElementById('devopsMcpServer');
+
+        if (!enabledCb || !configDiv) { return; }
+
+        enabledCb.checked = !!cfg.enabled;
+        configDiv.style.display = cfg.enabled ? '' : 'none';
+
+        // Populate MCP server dropdown
+        if (serverSel) {
+            var currentServer = cfg.mcpServer || '';
+            var opts = '<option value="">(select a server)</option>';
+            var allServers = servers || [];
+            allServers.forEach(function (s) {
+                var sel = s.name === currentServer ? ' selected' : '';
+                opts += '<option value="' + esc(s.name) + '"' + sel + '>' + esc(s.name) + '</option>';
+            });
+            // If configured server is not in the list, still show it as selected
+            if (currentServer && !allServers.find(function (s) { return s.name === currentServer; })) {
+                opts += '<option value="' + esc(currentServer) + '" selected>' + esc(currentServer) + ' (not found)</option>';
+            }
+            serverSel.innerHTML = opts;
+        }
+
+        // Show/hide the instructions file indicator
+        var hasInstructions = !!(cfg.customInstructions && cfg.customInstructions.trim());
+        var filePathEl = document.getElementById('devopsFilePath');
+        var clearBtn   = document.getElementById('clearDevopsFile');
+        if (filePathEl) {
+            filePathEl.style.display = hasInstructions ? '' : 'none';
+            filePathEl.textContent   = hasInstructions ? 'Custom instructions loaded (' + cfg.customInstructions.trim().length + ' chars)' : '';
+        }
+        if (clearBtn) { clearBtn.style.display = hasInstructions ? '' : 'none'; }
+    }
 
     // ── MCP Integrations rendering ─────────────────────────────────
 

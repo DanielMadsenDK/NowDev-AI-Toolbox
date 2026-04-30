@@ -37,11 +37,27 @@ export const DEFAULT_MCP_DOC_SOURCES: McpDocSources = {
     general:          { server: '', libraryHint: '/websites/servicenow' },
 };
 
+export interface DevOpsConfig {
+    /** Whether the DevOps integration agent is enabled */
+    enabled: boolean;
+    /** MCP server name to inject into the DevOps agent's tools list */
+    mcpServer: string;
+    /** Resolved custom instructions text to inject into the agent body */
+    customInstructions: string;
+}
+
+export const DEFAULT_DEVOPS_CONFIG: DevOpsConfig = {
+    enabled: false,
+    mcpServer: '',
+    customInstructions: '',
+};
+
 export interface WorkspaceAgentSyncConfig {
     mcpIntegrations: string[];
     agentOverrides: Record<string, AgentOverride>;
     mcpDocSources: McpDocSources;
     autoUpdate: boolean;
+    devopsConfig?: DevOpsConfig;
 }
 
 const AGENTS_SRC       = path.join('agents', 'github-copilot');
@@ -49,6 +65,8 @@ const AGENTS_OUT       = path.join('.github', 'agents');
 const HASH_TAG         = '# nowdev-hash:';
 const MANAGED_TAG      = '# nowdev-managed: true';
 const ORCHESTRATOR_NAME = 'NowDev AI Agent'; // always written — cannot be disabled
+
+const DEVOPS_AGENT_NAME = 'NowDev-AI-DevOps';
 
 /**
  * Writes every bundled agent file into `.github/agents/` in the workspace,
@@ -73,12 +91,18 @@ export function syncAllAgents(
     cfg: WorkspaceAgentSyncConfig
 ): void {
     const outDir = path.join(workspaceRoot, AGENTS_OUT);
+    const devops = cfg.devopsConfig ?? DEFAULT_DEVOPS_CONFIG;
 
     // Build the set of disabled agent names up-front so every written file
     // can have them removed from its own agents: list.
+    // The DevOps agent is treated as disabled unless devopsConfig.enabled === true.
     const disabledAgentNames = new Set<string>(
         manifests
-            .filter(m => m.name !== ORCHESTRATOR_NAME && (cfg.agentOverrides[m.name]?.enabled === false))
+            .filter(m => {
+                if (m.name === ORCHESTRATOR_NAME) { return false; }
+                if (m.name === DEVOPS_AGENT_NAME) { return !devops.enabled; }
+                return cfg.agentOverrides[m.name]?.enabled === false;
+            })
             .map(m => m.name)
     );
 
@@ -88,8 +112,10 @@ export function syncAllAgents(
 
         if (!fs.existsSync(srcPath)) { continue; }
 
+        const isDevOpsAgent = manifest.name === DEVOPS_AGENT_NAME;
         const override      = cfg.agentOverrides[manifest.name];
-        const enabled       = manifest.name === ORCHESTRATOR_NAME || (override?.enabled ?? true);
+        const enabled       = manifest.name === ORCHESTRATOR_NAME ||
+                              (isDevOpsAgent ? devops.enabled : (override?.enabled ?? true));
         const disabledTools = new Set(override?.disabledTools ?? []);
 
         // Disabled agents: remove any existing file, do not write a new one
@@ -100,9 +126,17 @@ export function syncAllAgents(
 
         // MCP wildcards only for top-level (user-invocable) agents — sub-agents
         // receive context from the orchestrator, they don't need direct MCP access.
-        const mcpTools: string[] = manifest.userInvocable
+        // Exception: DevOps agent gets its own dedicated MCP server wildcard.
+        let mcpTools: string[] = manifest.userInvocable
             ? cfg.mcpIntegrations.map(s => `${s.toLowerCase()}/*`)
             : [];
+
+        if (isDevOpsAgent && devops.mcpServer) {
+            const devopsWildcard = `${devops.mcpServer.toLowerCase()}/*`;
+            if (!mcpTools.includes(devopsWildcard)) {
+                mcpTools = [...mcpTools, devopsWildcard];
+            }
+        }
 
         // Effective tools: MCP first, then base minus disabled.
         // Replace any hardcoded 'io.github.upstash/context7/*' in the base tools
@@ -144,6 +178,7 @@ export function syncAllAgents(
             disabledTools: [...disabledTools].sort(),
             disabledAgents: [...disabledAgentNames].sort(),
             mcpDocSources: cfg.mcpDocSources,
+            devopsConfig:  isDevOpsAgent ? devops : undefined,
         });
         const combinedHash = crypto.createHash('sha256').update(stateKey).digest('hex');
 
@@ -156,7 +191,15 @@ export function syncAllAgents(
             if (readTag(existing, HASH_TAG) === combinedHash) { continue; }
         }
 
-        const newContent = buildContent(bundledContent, effectiveTools, disabledAgentNames, combinedHash, cfg.mcpDocSources);
+        const newContent = buildContent(
+            bundledContent,
+            effectiveTools,
+            disabledAgentNames,
+            combinedHash,
+            cfg.mcpDocSources,
+            isDevOpsAgent ? devops : undefined,
+            devops
+        );
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
         addToGitignore(workspaceRoot, `.github/agents/${manifest.filename}`);
@@ -170,7 +213,9 @@ function buildContent(
     effectiveTools: string[],
     disabledAgents: Set<string>,
     hash: string,
-    docSources: McpDocSources
+    docSources: McpDocSources,
+    devopsAgentConfig?: DevOpsConfig,
+    orchestratorDevopsConfig?: DevOpsConfig
 ): string {
     // Rewrite the tools: [...] line (always single-line in these files)
     const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
@@ -186,6 +231,33 @@ function buildContent(
                 .filter((n: string) => n && !disabledAgents.has(n));
             return `${prefix}${names.map((n: string) => `'${n}'`).join(', ')}]`;
         });
+    }
+
+    // Substitute DevOps agent body tokens ({{DEVOPS_CUSTOM_INSTRUCTIONS}})
+    if (devopsAgentConfig) {
+        const instructions = devopsAgentConfig.customInstructions.trim()
+            ? devopsAgentConfig.customInstructions.trim()
+            : '_No custom workflow instructions configured. Use your best judgement based on the available MCP tools._';
+        content = content.replace(/\{\{DEVOPS_CUSTOM_INSTRUCTIONS\}\}/g, instructions);
+    }
+
+    // Substitute orchestrator preamble token ({{DEVOPS_PREAMBLE}})
+    if (orchestratorDevopsConfig?.enabled) {
+        const preamble = `## DevOps Integration Mandate
+
+**This workspace has a DevOps/project management integration configured.** Follow these rules for every full-project request:
+
+1. **Before starting any full-project request** — delegate to \`NowDev-AI-DevOps\` first. Pass the task ID, work item reference, or description the user provided. The DevOps agent will return structured task details (title, description, acceptance criteria, current status). Treat these details as the authoritative source of truth for what needs to be built.
+2. **After each major sub-agent completes its artifact** — delegate to \`NowDev-AI-DevOps\` to post a progress comment on the task in the project management system.
+3. **After all development is complete** — delegate to \`NowDev-AI-DevOps\` to update the task status to done and add a completion comment summarizing what was built.
+
+If the user does not provide a task reference, ask them for one before proceeding. If they confirm there is no task to link, proceed with normal orchestration and skip DevOps delegation.
+
+`;
+        content = content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n/g, preamble);
+    } else {
+        // DevOps not configured — remove the token entirely
+        content = content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n/g, '');
     }
 
     // Substitute documentation MCP tokens

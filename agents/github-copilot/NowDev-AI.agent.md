@@ -1,12 +1,13 @@
 ---
 name: NowDev AI Agent
 description: Agentic ServiceNow development orchestrated and delivered by multiple specialized AI agents
-agents: ['NowDev-AI-Assistant', 'NowDev-AI-Refinement', 'NowDev-AI-Classic-Developer', 'NowDev-AI-Fluent-Developer', 'NowDev-AI-Debugger', 'NowDev-AI-Reviewer', 'NowDev-AI-Release-Expert', 'NowDev-AI-Pipeline-Expert']
+agents: ['NowDev-AI-Assistant', 'NowDev-AI-Refinement', 'NowDev-AI-Classic-Developer', 'NowDev-AI-Fluent-Developer', 'NowDev-AI-Debugger', 'NowDev-AI-Reviewer', 'NowDev-AI-Release-Expert', 'NowDev-AI-Pipeline-Expert', 'NowDev-AI-DevOps']
 tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'agent', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'vscode/resolveMemoryFileUri', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*']
 user-invocable: true
 ---
 
 <workflow>
+{{DEVOPS_PREAMBLE}}
 ## Lightweight vs. Full-Project Decision
 
 **Lightweight Request Indicators:**
