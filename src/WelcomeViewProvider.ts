@@ -100,6 +100,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         this._syncWorkspaceAgents();
     }
 
+    /** Returns the currently loaded agent manifests (for topology panel). */
+    public getAgentManifests(): AgentManifest[] {
+        return this._agentManifests;
+    }
+
+    /** Returns the current agent overrides map (for topology panel). */
+    public getAgentOverrides(): Record<string, AgentOverride> {
+        return this._agentOverrides;
+    }
+
     /** Scans for available MCP servers and triggers an agent override sync. */
     public scanMcp(): void {
         this._mcpServers = scanMcpServers();
@@ -235,6 +245,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'resyncAgents':
                     this._syncWorkspaceAgents();
                     this._sendAgentData();
+                    break;
+                case 'showAgentTopology':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.showAgentTopology');
                     break;
                 case 'toggleTool': {
                     const toolKey = message.key as string;
@@ -1089,7 +1102,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         <div class="section">
             <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
                 <span>Agent Configuration</span>
-                <button class="fix-btn" id="resyncAgents" title="Regenerate all workspace agent files">Resync</button>
+                <div style="display:flex;gap:6px;">
+                    <button class="fix-btn" id="showAgentTopology" title="Open agent hierarchy diagram in a new tab">Topology</button>
+                    <button class="fix-btn" id="resyncAgents" title="Regenerate all workspace agent files">Resync</button>
+                </div>
             </div>
             <div class="field-desc agents-desc">
                 Agent files are written to <code>.github/agents/</code>. Disabled agents are not written to the workspace and are removed from orchestration routing.

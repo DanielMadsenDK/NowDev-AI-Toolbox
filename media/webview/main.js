@@ -76,6 +76,10 @@
         vscode.postMessage({ command: 'resyncAgents' });
     });
 
+    document.getElementById('showAgentTopology').addEventListener('click', () => {
+        vscode.postMessage({ command: 'showAgentTopology' });
+    });
+
     // ── SDK tab ───────────────────────────────────────────────────
 
     // ── Setup tab: connection test ─────────────────────────────────

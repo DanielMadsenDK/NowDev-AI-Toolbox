@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -46,6 +46,11 @@
       ]
     },
     "commands": [
+      {
+        "command": "nowdev-ai-toolbox.showAgentTopology",
+        "title": "Show Agent Topology",
+        "category": "NowDev AI"
+      },
       {
         "command": "nowdev-ai-toolbox.openCopilotChat",
         "title": "Open Copilot Chat",

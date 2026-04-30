@@ -7,6 +7,7 @@ import * as https from 'https';
 import { URL } from 'url';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
+import { showAgentTopologyPanel } from './AgentTopologyPanel';
 import { getShell } from './shellConfig';
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
@@ -98,6 +99,9 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.refreshStatus', () => {
             welcomeProvider.refreshStatus();
+        }),
+        vscode.commands.registerCommand('nowdev-ai-toolbox.showAgentTopology', () => {
+            showAgentTopologyPanel(welcomeProvider.getAgentManifests(), welcomeProvider.getAgentOverrides());
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.initFluentProject', async () => {
             // Step 1: App display name
