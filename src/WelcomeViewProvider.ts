@@ -331,6 +331,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'sdkCommand':
                     vscode.commands.executeCommand(`nowdev-ai-toolbox.sdk${capitalize(message.cmd)}`, message.args ?? {});
                     break;
+                case 'openDependencyPicker':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openDependencyPicker');
+                    break;
                 case 'sdkAuthAdd':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthAdd');
                     break;
@@ -1010,6 +1013,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <div class="sdk-cmd-actions">
                         <button class="sdk-help-btn" data-cmd="transform" title="Transform help">?</button>
                         <button class="sdk-opts-btn" data-opts="opts-transform" title="Transform options">&#9881;</button>
+                        <button class="fix-btn" id="transformFromXmlBtn" title="Transform a local XML file or folder (--from)">From XML&hellip;</button>
                         <button class="fix-btn sdk-run-btn" data-cmd="transform">Run</button>
                     </div>
                 </div>
@@ -1029,6 +1033,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <div class="sdk-cmd-actions">
                         <button class="sdk-help-btn" data-cmd="dependencies" title="Dependencies help">?</button>
                         <button class="sdk-opts-btn" data-opts="opts-deps" title="Dependencies options">&#9881;</button>
+                        <button class="fix-btn" id="openDepPickerBtn" title="Browse instance and add dependencies">Browse&hellip;</button>
                         <button class="fix-btn sdk-run-btn" data-cmd="dependencies">Run</button>
                     </div>
                 </div>
@@ -1064,6 +1069,30 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 </div>
                 <div class="sdk-cmd-status" id="sdkStatus-download"></div>
                 <div id="checkChangesStatus" class="changes-status" style="display:none;"></div>
+            </div>
+
+            <!-- Sync + Move side by side -->
+            <div style="display:flex;gap:6px;">
+                <div class="sdk-cmd-card" style="flex:1;">
+                    <div class="sdk-cmd-row">
+                        <span class="sdk-cmd-name">Sync</span>
+                        <div class="sdk-cmd-actions">
+                            <button class="fix-btn sdk-run-btn" data-cmd="sync" title="Incremental download then transform">Run</button>
+                        </div>
+                    </div>
+                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Download &rarr; Transform</div>
+                    <div class="sdk-cmd-status" id="sdkStatus-sync"></div>
+                </div>
+                <div class="sdk-cmd-card" style="flex:1;">
+                    <div class="sdk-cmd-row">
+                        <span class="sdk-cmd-name">Move</span>
+                        <div class="sdk-cmd-actions">
+                            <button class="fix-btn sdk-run-btn" data-cmd="move" title="Transform global metadata into local Fluent code">Run</button>
+                        </div>
+                    </div>
+                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Global metadata → Fluent</div>
+                    <div class="sdk-cmd-status" id="sdkStatus-move"></div>
+                </div>
             </div>
 
             <!-- Clean + Pack side by side -->

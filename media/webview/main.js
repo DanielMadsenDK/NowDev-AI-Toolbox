@@ -126,6 +126,23 @@
         vscode.postMessage({ command: 'sdkAuthAdd' });
     });
 
+    // Open Dependency Picker (browse instance + manage now.config.json)
+    var openDepPickerBtn = document.getElementById('openDepPickerBtn');
+    if (openDepPickerBtn) {
+        openDepPickerBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openDependencyPicker' });
+        });
+    }
+
+    // Transform from local XML
+    var transformFromXmlBtn = document.getElementById('transformFromXmlBtn');
+    if (transformFromXmlBtn) {
+        transformFromXmlBtn.addEventListener('click', () => {
+            var auth = document.getElementById('sdkCmdAuth') ? document.getElementById('sdkCmdAuth').value : '';
+            vscode.postMessage({ command: 'sdkCommand', cmd: 'transform', args: { pickFrom: true, auth: auth } });
+        });
+    }
+
     // Command help (?) buttons
     document.querySelectorAll('.sdk-help-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {

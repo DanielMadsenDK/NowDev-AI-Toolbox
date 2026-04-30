@@ -8,6 +8,8 @@ import { URL } from 'url';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
+import { showDependencyPickerPanel } from './DependencyPickerPanel';
+import { InstanceClient } from './InstanceClient';
 import { getShell } from './shellConfig';
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
@@ -104,6 +106,49 @@ export function activate(context: vscode.ExtensionContext) {
             showAgentTopologyPanel(welcomeProvider.getAgentManifests(), welcomeProvider.getAgentOverrides());
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.initFluentProject', async () => {
+            // Step 0: Choose mode — new, convert from instance, or convert from local directory
+            const modePick = await vscode.window.showQuickPick(
+                [
+                    { label: '$(file-add) New empty Fluent project', detail: 'Scaffold a new application using a template', value: 'new' },
+                    { label: '$(cloud-download) Convert existing app from instance', detail: 'now-sdk init --from <sys_id> — pulls a scoped app from the instance', value: 'fromInstance' },
+                    { label: '$(folder-opened) Convert existing app from local directory', detail: 'now-sdk init --from <path> — adopts an existing local app folder', value: 'fromLocal' },
+                ],
+                { placeHolder: 'How would you like to initialize the Fluent project?' }
+            );
+            if (!modePick) { return; }
+            const mode = modePick.value as 'new' | 'fromInstance' | 'fromLocal';
+
+            let fromValue: string | undefined;
+            if (mode === 'fromInstance') {
+                const aliases = (new InstanceClient(context.secrets)).listAliases();
+                if (aliases.length === 0) {
+                    vscode.window.showErrorMessage('No auth aliases found. Add one via "SDK: Add Auth Alias" first.');
+                    return;
+                }
+                const aliasPick = await vscode.window.showQuickPick(
+                    aliases.map(a => ({ label: a.alias, description: a.host, detail: a.isDefault ? 'default' : undefined })),
+                    { placeHolder: 'Select the auth alias for the source instance' }
+                );
+                if (!aliasPick) { return; }
+
+                const sysIdInput = await vscode.window.showInputBox({
+                    prompt: 'sys_id of the application on the instance',
+                    placeHolder: 'dbce0f6a3b3fda107b45b5d355e45af6',
+                    validateInput: (v) => (!v.trim() ? 'sys_id is required' : (/^[a-f0-9]{32}$/i.test(v.trim()) ? undefined : 'Must be a 32-char hex sys_id')),
+                });
+                if (!sysIdInput) { return; }
+                fromValue = sysIdInput.trim();
+                // Stash the selected alias for later — used when constructing the now-sdk init args.
+                (modePick as any)._alias = aliasPick.label;
+            } else if (mode === 'fromLocal') {
+                const picked = await vscode.window.showOpenDialog({
+                    canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
+                    openLabel: 'Select existing app directory',
+                });
+                if (!picked || picked.length === 0) { return; }
+                fromValue = picked[0].fsPath;
+            }
+
             // Step 1: App display name
             const appName = await vscode.window.showInputBox({
                 prompt: 'Application display name',
@@ -153,7 +198,8 @@ export function activate(context: vscode.ExtensionContext) {
             if (!templatePick) { return; }
 
             // Step 5: Auth alias (optional — uses SDK default if blank)
-            const authAlias = await vscode.window.showInputBox({
+            const presetAlias = (modePick as any)._alias as string | undefined;
+            const authAlias = presetAlias ?? await vscode.window.showInputBox({
                 prompt: 'Auth alias (optional — leave blank to use default credentials)',
                 placeHolder: 'devuser1',
             });
@@ -177,6 +223,10 @@ export function activate(context: vscode.ExtensionContext) {
                 `--scopeName "${scopeName.trim()}"`,
                 `--template ${templatePick.label}`,
             ];
+            if (fromValue) {
+                // Use double quotes for paths/sys_ids that may contain spaces
+                args.push(`--from "${fromValue.replace(/"/g, '\\"')}"`);
+            }
             if (authAlias?.trim()) {
                 args.push(`--auth ${authAlias.trim()}`);
             }
@@ -255,24 +305,46 @@ export function activate(context: vscode.ExtensionContext) {
         cwd: string,
         statusKey: string,
         onSuccess?: () => void
-    ): void {
+    ): Promise<boolean> {
         const chan = vscode.window.createOutputChannel(`NowDev: SDK ${label}`);
         chan.show(true);
         chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
 
-        const proc = cp.spawn('now-sdk', cmdArgs, { cwd, shell: getShell() });
-        proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
-        proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
-        proc.on('close', (code: number | null) => {
-            const ok = code === 0;
-            if (ok) {
-                chan.appendLine(`\n✓ ${label} completed successfully.`);
-                onSuccess?.();
-            } else {
-                chan.appendLine(`\n✗ ${label} failed (exit code ${code}).`);
-            }
-            welcomeProvider.setSdkCommandStatus(statusKey, ok, ok ? `${label} succeeded` : `Failed (exit ${code})`);
-        });
+        return Promise.resolve(vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `NowDev SDK: ${label}`,
+                cancellable: true,
+            },
+            (_progress, token) => new Promise<boolean>((resolve) => {
+                const proc = cp.spawn('now-sdk', cmdArgs, { cwd, shell: getShell() });
+                let cancelled = false;
+                token.onCancellationRequested(() => {
+                    cancelled = true;
+                    chan.appendLine(`\n[cancelled by user]`);
+                    try { proc.kill('SIGTERM'); } catch { /* ignore */ }
+                    setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* ignore */ } }, 2000);
+                });
+                proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
+                proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
+                proc.on('close', (code: number | null) => {
+                    const ok = !cancelled && code === 0;
+                    if (ok) {
+                        chan.appendLine(`\n✓ ${label} completed successfully.`);
+                        onSuccess?.();
+                    } else if (cancelled) {
+                        chan.appendLine(`\n✗ ${label} cancelled.`);
+                    } else {
+                        chan.appendLine(`\n✗ ${label} failed (exit code ${code}).`);
+                    }
+                    const message = ok
+                        ? `${label} succeeded`
+                        : cancelled ? `${label} cancelled` : `Failed (exit ${code})`;
+                    welcomeProvider.setSdkCommandStatus(statusKey, ok, message);
+                    resolve(ok);
+                });
+            })
+        ));
     }
 
     context.subscriptions.push(
@@ -296,11 +368,25 @@ export function activate(context: vscode.ExtensionContext) {
             spawnSdkCmd('Install', cmdArgs, cwd, 'install');
         }),
 
-        // Transform (with preview → virtual document)
-        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', async (args: { preview?: boolean; auth?: string } = {}) => {
+        // Transform (with preview → virtual document; supports --from <path> for local XML)
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', async (args: { preview?: boolean; auth?: string; from?: string; pickFrom?: boolean } = {}) => {
             const cwd = getWorkspaceFolder();
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+
+            let fromPath = args.from;
+            if (args.pickFrom && !fromPath) {
+                const picked = await vscode.window.showOpenDialog({
+                    canSelectFiles: true,
+                    canSelectFolders: true,
+                    canSelectMany: false,
+                    openLabel: 'Select XML file or folder to transform',
+                });
+                if (!picked || picked.length === 0) { return; }
+                fromPath = picked[0].fsPath;
+            }
+
             const cmdArgs = ['transform'];
+            if (fromPath) { cmdArgs.push('--from', fromPath); }
             if (args.preview) { cmdArgs.push('--preview'); }
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
 
@@ -497,6 +583,65 @@ export function activate(context: vscode.ExtensionContext) {
                     chan.appendLine(`\n✗ Failed to set default (exit code ${code}).`);
                 }
             });
+        }),
+
+        // Open the dedicated Dependency Picker panel
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openDependencyPicker', () => {
+            showDependencyPickerPanel(context);
+        }),
+
+        // Clear stored REST credentials for an auth alias
+        vscode.commands.registerCommand('nowdev-ai-toolbox.clearAliasCredentials', async (alias?: string) => {
+            const client = new InstanceClient(context.secrets);
+            let target = alias;
+            if (!target) {
+                const aliases = client.listAliases();
+                const pick = await vscode.window.showQuickPick(
+                    aliases.map(a => ({ label: a.alias, description: a.host })),
+                    { placeHolder: 'Forget REST credentials for which alias?' }
+                );
+                if (!pick) { return; }
+                target = pick.label;
+            }
+            await client.clearCredentials(target);
+            vscode.window.showInformationMessage(`Cleared stored REST credentials for "${target}".`);
+        }),
+
+        // Move — transform global-scope metadata XML into local Fluent code
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkMove', async (args: { ids?: string[]; auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            let ids = args.ids;
+            if (!ids || ids.length === 0) {
+                const idsInput = await vscode.window.showInputBox({
+                    prompt: 'Comma-separated sys_ids of global metadata to move',
+                    placeHolder: '9f4e7402317d470da09ac34c0693d02d,c4e34f348b1843899ca5efb2a31666f0',
+                    validateInput: (v) => (!v.trim() ? 'At least one sys_id is required' : undefined),
+                });
+                if (!idsInput) { return; }
+                ids = idsInput.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            const cmdArgs = ['move', '--ids', ids.join(',')];
+            if (args.auth) { cmdArgs.push('--auth', args.auth); }
+            spawnSdkCmd('Move', cmdArgs, cwd, 'move');
+        }),
+
+        // Sync — incremental download then transform in one click
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkSync', async (args: { auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            const downloadDir = path.join(cwd, 'metadata');
+            const downloadArgs = ['download', downloadDir, '--incremental'];
+            if (args.auth) { downloadArgs.push('--auth', args.auth); }
+            const downloadOk = await spawnSdkCmd('Download', downloadArgs, cwd, 'download');
+            if (!downloadOk) {
+                welcomeProvider.setSdkCommandStatus('sync', false, 'Sync stopped: download failed');
+                return;
+            }
+            const transformArgs = ['transform'];
+            if (args.auth) { transformArgs.push('--auth', args.auth); }
+            const transformOk = await spawnSdkCmd('Transform', transformArgs, cwd, 'transform');
+            welcomeProvider.setSdkCommandStatus('sync', transformOk, transformOk ? 'Sync completed' : 'Sync stopped: transform failed');
         })
     );
     // Enable ask-chat-location so Copilot questions appear in the chat view
