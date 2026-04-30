@@ -9,15 +9,16 @@ import {
     findNowConfigs,
     pickNowConfig,
     getDependencies,
+    addDependencies,
     removeDependency,
     reloadConfig,
 } from './NowConfigManager';
 
 /**
  * Dependency Picker — dedicated webview panel that lets users browse a
- * ServiceNow instance, select records by table, and persist them to
- * `now.config.json` via `now-sdk dependencies --add`. Also lists current
- * dependencies with per-entry remove (direct JSON edit, since the SDK CLI
+ * ServiceNow instance, select records by table, and persist them directly to
+ * `now.config.json` (the SDK CLI has no `--add` flag; the documented workflow
+ * is to edit the JSON file then run `now-sdk dependencies` to download). Also
  * has no `--remove` flag).
  */
 
@@ -483,22 +484,41 @@ class PanelController {
     private runDependenciesAdd(scope: string, sdkKey: string, ids: string[]): Promise<void> {
         return new Promise((resolve) => {
             if (!this.currentPackage) { resolve(); return; }
+            // Step 1: write the entries directly into now.config.json.
+            // The SDK CLI has no `--add` flag; the documented workflow is to
+            // edit the file manually and then run `now-sdk dependencies` to
+            // download the TypeScript definitions.
+            try {
+                addDependencies(this.currentPackage, scope, sdkKey, ids);
+                this.currentPackage = reloadConfig(this.currentPackage);
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : String(err);
+                vscode.window.showErrorMessage(`Failed to update now.config.json: ${msg}`);
+                resolve();
+                return;
+            }
+
+            // Step 2: run `now-sdk dependencies` so the SDK downloads the
+            // TypeScript definitions for the newly-added entries.
             const cwd = path.dirname(this.currentPackage.configPath);
-            const args = ['dependencies', '--add', sdkKey, ...ids, '--scope', scope];
+            const args = ['dependencies'];
             if (this.currentAlias) { args.push('--auth', this.currentAlias); }
+            const label = ids.length === 1 && ids[0] === '*' ? 'wildcard' : `${ids.length} item(s)`;
             const chan = vscode.window.createOutputChannel('NowDev: SDK Dependencies');
             chan.show(true);
-            chan.appendLine(`> now-sdk ${args.join(' ')}\n`);
+            chan.appendLine(`✓ Updated now.config.json — added ${label} to ${sdkKey} (scope: ${scope}).`);
+            chan.appendLine(`\n> now-sdk ${args.join(' ')}\n`);
             const proc = cp.spawn('now-sdk', args, { cwd, shell: getShell() });
             proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.on('close', (code) => {
                 if (code === 0) {
-                    chan.appendLine(`\n✓ Added ${ids.length === 1 && ids[0] === '*' ? 'wildcard' : ids.length + ' item(s)'} to ${sdkKey} (scope: ${scope}).`);
+                    chan.appendLine(`\n✓ Dependencies downloaded successfully.`);
                     this.post({ type: 'addResult', ok: true, sdkKey, count: ids.length, scope });
                 } else {
-                    chan.appendLine(`\n✗ Failed to add to ${sdkKey} (exit ${code}).`);
-                    this.post({ type: 'addResult', ok: false, sdkKey, error: `Exit code ${code}`, scope });
+                    chan.appendLine(`\n✗ now-sdk dependencies failed (exit ${code}). The entries were saved to now.config.json — run 'now-sdk dependencies' manually to download.`);
+                    // Still report success for the JSON write; only the download step failed.
+                    this.post({ type: 'addResult', ok: true, sdkKey, count: ids.length, scope });
                 }
                 resolve();
             });

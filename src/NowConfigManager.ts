@@ -137,6 +137,33 @@ export function removeDependency(pkg: NowConfigPackage, scope: string, table: st
     writeConfig(pkg);
 }
 
+/**
+ * Adds sys_ids (or a wildcard) for a given scope + SDK key to the in-memory
+ * config and persists the result to disk.
+ *
+ * `ids` may contain regular sys_id strings **or** the single-element array
+ * `['*']` to write the wildcard.
+ */
+export function addDependencies(pkg: NowConfigPackage, scope: string, sdkKey: string, ids: string[]): void {
+    const config = pkg.config;
+    if (!config.dependencies) { config.dependencies = {}; }
+    if (!config.dependencies[scope]) { config.dependencies[scope] = {}; }
+    const bucket = config.dependencies[scope][sdkKey];
+
+    if (ids.length === 1 && ids[0] === '*') {
+        // Wildcard replaces whatever was there before.
+        config.dependencies[scope][sdkKey] = '*';
+    } else {
+        // Merge into existing array, avoiding duplicates.
+        const existing: string[] = Array.isArray(bucket) ? bucket : [];
+        for (const id of ids) {
+            if (!existing.includes(id)) { existing.push(id); }
+        }
+        config.dependencies[scope][sdkKey] = existing;
+    }
+    writeConfig(pkg);
+}
+
 /** Persists the in-memory config back to disk with stable formatting. */
 export function writeConfig(pkg: NowConfigPackage): void {
     const json = JSON.stringify(pkg.config, null, 2) + '\n';

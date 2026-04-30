@@ -157,7 +157,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 case 'openCopilotChat':
-                    vscode.commands.executeCommand('workbench.action.chat.open');
+                    vscode.commands.executeCommand('workbench.action.chat.open', {
+                        query: '@NowDev AI Agent ',
+                        isPartialQuery: true,
+                    });
                     break;
                 case 'openSettings':
                     vscode.commands.executeCommand('workbench.action.openSettings', 'nowdev-ai-toolbox');

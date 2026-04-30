@@ -97,7 +97,14 @@ export function activate(context: vscode.ExtensionContext) {
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('nowdev-ai-toolbox.openCopilotChat', () => {
-            vscode.commands.executeCommand('workbench.action.chat.open');
+            // Pre-select the NowDev AI Agent. The `query` + `isPartialQuery:true`
+            // combination fills the input without auto-submitting, so the user
+            // can simply type their question. Works for VS Code 1.116+
+            // `.agent.md` agents that have `user-invocable: true`.
+            vscode.commands.executeCommand('workbench.action.chat.open', {
+                query: '@NowDev AI Agent ',
+                isPartialQuery: true,
+            });
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.refreshStatus', () => {
             welcomeProvider.refreshStatus();
