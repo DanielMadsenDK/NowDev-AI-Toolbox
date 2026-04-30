@@ -29,8 +29,7 @@ STOP if the request requires non-AI-Studio Fluent artifacts — route those back
 
 <documentation>
 Always consult the servicenow-ai-agent-studio skill for AiAgent/AiAgenticWorkflow patterns and the servicenow-now-assist skill for NowAssistSkillConfig patterns.
-If Context7 is available: query-docs('/servicenow/sdk-examples') to verify AI Studio artifact types; search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full SDK reference
-If Context7 is unavailable: rely on built-in knowledge and the documentation blocks in NowDev-AI-AI-Agent-Developer and NowDev-AI-NowAssist-Developer
+Use {{FLUENT_SDK_MCP}} to verify AI Studio artifact types
 </documentation>
 
 # AI Studio Developer Coordinator

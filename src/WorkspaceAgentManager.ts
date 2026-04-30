@@ -8,9 +8,39 @@ export interface AgentOverride {
     disabledTools: string[]; // tools to strip from the base list
 }
 
+/**
+ * Configures which MCP server + library/topic hint to use for each category
+ * of ServiceNow documentation.  When a server is set, the corresponding
+ * {{TOKEN}} placeholders in agent files are replaced with live instructions
+ * telling the agent to use that server.  When unset the agents fall back to
+ * their built-in skill-based knowledge.
+ */
+export interface McpDocSource {
+    /** MCP server name as reported by scanMcpServers(), e.g. "io.github.upstash/context7" */
+    server: string;
+    /** Free-text hint appended to the generated instruction, e.g. "/websites/servicenow" */
+    libraryHint: string;
+}
+
+export interface McpDocSources {
+    /** Classic scripting docs (GlideRecord, gs.*, Business Rules, Client Scripts, …) */
+    classicScripting: McpDocSource;
+    /** Fluent SDK / now-sdk docs */
+    fluentSdk: McpDocSource;
+    /** General ServiceNow docs (feasibility checks, general reference) */
+    general: McpDocSource;
+}
+
+export const DEFAULT_MCP_DOC_SOURCES: McpDocSources = {
+    classicScripting: { server: '', libraryHint: '/websites/servicenow' },
+    fluentSdk:        { server: '', libraryHint: '/servicenow/sdk-examples' },
+    general:          { server: '', libraryHint: '/websites/servicenow' },
+};
+
 export interface WorkspaceAgentSyncConfig {
     mcpIntegrations: string[];
     agentOverrides: Record<string, AgentOverride>;
+    mcpDocSources: McpDocSources;
     autoUpdate: boolean;
 }
 
@@ -74,10 +104,30 @@ export function syncAllAgents(
             ? cfg.mcpIntegrations.map(s => `${s.toLowerCase()}/*`)
             : [];
 
-        // Effective tools: MCP first, then base minus disabled
+        // Effective tools: MCP first, then base minus disabled.
+        // Replace any hardcoded 'io.github.upstash/context7/*' in the base tools
+        // with the user-configured doc-source server wildcards (or keep as-is if none set).
+        const docServerWildcards = buildDocServerWildcards(cfg.mcpDocSources);
+        const baseToolsReplaced = manifest.baseTools.map(t => {
+            if (t === 'io.github.upstash/context7/*') {
+                return docServerWildcards.length > 0 ? null : t; // null = expand below
+            }
+            return t;
+        });
+        const expandedBase: string[] = [];
+        for (const t of baseToolsReplaced) {
+            if (t === null) {
+                for (const w of docServerWildcards) {
+                    if (!expandedBase.includes(w)) { expandedBase.push(w); }
+                }
+            } else if (t !== undefined) {
+                expandedBase.push(t);
+            }
+        }
+
         const effectiveTools: string[] = [
             ...mcpTools,
-            ...manifest.baseTools.filter(t => !disabledTools.has(t)),
+            ...expandedBase.filter(t => !disabledTools.has(t)),
         ];
 
         // Guarantee 'agent' is present whenever the file delegates to sub-agents
@@ -93,6 +143,7 @@ export function syncAllAgents(
             mcpTools:      [...mcpTools].sort(),
             disabledTools: [...disabledTools].sort(),
             disabledAgents: [...disabledAgentNames].sort(),
+            mcpDocSources: cfg.mcpDocSources,
         });
         const combinedHash = crypto.createHash('sha256').update(stateKey).digest('hex');
 
@@ -105,7 +156,7 @@ export function syncAllAgents(
             if (readTag(existing, HASH_TAG) === combinedHash) { continue; }
         }
 
-        const newContent = buildContent(bundledContent, effectiveTools, disabledAgentNames, combinedHash);
+        const newContent = buildContent(bundledContent, effectiveTools, disabledAgentNames, combinedHash, cfg.mcpDocSources);
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
         addToGitignore(workspaceRoot, `.github/agents/${manifest.filename}`);
@@ -118,7 +169,8 @@ function buildContent(
     bundled: string,
     effectiveTools: string[],
     disabledAgents: Set<string>,
-    hash: string
+    hash: string,
+    docSources: McpDocSources
 ): string {
     // Rewrite the tools: [...] line (always single-line in these files)
     const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
@@ -136,10 +188,57 @@ function buildContent(
         });
     }
 
+    // Substitute documentation MCP tokens
+    content = applyDocSourceTokens(content, docSources);
+
     // Remove any stale stamp, then insert a fresh one after the opening ---
     content = content.replace(/\n# nowdev-managed: true\n# nowdev-hash: [^\n]+\n/g, '\n');
     content = content.replace(/^---\n/, `---\n${MANAGED_TAG}\n${HASH_TAG} ${hash}\n`);
 
+    return content;
+}
+
+/**
+ * Collects the unique MCP server wildcards from all three doc sources.
+ * Returns an empty array when no servers are configured (caller keeps
+ * the original Context7 tool entry in that case).
+ */
+function buildDocServerWildcards(sources: McpDocSources): string[] {
+    const wildcards: string[] = [];
+    for (const src of [sources.classicScripting, sources.fluentSdk, sources.general]) {
+        if (src.server) {
+            const w = `${src.server.toLowerCase()}/*`;
+            if (!wildcards.includes(w)) { wildcards.push(w); }
+        }
+    }
+    return wildcards;
+}
+
+/**
+ * Replaces {{CLASSIC_SCRIPTING_MCP}}, {{FLUENT_SDK_MCP}}, and {{GENERAL_MCP}}
+ * tokens in agent body text with the appropriate tool reference.
+ *
+ * - Server + hint: "<hint> (fall back to <skill> if unavailable)"
+ * - Server only:   "the <server> MCP server (fall back to <skill> if unavailable)"
+ * - Nothing set:   "<skill>" — agents rely entirely on built-in knowledge
+ */
+function applyDocSourceTokens(content: string, sources: McpDocSources): string {
+    const replacements: Array<[RegExp, McpDocSource, string]> = [
+        [/\{\{CLASSIC_SCRIPTING_MCP\}\}/g, sources.classicScripting, 'the servicenow-* skill'],
+        [/\{\{FLUENT_SDK_MCP\}\}/g,        sources.fluentSdk,        'the servicenow-fluent-development skill'],
+        [/\{\{GENERAL_MCP\}\}/g,           sources.general,          'built-in skills'],
+    ];
+
+    for (const [pattern, src, fallback] of replacements) {
+        let value: string;
+        if (src.server) {
+            const ref = src.libraryHint ? src.libraryHint : `the ${src.server} MCP server`;
+            value = `${ref} (fall back to ${fallback} if unavailable)`;
+        } else {
+            value = fallback;
+        }
+        content = content.replace(pattern, value);
+    }
     return content;
 }
 

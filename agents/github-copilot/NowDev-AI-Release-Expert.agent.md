@@ -30,7 +30,7 @@ STOP if about to use or recommend a tool/runtime not listed in `environment.avai
 <documentation>
 Routing decisions are based on file extensions and paths — no external API documentation is needed for classification.
 If the release type cannot be determined from the file list alone, consult agents/github-copilot/AGENT-PATTERNS.md for canonical routing rules.
-If Context7 is available and release type is ambiguous: query-docs('/websites/servicenow') to confirm artifact type.
+Use {{CLASSIC_SCRIPTING_MCP}} to confirm artifact type if the release type is ambiguous.
 Specialist release agents (NowDev-AI-Classic-Release, NowDev-AI-Fluent-Release) carry their own documentation blocks for the actual release procedures.
 </documentation>
 

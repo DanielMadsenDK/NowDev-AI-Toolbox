@@ -18,7 +18,7 @@ handoffs:
 4. Analyze the requirements and identify all UI artifacts needed
 5. Build a todo list by UI layer: metadata (.now.ts) → client scripts → React components
 6. For React UI Pages: verify patterns via UI-PAGE-API.md and CLIENT-SERVER-PATTERNS.md, then scaffold index.html → main.tsx → app.tsx → services → components
-7. Verify all APIs via Context7 (/servicenow/sdk-examples) or the servicenow-fluent-development skill
+7. Verify all APIs via {{FLUENT_SDK_MCP}}
 8. Implement all artifacts
 9. Self-validate: <sdk:now-ux-globals> in index.html, HDS components used, no GlideRecord in client-side code, CSRF token in REST calls
 10. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`
@@ -26,7 +26,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with Context7 or the skill
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with configured docs MCP or the skill
 STOP if building a React UI without <sdk:now-ux-globals> in index.html — globals will not initialize
 STOP if using GlideRecord in any client-side (.tsx, .ts, client .js) file — use GlideAjax or REST instead
 STOP if using generic UI libraries (Material UI, Ant Design, plain HTML forms) when @servicenow/react-components HDS components are available
@@ -54,11 +54,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - UI Page patterns (dirty state, field extraction, CSS constraints, build system) → servicenow-react-ui-components skill: ui-page-patterns-guide.md
   - Horizon Design System theming (tokens, color roles, dark mode) → servicenow-react-ui-components skill: ui-page-theming-guide.md
 
-If Context7 is available:
-  - query-docs('/servicenow/sdk-examples') for Fluent SDK patterns
-  - query-docs('/websites/servicenow') for Classic API validity in client scripts
-  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+  - {{FLUENT_SDK_MCP}} for Fluent SDK patterns
+  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in client scripts
 </documentation>
 
 # Fluent UI Developer

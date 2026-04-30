@@ -17,7 +17,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the requirements and identify all server-side logic artifacts needed
 5. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
-6. Verify APIs using Context7 (/servicenow/sdk-examples and /websites/servicenow) or the servicenow-fluent-development skill
+6. Verify APIs using {{FLUENT_SDK_MCP}}
 7. Implement .now.ts metadata files and linked .js server scripts in dependency order
 8. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (class/method names, REST paths)
@@ -25,7 +25,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with Context7 or the skill
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with configured docs MCP or the skill
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if using deprecated `script\`\`` tagged template literals — use `Now.include('./file.js')`
 STOP if writing `current.update()` or `current.insert()` inside a Business Rule script
@@ -49,11 +49,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for Script Actions → registering-events-guide.md
   - Data helpers for Record() fields (Duration(), Time(), TemplateValue(), FieldList()) → data-helpers-guide.md
 
-If Context7 is available:
-  - query-docs('/servicenow/sdk-examples') for SDK object patterns
-  - query-docs('/websites/servicenow') for Classic API validity in script content (GlideRecord, gs.*, etc.)
-  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+  - {{FLUENT_SDK_MCP}} for SDK object patterns
+  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in script content (GlideRecord, gs.*, etc.)
 </documentation>
 
 # Fluent Logic Developer

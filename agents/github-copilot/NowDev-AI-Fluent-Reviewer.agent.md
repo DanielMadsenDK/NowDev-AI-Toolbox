@@ -60,11 +60,8 @@ Reference the correct sub-document for each artifact type:
   - Views, View Rules, List Controls, Relationships → platform-view-lists-guide.md
   - Event registration (sysevent_register, scoped vs global, custom queues) → registering-events-guide.md
 
-If Context7 is available:
-  - query-docs('/servicenow/sdk-examples') for Fluent SDK object patterns
-  - query-docs('/websites/servicenow') for Classic API validity inside script content
-  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+  - {{FLUENT_SDK_MCP}} for Fluent SDK object patterns
+  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity inside script content
 </documentation>
 
 # ServiceNow Fluent Code Reviewer

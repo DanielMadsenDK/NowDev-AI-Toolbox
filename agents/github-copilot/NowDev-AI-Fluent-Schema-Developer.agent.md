@@ -16,7 +16,7 @@ handoffs:
 2. Analyze the requirements and identify all schema and configuration artifacts needed
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Build a todo list of artifacts with their dependencies (e.g. Roles before ACLs that reference them)
-5. Verify APIs using Context7 (/servicenow/sdk-examples) or the servicenow-fluent-development skill
+5. Verify APIs using {{FLUENT_SDK_MCP}}
 6. Implement all .now.ts metadata files and linked .js scripts in dependency order
 7. Self-validate: check $id uniqueness, field name accuracy against @types/servicenow/schema/, correct Now.include usage
 8. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (table names, field names, role names)
@@ -24,7 +24,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with Context7 or the skill
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with configured docs MCP or the skill
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if using deprecated `script\`\`` or `html\`\`` tagged template literals — use `Now.include('./file.js')`
 STOP if implementing Logic, Automation, or UI artifacts — those belong to other specialists
@@ -51,11 +51,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - UI Formatters (sys_ui_formatter), decision table for approach selection → platform-view-guide.md
   - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for flows and Script Actions → registering-events-guide.md
 
-If Context7 is available:
-  - query-docs('/servicenow/sdk-examples') for SDK object patterns
-  - query-docs('/websites/servicenow') for Classic API validity in script content
-  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+  - {{FLUENT_SDK_MCP}} for SDK object patterns
+  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in script content
 </documentation>
 
 # Fluent Schema Developer

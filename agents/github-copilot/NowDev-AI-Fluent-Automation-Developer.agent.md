@@ -17,7 +17,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the requirements and identify all flow and automation artifacts needed
 5. Build a todo list: triggers → flows/subflows → custom actions/triggers if needed
-6. Verify wfa API, trigger types, built-in actions, and FDTransform usage via Context7 or FLOW-API.md
+6. Verify wfa API, trigger types, built-in actions, and FDTransform usage via {{FLUENT_SDK_MCP}}
 7. Implement .now.ts flow files and any linked inline scripts
 8. Self-validate: unique $id for every wfa.trigger/action/flowLogic call, TemplateValue() on field values, assignSubflowOutputs called when outputs declared
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (subflow/action names)
@@ -25,7 +25,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with Context7 or FLOW-API.md
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with configured docs MCP or FLOW-API.md
 STOP if any wfa.trigger, wfa.action, or wfa.flowLogic call is missing a unique $id
 STOP if using raw strings instead of TemplateValue() for createRecord/updateRecord field values
 STOP if referencing own metadata with Now.ID[...] in data fields — use constant.$id
@@ -48,11 +48,8 @@ It covers:
   - SubflowDefinition for reusable subflow logic
   - Complete production examples
 
-If Context7 is available:
-  - query-docs('/servicenow/sdk-examples') for Flow and Subflow patterns
-  - query-docs('/websites/servicenow') for any Classic API references used in inlineScripts
-  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+  - {{FLUENT_SDK_MCP}} for Flow and Subflow patterns
+  - {{CLASSIC_SCRIPTING_MCP}} for any Classic API references used in inlineScripts
 </documentation>
 
 # Fluent Automation Developer

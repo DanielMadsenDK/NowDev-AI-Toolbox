@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, AgentOverride } from './WorkspaceAgentManager';
+import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES } from './WorkspaceAgentManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
@@ -53,6 +53,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _checkChangesResult: CheckChangesState | null = null;
     private _mcpServers: McpServer[] = [];
     private _selectedMcp: string[] = [];
+    private _mcpDocSources: McpDocSources = { ...DEFAULT_MCP_DOC_SOURCES };
     private _agentManifests: AgentManifest[] = [];
     private _agentOverrides: Record<string, AgentOverride> = {};
 
@@ -188,6 +189,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     }
                     this._syncWorkspaceAgents();
                     this._updateStatus();
+                    break;
+                }
+                case 'updateMcpDocSource': {
+                    const slot = message.slot as keyof McpDocSources;
+                    const field = message.field as keyof McpDocSource;
+                    const value = message.value as string;
+                    if (slot in this._mcpDocSources) {
+                        this._mcpDocSources = {
+                            ...this._mcpDocSources,
+                            [slot]: { ...this._mcpDocSources[slot], [field]: value },
+                        };
+                        this._syncWorkspaceAgents();
+                        this._updateStatus();
+                    }
                     break;
                 }
                 case 'rescanMcp':
@@ -381,7 +396,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpDocSources: this._mcpDocSources });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
@@ -437,6 +452,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 this._selectedMcp = config.mcpIntegrations as string[];
             }
 
+            // Load persisted doc-MCP sources
+            if (config.mcpDocSources && typeof config.mcpDocSources === 'object') {
+                const saved = config.mcpDocSources as Partial<McpDocSources>;
+                this._mcpDocSources = {
+                    classicScripting: { ...DEFAULT_MCP_DOC_SOURCES.classicScripting, ...saved.classicScripting },
+                    fluentSdk:        { ...DEFAULT_MCP_DOC_SOURCES.fluentSdk,        ...saved.fluentSdk },
+                    general:          { ...DEFAULT_MCP_DOC_SOURCES.general,          ...saved.general },
+                };
+            }
+
             // Load per-agent overrides
             if (config.agentOverrides && typeof config.agentOverrides === 'object') {
                 this._agentOverrides = config.agentOverrides as Record<string, AgentOverride>;
@@ -469,7 +494,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             this._extensionUri.fsPath,
             workspaceFolders[0].uri.fsPath,
             this._agentManifests,
-            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, autoUpdate }
+            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, mcpDocSources: this._mcpDocSources, autoUpdate }
         );
     }
 
@@ -588,6 +613,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         // MCP server selection
         configData.mcpIntegrations = this._selectedMcp;
+
+        // MCP documentation sources
+        configData.mcpDocSources = this._mcpDocSources;
 
         // Per-agent overrides
         if (Object.keys(this._agentOverrides).length > 0) {
@@ -840,6 +868,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             </div>
             <div id="mcpServersList">
                 <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
+            </div>
+
+            <div class="field-label" style="margin-top:12px;margin-bottom:6px;">ServiceNow Documentation Sources</div>
+            <div class="field-desc" style="margin-bottom:8px;">
+                Choose which MCP server agents should use to look up ServiceNow API docs, and optionally provide a library or topic hint. Click the gear icon to configure each source. When set to <em>none</em>, agents fall back to built-in skill knowledge.
+            </div>
+            <div id="mcpDocSourcesList">
+                <!-- rendered by main.js updateMcpDocSources() -->
             </div>
         </div>
 

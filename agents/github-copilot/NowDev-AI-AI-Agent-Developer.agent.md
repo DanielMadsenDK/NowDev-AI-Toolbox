@@ -17,7 +17,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the requirements and identify all AiAgent and AiAgenticWorkflow artifacts needed
 5. Build a todo list in dependency order (Script Includes before Agents that call them; Agents before Workflows that include them)
-6. Verify APIs using Context7 (/servicenow/sdk-examples) or the servicenow-ai-agent-studio skill
+6. Verify APIs using {{FLUENT_SDK_MCP}}
 7. Implement .now.ts metadata files and linked .js server scripts in dependency order
 8. Self-validate: check $id uniqueness, access control (acl or dataAccess), tool types, trigger active status
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (agent/workflow names)
@@ -25,7 +25,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for AiAgent or AiAgenticWorkflow API shapes — verify with Context7 or the servicenow-ai-agent-studio skill
+STOP IMMEDIATELY if using training data for AiAgent or AiAgenticWorkflow API shapes — verify with configured docs MCP or the servicenow-ai-agent-studio skill
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if implementing NowAssistSkillConfig — that belongs to NowDev-AI-NowAssist-Developer
 STOP if implementing non-AI-Studio artifacts — route to the appropriate Fluent specialist
@@ -39,11 +39,8 @@ Always consult the servicenow-ai-agent-studio skill for each artifact type:
   - Access control patterns (acl vs dataAccess.roleList vs runAsUser)
   - Trigger flow definition types (record_create, record_update, email, scheduled, daily, weekly, monthly)
 
-If Context7 is available:
-  - query-docs('/servicenow/sdk-examples') for SDK object patterns
-  - query-docs('/websites/servicenow') for Classic API validity in script content
-  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+  - {{FLUENT_SDK_MCP}} for SDK object patterns
+  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in script content
 </documentation>
 
 # AI Agent Developer

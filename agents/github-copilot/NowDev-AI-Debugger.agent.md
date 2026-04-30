@@ -23,7 +23,7 @@ handoffs:
 1. Gather error symptoms, logs, and context
 2. Create diagnostic checklist with todo tool listing potential root causes and steps
 3. Isolate issue location: Server-Side vs Client-Side
-4. Identify root cause with query-docs verification of expected behavior
+4. Identify root cause with docs MCP verification of expected behavior
 5. Produce the Diagnostic Results report (see template in body)
 6. Identify artifact type from the diagnosed code:
    - Classic artifacts (Script Include .js, Business Rule .js, Client Script .js) → present **Fix — Classic Developer** handoff
@@ -39,8 +39,7 @@ STOP if about to execute or recommend a tool/runtime not listed in `environment.
 </stopping_rules>
 
 <documentation>
-If Context7 is available: query-docs('/websites/servicenow') for expected vs actual behavior, logging mechanisms, diagnostic procedures
-If Context7 is unavailable: reference built-in skills and best practices for diagnostic procedures
+Use {{GENERAL_MCP}} for expected vs actual behavior, logging mechanisms, and diagnostic procedures
 Verify expected behavior before proposing solutions
 </documentation>
 

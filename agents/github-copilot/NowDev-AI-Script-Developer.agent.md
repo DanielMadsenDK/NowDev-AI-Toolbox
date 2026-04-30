@@ -15,7 +15,7 @@ handoffs:
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents in this session
 2. For any dependencies, use `read/readFile` to read the actual source files to get exact method signatures and class structures
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
-4. API verification: If Context7 is available, query-docs to verify APIs, parameters, and patterns. If unavailable, use built-in best practices knowledge.
+4. API verification: Use {{CLASSIC_SCRIPTING_MCP}} to verify APIs, parameters, and usage patterns.
 5. Create todo plan outlining class structure, methods, and logic
 6. Implement Script Include with verified APIs and patterns
 7. Self-validate code before handoff to orchestrator
@@ -23,14 +23,12 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow APIs — always verify with Context7 if available or reference built-in best practices
+STOP IMMEDIATELY if using training data for ServiceNow APIs — always verify with configured docs MCP if available or reference built-in best practices
 STOP if todo plan not documented
 </stopping_rules>
 
 <documentation>
-If Context7 is available: query-docs('/websites/servicenow') for API availability, parameter requirements, usage patterns
-If Context7 is unavailable: reference the servicenow-script-server-logic skill for verified best practices and API patterns
-MANDATORY FIRST STEP: Verify every API and pattern using available resources (Context7 or built-in skills)
+Use {{CLASSIC_SCRIPTING_MCP}} for API availability, parameter requirements, and usage patterns
 </documentation>
 
 # ServiceNow Script Include Developer

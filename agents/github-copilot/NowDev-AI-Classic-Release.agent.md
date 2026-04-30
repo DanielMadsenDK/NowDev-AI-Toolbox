@@ -28,8 +28,7 @@ STOP if using Update Set workflow for a Fluent SDK project — that goes to NowD
 </stopping_rules>
 
 <documentation>
-If Context7 is available: query-docs('/websites/servicenow') for Update Set best practices, XML table field requirements, and migration procedures
-If Context7 is unavailable: reference the servicenow-deployment skill for classic deployment best practices
+Use {{CLASSIC_SCRIPTING_MCP}} for Update Set best practices, XML table field requirements, and migration procedures
 </documentation>
 
 # ServiceNow Classic Release Agent

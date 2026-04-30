@@ -35,9 +35,8 @@ STOP IF modifying any application source files — this agent generates pipeline
 
 <documentation>
 Reference `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md` for detailed pipeline patterns specific to the ServiceNow Fluent SDK
-If Context7 is available: query-docs('/servicenow/sdk-examples') for current `@servicenow/sdk` CLI flags, including `--scope`, `--reinstall`, `--url`, `--username`, `--password`, and `--auth`
-If Context7 is available: query-docs('/websites/servicenow') for any instance-side deployment prerequisites (e.g., application scope availability, ATF integration)
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK CLI reference fallback; reference the servicenow-deployment skill for environment promotion patterns
+Use {{FLUENT_SDK_MCP}} for current `@servicenow/sdk` CLI flags, including `--scope`, `--reinstall`, `--url`, `--username`, `--password`, and `--auth`
+Use {{CLASSIC_SCRIPTING_MCP}} for any instance-side deployment prerequisites (e.g., application scope availability, ATF integration)
 </documentation>
 
 # NowDev AI Pipeline Expert

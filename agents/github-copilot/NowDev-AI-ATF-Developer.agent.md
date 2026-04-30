@@ -17,7 +17,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: In Progress` before writing code
 4. Analyze artifacts to identify what is testable: REST API endpoints → REST step tests; Script Includes with clientCallable → server-side step tests; Tables with forms → form step tests; Catalog Items → service catalog step tests; Navigation paths → navigation step tests
 5. Build a todo list of ATF test files, one test per major artifact or user-facing workflow
-6. Verify ATF API patterns using ATF-API.md from the servicenow-fluent-development skill (or Context7 for SDK examples)
+6. Verify ATF API patterns using {{FLUENT_SDK_MCP}}
 7. Implement `.now.ts` Test files using the `Test()` constructor and `configurationFunction` patterns from ATF-API.md — place test files in `src/tests/` or alongside their source artifact
 8. Self-validate: every Test has a unique `$id: Now.ID['...']`, every step references real table names and field names from the artifact registry, no hardcoded `sys_id` strings
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `Done` and fill in `Exports` (test names and what they cover)
@@ -25,7 +25,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ATF step APIs — verify with ATF-API.md or Context7
+STOP IMMEDIATELY if using training data for ATF step APIs — verify with ATF-API.md or configured docs MCP
 STOP if any Test is missing a unique `$id: Now.ID['...']`
 STOP if using hardcoded `sys_id` strings in test steps — use `Now.ref()` or field references instead
 STOP if referencing table names or field names not found in `artifacts.md` or the actual source files
@@ -43,10 +43,7 @@ Always consult the servicenow-fluent-development skill for ATF test patterns:
   - Output variable chaining between steps → ATF-API.md
   - ATF strategy, all 11 namespace API surfaces, email/reporting/dashboard steps, Service Portal variants → atf-guide.md
 
-If Context7 is available:
-  - query-docs('/servicenow/sdk-examples') for Test() SDK object patterns
-  - search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK ATF reference
-If Context7 is unavailable: fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+  - {{FLUENT_SDK_MCP}} for Test() SDK object patterns and full Fluent SDK ATF reference
 </documentation>
 
 # ATF Developer

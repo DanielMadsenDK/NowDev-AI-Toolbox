@@ -1150,3 +1150,99 @@ hr {
 .agent-chevron:hover {
     color: var(--vscode-foreground);
 }
+
+/* ── MCP Documentation Source rows ── */
+.mcp-doc-source-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+}
+.mcp-doc-source-row:last-child {
+    border-bottom: none;
+}
+.mcp-doc-source-info {
+    flex: 1;
+    min-width: 0;
+}
+.mcp-doc-source-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mcp-doc-source-server {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mcp-doc-source-gear {
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 1px 5px;
+    background: none;
+    color: var(--vscode-descriptionForeground);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s;
+}
+.mcp-doc-source-gear:hover,
+.mcp-doc-source-gear.open {
+    color: var(--vscode-foreground);
+    border-color: var(--vscode-input-border, var(--vscode-panel-border));
+}
+.mcp-doc-source-panel {
+    display: none;
+    padding: 8px 10px;
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    margin-bottom: 4px;
+}
+.mcp-doc-source-panel.open {
+    display: block;
+}
+.mcp-doc-source-panel .field-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.mcp-doc-source-panel .field-row:last-child {
+    margin-bottom: 0;
+}
+.mcp-doc-source-panel .field-row label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    flex-shrink: 0;
+    width: 44px;
+}
+.mcp-doc-source-panel select,
+.mcp-doc-source-panel input[type="text"] {
+    flex: 1;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-family: var(--vscode-font-family);
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    outline: none;
+}
+.mcp-doc-source-panel select:focus,
+.mcp-doc-source-panel input[type="text"]:focus {
+    border-color: var(--vscode-focusBorder);
+}
+.mcp-doc-source-panel input[type="text"]:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

@@ -38,7 +38,7 @@ STOP if no file list was provided — ask the user for an explicit list of files
 <documentation>
 Routing decisions are based on file extensions and paths — no external API documentation is needed for classification.
 If the project style cannot be determined from the file list alone, consult agents/github-copilot/AGENT-PATTERNS.md for canonical routing rules.
-Context7 is not required for routing, but specialist reviewers (NowDev-AI-Fluent-Reviewer, NowDev-AI-Classic-Reviewer) will query it for API verification during their review pass.
+Docs MCP is not required for routing, but specialist reviewers (NowDev-AI-Fluent-Reviewer, NowDev-AI-Classic-Reviewer) will use it for API verification during their review pass when configured.
 </documentation>
 
 # NowDev Code Review Router

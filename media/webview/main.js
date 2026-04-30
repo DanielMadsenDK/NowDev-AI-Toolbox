@@ -171,6 +171,7 @@
                 updateEnvironment(msg.environment);
                 if (msg.sdkStatus) { updateSdkStatus(msg.sdkStatus); }
                 updateMcpServers(msg.mcpServers, msg.selectedMcp);
+                updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
                 break;
             case 'updateAgents':
                 renderAgentCards(msg.manifests, msg.overrides);
@@ -559,8 +560,121 @@
         });
     }
 
-    // ── Auth Aliases rendering ─────────────────────────────────────
+    // ── MCP Documentation Sources rendering ────────────────────────
 
+    var docSourceDebounce = {};
+    function updateMcpDocSources(docSources, servers) {
+        var container = document.getElementById('mcpDocSourcesList');
+        if (!container) { return; }
+        if (!docSources) { container.innerHTML = ''; return; }
+
+        var serverOptions = '<option value="">(none \u2014 use built-in skills)</option>';
+        if (servers && servers.length > 0) {
+            serverOptions += servers.map(function (s) {
+                return '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>';
+            }).join('');
+        }
+
+        var slots = [
+            { key: 'classicScripting', label: 'Classic Scripting', desc: 'Business Rule, Script Include, Client Script, Classic Reviewer' },
+            { key: 'fluentSdk',        label: 'Fluent SDK',         desc: 'All Fluent specialists, AI Studio, NowAssist, ATF, Pipeline' },
+            { key: 'general',          label: 'General docs',       desc: 'Refinement, Orchestrator, Debugger, Assistant' },
+        ];
+
+        var html = slots.map(function (slot) {
+            var src = docSources[slot.key] || {};
+            var server = src.server || '';
+            var hint = src.libraryHint || '';
+            var hasServer = server !== '';
+            var serverLabel = hasServer
+                ? esc(server)
+                : '<span style="color:var(--vscode-descriptionForeground);font-style:italic;">built-in skills</span>';
+            var hintPart = (hasServer && hint)
+                ? ' \u00b7 <code style="font-size:10px;">' + esc(hint) + '</code>'
+                : '';
+            var opts = serverOptions.replace(
+                'value="' + esc(server) + '"',
+                'value="' + esc(server) + '" selected'
+            );
+            var panelId = 'mcp-doc-panel-' + slot.key;
+            var gearId  = 'mcp-doc-gear-'  + slot.key;
+            return (
+                '<div class="mcp-doc-source-row" data-slot="' + slot.key + '">' +
+                '  <div class="mcp-doc-source-info">' +
+                '    <div class="mcp-doc-source-label">' + esc(slot.label) + '</div>' +
+                '    <div class="mcp-doc-source-server" id="mcp-doc-summary-' + slot.key + '">' + serverLabel + hintPart + '</div>' +
+                '  </div>' +
+                '  <button class="mcp-doc-source-gear" id="' + gearId + '" title="Configure">\u2699</button>' +
+                '</div>' +
+                '<div class="mcp-doc-source-panel" id="' + panelId + '">' +
+                '  <div class="field-desc" style="margin-bottom:6px;">' + esc(slot.desc) + '</div>' +
+                '  <div class="field-row">' +
+                '    <label>Server</label>' +
+                '    <select class="mcp-doc-server-select" data-slot="' + slot.key + '">' + opts + '</select>' +
+                '  </div>' +
+                '  <div class="field-row">' +
+                '    <label>Hint</label>' +
+                '    <input type="text" class="mcp-doc-hint-input" data-slot="' + slot.key + '"' +
+                '      value="' + esc(hint) + '" placeholder="e.g. /websites/servicenow"' +
+                (hasServer ? '' : ' disabled') + '>' +
+                '  </div>' +
+                '</div>'
+            );
+        }).join('');
+
+        container.innerHTML = html;
+
+        // Gear toggle — opens/closes the config panel
+        container.querySelectorAll('.mcp-doc-source-gear').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var slot = btn.id.replace('mcp-doc-gear-', '');
+                var panel = document.getElementById('mcp-doc-panel-' + slot);
+                if (!panel) { return; }
+                var isOpen = panel.classList.contains('open');
+                panel.classList.toggle('open', !isOpen);
+                btn.classList.toggle('open', !isOpen);
+                btn.textContent = isOpen ? '\u2699' : '\u2715';
+                btn.title = isOpen ? 'Configure' : 'Close';
+            });
+        });
+
+        // Server dropdown — update summary and enable/disable hint field
+        container.querySelectorAll('.mcp-doc-server-select').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                var slot = sel.dataset.slot;
+                var hintInput = container.querySelector('.mcp-doc-hint-input[data-slot="' + slot + '"]');
+                if (hintInput) { hintInput.disabled = sel.value === ''; }
+                _refreshDocSummary(slot, sel.value, hintInput ? hintInput.value : '');
+                vscode.postMessage({ command: 'updateMcpDocSource', slot: slot, field: 'server', value: sel.value });
+            });
+        });
+
+        // Hint input — debounced save
+        container.querySelectorAll('.mcp-doc-hint-input').forEach(function (inp) {
+            inp.addEventListener('input', function () {
+                var slot = inp.dataset.slot;
+                var sel = container.querySelector('.mcp-doc-server-select[data-slot="' + slot + '"]');
+                _refreshDocSummary(slot, sel ? sel.value : '', inp.value);
+                clearTimeout(docSourceDebounce[slot]);
+                docSourceDebounce[slot] = setTimeout(function () {
+                    vscode.postMessage({ command: 'updateMcpDocSource', slot: slot, field: 'libraryHint', value: inp.value.trim() });
+                }, 600);
+            });
+        });
+    }
+
+    function _refreshDocSummary(slot, server, hint) {
+        var el = document.getElementById('mcp-doc-summary-' + slot);
+        if (!el) { return; }
+        if (!server) {
+            el.innerHTML = '<span style="color:var(--vscode-descriptionForeground);font-style:italic;">built-in skills</span>';
+        } else {
+            var hintPart = hint ? ' \u00b7 <code style="font-size:10px;">' + esc(hint) + '</code>' : '';
+            el.innerHTML = esc(server) + hintPart;
+        }
+    }
+
+    // ── Auth Aliases rendering ─────────────────────────────────────
     function renderAuthAliases(aliases) {
         var list = document.getElementById('authAliasesList');
         var authSelect = document.getElementById('sdkCmdAuth');
