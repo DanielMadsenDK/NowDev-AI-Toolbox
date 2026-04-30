@@ -75,13 +75,15 @@ function listFilesRecursive(dir: string): string[] {
 // ── Extension activation ───────────────────────────────────────────────────
 
 export function activate(context: vscode.ExtensionContext) {
-    // Ensure .vscode/nowdev-ai-config.json is listed in .gitignore
-    ensureGitignoreEntry();
+    // Ensure sensitive/generated workspace files are listed in .gitignore
+    ensureGitignoreEntry('.vscode/nowdev-ai-config.json');
     // Register the sidebar welcome webview
     const welcomeProvider = new WelcomeViewProvider(context.extensionUri);
 
     // Scan for available tools/environment on activation
     welcomeProvider.scanTools();
+    welcomeProvider.scanMcp();
+    welcomeProvider.loadAgentRegistry();
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(WelcomeViewProvider.viewType, welcomeProvider, {
@@ -546,12 +548,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 }
 
-function ensureGitignoreEntry() {
-    const entry = '.vscode/nowdev-ai-config.json';
+function ensureGitignoreEntry(entry: string): void {
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders || workspaceFolders.length === 0) {
-        return;
-    }
+    if (!workspaceFolders || workspaceFolders.length === 0) { return; }
 
     const rootPath = workspaceFolders[0].uri.fsPath;
     const gitignorePath = path.join(rootPath, '.gitignore');
@@ -560,15 +559,10 @@ function ensureGitignoreEntry() {
         let content = '';
         if (fs.existsSync(gitignorePath)) {
             content = fs.readFileSync(gitignorePath, 'utf-8');
-            const lines = content.split(/\r?\n/).map(l => l.trim());
-            if (lines.includes(entry)) {
-                return;
-            }
+            if (content.split(/\r?\n/).map(l => l.trim()).includes(entry)) { return; }
         }
-
         const suffix = content.length > 0 && !content.endsWith('\n') ? '\n' : '';
         fs.appendFileSync(gitignorePath, `${suffix}${entry}\n`, 'utf-8');
-        console.log(`Added ${entry} to .gitignore`);
     } catch (err) {
         console.error('Failed to update .gitignore:', err);
     }

@@ -12,7 +12,7 @@
   },
   "icon": "media/agent-icon.png",
   "engines": {
-    "vscode": "^1.113.0"
+    "vscode": "^1.116.0"
   },
   "categories": [
     "AI",
@@ -198,83 +198,15 @@
           ],
           "description": "Shell used when running SDK CLI commands (explain, help, build, install, etc.) from the plugin UI.",
           "order": 6
+        },
+        "nowdev-ai-toolbox.autoUpdateAgentOverrides": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically regenerate the workspace agent override file (.github/agents/NowDev-AI.agent.md) when the extension updates or the MCP integration selection changes. When enabled, the file is always kept in sync with both the bundled agent template and the user's chosen MCP servers. Disable to manage the file manually.",
+          "order": 7
         }
       }
     },
-    "chatAgents": [
-      {
-        "path": "./agents/github-copilot/NowDev-AI.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Classic-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Reviewer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Release-Expert.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Fluent-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Fluent-Schema-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Fluent-Logic-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Fluent-Automation-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Fluent-UI-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Assistant.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Refinement.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Debugger.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Script-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-BusinessRule-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Client-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Classic-Reviewer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Fluent-Reviewer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Classic-Release.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Fluent-Release.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-Pipeline-Expert.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-ATF-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-AI-Studio-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-AI-Agent-Developer.agent.md"
-      },
-      {
-        "path": "./agents/github-copilot/NowDev-AI-NowAssist-Developer.agent.md"
-      }
-    ],
     "chatSkills": [
       {
         "path": "./agents/skills/servicenow-script-server-logic/SKILL.md"

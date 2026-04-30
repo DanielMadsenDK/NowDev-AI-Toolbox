@@ -68,6 +68,14 @@
         vscode.postMessage({ command: 'initFluentProject' });
     });
 
+    document.getElementById('rescanMcp').addEventListener('click', () => {
+        vscode.postMessage({ command: 'rescanMcp' });
+    });
+
+    document.getElementById('resyncAgents').addEventListener('click', () => {
+        vscode.postMessage({ command: 'resyncAgents' });
+    });
+
     // ── SDK tab ───────────────────────────────────────────────────
 
     // ── Setup tab: connection test ─────────────────────────────────
@@ -162,9 +170,10 @@
                 updateFluentApp(msg.fluentApp);
                 updateEnvironment(msg.environment);
                 if (msg.sdkStatus) { updateSdkStatus(msg.sdkStatus); }
+                updateMcpServers(msg.mcpServers, msg.selectedMcp);
                 break;
             case 'updateAgents':
-                renderAgentTree(msg.tree);
+                renderAgentCards(msg.manifests, msg.overrides);
                 break;
             case 'updateArtifacts':
                 renderArtifacts(msg.artifacts, msg.sessionActive);
@@ -310,65 +319,97 @@
         });
     }
 
-    // ── Agent tree rendering ───────────────────────────────────────
+    // ── Agent card rendering ───────────────────────────────────────
 
-    function renderAgentTree(rootNode) {
-        const container = document.getElementById('agentTree');
-        if (!container || !rootNode) return;
-        container.innerHTML = buildAgentNode(rootNode, 0);
-        bindTreeEvents(container);
-    }
-
-    function buildAgentNode(node, level) {
-        const hasChildren = node.children && node.children.length > 0;
-        const chevronClass = hasChildren ? '' : ' leaf';
-        const chevronIcon = hasChildren ? '\u25B6' : '';
-        const collapsed = level > 0 ? ' collapsed' : '';
-
-        let html = '<div class="agent-node level-' + level + '">';
-        html += '<div class="agent-row" data-id="' + esc(node.id) + '">';
-        html += '  <span class="agent-chevron' + chevronClass + '">' + chevronIcon + '</span>';
-        html += '  <span class="agent-name">' + esc(node.shortName) + '</span>';
-        html += '  <span class="agent-badge ' + esc(node.role) + '">' + esc(node.role) + '</span>';
-        html += '</div>';
-        if (node.description) {
-            html += '<div class="agent-desc">' + esc(node.description) + '</div>';
+    function renderAgentCards(manifests, overrides) {
+        var container = document.getElementById('agentCards');
+        if (!container) { return; }
+        if (!manifests || manifests.length === 0) {
+            container.innerHTML = '<div class="field-desc" style="font-style:italic;padding:8px 0;">Loading agent registry…</div>';
+            return;
         }
-        if (hasChildren) {
-            html += '<div class="agent-children' + collapsed + '">';
-            for (const child of node.children) {
-                html += buildAgentNode(child, level + 1);
+
+        // User-invocable agents first, then sub-agents; alphabetical within each group
+        var sorted = manifests.slice().sort(function (a, b) {
+            if (a.userInvocable !== b.userInvocable) { return a.userInvocable ? -1 : 1; }
+            return a.name.localeCompare(b.name);
+        });
+
+        var html = '';
+        for (var i = 0; i < sorted.length; i++) {
+            var m = sorted[i];
+            var override = (overrides && overrides[m.name]) || { enabled: true, disabledTools: [] };
+            var agentEnabled = override.enabled !== false;
+            var disabledSet = {};
+            if (override.disabledTools) {
+                override.disabledTools.forEach(function (t) { disabledSet[t] = true; });
             }
-            html += '</div>';
-        }
-        html += '</div>';
-        return html;
-    }
+            var enabledCount = m.baseTools.filter(function (t) { return !disabledSet[t]; }).length;
 
-    function bindTreeEvents(container) {
-        container.querySelectorAll('.agent-chevron:not(.leaf)').forEach(chevron => {
-            chevron.addEventListener('click', () => {
-                const node = chevron.closest('.agent-node');
-                const children = node.querySelector(':scope > .agent-children');
-                if (!children) return;
-                const isCollapsed = children.classList.contains('collapsed');
-                if (isCollapsed) {
-                    children.classList.remove('collapsed');
-                    chevron.textContent = '\u25BC';
-                } else {
-                    children.classList.add('collapsed');
-                    chevron.textContent = '\u25B6';
-                }
+            var cardClass = 'agent-card' + (agentEnabled ? '' : ' agent-disabled');
+            html += '<div class="' + cardClass + '" data-agent-name="' + esc(m.name) + '">';
+
+            // Header row
+            html += '<div class="agent-card-header">';
+            html += '<div class="agent-card-title-row">';
+            html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" title="Show/hide tools">&#9654;</button>';
+            html += '<div class="agent-card-info">';
+            html += '<span class="agent-card-name">' + esc(m.shortName || m.name) + '</span>';
+            html += '<span class="agent-card-badge ' + (m.userInvocable ? 'picker' : 'sub-agent') + '">';
+            html += m.userInvocable ? 'picker' : 'sub-agent';
+            html += '</span>';
+            html += '</div>';
+            // Enable/disable toggle — all agents except the orchestrator (NowDev AI Agent)
+            if (m.name !== 'NowDev AI Agent') {
+                html += '<label class="tool-toggle" title="Enable/disable agent">';
+                html += '<input type="checkbox" class="agent-enable-cb" data-agent="' + esc(m.name) + '"' + (agentEnabled ? ' checked' : '') + '>';
+                html += '<span class="slider"></span>';
+                html += '</label>';
+            }
+            html += '</div>'; // agent-card-title-row
+            html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
+            html += '</div>'; // agent-card-header
+
+            // Collapsible tools section — hidden by default via CSS class
+            html += '<div class="agent-card-tools" id="at-' + esc(m.name) + '">';
+            for (var j = 0; j < m.baseTools.length; j++) {
+                var tool = m.baseTools[j];
+                var toolOn = !disabledSet[tool];
+                html += '<label class="agent-tool-row">';
+                html += '<input type="checkbox" class="agent-tool-cb" data-agent="' + esc(m.name) + '" data-tool="' + esc(tool) + '"' + (toolOn ? ' checked' : '') + '>';
+                html += '<span class="agent-tool-name">' + esc(tool) + '</span>';
+                html += '</label>';
+            }
+            html += '</div>'; // agent-card-tools
+
+            html += '</div>'; // agent-card
+        }
+
+        container.innerHTML = html;
+
+        // Bind chevron toggles
+        container.querySelectorAll('.agent-chevron').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var targetId = btn.getAttribute('data-target');
+                var target = document.getElementById(targetId);
+                if (!target) { return; }
+                var expanded = target.classList.contains('expanded');
+                target.classList.toggle('expanded', !expanded);
+                btn.innerHTML = !expanded ? '&#9660;' : '&#9654;';
             });
         });
 
-        container.querySelectorAll('.agent-row').forEach(row => {
-            row.addEventListener('click', (e) => {
-                if (e.target.classList.contains('agent-chevron')) return;
-                const desc = row.nextElementSibling;
-                if (desc && desc.classList.contains('agent-desc')) {
-                    desc.style.display = desc.style.display === 'block' ? 'none' : 'block';
-                }
+        // Bind agent enable/disable toggles
+        container.querySelectorAll('.agent-enable-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                vscode.postMessage({ command: 'toggleAgent', name: cb.getAttribute('data-agent'), enabled: cb.checked });
+            });
+        });
+
+        // Bind per-tool toggles
+        container.querySelectorAll('.agent-tool-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                vscode.postMessage({ command: 'toggleAgentTool', agentName: cb.getAttribute('data-agent'), toolName: cb.getAttribute('data-tool'), enabled: cb.checked });
             });
         });
     }
@@ -476,6 +517,47 @@
     function isDone(s) { return /done|complete|\u2705/i.test(s); }
     function isInProgress(s) { return /progress|building|\uD83C\uDFD7/i.test(s); }
     function isError(s) { return /error|fail|\u274C/i.test(s); }
+
+    // ── MCP Integrations rendering ─────────────────────────────────
+
+    function updateMcpServers(servers, selectedMcp) {
+        var list = document.getElementById('mcpServersList');
+        if (!list) { return; }
+
+        if (!servers || servers.length === 0) {
+            list.innerHTML =
+                '<div class="field-desc" style="font-style:italic;">' +
+                'No MCP servers detected. Add servers via the Extensions view ' +
+                '<code>@mcp</code> or in <code>.vscode/mcp.json</code>.' +
+                '</div>';
+            return;
+        }
+
+        var selected = selectedMcp || [];
+        var html = servers.map(function (s) {
+            var checked = selected.indexOf(s.name) >= 0 ? 'checked' : '';
+            var sourceLabel = s.source === 'file' ? 'mcp.json' : 'settings';
+            var sourceBadge = '<span class="auth-alias-default-badge">' + esc(sourceLabel) + '</span>';
+            var typeHint = s.type ? ' <span class="tool-version">' + esc(s.type) + '</span>' : '';
+            return '<div class="tool-row">' +
+                '  <div class="tool-info">' +
+                '    <span class="tool-name">' + esc(s.name) + '</span>' + typeHint + ' ' + sourceBadge +
+                '  </div>' +
+                '  <label class="tool-toggle" title="Include in agent tools">' +
+                '    <input type="checkbox" data-mcp="' + esc(s.name) + '" ' + checked + '>' +
+                '    <span class="slider"></span>' +
+                '  </label>' +
+                '</div>';
+        }).join('');
+
+        list.innerHTML = html;
+
+        list.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                vscode.postMessage({ command: 'toggleMcp', name: cb.dataset.mcp, enabled: cb.checked });
+            });
+        });
+    }
 
     // ── Auth Aliases rendering ─────────────────────────────────────
 

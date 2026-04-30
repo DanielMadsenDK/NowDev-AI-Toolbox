@@ -1,5 +1,6 @@
 ---
 name: servicenow-ai-agent-studio
+context: fork
 user-invocable: false
 description: Build AI Agent definitions and Agentic Workflows for ServiceNow's AI Agent Studio using the Fluent SDK. Covers AiAgent (autonomous task agents with tools, triggers, and versioned instructions) and AiAgenticWorkflow (orchestrated multi-agent team workflows). Use when creating AI-powered automation in Now Assist Panel or Virtual Agent channels, or when building agent teams that coordinate across records, schedules, or business events. Trigger this skill whenever the user mentions AI agents, AiAgent, AiAgenticWorkflow, agent tools, Now Assist Panel automation, or building AI-powered workflows in ServiceNow, even if they don't explicitly mention the AI Agent Studio.
 ---

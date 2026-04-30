@@ -2,7 +2,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
-import { AGENT_TREE } from './AgentTopology';
+import { scanMcpServers, McpServer } from './MCPScanner';
+import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
+import { syncAllAgents, AgentOverride } from './WorkspaceAgentManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
@@ -49,6 +51,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _installInfo: InstallInfoState | null = null;
     private _connectionStatus: ConnectionState | null = null;
     private _checkChangesResult: CheckChangesState | null = null;
+    private _mcpServers: McpServer[] = [];
+    private _selectedMcp: string[] = [];
+    private _agentManifests: AgentManifest[] = [];
+    private _agentOverrides: Record<string, AgentOverride> = {};
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -85,6 +91,19 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         if (this._view) {
             this._view.webview.postMessage({ command: 'updateCheckChanges', state });
         }
+    }
+
+    /** Loads the agent registry from bundled files and writes all agents to workspace. */
+    public loadAgentRegistry(): void {
+        this._agentManifests = loadAgentRegistry(this._extensionUri.fsPath);
+        this._syncWorkspaceAgents();
+    }
+
+    /** Scans for available MCP servers and triggers an agent override sync. */
+    public scanMcp(): void {
+        this._mcpServers = scanMcpServers();
+        this._syncWorkspaceAgents();
+        if (this._view) { this._updateStatus(); }
     }
 
     /**
@@ -157,6 +176,51 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 }
+                case 'toggleMcp': {
+                    const mcpName = message.name as string;
+                    const nowEnabled = message.enabled as boolean;
+                    if (nowEnabled) {
+                        if (!this._selectedMcp.includes(mcpName)) {
+                            this._selectedMcp = [...this._selectedMcp, mcpName];
+                        }
+                    } else {
+                        this._selectedMcp = this._selectedMcp.filter(n => n !== mcpName);
+                    }
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'rescanMcp':
+                    this._mcpServers = scanMcpServers();
+                    this._updateStatus();
+                    break;
+                case 'toggleAgent': {
+                    const agentName = message.name as string;
+                    const agentEnabled = message.enabled as boolean;
+                    const curA = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
+                    this._agentOverrides[agentName] = { ...curA, enabled: agentEnabled };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._sendAgentData();
+                    break;
+                }
+                case 'toggleAgentTool': {
+                    const agentName = message.agentName as string;
+                    const toolName  = message.toolName  as string;
+                    const toolOn    = message.enabled   as boolean;
+                    const curT = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
+                    const dt = new Set(curT.disabledTools);
+                    if (toolOn) { dt.delete(toolName); } else { dt.add(toolName); }
+                    this._agentOverrides[agentName] = { ...curT, disabledTools: [...dt] };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._sendAgentData();
+                    break;
+                }
+                case 'resyncAgents':
+                    this._syncWorkspaceAgents();
+                    this._sendAgentData();
+                    break;
                 case 'toggleTool': {
                     const toolKey = message.key as string;
                     const nowEnabled = message.enabled as boolean;
@@ -234,9 +298,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     if (tab === 'sdk' && !this._initializedTabs.has('sdk')) {
                         this._initializedTabs.add('sdk');
                         this._sendSdkData();
-                    } else if (tab === 'agents' && !this._initializedTabs.has('agents')) {
-                        this._initializedTabs.add('agents');
-                        this._sendAgentTree();
+                    } else if (tab === 'agents') {
+                        this._sendAgentData();
                     }
                     break;
                 }
@@ -253,7 +316,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         nowConfigWatcher.onDidCreate(() => this._updateStatus());
         nowConfigWatcher.onDidDelete(() => this._updateStatus());
 
-        // Watch for nowdev-ai-config.json changes to pick up memoryLocation
+        // Watch for .vscode/mcp.json changes (VS Code 1.118+) to refresh detected servers
+        const mcpJsonWatcher = vscode.workspace.createFileSystemWatcher('**/.vscode/mcp.json');
+        mcpJsonWatcher.onDidChange(() => { this._mcpServers = scanMcpServers(); this._updateStatus(); });
+        mcpJsonWatcher.onDidCreate(() => { this._mcpServers = scanMcpServers(); this._updateStatus(); });
+        mcpJsonWatcher.onDidDelete(() => { this._mcpServers = scanMcpServers(); this._updateStatus(); });
+
+        // Watch for nowdev-ai-config.json changes to pick up memoryLocation and mcpIntegrations
         const aiConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.vscode/nowdev-ai-config.json');
         aiConfigWatcher.onDidChange(() => this._onConfigFileChanged());
         aiConfigWatcher.onDidCreate(() => this._onConfigFileChanged());
@@ -270,10 +339,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtml(webviewView.webview);
 
-        // Initial data pushes
+        // Initial data pushes — load config first so _selectedMcp is ready before _updateStatus
         setTimeout(() => {
-            this._updateStatus();
             this._onConfigFileChanged();
+            this._updateStatus();
             this._sendArtifacts();
         }, 200);
     }
@@ -312,13 +381,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
-    private _sendAgentTree() {
+    private _sendAgentData() {
         if (!this._view) { return; }
-        this._view.webview.postMessage({ command: 'updateAgents', tree: AGENT_TREE });
+        this._view.webview.postMessage({ command: 'updateAgents', manifests: this._agentManifests, overrides: this._agentOverrides });
     }
 
     private _sendSdkData(): void {
@@ -362,6 +431,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             if (!fs.existsSync(configPath)) { return; }
             const raw = fs.readFileSync(configPath, 'utf-8');
             const config = JSON.parse(raw);
+
+            // Load persisted MCP selection and sync the workspace agents
+            if (Array.isArray(config.mcpIntegrations)) {
+                this._selectedMcp = config.mcpIntegrations as string[];
+            }
+
+            // Load per-agent overrides
+            if (config.agentOverrides && typeof config.agentOverrides === 'object') {
+                this._agentOverrides = config.agentOverrides as Record<string, AgentOverride>;
+            }
+
+            // Sync agents whenever config changes
+            this._syncWorkspaceAgents();
+
             const memoryLocation: string | undefined = config.memoryLocation;
             if (!memoryLocation) { return; }
 
@@ -373,8 +456,21 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
             this._setupArtifactWatcher(resolvedPath);
         } catch (err) {
-            console.error('Failed to read nowdev-ai-config.json for memoryLocation:', err);
+            console.error('Failed to read nowdev-ai-config.json:', err);
         }
+    }
+
+    private _syncWorkspaceAgents(): void {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) { return; }
+        const cfg = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
+        const autoUpdate = cfg.get<boolean>('autoUpdateAgentOverrides', true);
+        syncAllAgents(
+            this._extensionUri.fsPath,
+            workspaceFolders[0].uri.fsPath,
+            this._agentManifests,
+            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, autoUpdate }
+        );
     }
 
     private _setupArtifactWatcher(resolvedPath: string): void {
@@ -488,6 +584,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 shell: env.shell,
                 availableTools: enabledTools,
             };
+        }
+
+        // MCP server selection
+        configData.mcpIntegrations = this._selectedMcp;
+
+        // Per-agent overrides
+        if (Object.keys(this._agentOverrides).length > 0) {
+            configData.agentOverrides = this._agentOverrides;
         }
 
         // Preserve agent-written fields (e.g. memoryLocation) that should not be overwritten
@@ -725,6 +829,22 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         <hr>
 
+        <!-- MCP Integrations -->
+        <div class="section">
+            <div class="section-title">
+                <span>MCP Integrations</span>
+                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Select MCP servers to expose as agent tools. Agent files are automatically kept in sync when servers are toggled or the extension updates. Add servers via the Extensions view <code style="font-size:10px;">@mcp</code> or <code style="font-size:10px;">.vscode/mcp.json</code>.
+            </div>
+            <div id="mcpServersList">
+                <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
+            </div>
+        </div>
+
+        <hr>
+
         <!-- Resources -->
         <div class="section">
             <div class="section-title">Resources</div>
@@ -931,11 +1051,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     <!-- ═══════════ TAB: Agents ═══════════ -->
     <div id="tab-agents" class="tab-content">
         <div class="section">
-            <div class="section-title">Agent Team</div>
-            <div class="field-desc" style="margin-bottom: 10px;">
-                22 specialized agents organized by role. Click a name to see its description; click the arrow to expand.
+            <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>Agent Configuration</span>
+                <button class="fix-btn" id="resyncAgents" title="Regenerate all workspace agent files">Resync</button>
             </div>
-            <div id="agentTree" class="agent-tree"></div>
+            <div class="field-desc agents-desc">
+                Agent files are written to <code>.github/agents/</code>. Disabled agents are not written to the workspace and are removed from orchestration routing.
+            </div>
+            <div id="agentCards"></div>
         </div>
     </div>
 
