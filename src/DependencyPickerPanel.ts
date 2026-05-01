@@ -794,7 +794,7 @@ const PANEL_SCRIPT = `
             const key = state.currentCategory + ':' + r.sys_id;
             const checked = state.selected.has(key) ? 'checked' : '';
             return '<label class="list-row">' +
-                '<input type="checkbox" data-key="' + esc(key) + '" data-sysid="' + esc(r.sys_id) + '" ' + checked + '>' +
+                '<input type="checkbox" data-key="' + esc(key) + '" data-sysid="' + esc(r.sys_id) + '" data-name="' + esc(r.name) + '" ' + checked + '>' +
                 '<div>' +
                     '<div class="name">' + esc(r.name || r.sys_id) +
                     (r.scope ? '<span class="scope-chip">' + esc(r.scope) + '</span>' : '') + '</div>' +
@@ -808,7 +808,8 @@ const PANEL_SCRIPT = `
             cb.addEventListener('change', () => {
                 const key = cb.dataset.key;
                 if (cb.checked) {
-                    state.selected.set(key, { category: state.currentCategory, sysId: cb.dataset.sysid });
+                    const idToUse = (state.currentCategory === 'tables' && cb.dataset.name) ? cb.dataset.name : cb.dataset.sysid;
+                    state.selected.set(key, { category: state.currentCategory, sysId: idToUse });
                 } else {
                     state.selected.delete(key);
                 }

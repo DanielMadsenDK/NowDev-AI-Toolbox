@@ -75,6 +75,21 @@ function listFilesRecursive(dir: string): string[] {
     return results;
 }
 
+function getWorkspaceFolder(): string | undefined {
+    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
+async function executeIfAvailable(command: string, unavailableMessage: string): Promise<boolean> {
+    const commands = await vscode.commands.getCommands(true);
+    if (!commands.includes(command)) {
+        vscode.window.showWarningMessage(unavailableMessage);
+        return false;
+    }
+
+    await vscode.commands.executeCommand(command);
+    return true;
+}
+
 // ── Extension activation ───────────────────────────────────────────────────
 
 export function activate(context: vscode.ExtensionContext) {
@@ -97,14 +112,20 @@ export function activate(context: vscode.ExtensionContext) {
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('nowdev-ai-toolbox.openCopilotChat', () => {
-            // Pre-select the NowDev AI Agent. The `query` + `isPartialQuery:true`
-            // combination fills the input without auto-submitting, so the user
-            // can simply type their question. Works for VS Code 1.116+
-            // `.agent.md` agents that have `user-invocable: true`.
-            vscode.commands.executeCommand('workbench.action.chat.open', {
-                query: '@NowDev AI Agent ',
-                isPartialQuery: true,
-            });
+            vscode.commands.executeCommand('workbench.action.chat.open');
+            vscode.window.setStatusBarMessage('Select NowDev AI Agent from the chat agent picker.', 5000);
+        }),
+        vscode.commands.registerCommand('nowdev-ai-toolbox.collectCopilotDiagnostics', async () => {
+            await executeIfAvailable(
+                'github.copilot.debug.collectDiagnostics',
+                'Collect Diagnostics is not available in this VS Code + Copilot Chat build.'
+            );
+        }),
+        vscode.commands.registerCommand('nowdev-ai-toolbox.showCopilotChatLogs', async () => {
+            await executeIfAvailable(
+                'github.copilot.debug.showChatLogView',
+                'Chat logs are not available in this VS Code + Copilot Chat build.'
+            );
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.refreshStatus', () => {
             welcomeProvider.refreshStatus();

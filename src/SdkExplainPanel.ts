@@ -24,7 +24,7 @@ export function showSdkExplainPanel(apiName: string): void {
         'nowdev.sdkExplain',
         `${apiName} — SDK Docs`,
         { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
-        { enableScripts: false, localResourceRoots: [], retainContextWhenHidden: true }
+        { enableScripts: false, enableCommandUris: true, localResourceRoots: [], retainContextWhenHidden: true }
     );
 
     _panels.set(key, panel);
@@ -42,17 +42,6 @@ export function showSdkExplainPanel(apiName: string): void {
         const topics = parseMultipleTopics(output);
         if (topics) {
             panel.webview.html = multipleTopicsHtml(apiName, topics);
-            vscode.window.showQuickPick(
-                topics.map(t => ({ label: t.name, description: t.desc })),
-                { placeHolder: `Multiple topics matched "${apiName}" — select one to view` }
-            ).then(selected => {
-                if (!selected) { return; }
-                panel.webview.html = loadingHtml(selected.label);
-                cp.exec(`now-sdk explain ${selected.label}`, { timeout: 15000, encoding: 'utf-8', shell: getShell() }, (_e, out, err) => {
-                    const o = String(out || err || '').trim();
-                    panel.webview.html = o ? renderHtml(selected.label, o) : errorHtml(`No documentation found for "${selected.label}".`);
-                });
-            });
             return;
         }
 
@@ -78,7 +67,7 @@ function parseMultipleTopics(output: string): Array<{ name: string; desc: string
 
 function multipleTopicsHtml(apiName: string, topics: Array<{ name: string; desc: string }>): string {
     const items = topics.map(t =>
-        `<li><div class="param-name">${esc(t.name)}</div><div class="cont">${esc(t.desc)}</div></li>`
+                `<li><div class="param-name"><a href="${explainCommandUri(t.name)}">${esc(t.name)}</a></div><div class="cont">${esc(t.desc)}</div></li>`
     ).join('');
     return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styles()}</head><body>
 <div class="api-header">
@@ -87,10 +76,15 @@ function multipleTopicsHtml(apiName: string, topics: Array<{ name: string; desc:
 </div>
 <h2 class="sec-h">Multiple matching topics</h2>
 <p style="margin:0 0 14px;color:var(--vscode-descriptionForeground,#888);font-size:12px;">
-  A topic picker has opened above \u2014 select one to view its documentation.
+    Click a topic below to open its documentation directly.
 </p>
 <ul class="props">${items}</ul>
 </body></html>`;
+}
+
+function explainCommandUri(topicName: string): string {
+        const args = encodeURIComponent(JSON.stringify([topicName]));
+        return `command:nowdev-ai-toolbox.sdkExplain?${args}`;
 }
 
 // ── HTML templates ─────────────────────────────────────────────────────────────

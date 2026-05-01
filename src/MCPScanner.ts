@@ -9,8 +9,10 @@ export interface McpServer {
 }
 
 /**
- * Scans for installed MCP servers from VS Code settings and the workspace
- * .vscode/mcp.json file (supported since VS Code 1.118).
+ * Scans for installed MCP servers from VS Code settings and workspace MCP files.
+ *
+ * VS Code 1.118 uses workspace-level `.mcp.json` files. We also keep legacy
+ * support for `.vscode/mcp.json` so existing workspaces continue to work.
  *
  * Servers are deduplicated by name. Settings-level entries take precedence
  * over file-level entries so that user-profile servers are not shadowed.
@@ -30,24 +32,39 @@ export function scanMcpServers(): McpServer[] {
         }
     }
 
-    // 2. Workspace .vscode/mcp.json (VS Code 1.118+)
+    // 2. Workspace MCP files.
+    // Prefer the current `.mcp.json` location, then fall back to legacy
+    // `.vscode/mcp.json` for backwards compatibility.
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders && workspaceFolders.length > 0) {
-        const mcpJsonPath = path.join(workspaceFolders[0].uri.fsPath, '.vscode', 'mcp.json');
-        try {
-            if (fs.existsSync(mcpJsonPath)) {
-                const raw = fs.readFileSync(mcpJsonPath, 'utf-8');
-                const data = JSON.parse(raw) as Record<string, unknown>;
-                const fileServers = (data['servers'] ?? {}) as Record<string, Record<string, unknown>>;
-                for (const name of Object.keys(fileServers)) {
-                    if (!seen.has(name)) {
-                        seen.add(name);
-                        const srv = fileServers[name];
-                        servers.push({ name, source: 'file', type: srv['type'] as string | undefined });
+        for (const folder of workspaceFolders) {
+            const folderPath = folder.uri.fsPath;
+            const fileCandidates = [
+                path.join(folderPath, '.mcp.json'),
+                path.join(folderPath, '.vscode', 'mcp.json'),
+            ];
+
+            for (const mcpJsonPath of fileCandidates) {
+                try {
+                    if (!fs.existsSync(mcpJsonPath)) {
+                        continue;
                     }
+
+                    const raw = fs.readFileSync(mcpJsonPath, 'utf-8');
+                    const data = JSON.parse(raw) as Record<string, unknown>;
+                    const fileServers = (data['servers'] ?? {}) as Record<string, Record<string, unknown>>;
+                    for (const name of Object.keys(fileServers)) {
+                        if (!seen.has(name)) {
+                            seen.add(name);
+                            const srv = fileServers[name];
+                            servers.push({ name, source: 'file', type: srv['type'] as string | undefined });
+                        }
+                    }
+                } catch {
+                    /* ignore parse/read errors */
                 }
             }
-        } catch { /* ignore parse/read errors */ }
+        }
     }
 
     return servers;

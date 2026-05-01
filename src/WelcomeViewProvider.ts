@@ -157,13 +157,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 case 'openCopilotChat':
-                    vscode.commands.executeCommand('workbench.action.chat.open', {
-                        query: '@NowDev AI Agent ',
-                        isPartialQuery: true,
-                    });
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openCopilotChat');
                     break;
                 case 'openSettings':
                     vscode.commands.executeCommand('workbench.action.openSettings', 'nowdev-ai-toolbox');
+                    break;
+                case 'collectCopilotDiagnostics':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.collectCopilotDiagnostics');
+                    break;
+                case 'showCopilotChatLogs':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.showCopilotChatLogs');
                     break;
                 case 'updateConfig': {
                     const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
@@ -387,11 +390,19 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         nowConfigWatcher.onDidCreate(() => this._updateStatus());
         nowConfigWatcher.onDidDelete(() => this._updateStatus());
 
-        // Watch for .vscode/mcp.json changes (VS Code 1.118+) to refresh detected servers
-        const mcpJsonWatcher = vscode.workspace.createFileSystemWatcher('**/.vscode/mcp.json');
-        mcpJsonWatcher.onDidChange(() => { this._mcpServers = scanMcpServers(); this._updateStatus(); });
-        mcpJsonWatcher.onDidCreate(() => { this._mcpServers = scanMcpServers(); this._updateStatus(); });
-        mcpJsonWatcher.onDidDelete(() => { this._mcpServers = scanMcpServers(); this._updateStatus(); });
+        // Watch for workspace MCP file changes to refresh detected servers.
+        // `.mcp.json` is the current VS Code location; `.vscode/mcp.json` is
+        // watched as a legacy fallback for existing workspaces.
+        const mcpJsonWatchers = [
+            vscode.workspace.createFileSystemWatcher('**/.mcp.json'),
+            vscode.workspace.createFileSystemWatcher('**/.vscode/mcp.json'),
+        ];
+        const refreshMcpServers = () => { this._mcpServers = scanMcpServers(); this._updateStatus(); };
+        for (const watcher of mcpJsonWatchers) {
+            watcher.onDidChange(refreshMcpServers);
+            watcher.onDidCreate(refreshMcpServers);
+            watcher.onDidDelete(refreshMcpServers);
+        }
 
         // Watch for nowdev-ai-config.json changes to pick up memoryLocation and mcpIntegrations
         const aiConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.vscode/nowdev-ai-config.json');
@@ -807,9 +818,12 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         <!-- At-a-glance workspace status (rendered by main.js) -->
         <div id="workspaceStatus" class="workspace-status"></div>
 
+        <div id="onboardingSummary" class="onboarding-summary"></div>
+
         <!-- Quick Action -->
         <div class="section">
             <button class="btn-primary" id="openChat">Open Copilot Chat &nbsp;&middot;&nbsp; Ctrl+Shift+I</button>
+            <div class="chat-picker-hint">After chat opens, pick <strong>NowDev AI Agent</strong> from the agent picker.</div>
         </div>
 
         <!-- Prerequisites Status -->
@@ -1152,6 +1166,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div class="field-desc agents-desc">
                 Agent files are written to <code>.github/agents/</code>. Disabled agents are not written to the workspace and are removed from orchestration routing.
             </div>
+            <div class="agents-actions">
+                <button class="fix-btn" id="showCopilotChatLogs" title="Open the Copilot chat log view">Chat Logs</button>
+                <button class="fix-btn" id="collectCopilotDiagnostics" title="Collect diagnostics for Copilot support and troubleshooting">Diagnostics</button>
+            </div>
             <div id="agentCards"></div>
         </div>
 
@@ -1164,7 +1182,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
             </div>
             <div class="field-desc" style="margin-bottom: 8px;">
-                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code> or in <code>.vscode/mcp.json</code>.
+                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.
             </div>
             <div id="mcpServersList">
                 <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>

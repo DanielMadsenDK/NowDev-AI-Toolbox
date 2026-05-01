@@ -5,8 +5,8 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.4.7-blue)
-  ![VS Code](https://img.shields.io/badge/VS%20Code-1.113+-blue)
+  ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+  ![VS Code](https://img.shields.io/badge/VS%20Code-1.118+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
   <br>
@@ -28,11 +28,12 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 *   **Multi-Tier Agent Architecture**: The orchestrator delegates to development agents, which hand off to specialized reviewer agents — agents calling agents — enabling deep, context-aware automation at every layer of the development workflow.
 *   **Interactive Workflow**: Uses interactive tools to clarify requirements and validate designs.
 *   **Live Instance Preview & Autonomous Verification**: Agents autonomously inspect your ServiceNow instance in real-time—capturing screenshots, reading form field state, validating form behavior, and detecting client-side issues without manual inspection. Perfect for post-deployment verification and debugging client-side problems.
+*   **Guided Copilot Setup**: The sidebar now highlights the Project tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
 
 ## Installation & Usage
 
 ### Prerequisites
-- Visual Studio Code 1.113 or later
+- Visual Studio Code 1.118 or later
 - GitHub Copilot Chat extension
 - **Enable nested sub-agents** — add `"chat.subagents.allowInvocationsFromSubagents": true` to your VS Code `settings.json`. Without this setting, the multi-level agent hierarchy will not function (coordinators cannot invoke their specialists).
 

@@ -33,6 +33,31 @@
     document.getElementById('openSettings').addEventListener('click', () => {
         vscode.postMessage({ command: 'openSettings' });
     });
+    var onboardingSummary = document.getElementById('onboardingSummary');
+    if (onboardingSummary) {
+        onboardingSummary.addEventListener('click', function (event) {
+            var target = event.target.closest('[data-onboarding-action]');
+            if (!target) { return; }
+            var action = target.getAttribute('data-onboarding-action');
+            switch (action) {
+                case 'fixAll':
+                    vscode.postMessage({ command: 'fixAllSettings' });
+                    break;
+                case 'gotoProject':
+                    activateTab('project');
+                    break;
+                case 'gotoSdk':
+                    activateTab('sdk');
+                    break;
+                case 'gotoAgents':
+                    activateTab('agents');
+                    break;
+                case 'initFluentProject':
+                    vscode.postMessage({ command: 'initFluentProject' });
+                    break;
+            }
+        });
+    }
     document.getElementById('fixAll').addEventListener('click', () => {
         vscode.postMessage({ command: 'fixAllSettings' });
     });
@@ -100,6 +125,12 @@
 
     document.getElementById('showAgentTopology').addEventListener('click', () => {
         vscode.postMessage({ command: 'showAgentTopology' });
+    });
+    document.getElementById('showCopilotChatLogs').addEventListener('click', () => {
+        vscode.postMessage({ command: 'showCopilotChatLogs' });
+    });
+    document.getElementById('collectCopilotDiagnostics').addEventListener('click', () => {
+        vscode.postMessage({ command: 'collectCopilotDiagnostics' });
     });
 
     // ── SDK tab ───────────────────────────────────────────────────
@@ -246,7 +277,18 @@
 
     // Track latest snapshot pieces so the workspace-status strip can be rebuilt
     // independently of which message arrived last.
-    var _wsState = { prereqsOk: 0, prereqsTotal: 0, conn: null, fluentScope: null };
+    var _wsState = {
+        prereqsOk: 0,
+        prereqsTotal: 0,
+        conn: null,
+        fluentScope: null,
+        hasInstanceUrl: false,
+        hasCustomInstructionsFile: false,
+        mcpServerCount: 0,
+        selectedMcpCount: 0,
+        authAliasCount: null,
+        authAliasesLoaded: false,
+    };
 
     function updateChecks(checks) {
         let allOk = true;
@@ -273,6 +315,7 @@
         document.getElementById('fixAll').style.display = allOk ? 'none' : '';
         _wsState.prereqsOk = okCount;
         _wsState.prereqsTotal = total;
+        renderOnboardingSummary();
     }
 
     // ── Workspace status strip (Home tab) ──────────────────────────
@@ -314,6 +357,8 @@
     function updateSettings(settings) {
         const urlInput = document.getElementById('instanceUrl');
         const styleSelect = document.getElementById('devStyle');
+        _wsState.hasInstanceUrl = !!(settings && settings.instanceUrl);
+        _wsState.hasCustomInstructionsFile = !!(settings && settings.customInstructionsFile);
         if (document.activeElement !== urlInput) {
             urlInput.value = settings.instanceUrl || '';
         }
@@ -330,6 +375,7 @@
             filePathEl.style.display = 'none';
             clearBtn.style.display = 'none';
         }
+        renderOnboardingSummary();
     }
 
     function updateFluentApp(fluentApp) {
@@ -344,6 +390,7 @@
             initSection.style.display = '';
             initHr.style.display = '';
             _wsState.fluentScope = null;
+            renderOnboardingSummary();
             return;
         }
         _wsState.fluentScope = fluentApp.scope || null;
@@ -363,6 +410,7 @@
         info.innerHTML = rows.map(r =>
             '<div class="app-info-row"><span class="app-info-key">' + esc(r.key) + '</span><span class="app-info-value">' + esc(r.value) + '</span></div>'
         ).join('');
+        renderOnboardingSummary();
     }
 
     function updateEnvironment(env) {
@@ -670,13 +718,16 @@
     function updateMcpServers(servers, selectedMcp) {
         var list = document.getElementById('mcpServersList');
         if (!list) { return; }
+        _wsState.mcpServerCount = servers ? servers.length : 0;
+        _wsState.selectedMcpCount = selectedMcp ? selectedMcp.length : 0;
 
         if (!servers || servers.length === 0) {
             list.innerHTML =
                 '<div class="field-desc" style="font-style:italic;">' +
                 'No MCP servers detected. Add servers via the Extensions view ' +
-                '<code>@mcp</code> or in <code>.vscode/mcp.json</code>.' +
+                '<code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.' +
                 '</div>';
+            renderOnboardingSummary();
             return;
         }
 
@@ -704,6 +755,7 @@
                 vscode.postMessage({ command: 'toggleMcp', name: cb.dataset.mcp, enabled: cb.checked });
             });
         });
+        renderOnboardingSummary();
     }
 
     // ── MCP Documentation Sources rendering ────────────────────────
@@ -826,11 +878,17 @@
         var authSelect = document.getElementById('sdkCmdAuth');
         if (!list) { return; }
 
+        _wsState.authAliasesLoaded = true;
+
         if (!aliases || aliases.length === 0) {
+            _wsState.authAliasCount = 0;
             list.innerHTML = '<div class="field-desc" style="font-style:italic;">No aliases found. Use the <strong>Add&hellip;</strong> button or run <code>now-sdk auth --add</code>.</div>';
             if (authSelect) { authSelect.innerHTML = '<option value="">(SDK default)</option>'; }
+            renderOnboardingSummary();
             return;
         }
+
+        _wsState.authAliasCount = aliases.length;
 
         // Rebuild auth select options, preserving current selection
         if (authSelect) {
@@ -869,6 +927,7 @@
                 vscode.postMessage({ command: 'sdkAuthRemove', alias: btn.dataset.alias });
             });
         });
+        renderOnboardingSummary();
     }
 
     // ── SDK command status ─────────────────────────────────────────
@@ -904,6 +963,7 @@
         var el = document.getElementById('connectionStatus');
         _wsState.conn = state || null;
         refreshWorkspaceStatus();
+        renderOnboardingSummary();
         if (!el) { return; }
         if (!state) { el.style.display = 'none'; return; }
         el.style.display = 'block';
@@ -983,6 +1043,116 @@
                 (timeAgo ? ' <span class="changes-detail">' + esc(timeAgo) + '</span>' : '') +
                 ' — run Transform to sync</span>';
         }
+    }
+
+    function renderOnboardingSummary() {
+        var el = document.getElementById('onboardingSummary');
+        if (!el) { return; }
+
+        var steps = [];
+        var prereqsReady = _wsState.prereqsTotal > 0 && _wsState.prereqsOk === _wsState.prereqsTotal;
+
+        if (!prereqsReady) {
+            var missing = Math.max(_wsState.prereqsTotal - _wsState.prereqsOk, 1);
+            steps.push({
+                tone: 'warn',
+                title: 'Enable Copilot prerequisites',
+                detail: missing + ' required setting' + (missing !== 1 ? 's' : '') + ' still need to be fixed before the agent workflow is fully available.',
+                action: 'fixAll',
+                label: 'Fix All',
+            });
+        }
+
+        if (!_wsState.hasCustomInstructionsFile) {
+            steps.push({
+                tone: 'info',
+                title: 'Add a custom instructions file',
+                detail: 'Use the Project tab to attach a Markdown or text file with your ServiceNow and team-specific guidance for every session.',
+                action: 'gotoProject',
+                label: 'Open Project Tab',
+            });
+        }
+
+        if (!_wsState.hasInstanceUrl) {
+            steps.push({
+                tone: 'info',
+                title: 'Set your ServiceNow instance URL',
+                detail: 'Project-aware prompts and connection checks work better once the workspace knows which instance you are targeting.',
+                action: 'gotoProject',
+                label: 'Open Project Tab',
+            });
+        } else if (_wsState.conn && !_wsState.conn.checking && !_wsState.conn.reachable) {
+            steps.push({
+                tone: 'warn',
+                title: 'Verify instance connectivity',
+                detail: 'The configured instance is currently unreachable' + (_wsState.conn.error ? ': ' + _wsState.conn.error + '.' : '.') + ' Recheck the URL or network path.',
+                action: 'gotoProject',
+                label: 'Review Connection',
+            });
+        }
+
+        if (_wsState.authAliasesLoaded && _wsState.authAliasCount === 0) {
+            steps.push({
+                tone: 'info',
+                title: 'Add an SDK auth alias',
+                detail: 'Most SDK workflows are faster once now-sdk has a saved auth alias for your instance.',
+                action: 'gotoSdk',
+                label: 'Open SDK Tab',
+            });
+        }
+
+        if (_wsState.selectedMcpCount === 0) {
+            steps.push({
+                tone: _wsState.mcpServerCount > 0 ? 'info' : 'warn',
+                title: _wsState.mcpServerCount > 0 ? 'Select MCP tools for agents' : 'Add an MCP documentation source',
+                detail: _wsState.mcpServerCount > 0
+                    ? 'Detected MCP servers are not yet exposed to the workspace agents.'
+                    : 'No MCP servers are currently detected, so agents will fall back to built-in skills only.',
+                action: 'gotoAgents',
+                label: 'Open Agents Tab',
+            });
+        }
+
+        if (!_wsState.fluentScope) {
+            steps.push({
+                tone: 'info',
+                title: 'Initialize a Fluent project',
+                detail: 'Create or adopt a now.config.json workspace so the SDK and Fluent agents can work with real app metadata.',
+                action: 'initFluentProject',
+                label: 'Initialize Project',
+            });
+        }
+
+        if (steps.length === 0) {
+            el.className = 'onboarding-summary ready';
+            el.innerHTML =
+                '<div class="onboarding-summary-header">Workspace onboarding looks good</div>' +
+                '<div class="onboarding-summary-body">Copilot prerequisites, project context, SDK access, and agent integrations are in place. You can start from chat or move straight into build and review flows.</div>';
+            return;
+        }
+
+        var summaryTitle = 'Next recommended steps';
+        var summaryBody = 'Finish these items to reduce setup friction and give the NowDev agents better project context.';
+        var visibleSteps = steps.slice(0, 4);
+
+        el.className = 'onboarding-summary';
+        el.innerHTML =
+            '<div class="onboarding-summary-header">' + summaryTitle + '</div>' +
+            '<div class="onboarding-summary-body">' + summaryBody + '</div>' +
+            '<div class="onboarding-steps">' +
+            visibleSteps.map(function (step) {
+                return '<div class="onboarding-step ' + esc(step.tone) + '">' +
+                    '<div class="onboarding-step-copy">' +
+                    '<div class="onboarding-step-title">' + esc(step.title) + '</div>' +
+                    '<div class="onboarding-step-detail">' + esc(step.detail) + '</div>' +
+                    '</div>' +
+                    '<button class="btn-secondary onboarding-step-action" data-onboarding-action="' + esc(step.action) + '">' + esc(step.label) + '</button>' +
+                    '</div>';
+            }).join('') +
+            (steps.length > visibleSteps.length
+                ? '<div class="onboarding-more">+' + esc(String(steps.length - visibleSteps.length)) + ' more recommended step' + (steps.length - visibleSteps.length !== 1 ? 's' : '') + ' in the other tabs.</div>'
+                : '') +
+            '</div>';
     }
 
     // ── Utility ────────────────────────────────────────────────────

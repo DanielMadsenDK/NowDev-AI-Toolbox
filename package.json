@@ -57,6 +57,16 @@
         "category": "NowDev AI"
       },
       {
+        "command": "nowdev-ai-toolbox.collectCopilotDiagnostics",
+        "title": "Copilot: Collect Diagnostics",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.showCopilotChatLogs",
+        "title": "Copilot: Show Chat Logs",
+        "category": "NowDev AI"
+      },
+      {
         "command": "nowdev-ai-toolbox.refreshStatus",
         "title": "Refresh Status",
         "category": "NowDev AI"
@@ -119,6 +129,21 @@
       {
         "command": "nowdev-ai-toolbox.sdkAuthSetDefault",
         "title": "SDK: Set Default Auth Alias",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.sdkInstallInfo",
+        "title": "SDK: Show Install Info",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.sdkCheckChanges",
+        "title": "SDK: Check Instance Changes",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.checkConnection",
+        "title": "ServiceNow: Check Instance Connection",
         "category": "NowDev AI"
       },
       {
