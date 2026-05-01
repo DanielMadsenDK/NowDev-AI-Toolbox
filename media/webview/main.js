@@ -165,6 +165,14 @@
         });
     }
 
+    // Open Context Scanner (scan instance for relevant scripts + knowledge)
+    var openContextScannerBtn = document.getElementById('openContextScannerBtn');
+    if (openContextScannerBtn) {
+        openContextScannerBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openContextScanner' });
+        });
+    }
+
     // Transform from local XML
     var transformFromXmlBtn = document.getElementById('transformFromXmlBtn');
     if (transformFromXmlBtn) {

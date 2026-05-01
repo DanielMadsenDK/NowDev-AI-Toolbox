@@ -340,6 +340,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'openDependencyPicker':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.openDependencyPicker');
                     break;
+                case 'openContextScanner':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openContextScanner');
+                    break;
                 case 'sdkAuthAdd':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthAdd');
                     break;
@@ -1051,6 +1054,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         <button class="sdk-help-btn" data-cmd="dependencies" title="Dependencies help">?</button>
                         <button class="sdk-opts-btn" data-opts="opts-deps" title="Dependencies options">&#9881;</button>
                         <button class="fix-btn" id="openDepPickerBtn" title="Browse instance and add dependencies">Browse&hellip;</button>
+                        <button class="fix-btn" id="openContextScannerBtn" title="Scan instance for relevant scripts and knowledge articles">Scan for Context&hellip;</button>
                         <button class="fix-btn sdk-run-btn" data-cmd="dependencies">Run</button>
                     </div>
                 </div>

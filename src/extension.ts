@@ -9,6 +9,7 @@ import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
 import { showDependencyPickerPanel } from './DependencyPickerPanel';
+import { showContextScannerPanel } from './ContextScannerPanel';
 import { InstanceClient } from './InstanceClient';
 import { getShell } from './shellConfig';
 
@@ -616,6 +617,11 @@ export function activate(context: vscode.ExtensionContext) {
         // Open the dedicated Dependency Picker panel
         vscode.commands.registerCommand('nowdev-ai-toolbox.openDependencyPicker', () => {
             showDependencyPickerPanel(context);
+        }),
+
+        // Open the Instance Context Scanner panel
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openContextScanner', () => {
+            showContextScannerPanel(context);
         }),
 
         // Clear stored REST credentials for an auth alias

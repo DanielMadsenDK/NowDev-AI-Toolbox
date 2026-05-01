@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -12,7 +12,7 @@
   },
   "icon": "media/agent-icon.png",
   "engines": {
-    "vscode": "^1.118.0"
+    "vscode": "^1.117.0"
   },
   "categories": [
     "AI",
@@ -149,6 +149,11 @@
       {
         "command": "nowdev-ai-toolbox.openDependencyPicker",
         "title": "SDK: Open Dependency Picker",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.openContextScanner",
+        "title": "SDK: Scan Instance for Context",
         "category": "NowDev AI"
       },
       {
