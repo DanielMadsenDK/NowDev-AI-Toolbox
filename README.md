@@ -5,8 +5,8 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-  ![VS Code](https://img.shields.io/badge/VS%20Code-1.118+-blue)
+  ![Version](https://img.shields.io/badge/version-0.5.0-blue)
+  ![VS Code](https://img.shields.io/badge/VS%20Code-1.117+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
   <br>
@@ -29,6 +29,9 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 *   **Interactive Workflow**: Uses interactive tools to clarify requirements and validate designs.
 *   **Live Instance Preview & Autonomous Verification**: Agents autonomously inspect your ServiceNow instance in real-time—capturing screenshots, reading form field state, validating form behavior, and detecting client-side issues without manual inspection. Perfect for post-deployment verification and debugging client-side problems.
 *   **Guided Copilot Setup**: The sidebar now highlights the Project tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
+*   **Dynamic Agent Management**: Enable or disable individual agents and their tools directly from the sidebar. Hit Resync to instantly update your workspace agent configuration. MCP server detection is automatic.
+*   **Agent Topology Viewer**: Visual panel that renders the full agent hierarchy as a colour-coded tree — see which agents are active and how they relate at a glance.
+*   **Instance Integration**: Connect to your ServiceNow instance (credentials stored securely) to browse and import dependencies via the **Dependency Picker**, or scan existing scripts and knowledge articles with the **Context Scanner** to give agents richer context.
 
 ## Installation & Usage
 
@@ -85,6 +88,16 @@ If you cannot install the Context7 MCP plugin due to group policy restrictions o
 5. **Start chatting** to plan and coordinate your ServiceNow development tasks
 
 All agents are automatically available in every workspace once the extension is installed.
+
+### Connecting to Your ServiceNow Instance
+
+The extension can connect directly to a ServiceNow instance for the Dependency Picker and Context Scanner features. Credentials are stored securely using VS Code's built-in secret storage.
+
+1. Open the **NowDev AI Toolbox** sidebar.
+2. In the **Instance** row, enter your instance URL and click **Connect**.
+3. Once connected, use **Open Dependency Picker** to browse records and add them to `now.config.json`, or **Scan Instance** to pull in existing scripts and knowledge articles as AI context.
+
+To clear stored credentials at any time: Command Palette → **NowDev AI: Clear Stored Credentials**.
 
 ### Getting Started with Fluent SDK
 
@@ -174,6 +187,7 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-Reviewer | Review router — detects Classic vs Fluent and delegates to the right reviewer | Classic Reviewer, Fluent Reviewer |
 | NowDev-AI-Release-Expert | Release router — detects Classic vs Fluent and delegates to the right release agent | Classic Release, Fluent Release |
 | NowDev-AI-Pipeline-Expert | CI/CD pipeline generator — creates GitHub Actions, Azure DevOps, and Jenkins pipeline YAML for Fluent SDK deployments; covers credential management, branch strategies, and multi-scope deployments | — |
+| NowDev-AI-DevOps | DevOps integration — CI/CD pipeline authoring, automated release coordination, and multi-environment deployment strategies | — |
 
 ### Tier 3 — Specialists (internal, invoked by coordinators only)
 
@@ -212,6 +226,7 @@ graph TD
     ORC --> REV["NowDev-AI-Reviewer\n(Review Router)"]
     ORC --> REL["NowDev-AI-Release-Expert\n(Release Router)"]
     ORC --> PIP["NowDev-AI-Pipeline-Expert\n(CI/CD Pipeline Generator)"]
+    ORC --> DEV["NowDev-AI-DevOps\n(DevOps Integration)"]
 
     CLA --> SCR["NowDev-AI-Script-Developer\n(Script Includes)"]
     CLA --> BRD["NowDev-AI-BusinessRule-Developer\n(Business Rules)"]
