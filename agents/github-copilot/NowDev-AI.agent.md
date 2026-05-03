@@ -8,6 +8,7 @@ user-invocable: true
 
 <workflow>
 {{DEVOPS_PREAMBLE}}
+{{PRODUCT_DOCS_CONTEXT}}
 ## Lightweight vs. Full-Project Decision
 
 **Lightweight Request Indicators:**

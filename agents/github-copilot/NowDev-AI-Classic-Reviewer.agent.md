@@ -9,6 +9,7 @@ handoffs:
     prompt: Classic code review completed. Returning results for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Receive explicit file list from orchestrator

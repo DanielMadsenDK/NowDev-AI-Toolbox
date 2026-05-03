@@ -9,6 +9,7 @@ handoffs:
     prompt: Refinement complete. The following is a fully refined implementation brief ready for development orchestration.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Parse the user story or implementation request and extract key entities: tables, fields, groups, users, roles, pages, URLs, conditions, and business rules.

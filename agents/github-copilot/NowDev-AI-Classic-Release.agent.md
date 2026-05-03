@@ -10,6 +10,7 @@ handoffs:
     prompt: Classic release packaging completed. Returning results for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Read all provided .js artifact files

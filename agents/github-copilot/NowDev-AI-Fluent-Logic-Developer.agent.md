@@ -10,6 +10,7 @@ handoffs:
     prompt: Server-side logic implementation completed. Returning created files for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer

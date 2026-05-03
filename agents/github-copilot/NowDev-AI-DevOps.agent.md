@@ -5,6 +5,7 @@ description: specialized agent for project management integration — reads task
 argument-hint: "Action to perform: 'read' (fetch task details, pass task ID or description), or 'update' (update task status/comment, pass task ID, new status, and summary of completed work)"
 tools: ['vscode/askQuestions', 'read/readFile', 'todo']
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 ## Reading a task

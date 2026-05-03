@@ -19,6 +19,7 @@ handoffs:
     prompt: "Apply the fixes described in the Structured Findings Block produced by the last Fluent code review. Address every finding in priority order (Critical first). The Structured Findings Block from the review is included above in the conversation — read it to obtain the exact file paths, line numbers, categories, and recommended fixes before writing any code."
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Inspect the file list provided by the orchestrator

@@ -11,6 +11,7 @@ handoffs:
     prompt: Release preparation completed. Returning results for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Inspect the file list provided by the orchestrator

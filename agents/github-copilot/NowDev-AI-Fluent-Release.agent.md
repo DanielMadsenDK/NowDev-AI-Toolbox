@@ -10,6 +10,7 @@ handoffs:
     prompt: Fluent SDK deployment completed. Returning results for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Verify the project has now.config.json and a valid scope/version

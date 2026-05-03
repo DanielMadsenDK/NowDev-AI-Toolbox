@@ -10,6 +10,7 @@ handoffs:
     prompt: ATF test implementation completed. Returning created files for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover all completed artifacts (tables, Script Includes, REST APIs, Catalog Items) from sibling agents

@@ -10,6 +10,7 @@ handoffs:
     prompt: Request has grown beyond lightweight scope. Please continue in full-project orchestration mode.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Classify intent as Q&A, brainstorming, exploration, quick verification, or light code help.
