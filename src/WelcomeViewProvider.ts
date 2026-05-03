@@ -410,12 +410,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         canSelectFiles: false,
                         canSelectFolders: true,
                         canSelectMany: false,
-                        openLabel: 'Select Docs Folder',
+                        openLabel: 'Select Central Docs Folder',
                     });
                     if (folderUris && folderUris.length > 0) {
-                        this._productDocsConfig = { ...this._productDocsConfig, localPath: folderUris[0].fsPath };
-                        this._syncWorkspaceAgents();
-                        this._updateStatus();
+                        await vscode.workspace.getConfiguration('nowdev-ai-toolbox').update(
+                            'docsLocalPath', folderUris[0].fsPath, vscode.ConfigurationTarget.Global
+                        ); // triggers onDidChangeConfiguration → _syncWorkspaceAgents + _updateStatus
+                        // _updateStatus fires via onDidChangeConfiguration
                     }
                     break;
                 }
@@ -430,7 +431,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             }
         });
 
-        vscode.workspace.onDidChangeConfiguration(() => {
+        vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration('nowdev-ai-toolbox.docsLocalPath')) {
+                this._syncWorkspaceAgents();
+            }
             this._updateStatus();
         });
 
@@ -513,7 +517,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpDocSources: this._mcpDocSources, devopsConfig: this._devopsConfig, productDocsConfig: this._productDocsConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus });
+        const docsRelease = this._productDocsConfig.release;
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpDocSources: this._mcpDocSources, devopsConfig: this._devopsConfig, productDocsConfig: this._productDocsConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease) });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
@@ -589,9 +594,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 this._devopsConfig = { ...DEFAULT_DEVOPS_CONFIG, ...(config.devopsConfig as Partial<DevOpsConfig>) };
             }
 
-            // Load product documentation config
+            // Load product documentation config — localPath and lastSynced are global, not restored from file
             if (config.productDocumentation && typeof config.productDocumentation === 'object') {
-                this._productDocsConfig = { ...DEFAULT_PRODUCT_DOCS_CONFIG, ...(config.productDocumentation as Partial<ProductDocsConfig>) };
+                const saved = config.productDocumentation as Partial<ProductDocsConfig>;
+                this._productDocsConfig = {
+                    ...DEFAULT_PRODUCT_DOCS_CONFIG,
+                    mode:      saved.mode      ?? DEFAULT_PRODUCT_DOCS_CONFIG.mode,
+                    release:   saved.release   ?? DEFAULT_PRODUCT_DOCS_CONFIG.release,
+                    remoteUrl: saved.remoteUrl ?? DEFAULT_PRODUCT_DOCS_CONFIG.remoteUrl,
+                };
             }
 
             // Sync agents whenever config changes
@@ -617,11 +628,17 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
         const cfg = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
         const autoUpdate = cfg.get<boolean>('autoUpdateAgentOverrides', true);
+        const { release } = this._productDocsConfig;
+        const resolvedProductDocsConfig = {
+            ...this._productDocsConfig,
+            localPath: this._getResolvedDocsPath(release),
+            lastSynced: this._getDocsSyncTime(release),
+        };
         syncAllAgents(
             this._extensionUri.fsPath,
             workspaceFolders[0].uri.fsPath,
             this._agentManifests,
-            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, mcpDocSources: this._mcpDocSources, autoUpdate, devopsConfig: this._devopsConfig, productDocsConfig: this._productDocsConfig }
+            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, mcpDocSources: this._mcpDocSources, autoUpdate, devopsConfig: this._devopsConfig, productDocsConfig: resolvedProductDocsConfig }
         );
     }
 
@@ -660,13 +677,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _downloadServiceNowDocs(): Promise<void> {
-        const { release, localPath } = this._productDocsConfig;
+        const { release } = this._productDocsConfig;
         if (!release) {
             vscode.window.showErrorMessage('Select a ServiceNow release before downloading.');
             return;
         }
-        if (!localPath) {
-            vscode.window.showErrorMessage('Select a local folder before downloading.');
+        const destPath = this._getResolvedDocsPath(release);
+        if (!destPath) {
+            vscode.window.showErrorMessage('Set a central docs folder in Settings before downloading.');
             return;
         }
 
@@ -691,7 +709,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     const raw = await this._rawGithubGet(
                         `/ServiceNow/ServiceNowDocs/${encodeURIComponent(release)}/${item.path}`
                     );
-                    const dest = path.join(localPath, item.path);
+                    const dest = path.join(destPath, item.path);
                     fs.mkdirSync(path.dirname(dest), { recursive: true });
                     fs.writeFileSync(dest, raw, 'utf-8');
                 }));
@@ -702,10 +720,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 const llmsTxt = await this._rawGithubGet(
                     `/ServiceNow/ServiceNowDocs/${encodeURIComponent(release)}/llms.txt`
                 );
-                fs.writeFileSync(path.join(localPath, 'llms.txt'), llmsTxt, 'utf-8');
+                fs.writeFileSync(path.join(destPath, 'llms.txt'), llmsTxt, 'utf-8');
             } catch { /* llms.txt may not exist — not an error */ }
 
-            this._productDocsConfig = { ...this._productDocsConfig, lastSynced: new Date().toISOString() };
+            this._setDocsSyncTime(release, new Date().toISOString());
             this._docsDownloadStatus = { loading: false };
             this._syncWorkspaceAgents();
             this._updateStatus();
@@ -755,6 +773,40 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             req.on('error', reject);
             req.end();
         });
+    }
+
+    private _getDocsGlobalPath(): string {
+        return vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('docsLocalPath', '').trim();
+    }
+
+    private _getResolvedDocsPath(release: string): string {
+        const base = this._getDocsGlobalPath();
+        return base && release ? path.join(base, release) : '';
+    }
+
+    private _getDocsSyncTime(release: string): string {
+        const base = this._getDocsGlobalPath();
+        if (!base || !release) { return ''; }
+        const syncFile = path.join(base, '.nowdev-sync.json');
+        try {
+            if (!fs.existsSync(syncFile)) { return ''; }
+            const map = JSON.parse(fs.readFileSync(syncFile, 'utf-8')) as Record<string, string>;
+            return map[release] ?? '';
+        } catch { return ''; }
+    }
+
+    private _setDocsSyncTime(release: string, time: string): void {
+        const base = this._getDocsGlobalPath();
+        if (!base || !release) { return; }
+        const syncFile = path.join(base, '.nowdev-sync.json');
+        let map: Record<string, string> = {};
+        try {
+            if (fs.existsSync(syncFile)) {
+                map = JSON.parse(fs.readFileSync(syncFile, 'utf-8')) as Record<string, string>;
+            }
+        } catch { /* start fresh */ }
+        map[release] = time;
+        try { fs.writeFileSync(syncFile, JSON.stringify(map, null, 2) + '\n', 'utf-8'); } catch { /* ignore */ }
     }
 
     private _setupArtifactWatcher(resolvedPath: string): void {
@@ -879,8 +931,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         // DevOps integration config
         configData.devopsConfig = this._devopsConfig;
 
-        // Product documentation config
-        configData.productDocumentation = this._productDocsConfig;
+        // Product documentation config — localPath and lastSynced are derived from the global
+        // setting and the central sync file, not stored per-workspace
+        const docRelease = this._productDocsConfig.release;
+        configData.productDocumentation = {
+            ...this._productDocsConfig,
+            localPath: this._getResolvedDocsPath(docRelease),
+            lastSynced: this._getDocsSyncTime(docRelease),
+        };
 
         // Per-agent overrides
         if (Object.keys(this._agentOverrides).length > 0) {
@@ -1486,14 +1544,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         <div id="docsLocalSection" style="display:none;">
             <div class="section">
-                <div class="section-title">Local Folder</div>
-                <div class="field-desc" style="margin-bottom:8px;">Documentation will be downloaded here from the selected GitHub release branch.</div>
+                <div class="section-title">Central Docs Folder</div>
+                <div class="field-desc" style="margin-bottom:8px;">
+                    A single shared location for all releases, used across every workspace.
+                    Set it once in Settings (<code>nowdev-ai-toolbox.docsLocalPath</code>) or browse below.
+                </div>
                 <div class="file-picker">
                     <div class="file-picker-row">
                         <button class="btn-secondary" id="browseDocsPath">Browse&hellip;</button>
                     </div>
-                    <div class="file-path" id="docsLocalPath" style="display:none;"></div>
+                    <div class="file-path" id="docsGlobalPath" style="display:none;"></div>
                 </div>
+                <div class="field-desc" id="docsSubfolder" style="margin-top:6px;display:none;"></div>
             </div>
             <div class="section">
                 <div class="section-title">

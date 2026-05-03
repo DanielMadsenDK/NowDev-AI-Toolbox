@@ -295,7 +295,7 @@
                 updateMcpServers(msg.mcpServers, msg.selectedMcp);
                 updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
                 updateDevopsSection(msg.devopsConfig, msg.mcpServers);
-                updateDocsTab(msg.productDocsConfig, msg.docsReleases, msg.docsDownloadStatus);
+                updateDocsTab(msg.productDocsConfig, msg.docsReleases, msg.docsDownloadStatus, msg.docsGlobalPath, msg.docsLastSynced);
                 refreshWorkspaceStatus();
                 break;
             case 'updateAgents':
@@ -765,9 +765,10 @@
 
     // ── Docs tab rendering ─────────────────────────────────────────
 
-    function updateDocsTab(productDocsConfig, docsReleases, docsDownloadStatus) {
-        var cfg = productDocsConfig || { mode: 'remote', release: '', remoteUrl: 'https://www.servicenow.com/llms.txt', localPath: '', lastSynced: '' };
-        _wsState.productDocsConfigured = !!(cfg.release);
+    function updateDocsTab(productDocsConfig, docsReleases, docsDownloadStatus, docsGlobalPath, docsLastSynced) {
+        var cfg = productDocsConfig || { mode: 'remote', release: '', remoteUrl: 'https://www.servicenow.com/llms.txt' };
+        var globalPath = docsGlobalPath || '';
+        _wsState.productDocsConfigured = !!(cfg.release && (cfg.mode === 'remote' || globalPath));
         var releases = docsReleases || [];
 
         // Populate release dropdown
@@ -804,11 +805,19 @@
             urlInput.value = cfg.remoteUrl || 'https://www.servicenow.com/llms.txt';
         }
 
-        // Local path display
-        var pathEl = document.getElementById('docsLocalPath');
-        if (pathEl) {
-            pathEl.textContent   = cfg.localPath || '';
-            pathEl.style.display = cfg.localPath ? '' : 'none';
+        // Central folder display
+        var globalPathEl = document.getElementById('docsGlobalPath');
+        if (globalPathEl) {
+            globalPathEl.textContent   = globalPath || '';
+            globalPathEl.style.display = globalPath ? '' : 'none';
+        }
+
+        // Derived release subfolder
+        var subfolderEl = document.getElementById('docsSubfolder');
+        if (subfolderEl) {
+            var resolved = globalPath && cfg.release ? globalPath + '/' + cfg.release : '';
+            subfolderEl.textContent   = resolved ? 'Path: ' + resolved : '';
+            subfolderEl.style.display = resolved ? '' : 'none';
         }
 
         // Download status
@@ -818,10 +827,10 @@
                 statusEl.textContent = 'Downloading… (this may take a while for large releases)';
             } else if (docsDownloadStatus && docsDownloadStatus.error) {
                 statusEl.textContent = 'Error: ' + docsDownloadStatus.error;
-            } else if (cfg.lastSynced) {
-                statusEl.textContent = 'Last synced: ' + new Date(cfg.lastSynced).toLocaleString();
-            } else if (cfg.localPath) {
-                statusEl.textContent = 'Not yet downloaded.';
+            } else if (docsLastSynced) {
+                statusEl.textContent = 'Last synced: ' + new Date(docsLastSynced).toLocaleString();
+            } else if (globalPath) {
+                statusEl.textContent = 'Not yet downloaded for this release.';
             } else {
                 statusEl.textContent = '';
             }

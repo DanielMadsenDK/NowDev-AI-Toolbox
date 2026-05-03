@@ -5,9 +5,11 @@
     "outDir": "out",
     "rootDir": "src",
     "lib": ["es2020", "dom"],
+    "types": ["node"],
     "sourceMap": true,
     "strict": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "ignoreDeprecations": "5.0"
   },
   "exclude": [
     "node_modules",
