@@ -10,6 +10,7 @@ handoffs:
     prompt: Client Script implementation completed. Returning results and created files.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names for GlideAjax calls

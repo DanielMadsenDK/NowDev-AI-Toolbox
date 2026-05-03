@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -259,6 +259,12 @@
           "default": true,
           "description": "Automatically regenerate the workspace agent override file (.github/agents/NowDev-AI.agent.md) when the extension updates or the MCP integration selection changes. When enabled, the file is always kept in sync with both the bundled agent template and the user's chosen MCP servers. Disable to manage the file manually.",
           "order": 7
+        },
+        "nowdev-ai-toolbox.docsLocalPath": {
+          "type": "string",
+          "default": "",
+          "description": "Central folder for downloaded ServiceNow product documentation. Each release is stored in its own subfolder and the location is shared across all workspaces. Example: /home/user/servicenow-docs",
+          "order": 8
         }
       }
     },

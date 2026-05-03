@@ -52,12 +52,35 @@ export const DEFAULT_DEVOPS_CONFIG: DevOpsConfig = {
     customInstructions: '',
 };
 
+export interface ProductDocsConfig {
+    mode: 'remote' | 'local';
+    release: string;
+    remoteUrl: string;
+    localPath: string;
+    lastSynced: string;
+}
+
+export const DEFAULT_PRODUCT_DOCS_CONFIG: ProductDocsConfig = {
+    mode: 'remote',
+    release: '',
+    remoteUrl: 'https://www.servicenow.com/llms.txt',
+    localPath: '',
+    lastSynced: '',
+};
+
+// Newest first; supplemented at runtime by GitHub API fetch
+export const SERVICENOW_RELEASES: string[] = [
+    'Yokohama', 'Xanadu', 'Washington DC', 'Vancouver', 'Utah',
+    'Tokyo', 'San Diego', 'Rome', 'Quebec', 'Paris',
+];
+
 export interface WorkspaceAgentSyncConfig {
     mcpIntegrations: string[];
     agentOverrides: Record<string, AgentOverride>;
     mcpDocSources: McpDocSources;
     autoUpdate: boolean;
     devopsConfig?: DevOpsConfig;
+    productDocsConfig?: ProductDocsConfig;
 }
 
 const AGENTS_SRC       = path.join('agents', 'github-copilot');
@@ -179,6 +202,7 @@ export function syncAllAgents(
             disabledAgents: [...disabledAgentNames].sort(),
             mcpDocSources: cfg.mcpDocSources,
             devopsConfig:  isDevOpsAgent ? devops : undefined,
+            productDocsConfig: cfg.productDocsConfig,
         });
         const combinedHash = crypto.createHash('sha256').update(stateKey).digest('hex');
 
@@ -198,7 +222,8 @@ export function syncAllAgents(
             combinedHash,
             cfg.mcpDocSources,
             isDevOpsAgent ? devops : undefined,
-            devops
+            devops,
+            cfg.productDocsConfig
         );
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
@@ -215,7 +240,8 @@ function buildContent(
     hash: string,
     docSources: McpDocSources,
     devopsAgentConfig?: DevOpsConfig,
-    orchestratorDevopsConfig?: DevOpsConfig
+    orchestratorDevopsConfig?: DevOpsConfig,
+    productDocsConfig?: ProductDocsConfig
 ): string {
     // Rewrite the tools: [...] line (always single-line in these files)
     const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
@@ -262,6 +288,9 @@ If the user does not provide a task reference, ask them for one before proceedin
 
     // Substitute documentation MCP tokens
     content = applyDocSourceTokens(content, docSources);
+
+    // Substitute product documentation context token
+    content = applyProductDocsToken(content, productDocsConfig);
 
     // Remove any stale stamp, then insert a fresh one after the opening ---
     content = content.replace(/\n# nowdev-managed: true\n# nowdev-hash: [^\n]+\n/g, '\n');
@@ -312,6 +341,40 @@ function applyDocSourceTokens(content: string, sources: McpDocSources): string {
         content = content.replace(pattern, value);
     }
     return content;
+}
+
+/**
+ * Replaces the {{PRODUCT_DOCS_CONTEXT}} token in agent body text with
+ * instructions telling the agent where to find ServiceNow product docs.
+ * Resolves to an empty string when no release is configured.
+ */
+function applyProductDocsToken(content: string, cfg: ProductDocsConfig | undefined): string {
+    if (!content.includes('{{PRODUCT_DOCS_CONTEXT}}')) { return content; }
+
+    let value = '';
+    if (cfg && cfg.release) {
+        if (cfg.mode === 'remote') {
+            value =
+                `## Product Documentation Context\n\n` +
+                `**ServiceNow Release:** ${cfg.release}\n\n` +
+                `Product documentation is indexed at: ${cfg.remoteUrl}\n\n` +
+                `When verifying platform behavior or release-specific APIs for **${cfg.release}**:\n` +
+                `1. Use the \`web\` tool to fetch \`${cfg.remoteUrl}\` to get the doc index.\n` +
+                `2. Follow individual links from that index as needed.\n` +
+                `3. Prefer this index over generic web search for ServiceNow platform questions.`;
+        } else if (cfg.localPath) {
+            value =
+                `## Product Documentation Context\n\n` +
+                `**ServiceNow Release:** ${cfg.release}\n` +
+                `**Local docs path:** ${cfg.localPath}\n\n` +
+                `When verifying platform behavior or release-specific APIs for **${cfg.release}**:\n` +
+                `1. Use \`read/readFile\` on \`${cfg.localPath}/llms.txt\` to discover available files.\n` +
+                `2. Read individual .md files from \`${cfg.localPath}/\` for specific questions.\n` +
+                `3. These docs are authoritative for the ${cfg.release} release.`;
+        }
+    }
+
+    return content.replace(/\{\{PRODUCT_DOCS_CONTEXT\}\}\n/g, value ? value + '\n\n' : '');
 }
 
 function readTag(content: string, tag: string): string {

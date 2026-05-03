@@ -11,6 +11,7 @@ handoffs:
     prompt: Fluent implementation completed. Here are the files created across all specialists.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Analyze the implementation brief and identify all Fluent artifacts needed across all layers

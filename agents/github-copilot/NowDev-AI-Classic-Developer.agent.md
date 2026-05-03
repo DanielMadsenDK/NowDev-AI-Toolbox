@@ -11,6 +11,7 @@ handoffs:
     prompt: Classic implementation completed. Returning all created files and results for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Analyze the business requirements and identify all Classic ServiceNow artifacts needed

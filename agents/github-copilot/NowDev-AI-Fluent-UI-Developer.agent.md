@@ -10,6 +10,7 @@ handoffs:
     prompt: UI and user experience implementation completed. Returning created files for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names (for GlideAjax), REST API paths, table/field names

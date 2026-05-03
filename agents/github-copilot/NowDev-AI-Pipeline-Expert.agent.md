@@ -10,6 +10,7 @@ handoffs:
     prompt: Pipeline configuration generated. Returning results for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Read the project's `now.config.json` and `package.json` to detect scope(s), version, and project structure

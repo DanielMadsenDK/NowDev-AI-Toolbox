@@ -10,6 +10,7 @@ handoffs:
     prompt: NowAssist skill implementation completed. Returning created files.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference

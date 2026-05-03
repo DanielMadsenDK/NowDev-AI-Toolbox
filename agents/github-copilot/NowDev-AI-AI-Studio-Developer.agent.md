@@ -11,6 +11,7 @@ handoffs:
     prompt: AI Studio implementation completed. Returning created files for next steps.
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Analyze the AI Studio requirements and determine the right implementation pattern

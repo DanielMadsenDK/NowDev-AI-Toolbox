@@ -52,6 +52,9 @@
                 case 'gotoAgents':
                     activateTab('agents');
                     break;
+                case 'gotoDocs':
+                    activateTab('docs');
+                    break;
                 case 'initFluentProject':
                     vscode.postMessage({ command: 'initFluentProject' });
                     break;
@@ -242,6 +245,43 @@
         vscode.postMessage({ command: 'rescanTools' });
     });
 
+    // ── Docs tab controls ──────────────────────────────────────────
+    document.getElementById('fetchDocsReleases').addEventListener('click', function () {
+        vscode.postMessage({ command: 'fetchDocsReleases' });
+    });
+
+    document.getElementById('docsRelease').addEventListener('change', function () {
+        vscode.postMessage({ command: 'updateProductDocsRelease', release: this.value });
+    });
+
+    document.querySelectorAll('input[name="docsMode"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            var isLocal = this.value === 'local';
+            var remoteSection = document.getElementById('docsRemoteSection');
+            var localSection  = document.getElementById('docsLocalSection');
+            if (remoteSection) { remoteSection.style.display = isLocal ? 'none' : ''; }
+            if (localSection)  { localSection.style.display  = isLocal ? '' : 'none'; }
+            vscode.postMessage({ command: 'updateProductDocsMode', mode: this.value });
+        });
+    });
+
+    var _docsUrlDebounce;
+    document.getElementById('docsRemoteUrl').addEventListener('input', function () {
+        clearTimeout(_docsUrlDebounce);
+        var val = this.value.trim();
+        _docsUrlDebounce = setTimeout(function () {
+            vscode.postMessage({ command: 'updateProductDocsRemoteUrl', url: val });
+        }, 600);
+    });
+
+    document.getElementById('browseDocsPath').addEventListener('click', function () {
+        vscode.postMessage({ command: 'browseDocsLocalPath' });
+    });
+
+    document.getElementById('syncProductDocs').addEventListener('click', function () {
+        vscode.postMessage({ command: 'syncProductDocs' });
+    });
+
     // ── Message handler ────────────────────────────────────────────
     window.addEventListener('message', (event) => {
         const msg = event.data;
@@ -255,6 +295,7 @@
                 updateMcpServers(msg.mcpServers, msg.selectedMcp);
                 updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
                 updateDevopsSection(msg.devopsConfig, msg.mcpServers);
+                updateDocsTab(msg.productDocsConfig, msg.docsReleases, msg.docsDownloadStatus, msg.docsGlobalPath, msg.docsLastSynced);
                 refreshWorkspaceStatus();
                 break;
             case 'updateAgents':
@@ -296,6 +337,7 @@
         selectedMcpCount: 0,
         authAliasCount: null,
         authAliasesLoaded: false,
+        productDocsConfigured: false,
     };
 
     function updateChecks(checks) {
@@ -721,6 +763,82 @@
         if (clearBtn) { clearBtn.style.display = hasInstructions ? '' : 'none'; }
     }
 
+    // ── Docs tab rendering ─────────────────────────────────────────
+
+    function updateDocsTab(productDocsConfig, docsReleases, docsDownloadStatus, docsGlobalPath, docsLastSynced) {
+        var cfg = productDocsConfig || { mode: 'remote', release: '', remoteUrl: 'https://www.servicenow.com/llms.txt' };
+        var globalPath = docsGlobalPath || '';
+        _wsState.productDocsConfigured = !!(cfg.release && (cfg.mode === 'remote' || globalPath));
+        var releases = docsReleases || [];
+
+        // Populate release dropdown
+        var relSel = document.getElementById('docsRelease');
+        if (relSel) {
+            var relOpts = '<option value="">(select a release)</option>';
+            releases.forEach(function (r) {
+                var sel = r === cfg.release ? ' selected' : '';
+                relOpts += '<option value="' + esc(r) + '"' + sel + '>' + esc(r) + '</option>';
+            });
+            // If configured release is not in list yet, still show it as selected
+            if (cfg.release && releases.indexOf(cfg.release) < 0) {
+                relOpts += '<option value="' + esc(cfg.release) + '" selected>' + esc(cfg.release) + '</option>';
+            }
+            relSel.innerHTML = relOpts;
+        }
+
+        // Mode radios
+        var modeRemote = document.getElementById('docsModeRemote');
+        var modeLocal  = document.getElementById('docsModeLocal');
+        var isLocal    = cfg.mode === 'local';
+        if (modeRemote) { modeRemote.checked = !isLocal; }
+        if (modeLocal)  { modeLocal.checked  = isLocal;  }
+
+        // Show/hide sections
+        var remoteSection = document.getElementById('docsRemoteSection');
+        var localSection  = document.getElementById('docsLocalSection');
+        if (remoteSection) { remoteSection.style.display = isLocal ? 'none' : ''; }
+        if (localSection)  { localSection.style.display  = isLocal ? '' : 'none'; }
+
+        // Remote URL input
+        var urlInput = document.getElementById('docsRemoteUrl');
+        if (urlInput && document.activeElement !== urlInput) {
+            urlInput.value = cfg.remoteUrl || 'https://www.servicenow.com/llms.txt';
+        }
+
+        // Central folder display
+        var globalPathEl = document.getElementById('docsGlobalPath');
+        if (globalPathEl) {
+            globalPathEl.textContent   = globalPath || '';
+            globalPathEl.style.display = globalPath ? '' : 'none';
+        }
+
+        // Derived release subfolder
+        var subfolderEl = document.getElementById('docsSubfolder');
+        if (subfolderEl) {
+            var resolved = globalPath && cfg.release ? globalPath + '/' + cfg.release : '';
+            subfolderEl.textContent   = resolved ? 'Path: ' + resolved : '';
+            subfolderEl.style.display = resolved ? '' : 'none';
+        }
+
+        // Download status
+        var statusEl = document.getElementById('docsDownloadStatus');
+        if (statusEl) {
+            if (docsDownloadStatus && docsDownloadStatus.loading) {
+                statusEl.textContent = 'Downloading… (this may take a while for large releases)';
+            } else if (docsDownloadStatus && docsDownloadStatus.error) {
+                statusEl.textContent = 'Error: ' + docsDownloadStatus.error;
+            } else if (docsLastSynced) {
+                statusEl.textContent = 'Last synced: ' + new Date(docsLastSynced).toLocaleString();
+            } else if (globalPath) {
+                statusEl.textContent = 'Not yet downloaded for this release.';
+            } else {
+                statusEl.textContent = '';
+            }
+        }
+
+        renderOnboardingSummary();
+    }
+
     // ── MCP Integrations rendering ─────────────────────────────────
 
     function updateMcpServers(servers, selectedMcp) {
@@ -1118,6 +1236,16 @@
                     : 'No MCP servers are currently detected, so agents will fall back to built-in skills only.',
                 action: 'gotoAgents',
                 label: 'Open Agents Tab',
+            });
+        }
+
+        if (!_wsState.productDocsConfigured) {
+            steps.push({
+                tone: 'info',
+                title: 'Configure product documentation',
+                detail: 'Select a ServiceNow release in the Docs tab so agents know which platform version you are targeting.',
+                action: 'gotoDocs',
+                label: 'Open Docs Tab',
             });
         }
 

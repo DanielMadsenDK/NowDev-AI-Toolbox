@@ -18,6 +18,7 @@ handoffs:
     prompt: "Apply the fix identified in the debugging analysis above. Read the Diagnostic Results section for the root cause hypothesis, supporting evidence, and recommended next steps. Address only the identified issue — do not change unrelated code."
     send: true
 ---
+{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Gather error symptoms, logs, and context
