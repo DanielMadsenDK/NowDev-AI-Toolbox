@@ -1,7 +1,6 @@
 ---
 name: NowDev-AI-Fluent-Release
 user-invocable: false
-disable-model-invocation: true
 description: specialized agent for Fluent SDK deployment — runs now-sdk build and install, verifies build output, and guides the user through SDK-based deployment to a ServiceNow instance
 argument-hint: "Project root path, target auth alias (from now-sdk auth --list), and whether a clean reinstall (--reinstall) is needed"
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
@@ -30,8 +29,7 @@ STOP if modifying any application code files — this agent deploys only
 </stopping_rules>
 
 <documentation>
-If Context7 is available: query-docs('/servicenow/sdk-examples') for SDK deployment patterns and now-sdk CLI usage; search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full Fluent SDK API reference
-If Context7 is unavailable: reference BUILD-WORKFLOW.md in the servicenow-fluent-development skill; fetch https://servicenow.github.io/sdk/llms.txt as the SDK API reference fallback
+Use {{FLUENT_SDK_MCP}} for SDK deployment patterns and now-sdk CLI usage
 </documentation>
 
 # ServiceNow Fluent Release Agent

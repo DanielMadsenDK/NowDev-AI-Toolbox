@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import { getShell } from './shellConfig';
+import { getSharedPanelStyles } from './SharedPanelStyles';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
 
@@ -241,122 +242,50 @@ function convertToHtml(label: string, command: string, raw: string): string {
 
 function styles(): string {
     return `<style>
-:root { color-scheme: dark light; }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: var(--vscode-font-family, system-ui, sans-serif);
-    font-size: var(--vscode-font-size, 13px);
-    color: var(--vscode-editor-foreground, #ccc);
-    background: var(--vscode-editor-background, #1e1e1e);
-    padding: 28px 40px;
-    max-width: 880px;
-    line-height: 1.65;
-}
-.api-header {
-    padding: 14px 18px;
-    border-left: 3px solid var(--vscode-textLink-foreground, #4ec9b0);
-    background: var(--vscode-editorWidget-background, rgba(255,255,255,0.04));
-    border-radius: 0 5px 5px 0;
-    margin-bottom: 24px;
-}
-.api-id {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
-    color: var(--vscode-descriptionForeground, #888);
-    font-family: var(--vscode-editor-font-family, monospace);
-    margin-bottom: 8px;
-}
-.api-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-.tag {
-    font-size: 11px; padding: 2px 8px; border-radius: 10px;
-    background: var(--vscode-badge-background, #444);
-    color: var(--vscode-badge-foreground, #ddd);
-}
-.fn-sig {
-    font-family: var(--vscode-editor-font-family, 'Cascadia Code', monospace);
-    font-size: 14px;
-    padding: 10px 14px;
-    background: var(--vscode-textCodeBlock-background, rgba(255,255,255,0.05));
-    border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1));
-    border-radius: 4px;
-    margin: 14px 0 16px;
-}
-.fn-kw { color: var(--vscode-symbolIcon-keywordForeground, #c586c0); }
-.fn-name { color: var(--vscode-symbolIcon-functionForeground, #dcdcaa); font-weight: 700; }
-h2.sec-h {
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-    color: var(--vscode-descriptionForeground, #888);
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.12));
-    padding-bottom: 5px;
-    margin: 28px 0 14px;
-}
+${getSharedPanelStyles()}
+
+/* ── Command-help-only extensions ───────────────────────────────── */
 .cmd-desc {
     font-size: 13px;
-    color: var(--vscode-editor-foreground, #ccc);
-    margin: 10px 0 6px;
-}
-p { margin: 6px 0; }
-ul.props { list-style: none; padding: 0; margin: 6px 0 10px 0; }
-ul.props li {
-    padding: 6px 0 6px 14px;
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.06));
-    font-size: 12px;
-    position: relative;
-    line-height: 1.5;
-}
-ul.props li:last-child { border-bottom: none; }
-ul.props li::before {
-    content: "▸"; position: absolute; left: 0;
-    color: var(--vscode-textLink-foreground, #4ec9b0);
-    font-size: 9px; top: 9px;
+    color: var(--nd-fg);
+    margin: var(--nd-sp-3) 0 var(--nd-sp-1);
 }
 .flag-sig {
-    font-family: var(--vscode-editor-font-family, 'Cascadia Code', monospace);
+    font-family: var(--nd-font-mono);
     font-size: 12px;
     display: block;
     color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
 }
-.pname { color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe); font-weight: 600; }
-.ptype { color: var(--vscode-symbolIcon-typeParameterForeground, #b5cea8); }
-.opt { font-size: 10px; color: var(--vscode-descriptionForeground, #888); }
 .item-desc {
     display: block;
     font-size: 12px;
-    color: var(--vscode-editor-foreground, #ccc);
+    color: var(--nd-fg);
     margin-top: 2px;
-    font-family: var(--vscode-font-family, sans-serif);
+    font-family: var(--nd-font);
 }
 .item-meta {
     display: flex;
     gap: 5px;
-    margin-top: 4px;
+    margin-top: var(--nd-sp-1);
     flex-wrap: wrap;
 }
 .type-badge {
-    font-size: 10px; font-family: var(--vscode-editor-font-family, monospace);
-    padding: 1px 6px; border-radius: 3px;
-    background: rgba(78,201,176,0.15);
-    color: var(--vscode-textLink-foreground, #4ec9b0);
-    border: 1px solid rgba(78,201,176,0.3);
+    font-size: 10px;
+    font-family: var(--nd-font-mono);
+    padding: 1px 6px;
+    border-radius: var(--nd-r-sm);
+    background: rgba(129,181,161,0.14);
+    color: var(--nd-accent-hi);
+    border: 1px solid rgba(129,181,161,0.30);
 }
 .default-badge {
-    font-size: 10px; font-family: var(--vscode-editor-font-family, monospace);
-    padding: 1px 6px; border-radius: 3px;
-    background: var(--vscode-textCodeBlock-background, rgba(255,255,255,0.04));
-    color: var(--vscode-descriptionForeground, #888);
-    border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1));
+    font-size: 10px;
+    font-family: var(--nd-font-mono);
+    padding: 1px 6px;
+    border-radius: var(--nd-r-sm);
+    background: var(--nd-bg-code);
+    color: var(--nd-fg-mute);
+    border: 1px solid var(--nd-border);
 }
-pre.codeblock {
-    background: var(--vscode-textCodeBlock-background, #1e1e1e);
-    border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1));
-    border-radius: 4px; padding: 12px 16px; overflow-x: auto;
-    margin: 6px 0 14px; position: relative;
-}
-pre.codeblock code {
-    font-family: var(--vscode-editor-font-family, 'Cascadia Code', monospace);
-    font-size: 12px; color: var(--vscode-editor-foreground, #d4d4d4);
-    white-space: pre; display: block;
-}
-.loading, .error-msg { padding: 32px 0; font-size: 13px; }
-.error-msg { color: var(--vscode-errorForeground, #f48771); }
 </style>`;
 }

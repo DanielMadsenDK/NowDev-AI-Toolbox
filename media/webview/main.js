@@ -18,17 +18,46 @@
         btn.addEventListener('click', () => activateTab(btn.dataset.tab));
     });
 
-    // Restore last active tab (or default to 'setup')
+    // Restore last active tab (or default to 'home').
+    // Migrate legacy state values from before the tab restructure.
     const saved = vscode.getState();
-    activateTab((saved && saved.activeTab) || 'setup');
+    const TAB_MIGRATIONS = { setup: 'home', session: 'activity' };
+    const initialTab = (saved && saved.activeTab) || 'home';
+    activateTab(TAB_MIGRATIONS[initialTab] || initialTab);
 
-    // ── Setup tab: buttons ─────────────────────────────────────────
-    document.getElementById('openChat').addEventListener('click', () => {
-        vscode.postMessage({ command: 'openCopilotChat' });
-    });
+    // ── Open Chat (primary CTA + header pill share the same handler) ──
+    function openChat() { vscode.postMessage({ command: 'openCopilotChat' }); }
+    document.getElementById('openChat').addEventListener('click', openChat);
+    var chatHeaderBtn = document.getElementById('openChatHeader');
+    if (chatHeaderBtn) { chatHeaderBtn.addEventListener('click', openChat); }
     document.getElementById('openSettings').addEventListener('click', () => {
         vscode.postMessage({ command: 'openSettings' });
     });
+    var onboardingSummary = document.getElementById('onboardingSummary');
+    if (onboardingSummary) {
+        onboardingSummary.addEventListener('click', function (event) {
+            var target = event.target.closest('[data-onboarding-action]');
+            if (!target) { return; }
+            var action = target.getAttribute('data-onboarding-action');
+            switch (action) {
+                case 'fixAll':
+                    vscode.postMessage({ command: 'fixAllSettings' });
+                    break;
+                case 'gotoProject':
+                    activateTab('project');
+                    break;
+                case 'gotoSdk':
+                    activateTab('sdk');
+                    break;
+                case 'gotoAgents':
+                    activateTab('agents');
+                    break;
+                case 'initFluentProject':
+                    vscode.postMessage({ command: 'initFluentProject' });
+                    break;
+            }
+        });
+    }
     document.getElementById('fixAll').addEventListener('click', () => {
         vscode.postMessage({ command: 'fixAllSettings' });
     });
@@ -68,6 +97,42 @@
         vscode.postMessage({ command: 'initFluentProject' });
     });
 
+    document.getElementById('rescanMcp').addEventListener('click', () => {
+        vscode.postMessage({ command: 'rescanMcp' });
+    });
+
+    // ── Setup tab: DevOps integration ──────────────────────────────
+    document.getElementById('devopsEnabled').addEventListener('change', function () {
+        var enabled = this.checked;
+        document.getElementById('devopsConfig').style.display = enabled ? '' : 'none';
+        vscode.postMessage({ command: 'updateDevopsEnabled', enabled: enabled });
+    });
+
+    document.getElementById('devopsMcpServer').addEventListener('change', function () {
+        vscode.postMessage({ command: 'updateDevopsMcp', server: this.value });
+    });
+
+    document.getElementById('browseDevopsFile').addEventListener('click', function () {
+        vscode.postMessage({ command: 'browseDevopsInstructionsFile' });
+    });
+    document.getElementById('clearDevopsFile').addEventListener('click', function () {
+        vscode.postMessage({ command: 'clearDevopsInstructions' });
+    });
+
+    document.getElementById('resyncAgents').addEventListener('click', () => {
+        vscode.postMessage({ command: 'resyncAgents' });
+    });
+
+    document.getElementById('showAgentTopology').addEventListener('click', () => {
+        vscode.postMessage({ command: 'showAgentTopology' });
+    });
+    document.getElementById('showCopilotChatLogs').addEventListener('click', () => {
+        vscode.postMessage({ command: 'showCopilotChatLogs' });
+    });
+    document.getElementById('collectCopilotDiagnostics').addEventListener('click', () => {
+        vscode.postMessage({ command: 'collectCopilotDiagnostics' });
+    });
+
     // ── SDK tab ───────────────────────────────────────────────────
 
     // ── Setup tab: connection test ─────────────────────────────────
@@ -91,6 +156,31 @@
     document.getElementById('sdkAuthAdd').addEventListener('click', () => {
         vscode.postMessage({ command: 'sdkAuthAdd' });
     });
+
+    // Open Dependency Picker (browse instance + manage now.config.json)
+    var openDepPickerBtn = document.getElementById('openDepPickerBtn');
+    if (openDepPickerBtn) {
+        openDepPickerBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openDependencyPicker' });
+        });
+    }
+
+    // Open Context Scanner (scan instance for relevant scripts + knowledge)
+    var openContextScannerBtn = document.getElementById('openContextScannerBtn');
+    if (openContextScannerBtn) {
+        openContextScannerBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openContextScanner' });
+        });
+    }
+
+    // Transform from local XML
+    var transformFromXmlBtn = document.getElementById('transformFromXmlBtn');
+    if (transformFromXmlBtn) {
+        transformFromXmlBtn.addEventListener('click', () => {
+            var auth = document.getElementById('sdkCmdAuth') ? document.getElementById('sdkCmdAuth').value : '';
+            vscode.postMessage({ command: 'sdkCommand', cmd: 'transform', args: { pickFrom: true, auth: auth } });
+        });
+    }
 
     // Command help (?) buttons
     document.querySelectorAll('.sdk-help-btn').forEach(function (btn) {
@@ -162,9 +252,13 @@
                 updateFluentApp(msg.fluentApp);
                 updateEnvironment(msg.environment);
                 if (msg.sdkStatus) { updateSdkStatus(msg.sdkStatus); }
+                updateMcpServers(msg.mcpServers, msg.selectedMcp);
+                updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
+                updateDevopsSection(msg.devopsConfig, msg.mcpServers);
+                refreshWorkspaceStatus();
                 break;
             case 'updateAgents':
-                renderAgentTree(msg.tree);
+                renderAgentCards(msg.manifests, msg.overrides);
                 break;
             case 'updateArtifacts':
                 renderArtifacts(msg.artifacts, msg.sessionActive);
@@ -181,19 +275,40 @@
             case 'updateCheckChanges':
                 renderCheckChanges(msg.state);
                 break;
+            case 'updateDevopsConfig':
+                updateDevopsSection(msg.devopsConfig, null);
+                break;
         }
     });
 
     // ── Update helpers ─────────────────────────────────────────────
 
+    // Track latest snapshot pieces so the workspace-status strip can be rebuilt
+    // independently of which message arrived last.
+    var _wsState = {
+        prereqsOk: 0,
+        prereqsTotal: 0,
+        conn: null,
+        fluentScope: null,
+        hasInstanceUrl: false,
+        hasCustomInstructionsFile: false,
+        mcpServerCount: 0,
+        selectedMcpCount: 0,
+        authAliasCount: null,
+        authAliasesLoaded: false,
+    };
+
     function updateChecks(checks) {
         let allOk = true;
+        let okCount = 0, total = 0;
         document.querySelectorAll('#checks .check-row').forEach(row => {
             const key = row.dataset.key;
             const ok = checks[key];
             const icon = row.querySelector('.check-icon');
             const btn = row.querySelector('.fix-btn');
+            total++;
             if (ok) {
+                okCount++;
                 icon.className = 'check-icon ok';
                 icon.innerHTML = '\u2713';
                 btn.style.display = 'none';
@@ -204,13 +319,54 @@
                 allOk = false;
             }
         });
-        document.getElementById('allGood').style.display = allOk ? 'block' : 'none';
+        document.getElementById('allGood').style.display = allOk ? 'flex' : 'none';
         document.getElementById('fixAll').style.display = allOk ? 'none' : '';
+        _wsState.prereqsOk = okCount;
+        _wsState.prereqsTotal = total;
+        renderOnboardingSummary();
+    }
+
+    // ── Workspace status strip (Home tab) ──────────────────────────
+    function refreshWorkspaceStatus() {
+        var el = document.getElementById('workspaceStatus');
+        if (!el) { return; }
+        var parts = [];
+
+        // Prerequisites
+        if (_wsState.prereqsTotal > 0) {
+            if (_wsState.prereqsOk === _wsState.prereqsTotal) {
+                parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>Prerequisites ready</span>');
+            } else {
+                var missing = _wsState.prereqsTotal - _wsState.prereqsOk;
+                parts.push('<span class="ws-stat warn"><span class="ws-dot"></span>' + missing + ' setting' + (missing !== 1 ? 's' : '') + ' to fix</span>');
+            }
+        }
+
+        // Instance connection
+        var c = _wsState.conn;
+        if (c) {
+            if (c.checking) {
+                parts.push('<span class="ws-stat"><span class="ws-dot"></span>Checking instance\u2026</span>');
+            } else if (c.reachable) {
+                parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>Instance reachable</span>');
+            } else {
+                parts.push('<span class="ws-stat fail"><span class="ws-dot"></span>Instance unreachable</span>');
+            }
+        }
+
+        // Fluent scope (when present)
+        if (_wsState.fluentScope) {
+            parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>' + esc(_wsState.fluentScope) + '</span>');
+        }
+
+        el.innerHTML = parts.length > 0 ? parts.join('<span class="ws-sep"></span>') : '';
     }
 
     function updateSettings(settings) {
         const urlInput = document.getElementById('instanceUrl');
         const styleSelect = document.getElementById('devStyle');
+        _wsState.hasInstanceUrl = !!(settings && settings.instanceUrl);
+        _wsState.hasCustomInstructionsFile = !!(settings && settings.customInstructionsFile);
         if (document.activeElement !== urlInput) {
             urlInput.value = settings.instanceUrl || '';
         }
@@ -227,6 +383,7 @@
             filePathEl.style.display = 'none';
             clearBtn.style.display = 'none';
         }
+        renderOnboardingSummary();
     }
 
     function updateFluentApp(fluentApp) {
@@ -240,8 +397,11 @@
             hr.style.display = 'none';
             initSection.style.display = '';
             initHr.style.display = '';
+            _wsState.fluentScope = null;
+            renderOnboardingSummary();
             return;
         }
+        _wsState.fluentScope = fluentApp.scope || null;
         section.style.display = '';
         hr.style.display = '';
         initSection.style.display = 'none';
@@ -258,6 +418,7 @@
         info.innerHTML = rows.map(r =>
             '<div class="app-info-row"><span class="app-info-key">' + esc(r.key) + '</span><span class="app-info-value">' + esc(r.value) + '</span></div>'
         ).join('');
+        renderOnboardingSummary();
     }
 
     function updateEnvironment(env) {
@@ -310,65 +471,107 @@
         });
     }
 
-    // ── Agent tree rendering ───────────────────────────────────────
+    // ── Agent card rendering ───────────────────────────────────────
 
-    function renderAgentTree(rootNode) {
-        const container = document.getElementById('agentTree');
-        if (!container || !rootNode) return;
-        container.innerHTML = buildAgentNode(rootNode, 0);
-        bindTreeEvents(container);
-    }
-
-    function buildAgentNode(node, level) {
-        const hasChildren = node.children && node.children.length > 0;
-        const chevronClass = hasChildren ? '' : ' leaf';
-        const chevronIcon = hasChildren ? '\u25B6' : '';
-        const collapsed = level > 0 ? ' collapsed' : '';
-
-        let html = '<div class="agent-node level-' + level + '">';
-        html += '<div class="agent-row" data-id="' + esc(node.id) + '">';
-        html += '  <span class="agent-chevron' + chevronClass + '">' + chevronIcon + '</span>';
-        html += '  <span class="agent-name">' + esc(node.shortName) + '</span>';
-        html += '  <span class="agent-badge ' + esc(node.role) + '">' + esc(node.role) + '</span>';
-        html += '</div>';
-        if (node.description) {
-            html += '<div class="agent-desc">' + esc(node.description) + '</div>';
+    function renderAgentCards(manifests, overrides) {
+        var container = document.getElementById('agentCards');
+        if (!container) { return; }
+        if (!manifests || manifests.length === 0) {
+            container.innerHTML = '<div class="field-desc" style="font-style:italic;padding:8px 0;">Loading agent registry…</div>';
+            return;
         }
-        if (hasChildren) {
-            html += '<div class="agent-children' + collapsed + '">';
-            for (const child of node.children) {
-                html += buildAgentNode(child, level + 1);
+
+        // User-invocable agents first, then sub-agents; alphabetical within each group
+        var sorted = manifests.slice().sort(function (a, b) {
+            if (a.userInvocable !== b.userInvocable) { return a.userInvocable ? -1 : 1; }
+            return a.name.localeCompare(b.name);
+        });
+
+        var html = '';
+        var lastGroup = null;
+        for (var i = 0; i < sorted.length; i++) {
+            var m = sorted[i];
+            var thisGroup = m.userInvocable ? 'picker' : 'sub';
+            if (thisGroup !== lastGroup) {
+                html += '<div class="agent-group-label">' +
+                    (thisGroup === 'picker'
+                        ? 'User-invocable Agents (Pickers)'
+                        : 'Sub-agents') +
+                    '</div>';
+                lastGroup = thisGroup;
             }
-            html += '</div>';
-        }
-        html += '</div>';
-        return html;
-    }
+            var override = (overrides && overrides[m.name]) || { enabled: true, disabledTools: [] };
+            var agentEnabled = override.enabled !== false;
+            var disabledSet = {};
+            if (override.disabledTools) {
+                override.disabledTools.forEach(function (t) { disabledSet[t] = true; });
+            }
+            var enabledCount = m.baseTools.filter(function (t) { return !disabledSet[t]; }).length;
 
-    function bindTreeEvents(container) {
-        container.querySelectorAll('.agent-chevron:not(.leaf)').forEach(chevron => {
-            chevron.addEventListener('click', () => {
-                const node = chevron.closest('.agent-node');
-                const children = node.querySelector(':scope > .agent-children');
-                if (!children) return;
-                const isCollapsed = children.classList.contains('collapsed');
-                if (isCollapsed) {
-                    children.classList.remove('collapsed');
-                    chevron.textContent = '\u25BC';
-                } else {
-                    children.classList.add('collapsed');
-                    chevron.textContent = '\u25B6';
-                }
+            var cardClass = 'agent-card' + (agentEnabled ? '' : ' agent-disabled');
+            html += '<div class="' + cardClass + '" data-agent-name="' + esc(m.name) + '">';
+
+            // Header row
+            html += '<div class="agent-card-header">';
+            html += '<div class="agent-card-title-row">';
+            html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" title="Show/hide tools">&#9654;</button>';
+            html += '<div class="agent-card-info">';
+            html += '<span class="agent-card-name">' + esc(m.shortName || m.name) + '</span>';
+            html += '<span class="agent-card-badge ' + (m.userInvocable ? 'picker' : 'sub-agent') + '">';
+            html += m.userInvocable ? 'picker' : 'sub-agent';
+            html += '</span>';
+            html += '</div>';
+            // Enable/disable toggle — all agents except the orchestrator (NowDev AI Agent)
+            if (m.name !== 'NowDev AI Agent') {
+                html += '<label class="tool-toggle" title="Enable/disable agent">';
+                html += '<input type="checkbox" class="agent-enable-cb" data-agent="' + esc(m.name) + '"' + (agentEnabled ? ' checked' : '') + '>';
+                html += '<span class="slider"></span>';
+                html += '</label>';
+            }
+            html += '</div>'; // agent-card-title-row
+            html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
+            html += '</div>'; // agent-card-header
+
+            // Collapsible tools section — hidden by default via CSS class
+            html += '<div class="agent-card-tools" id="at-' + esc(m.name) + '">';
+            for (var j = 0; j < m.baseTools.length; j++) {
+                var tool = m.baseTools[j];
+                var toolOn = !disabledSet[tool];
+                html += '<label class="agent-tool-row">';
+                html += '<input type="checkbox" class="agent-tool-cb" data-agent="' + esc(m.name) + '" data-tool="' + esc(tool) + '"' + (toolOn ? ' checked' : '') + '>';
+                html += '<span class="agent-tool-name">' + esc(tool) + '</span>';
+                html += '</label>';
+            }
+            html += '</div>'; // agent-card-tools
+
+            html += '</div>'; // agent-card
+        }
+
+        container.innerHTML = html;
+
+        // Bind chevron toggles
+        container.querySelectorAll('.agent-chevron').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var targetId = btn.getAttribute('data-target');
+                var target = document.getElementById(targetId);
+                if (!target) { return; }
+                var expanded = target.classList.contains('expanded');
+                target.classList.toggle('expanded', !expanded);
+                btn.innerHTML = !expanded ? '&#9660;' : '&#9654;';
             });
         });
 
-        container.querySelectorAll('.agent-row').forEach(row => {
-            row.addEventListener('click', (e) => {
-                if (e.target.classList.contains('agent-chevron')) return;
-                const desc = row.nextElementSibling;
-                if (desc && desc.classList.contains('agent-desc')) {
-                    desc.style.display = desc.style.display === 'block' ? 'none' : 'block';
-                }
+        // Bind agent enable/disable toggles
+        container.querySelectorAll('.agent-enable-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                vscode.postMessage({ command: 'toggleAgent', name: cb.getAttribute('data-agent'), enabled: cb.checked });
+            });
+        });
+
+        // Bind per-tool toggles
+        container.querySelectorAll('.agent-tool-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                vscode.postMessage({ command: 'toggleAgentTool', agentName: cb.getAttribute('data-agent'), toolName: cb.getAttribute('data-tool'), enabled: cb.checked });
             });
         });
     }
@@ -477,18 +680,223 @@
     function isInProgress(s) { return /progress|building|\uD83C\uDFD7/i.test(s); }
     function isError(s) { return /error|fail|\u274C/i.test(s); }
 
-    // ── Auth Aliases rendering ─────────────────────────────────────
+    // ── DevOps Integration rendering ───────────────────────────────
 
+    function updateDevopsSection(devopsConfig, servers) {
+        var cfg = devopsConfig || { enabled: false, mcpServer: '', customInstructions: '' };
+
+        var enabledCb = document.getElementById('devopsEnabled');
+        var configDiv = document.getElementById('devopsConfig');
+        var serverSel = document.getElementById('devopsMcpServer');
+
+        if (!enabledCb || !configDiv) { return; }
+
+        enabledCb.checked = !!cfg.enabled;
+        configDiv.style.display = cfg.enabled ? '' : 'none';
+
+        // Populate MCP server dropdown
+        if (serverSel) {
+            var currentServer = cfg.mcpServer || '';
+            var opts = '<option value="">(select a server)</option>';
+            var allServers = servers || [];
+            allServers.forEach(function (s) {
+                var sel = s.name === currentServer ? ' selected' : '';
+                opts += '<option value="' + esc(s.name) + '"' + sel + '>' + esc(s.name) + '</option>';
+            });
+            // If configured server is not in the list, still show it as selected
+            if (currentServer && !allServers.find(function (s) { return s.name === currentServer; })) {
+                opts += '<option value="' + esc(currentServer) + '" selected>' + esc(currentServer) + ' (not found)</option>';
+            }
+            serverSel.innerHTML = opts;
+        }
+
+        // Show/hide the instructions file indicator
+        var hasInstructions = !!(cfg.customInstructions && cfg.customInstructions.trim());
+        var filePathEl = document.getElementById('devopsFilePath');
+        var clearBtn   = document.getElementById('clearDevopsFile');
+        if (filePathEl) {
+            filePathEl.style.display = hasInstructions ? '' : 'none';
+            filePathEl.textContent   = hasInstructions ? 'Custom instructions loaded (' + cfg.customInstructions.trim().length + ' chars)' : '';
+        }
+        if (clearBtn) { clearBtn.style.display = hasInstructions ? '' : 'none'; }
+    }
+
+    // ── MCP Integrations rendering ─────────────────────────────────
+
+    function updateMcpServers(servers, selectedMcp) {
+        var list = document.getElementById('mcpServersList');
+        if (!list) { return; }
+        _wsState.mcpServerCount = servers ? servers.length : 0;
+        _wsState.selectedMcpCount = selectedMcp ? selectedMcp.length : 0;
+
+        if (!servers || servers.length === 0) {
+            list.innerHTML =
+                '<div class="field-desc" style="font-style:italic;">' +
+                'No MCP servers detected. Add servers via the Extensions view ' +
+                '<code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.' +
+                '</div>';
+            renderOnboardingSummary();
+            return;
+        }
+
+        var selected = selectedMcp || [];
+        var html = servers.map(function (s) {
+            var checked = selected.indexOf(s.name) >= 0 ? 'checked' : '';
+            var sourceLabel = s.source === 'file' ? 'mcp.json' : 'settings';
+            var sourceBadge = '<span class="auth-alias-default-badge">' + esc(sourceLabel) + '</span>';
+            var typeHint = s.type ? ' <span class="tool-version">' + esc(s.type) + '</span>' : '';
+            return '<div class="tool-row">' +
+                '  <div class="tool-info">' +
+                '    <span class="tool-name">' + esc(s.name) + '</span>' + typeHint + ' ' + sourceBadge +
+                '  </div>' +
+                '  <label class="tool-toggle" title="Include in agent tools">' +
+                '    <input type="checkbox" data-mcp="' + esc(s.name) + '" ' + checked + '>' +
+                '    <span class="slider"></span>' +
+                '  </label>' +
+                '</div>';
+        }).join('');
+
+        list.innerHTML = html;
+
+        list.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                vscode.postMessage({ command: 'toggleMcp', name: cb.dataset.mcp, enabled: cb.checked });
+            });
+        });
+        renderOnboardingSummary();
+    }
+
+    // ── MCP Documentation Sources rendering ────────────────────────
+
+    var docSourceDebounce = {};
+    function updateMcpDocSources(docSources, servers) {
+        var container = document.getElementById('mcpDocSourcesList');
+        if (!container) { return; }
+        if (!docSources) { container.innerHTML = ''; return; }
+
+        var serverOptions = '<option value="">(none \u2014 use built-in skills)</option>';
+        if (servers && servers.length > 0) {
+            serverOptions += servers.map(function (s) {
+                return '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>';
+            }).join('');
+        }
+
+        var slots = [
+            { key: 'classicScripting', label: 'Classic Scripting', desc: 'Business Rule, Script Include, Client Script, Classic Reviewer' },
+            { key: 'fluentSdk',        label: 'Fluent SDK',         desc: 'All Fluent specialists, AI Studio, NowAssist, ATF, Pipeline' },
+            { key: 'general',          label: 'General docs',       desc: 'Refinement, Orchestrator, Debugger, Assistant' },
+        ];
+
+        var html = slots.map(function (slot) {
+            var src = docSources[slot.key] || {};
+            var server = src.server || '';
+            var hint = src.libraryHint || '';
+            var hasServer = server !== '';
+            var serverLabel = hasServer
+                ? esc(server)
+                : '<span style="color:var(--vscode-descriptionForeground);font-style:italic;">built-in skills</span>';
+            var hintPart = (hasServer && hint)
+                ? ' \u00b7 <code style="font-size:10px;">' + esc(hint) + '</code>'
+                : '';
+            var opts = serverOptions.replace(
+                'value="' + esc(server) + '"',
+                'value="' + esc(server) + '" selected'
+            );
+            var panelId = 'mcp-doc-panel-' + slot.key;
+            var gearId  = 'mcp-doc-gear-'  + slot.key;
+            return (
+                '<div class="mcp-doc-source-row" data-slot="' + slot.key + '">' +
+                '  <div class="mcp-doc-source-info">' +
+                '    <div class="mcp-doc-source-label">' + esc(slot.label) + '</div>' +
+                '    <div class="mcp-doc-source-server" id="mcp-doc-summary-' + slot.key + '">' + serverLabel + hintPart + '</div>' +
+                '  </div>' +
+                '  <button class="mcp-doc-source-gear" id="' + gearId + '" title="Configure">\u2699</button>' +
+                '</div>' +
+                '<div class="mcp-doc-source-panel" id="' + panelId + '">' +
+                '  <div class="field-desc" style="margin-bottom:6px;">' + esc(slot.desc) + '</div>' +
+                '  <div class="field-row">' +
+                '    <label>Server</label>' +
+                '    <select class="mcp-doc-server-select" data-slot="' + slot.key + '">' + opts + '</select>' +
+                '  </div>' +
+                '  <div class="field-row">' +
+                '    <label>Hint</label>' +
+                '    <input type="text" class="mcp-doc-hint-input" data-slot="' + slot.key + '"' +
+                '      value="' + esc(hint) + '" placeholder="e.g. /websites/servicenow"' +
+                (hasServer ? '' : ' disabled') + '>' +
+                '  </div>' +
+                '</div>'
+            );
+        }).join('');
+
+        container.innerHTML = html;
+
+        // Gear toggle — opens/closes the config panel
+        container.querySelectorAll('.mcp-doc-source-gear').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var slot = btn.id.replace('mcp-doc-gear-', '');
+                var panel = document.getElementById('mcp-doc-panel-' + slot);
+                if (!panel) { return; }
+                var isOpen = panel.classList.contains('open');
+                panel.classList.toggle('open', !isOpen);
+                btn.classList.toggle('open', !isOpen);
+                btn.textContent = isOpen ? '\u2699' : '\u2715';
+                btn.title = isOpen ? 'Configure' : 'Close';
+            });
+        });
+
+        // Server dropdown — update summary and enable/disable hint field
+        container.querySelectorAll('.mcp-doc-server-select').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                var slot = sel.dataset.slot;
+                var hintInput = container.querySelector('.mcp-doc-hint-input[data-slot="' + slot + '"]');
+                if (hintInput) { hintInput.disabled = sel.value === ''; }
+                _refreshDocSummary(slot, sel.value, hintInput ? hintInput.value : '');
+                vscode.postMessage({ command: 'updateMcpDocSource', slot: slot, field: 'server', value: sel.value });
+            });
+        });
+
+        // Hint input — debounced save
+        container.querySelectorAll('.mcp-doc-hint-input').forEach(function (inp) {
+            inp.addEventListener('input', function () {
+                var slot = inp.dataset.slot;
+                var sel = container.querySelector('.mcp-doc-server-select[data-slot="' + slot + '"]');
+                _refreshDocSummary(slot, sel ? sel.value : '', inp.value);
+                clearTimeout(docSourceDebounce[slot]);
+                docSourceDebounce[slot] = setTimeout(function () {
+                    vscode.postMessage({ command: 'updateMcpDocSource', slot: slot, field: 'libraryHint', value: inp.value.trim() });
+                }, 600);
+            });
+        });
+    }
+
+    function _refreshDocSummary(slot, server, hint) {
+        var el = document.getElementById('mcp-doc-summary-' + slot);
+        if (!el) { return; }
+        if (!server) {
+            el.innerHTML = '<span style="color:var(--vscode-descriptionForeground);font-style:italic;">built-in skills</span>';
+        } else {
+            var hintPart = hint ? ' \u00b7 <code style="font-size:10px;">' + esc(hint) + '</code>' : '';
+            el.innerHTML = esc(server) + hintPart;
+        }
+    }
+
+    // ── Auth Aliases rendering ─────────────────────────────────────
     function renderAuthAliases(aliases) {
         var list = document.getElementById('authAliasesList');
         var authSelect = document.getElementById('sdkCmdAuth');
         if (!list) { return; }
 
+        _wsState.authAliasesLoaded = true;
+
         if (!aliases || aliases.length === 0) {
+            _wsState.authAliasCount = 0;
             list.innerHTML = '<div class="field-desc" style="font-style:italic;">No aliases found. Use the <strong>Add&hellip;</strong> button or run <code>now-sdk auth --add</code>.</div>';
             if (authSelect) { authSelect.innerHTML = '<option value="">(SDK default)</option>'; }
+            renderOnboardingSummary();
             return;
         }
+
+        _wsState.authAliasCount = aliases.length;
 
         // Rebuild auth select options, preserving current selection
         if (authSelect) {
@@ -527,6 +935,7 @@
                 vscode.postMessage({ command: 'sdkAuthRemove', alias: btn.dataset.alias });
             });
         });
+        renderOnboardingSummary();
     }
 
     // ── SDK command status ─────────────────────────────────────────
@@ -560,6 +969,9 @@
 
     function renderConnectionStatus(state) {
         var el = document.getElementById('connectionStatus');
+        _wsState.conn = state || null;
+        refreshWorkspaceStatus();
+        renderOnboardingSummary();
         if (!el) { return; }
         if (!state) { el.style.display = 'none'; return; }
         el.style.display = 'block';
@@ -639,6 +1051,116 @@
                 (timeAgo ? ' <span class="changes-detail">' + esc(timeAgo) + '</span>' : '') +
                 ' — run Transform to sync</span>';
         }
+    }
+
+    function renderOnboardingSummary() {
+        var el = document.getElementById('onboardingSummary');
+        if (!el) { return; }
+
+        var steps = [];
+        var prereqsReady = _wsState.prereqsTotal > 0 && _wsState.prereqsOk === _wsState.prereqsTotal;
+
+        if (!prereqsReady) {
+            var missing = Math.max(_wsState.prereqsTotal - _wsState.prereqsOk, 1);
+            steps.push({
+                tone: 'warn',
+                title: 'Enable Copilot prerequisites',
+                detail: missing + ' required setting' + (missing !== 1 ? 's' : '') + ' still need to be fixed before the agent workflow is fully available.',
+                action: 'fixAll',
+                label: 'Fix All',
+            });
+        }
+
+        if (!_wsState.hasCustomInstructionsFile) {
+            steps.push({
+                tone: 'info',
+                title: 'Add a custom instructions file',
+                detail: 'Use the Project tab to attach a Markdown or text file with your ServiceNow and team-specific guidance for every session.',
+                action: 'gotoProject',
+                label: 'Open Project Tab',
+            });
+        }
+
+        if (!_wsState.hasInstanceUrl) {
+            steps.push({
+                tone: 'info',
+                title: 'Set your ServiceNow instance URL',
+                detail: 'Project-aware prompts and connection checks work better once the workspace knows which instance you are targeting.',
+                action: 'gotoProject',
+                label: 'Open Project Tab',
+            });
+        } else if (_wsState.conn && !_wsState.conn.checking && !_wsState.conn.reachable) {
+            steps.push({
+                tone: 'warn',
+                title: 'Verify instance connectivity',
+                detail: 'The configured instance is currently unreachable' + (_wsState.conn.error ? ': ' + _wsState.conn.error + '.' : '.') + ' Recheck the URL or network path.',
+                action: 'gotoProject',
+                label: 'Review Connection',
+            });
+        }
+
+        if (_wsState.authAliasesLoaded && _wsState.authAliasCount === 0) {
+            steps.push({
+                tone: 'info',
+                title: 'Add an SDK auth alias',
+                detail: 'Most SDK workflows are faster once now-sdk has a saved auth alias for your instance.',
+                action: 'gotoSdk',
+                label: 'Open SDK Tab',
+            });
+        }
+
+        if (_wsState.selectedMcpCount === 0) {
+            steps.push({
+                tone: _wsState.mcpServerCount > 0 ? 'info' : 'warn',
+                title: _wsState.mcpServerCount > 0 ? 'Select MCP tools for agents' : 'Add an MCP documentation source',
+                detail: _wsState.mcpServerCount > 0
+                    ? 'Detected MCP servers are not yet exposed to the workspace agents.'
+                    : 'No MCP servers are currently detected, so agents will fall back to built-in skills only.',
+                action: 'gotoAgents',
+                label: 'Open Agents Tab',
+            });
+        }
+
+        if (!_wsState.fluentScope) {
+            steps.push({
+                tone: 'info',
+                title: 'Initialize a Fluent project',
+                detail: 'Create or adopt a now.config.json workspace so the SDK and Fluent agents can work with real app metadata.',
+                action: 'initFluentProject',
+                label: 'Initialize Project',
+            });
+        }
+
+        if (steps.length === 0) {
+            el.className = 'onboarding-summary ready';
+            el.innerHTML =
+                '<div class="onboarding-summary-header">Workspace onboarding looks good</div>' +
+                '<div class="onboarding-summary-body">Copilot prerequisites, project context, SDK access, and agent integrations are in place. You can start from chat or move straight into build and review flows.</div>';
+            return;
+        }
+
+        var summaryTitle = 'Next recommended steps';
+        var summaryBody = 'Finish these items to reduce setup friction and give the NowDev agents better project context.';
+        var visibleSteps = steps.slice(0, 4);
+
+        el.className = 'onboarding-summary';
+        el.innerHTML =
+            '<div class="onboarding-summary-header">' + summaryTitle + '</div>' +
+            '<div class="onboarding-summary-body">' + summaryBody + '</div>' +
+            '<div class="onboarding-steps">' +
+            visibleSteps.map(function (step) {
+                return '<div class="onboarding-step ' + esc(step.tone) + '">' +
+                    '<div class="onboarding-step-copy">' +
+                    '<div class="onboarding-step-title">' + esc(step.title) + '</div>' +
+                    '<div class="onboarding-step-detail">' + esc(step.detail) + '</div>' +
+                    '</div>' +
+                    '<button class="btn-secondary onboarding-step-action" data-onboarding-action="' + esc(step.action) + '">' + esc(step.label) + '</button>' +
+                    '</div>';
+            }).join('') +
+            (steps.length > visibleSteps.length
+                ? '<div class="onboarding-more">+' + esc(String(steps.length - visibleSteps.length)) + ' more recommended step' + (steps.length - visibleSteps.length !== 1 ? 's' : '') + ' in the other tabs.</div>'
+                : '') +
+            '</div>';
     }
 
     // ── Utility ────────────────────────────────────────────────────

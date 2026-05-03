@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import { getShell } from './shellConfig';
+import { getSharedPanelStyles } from './SharedPanelStyles';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
 
@@ -23,7 +24,7 @@ export function showSdkExplainPanel(apiName: string): void {
         'nowdev.sdkExplain',
         `${apiName} — SDK Docs`,
         { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
-        { enableScripts: false, localResourceRoots: [], retainContextWhenHidden: true }
+        { enableScripts: false, enableCommandUris: true, localResourceRoots: [], retainContextWhenHidden: true }
     );
 
     _panels.set(key, panel);
@@ -41,17 +42,6 @@ export function showSdkExplainPanel(apiName: string): void {
         const topics = parseMultipleTopics(output);
         if (topics) {
             panel.webview.html = multipleTopicsHtml(apiName, topics);
-            vscode.window.showQuickPick(
-                topics.map(t => ({ label: t.name, description: t.desc })),
-                { placeHolder: `Multiple topics matched "${apiName}" — select one to view` }
-            ).then(selected => {
-                if (!selected) { return; }
-                panel.webview.html = loadingHtml(selected.label);
-                cp.exec(`now-sdk explain ${selected.label}`, { timeout: 15000, encoding: 'utf-8', shell: getShell() }, (_e, out, err) => {
-                    const o = String(out || err || '').trim();
-                    panel.webview.html = o ? renderHtml(selected.label, o) : errorHtml(`No documentation found for "${selected.label}".`);
-                });
-            });
             return;
         }
 
@@ -77,7 +67,7 @@ function parseMultipleTopics(output: string): Array<{ name: string; desc: string
 
 function multipleTopicsHtml(apiName: string, topics: Array<{ name: string; desc: string }>): string {
     const items = topics.map(t =>
-        `<li><div class="param-name">${esc(t.name)}</div><div class="cont">${esc(t.desc)}</div></li>`
+                `<li><div class="param-name"><a href="${explainCommandUri(t.name)}">${esc(t.name)}</a></div><div class="cont">${esc(t.desc)}</div></li>`
     ).join('');
     return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styles()}</head><body>
 <div class="api-header">
@@ -86,10 +76,15 @@ function multipleTopicsHtml(apiName: string, topics: Array<{ name: string; desc:
 </div>
 <h2 class="sec-h">Multiple matching topics</h2>
 <p style="margin:0 0 14px;color:var(--vscode-descriptionForeground,#888);font-size:12px;">
-  A topic picker has opened above \u2014 select one to view its documentation.
+    Click a topic below to open its documentation directly.
 </p>
 <ul class="props">${items}</ul>
 </body></html>`;
+}
+
+function explainCommandUri(topicName: string): string {
+        const args = encodeURIComponent(JSON.stringify([topicName]));
+        return `command:nowdev-ai-toolbox.sdkExplain?${args}`;
 }
 
 // ── HTML templates ─────────────────────────────────────────────────────────────
@@ -405,131 +400,5 @@ function convertToHtml(raw: string): string {
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 function styles(): string {
-    return `<style>
-:root { color-scheme: dark light; }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: var(--vscode-font-family, system-ui, sans-serif);
-    font-size: var(--vscode-font-size, 13px);
-    color: var(--vscode-editor-foreground, #ccc);
-    background: var(--vscode-editor-background, #1e1e1e);
-    padding: 28px 40px;
-    max-width: 880px;
-    line-height: 1.65;
-}
-.api-header {
-    padding: 14px 18px;
-    border-left: 3px solid var(--vscode-textLink-foreground, #4ec9b0);
-    background: var(--vscode-editorWidget-background, rgba(255,255,255,0.04));
-    border-radius: 0 5px 5px 0;
-    margin-bottom: 24px;
-}
-.api-id {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
-    color: var(--vscode-descriptionForeground, #888);
-    font-family: var(--vscode-editor-font-family, monospace);
-    margin-bottom: 8px;
-}
-.api-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-.tag {
-    font-size: 11px; padding: 2px 8px; border-radius: 10px;
-    background: var(--vscode-badge-background, #444);
-    color: var(--vscode-badge-foreground, #ddd);
-}
-.fn-sig {
-    font-family: var(--vscode-editor-font-family, 'Cascadia Code', monospace);
-    font-size: 14px;
-    padding: 10px 14px;
-    background: var(--vscode-textCodeBlock-background, rgba(255,255,255,0.05));
-    border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1));
-    border-radius: 4px;
-    margin: 14px 0 16px;
-}
-.fn-kw { color: var(--vscode-symbolIcon-keywordForeground, #c586c0); }
-.fn-name { color: var(--vscode-symbolIcon-functionForeground, #dcdcaa); font-weight: 700; }
-h2.sec-h {
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-    color: var(--vscode-descriptionForeground, #888);
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.12));
-    padding-bottom: 5px;
-    margin: 28px 0 14px;
-}
-h3.ex-title {
-    font-size: 14px; font-weight: 600;
-    color: var(--vscode-foreground, #ddd);
-    margin: 22px 0 6px;
-}
-h4.props-h {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--vscode-descriptionForeground, #777);
-    margin: 12px 0 6px;
-}
-.param-name {
-    font-family: var(--vscode-editor-font-family, monospace);
-    font-size: 14px; font-weight: 700;
-    color: var(--vscode-symbolIcon-variableForeground, #9cdcfe);
-    margin: 16px 0 4px;
-}
-.type-name {
-    font-family: var(--vscode-editor-font-family, monospace);
-    font-size: 12px;
-    color: var(--vscode-symbolIcon-classForeground, #4ec9b0);
-    margin-bottom: 4px;
-}
-p { margin: 6px 0; }
-ul.props { list-style: none; padding: 0; margin: 6px 0 10px 0; }
-ul.props li {
-    padding: 5px 0 5px 14px;
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.06));
-    font-size: 12px;
-    position: relative;
-    line-height: 1.5;
-}
-ul.props li:last-child { border-bottom: none; }
-ul.props li::before {
-    content: "▸"; position: absolute; left: 0;
-    color: var(--vscode-textLink-foreground, #4ec9b0);
-    font-size: 9px; top: 7px;
-}
-ul.props li.nested { margin-left: 20px; }
-ul.props li.nested::before { content: "◦"; }
-.cont { font-size: 11px; color: var(--vscode-descriptionForeground, #999); margin-top: 2px; }
-.pname { color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe); font-weight: 600; }
-.req { font-size: 10px; color: #f48771; margin-left: 3px; }
-.opt { font-size: 10px; color: var(--vscode-descriptionForeground, #888); margin-left: 3px; }
-.ptype { font-family: var(--vscode-editor-font-family, monospace); color: var(--vscode-symbolIcon-typeParameterForeground, #b5cea8); font-size: 12px; }
-.file-label {
-    display: inline-block;
-    font-family: var(--vscode-editor-font-family, monospace); font-size: 11px;
-    color: var(--vscode-descriptionForeground, #888);
-    background: var(--vscode-textCodeBlock-background, rgba(255,255,255,0.04));
-    padding: 2px 8px; border-radius: 3px; margin: 10px 0 2px;
-}
-pre.codeblock {
-    background: var(--vscode-textCodeBlock-background, #1e1e1e);
-    border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1));
-    border-radius: 4px; padding: 12px 16px; overflow-x: auto;
-    margin: 6px 0 14px; position: relative;
-}
-pre.codeblock::before {
-    content: attr(data-lang); position: absolute; top: 5px; right: 10px;
-    font-size: 10px; color: var(--vscode-descriptionForeground, #666);
-    text-transform: uppercase; letter-spacing: 0.5px;
-    font-family: var(--vscode-font-family, sans-serif);
-}
-pre.codeblock code {
-    font-family: var(--vscode-editor-font-family, 'Cascadia Code', monospace);
-    font-size: 12px; color: var(--vscode-editor-foreground, #d4d4d4);
-    white-space: pre; display: block;
-}
-/* Syntax highlight tokens */
-.hl-kw  { color: var(--vscode-symbolIcon-keywordForeground, #c586c0); }
-.hl-str { color: var(--vscode-debugTokenExpression-string, #ce9178); }
-.hl-cmt { color: var(--vscode-editorLineNumber-foreground, #6a9955); font-style: italic; }
-.hl-num { color: var(--vscode-debugTokenExpression-number, #b5cea8); }
-.hl-fn  { color: var(--vscode-symbolIcon-functionForeground, #dcdcaa); }
-.hl-dec { color: var(--vscode-symbolIcon-colorForeground, #4fc1ff); }
-.loading, .error-msg { padding: 32px 0; font-size: 13px; }
-.error-msg { color: var(--vscode-errorForeground, #f48771); }
-</style>`;
+    return `<style>${getSharedPanelStyles()}</style>`;
 }

@@ -1,5 +1,6 @@
 ---
 name: servicenow-now-assist
+context: fork
 user-invocable: false
 description: Build NowAssist Skill configurations using the Fluent SDK NowAssistSkillConfig API. Covers the two-argument skill definition pattern, input/output typing, tool graph construction (Script, InlineScript, FlowAction, Subflow, WebSearch, Decision), LLM provider and prompt configuration with versioning, mandatory security controls, and deployment settings. Use when creating AI-powered skills that appear in the Now Assist Panel, UI Actions, or as reusable Flow Actions. Trigger this skill whenever the user mentions NowAssist, NowAssistSkillConfig, Now Assist skills, LLM-powered skills, generative AI in ServiceNow, prompt configuration, or building AI capabilities with the Fluent SDK.
 ---

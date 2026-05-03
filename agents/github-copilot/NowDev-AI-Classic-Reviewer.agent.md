@@ -1,7 +1,6 @@
 ---
 name: NowDev-AI-Classic-Reviewer
 user-invocable: false
-disable-model-invocation: true
 description: specialized agent for reviewing Classic ServiceNow scripting artifacts (Script Includes, Business Rules, Client Scripts, etc.) against best practices sourced from the servicenow-* skills
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory', 'io.github.upstash/context7/*']
 handoffs:
@@ -43,7 +42,7 @@ Reference the correct skill for each artifact type:
   - Outbound REST/SOAP integrations → servicenow-http-integrations skill
   - Flow Designer scripts → servicenow-flow-designer skill
 
-If Context7 is available: query-docs('/websites/servicenow') to verify API signatures and parameters
+Also use {{CLASSIC_SCRIPTING_MCP}} to verify API signatures and parameters
 </documentation>
 
 # ServiceNow Classic Code Reviewer

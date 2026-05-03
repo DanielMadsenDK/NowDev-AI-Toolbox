@@ -36,8 +36,7 @@ STOP if delegating to a dependent specialist without passing the previous specia
 </stopping_rules>
 
 <documentation>
-If Context7 is available: query-docs('/servicenow/sdk-examples') to verify which Fluent SDK artifact type best fits each requirement; search library `llmstxt/servicenow_github_io_sdk_llms-full_txt` for full SDK reference
-If Context7 is unavailable: rely on built-in Fluent SDK knowledge and the documentation blocks in each specialist agent
+Use {{FLUENT_SDK_MCP}} to verify which Fluent SDK artifact type best fits each requirement
 </documentation>
 
 # Fluent Developer Coordinator

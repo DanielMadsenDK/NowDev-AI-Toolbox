@@ -5,14 +5,28 @@ description: Guide for creating and maintaining agent .agent.md files in this re
 
 ## Two Agent Targets
 
-This repository has two sets of agent files with different property support:
+This repository has two agent locations, but they do not play the same role.
 
 | Location | Target | Used by |
 |----------|--------|---------|
-| `agents/github-copilot/` | VS Code | GitHub Copilot Chat in VS Code (loaded via `package.json` chatAgents) |
-| `.github/agents/` | Cloud | GitHub Copilot cloud agent on GitHub.com |
+| `agents/github-copilot/` | Source of truth for bundled agent templates | Parsed by `src/AgentRegistry.ts`, shown in the sidebar, and synced into the workspace by `src/WorkspaceAgentManager.ts` |
+| `.github/agents/` | Generated workspace output / cloud-facing workspace agents | Written by the extension, stamped as managed, and added to `.gitignore` |
 
-When creating a new agent, decide which target(s) it belongs to.
+In current repo behavior, you almost always edit `agents/github-copilot/` first and let the extension regenerate `.github/agents/`.
+
+Do **not** assume a `package.json -> contributes.chatAgents` registration step exists here. It currently does not. Agent discovery in this project is driven by filesystem parsing and sync, not by package contributions.
+
+## Source vs Generated Files
+
+The extension currently:
+
+- reads bundled source agents from `agents/github-copilot/`
+- parses frontmatter with `AgentRegistry.ts`
+- writes generated workspace copies to `.github/agents/`
+- prepends `# nowdev-managed: true` and a `# nowdev-hash:` line to managed outputs
+- injects MCP tools, doc-source substitutions, and agent enable/disable filtering during sync
+
+Practical rule: edit `agents/github-copilot/` unless the task is explicitly about generated output behavior, managed hashes, or cloud-side files in `.github/agents/`.
 
 ## VS Code Agent Frontmatter
 
@@ -20,22 +34,30 @@ When creating a new agent, decide which target(s) it belongs to.
 ---
 name: Display Name
 user-invocable: true | false       # false = sub-agent only, never shown in user dropdown
-disable-model-invocation: true     # only set on leaf specialists to prevent auto-selection
 description: <purpose>
-argument-hint: "<what caller should pass>"
+agents: ['Child Agent A', 'Child Agent B']
 tools: ['read/readFile', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'io.github.upstash/context7/*']
-handoffs:
-  - label: Back to <Parent>
-    agent: <Parent Agent Name>
-    prompt: <handoff message>
-    send: true
 ---
 ```
 
-VS Code prompt structure uses XML-like blocks:
+Important current parser constraints from `src/AgentRegistry.ts`:
+
+- `tools: [...]` must stay on a single line
+- `agents: [...]` must stay on a single line
+- The sidebar manifest currently reads `name`, `description`, `user-invocable`, `tools`, and `agents`
+- Additional frontmatter fields may still be useful to Copilot, but they are not used by the extension sidebar/parser unless code support is added
+
+Current VS Code prompt bodies in this repo use XML-like blocks:
 - `<workflow>` — numbered steps Copilot follows
 - `<stopping_rules>` — `STOP IF` safety conditions
 - `<documentation>` — where to look up APIs (Context7 library IDs, skill file paths)
+- additional sections such as `<context_conservation>` or `<state_tracking>` when an agent needs them
+
+When editing source agents, preserve any template tokens that are intentionally substituted during sync, such as:
+
+- `{{DEVOPS_PREAMBLE}}`
+- `{{DEVOPS_CUSTOM_INSTRUCTIONS}}`
+- MCP instruction placeholders used by documentation-source injection
 
 ## Cloud Agent Frontmatter
 
@@ -109,6 +131,17 @@ NowDev AI Agent (orchestrator, user-invocable: true)
 
 For VS Code agents, always read `agents/github-copilot/AGENT-PATTERNS.md` before creating or editing — it contains the canonical tool sets and patterns that must be followed.
 
-For cloud agents, read an existing file in `.github/agents/` as a style reference before writing.
+For generated workspace/cloud-facing agents, read an existing file in `.github/agents/` and check whether it is extension-managed before editing.
+
+When working on source agents, also read:
+
+- `src/AgentRegistry.ts` to understand what frontmatter the sidebar/parser actually consumes
+- `src/WorkspaceAgentManager.ts` to understand generated-file behavior, MCP injections, and managed hash stamping
 
 When adding a new VS Code agent that is user-invocable (or a key sub-agent), check whether `src/AgentTopology.ts` needs a corresponding `AgentNode` entry to display it in the sidebar.
+
+When adding a new source agent, there is normally **no** `package.json` agent registration step in this repo. The meaningful follow-up checks are:
+
+1. Does `AgentRegistry.ts` parse the file shape correctly?
+2. Does `WorkspaceAgentManager.ts` sync it into `.github/agents/` correctly?
+3. Does `AgentTopology.ts` need an entry for sidebar visualization?

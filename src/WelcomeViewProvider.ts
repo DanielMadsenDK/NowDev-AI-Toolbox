@@ -2,7 +2,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
-import { AGENT_TREE } from './AgentTopology';
+import { scanMcpServers, McpServer } from './MCPScanner';
+import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
+import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG } from './WorkspaceAgentManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
@@ -49,6 +51,12 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _installInfo: InstallInfoState | null = null;
     private _connectionStatus: ConnectionState | null = null;
     private _checkChangesResult: CheckChangesState | null = null;
+    private _mcpServers: McpServer[] = [];
+    private _selectedMcp: string[] = [];
+    private _mcpDocSources: McpDocSources = { ...DEFAULT_MCP_DOC_SOURCES };
+    private _agentManifests: AgentManifest[] = [];
+    private _agentOverrides: Record<string, AgentOverride> = {};
+    private _devopsConfig: DevOpsConfig = { ...DEFAULT_DEVOPS_CONFIG };
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -85,6 +93,29 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         if (this._view) {
             this._view.webview.postMessage({ command: 'updateCheckChanges', state });
         }
+    }
+
+    /** Loads the agent registry from bundled files and writes all agents to workspace. */
+    public loadAgentRegistry(): void {
+        this._agentManifests = loadAgentRegistry(this._extensionUri.fsPath);
+        this._syncWorkspaceAgents();
+    }
+
+    /** Returns the currently loaded agent manifests (for topology panel). */
+    public getAgentManifests(): AgentManifest[] {
+        return this._agentManifests;
+    }
+
+    /** Returns the current agent overrides map (for topology panel). */
+    public getAgentOverrides(): Record<string, AgentOverride> {
+        return this._agentOverrides;
+    }
+
+    /** Scans for available MCP servers and triggers an agent override sync. */
+    public scanMcp(): void {
+        this._mcpServers = scanMcpServers();
+        this._syncWorkspaceAgents();
+        if (this._view) { this._updateStatus(); }
     }
 
     /**
@@ -126,10 +157,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 case 'openCopilotChat':
-                    vscode.commands.executeCommand('workbench.action.chat.open');
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openCopilotChat');
                     break;
                 case 'openSettings':
                     vscode.commands.executeCommand('workbench.action.openSettings', 'nowdev-ai-toolbox');
+                    break;
+                case 'collectCopilotDiagnostics':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.collectCopilotDiagnostics');
+                    break;
+                case 'showCopilotChatLogs':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.showCopilotChatLogs');
                     break;
                 case 'updateConfig': {
                     const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
@@ -157,6 +194,104 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 }
+                case 'toggleMcp': {
+                    const mcpName = message.name as string;
+                    const nowEnabled = message.enabled as boolean;
+                    if (nowEnabled) {
+                        if (!this._selectedMcp.includes(mcpName)) {
+                            this._selectedMcp = [...this._selectedMcp, mcpName];
+                        }
+                    } else {
+                        this._selectedMcp = this._selectedMcp.filter(n => n !== mcpName);
+                    }
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'updateMcpDocSource': {
+                    const slot = message.slot as keyof McpDocSources;
+                    const field = message.field as keyof McpDocSource;
+                    const value = message.value as string;
+                    if (slot in this._mcpDocSources) {
+                        this._mcpDocSources = {
+                            ...this._mcpDocSources,
+                            [slot]: { ...this._mcpDocSources[slot], [field]: value },
+                        };
+                        this._syncWorkspaceAgents();
+                        this._updateStatus();
+                    }
+                    break;
+                }
+                case 'rescanMcp':
+                    this._mcpServers = scanMcpServers();
+                    this._updateStatus();
+                    break;
+                case 'updateDevopsEnabled': {
+                    this._devopsConfig = { ...this._devopsConfig, enabled: message.enabled as boolean };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'updateDevopsMcp': {
+                    this._devopsConfig = { ...this._devopsConfig, mcpServer: message.server as string };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'browseDevopsInstructionsFile': {
+                    const uris = await vscode.window.showOpenDialog({
+                        canSelectMany: false,
+                        filters: { 'Instruction files': ['md', 'txt'] },
+                        openLabel: 'Select DevOps Instructions File',
+                    });
+                    if (uris && uris.length > 0) {
+                        try {
+                            const content = fs.readFileSync(uris[0].fsPath, 'utf-8');
+                            this._devopsConfig = { ...this._devopsConfig, customInstructions: content };
+                            this._syncWorkspaceAgents();
+                            this._updateStatus();
+                            this._view?.webview.postMessage({ command: 'updateDevopsConfig', devopsConfig: this._devopsConfig });
+                        } catch { /* ignore read errors */ }
+                    }
+                    break;
+                }
+                case 'clearDevopsInstructions': {
+                    this._devopsConfig = { ...this._devopsConfig, customInstructions: '' };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._view?.webview.postMessage({ command: 'updateDevopsConfig', devopsConfig: this._devopsConfig });
+                    break;
+                }
+                case 'toggleAgent': {
+                    const agentName = message.name as string;
+                    const agentEnabled = message.enabled as boolean;
+                    const curA = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
+                    this._agentOverrides[agentName] = { ...curA, enabled: agentEnabled };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._sendAgentData();
+                    break;
+                }
+                case 'toggleAgentTool': {
+                    const agentName = message.agentName as string;
+                    const toolName  = message.toolName  as string;
+                    const toolOn    = message.enabled   as boolean;
+                    const curT = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
+                    const dt = new Set(curT.disabledTools);
+                    if (toolOn) { dt.delete(toolName); } else { dt.add(toolName); }
+                    this._agentOverrides[agentName] = { ...curT, disabledTools: [...dt] };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._sendAgentData();
+                    break;
+                }
+                case 'resyncAgents':
+                    this._syncWorkspaceAgents();
+                    this._sendAgentData();
+                    break;
+                case 'showAgentTopology':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.showAgentTopology');
+                    break;
                 case 'toggleTool': {
                     const toolKey = message.key as string;
                     const nowEnabled = message.enabled as boolean;
@@ -202,6 +337,12 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'sdkCommand':
                     vscode.commands.executeCommand(`nowdev-ai-toolbox.sdk${capitalize(message.cmd)}`, message.args ?? {});
                     break;
+                case 'openDependencyPicker':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openDependencyPicker');
+                    break;
+                case 'openContextScanner':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openContextScanner');
+                    break;
                 case 'sdkAuthAdd':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthAdd');
                     break;
@@ -234,9 +375,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     if (tab === 'sdk' && !this._initializedTabs.has('sdk')) {
                         this._initializedTabs.add('sdk');
                         this._sendSdkData();
-                    } else if (tab === 'agents' && !this._initializedTabs.has('agents')) {
-                        this._initializedTabs.add('agents');
-                        this._sendAgentTree();
+                    } else if (tab === 'agents') {
+                        this._sendAgentData();
                     }
                     break;
                 }
@@ -253,7 +393,21 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         nowConfigWatcher.onDidCreate(() => this._updateStatus());
         nowConfigWatcher.onDidDelete(() => this._updateStatus());
 
-        // Watch for nowdev-ai-config.json changes to pick up memoryLocation
+        // Watch for workspace MCP file changes to refresh detected servers.
+        // `.mcp.json` is the current VS Code location; `.vscode/mcp.json` is
+        // watched as a legacy fallback for existing workspaces.
+        const mcpJsonWatchers = [
+            vscode.workspace.createFileSystemWatcher('**/.mcp.json'),
+            vscode.workspace.createFileSystemWatcher('**/.vscode/mcp.json'),
+        ];
+        const refreshMcpServers = () => { this._mcpServers = scanMcpServers(); this._updateStatus(); };
+        for (const watcher of mcpJsonWatchers) {
+            watcher.onDidChange(refreshMcpServers);
+            watcher.onDidCreate(refreshMcpServers);
+            watcher.onDidDelete(refreshMcpServers);
+        }
+
+        // Watch for nowdev-ai-config.json changes to pick up memoryLocation and mcpIntegrations
         const aiConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.vscode/nowdev-ai-config.json');
         aiConfigWatcher.onDidChange(() => this._onConfigFileChanged());
         aiConfigWatcher.onDidCreate(() => this._onConfigFileChanged());
@@ -270,10 +424,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtml(webviewView.webview);
 
-        // Initial data pushes
+        // Initial data pushes — load config first so _selectedMcp is ready before _updateStatus
         setTimeout(() => {
-            this._updateStatus();
             this._onConfigFileChanged();
+            this._updateStatus();
             this._sendArtifacts();
         }, 200);
     }
@@ -312,13 +466,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpDocSources: this._mcpDocSources, devopsConfig: this._devopsConfig });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
-    private _sendAgentTree() {
+    private _sendAgentData() {
         if (!this._view) { return; }
-        this._view.webview.postMessage({ command: 'updateAgents', tree: AGENT_TREE });
+        this._view.webview.postMessage({ command: 'updateAgents', manifests: this._agentManifests, overrides: this._agentOverrides });
     }
 
     private _sendSdkData(): void {
@@ -362,6 +516,35 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             if (!fs.existsSync(configPath)) { return; }
             const raw = fs.readFileSync(configPath, 'utf-8');
             const config = JSON.parse(raw);
+
+            // Load persisted MCP selection and sync the workspace agents
+            if (Array.isArray(config.mcpIntegrations)) {
+                this._selectedMcp = config.mcpIntegrations as string[];
+            }
+
+            // Load persisted doc-MCP sources
+            if (config.mcpDocSources && typeof config.mcpDocSources === 'object') {
+                const saved = config.mcpDocSources as Partial<McpDocSources>;
+                this._mcpDocSources = {
+                    classicScripting: { ...DEFAULT_MCP_DOC_SOURCES.classicScripting, ...saved.classicScripting },
+                    fluentSdk:        { ...DEFAULT_MCP_DOC_SOURCES.fluentSdk,        ...saved.fluentSdk },
+                    general:          { ...DEFAULT_MCP_DOC_SOURCES.general,          ...saved.general },
+                };
+            }
+
+            // Load per-agent overrides
+            if (config.agentOverrides && typeof config.agentOverrides === 'object') {
+                this._agentOverrides = config.agentOverrides as Record<string, AgentOverride>;
+            }
+
+            // Load DevOps integration config
+            if (config.devopsConfig && typeof config.devopsConfig === 'object') {
+                this._devopsConfig = { ...DEFAULT_DEVOPS_CONFIG, ...(config.devopsConfig as Partial<DevOpsConfig>) };
+            }
+
+            // Sync agents whenever config changes
+            this._syncWorkspaceAgents();
+
             const memoryLocation: string | undefined = config.memoryLocation;
             if (!memoryLocation) { return; }
 
@@ -373,8 +556,21 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
             this._setupArtifactWatcher(resolvedPath);
         } catch (err) {
-            console.error('Failed to read nowdev-ai-config.json for memoryLocation:', err);
+            console.error('Failed to read nowdev-ai-config.json:', err);
         }
+    }
+
+    private _syncWorkspaceAgents(): void {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) { return; }
+        const cfg = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
+        const autoUpdate = cfg.get<boolean>('autoUpdateAgentOverrides', true);
+        syncAllAgents(
+            this._extensionUri.fsPath,
+            workspaceFolders[0].uri.fsPath,
+            this._agentManifests,
+            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, mcpDocSources: this._mcpDocSources, autoUpdate, devopsConfig: this._devopsConfig }
+        );
     }
 
     private _setupArtifactWatcher(resolvedPath: string): void {
@@ -490,6 +686,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             };
         }
 
+        // MCP server selection
+        configData.mcpIntegrations = this._selectedMcp;
+
+        // MCP documentation sources
+        configData.mcpDocSources = this._mcpDocSources;
+
+        // DevOps integration config
+        configData.devopsConfig = this._devopsConfig;
+
+        // Per-agent overrides
+        if (Object.keys(this._agentOverrides).length > 0) {
+            configData.agentOverrides = this._agentOverrides;
+        }
+
         // Preserve agent-written fields (e.g. memoryLocation) that should not be overwritten
         try {
             if (fs.existsSync(configPath)) {
@@ -592,30 +802,32 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <h1>NowDev AI Toolbox</h1>
             <span class="version">v${version}</span>
         </div>
+        <button class="header-chat-btn" id="openChatHeader" title="Open Copilot Chat (Ctrl+Shift+I)">Chat &rsaquo;</button>
     </div>
-
-    <p class="desc">
-        AI-powered multi-agent system for ServiceNow development in VS Code Copilot Chat.
-    </p>
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-        <button class="tab-btn active" data-tab="setup">Setup</button>
+        <button class="tab-btn active" data-tab="home">Home</button>
+        <button class="tab-btn" data-tab="project">Project</button>
         <button class="tab-btn" data-tab="sdk">SDK</button>
-        <button class="tab-btn" data-tab="tools">Tools</button>
         <button class="tab-btn" data-tab="agents">Agents</button>
-        <button class="tab-btn" data-tab="session">Session</button>
+        <button class="tab-btn" data-tab="tools">Tools</button>
+        <button class="tab-btn" data-tab="activity">Activity</button>
     </div>
 
-    <!-- ═══════════ TAB: Setup ═══════════ -->
-    <div id="tab-setup" class="tab-content active">
+    <!-- ═══════════ TAB: Home ═══════════ -->
+    <div id="tab-home" class="tab-content active">
+
+        <!-- At-a-glance workspace status (rendered by main.js) -->
+        <div id="workspaceStatus" class="workspace-status"></div>
+
+        <div id="onboardingSummary" class="onboarding-summary"></div>
 
         <!-- Quick Action -->
         <div class="section">
-            <button class="btn-primary" id="openChat">Open Copilot Chat (Ctrl+Shift+I)</button>
+            <button class="btn-primary" id="openChat">Open Copilot Chat &nbsp;&middot;&nbsp; Ctrl+Shift+I</button>
+            <div class="chat-picker-hint">After chat opens, pick <strong>NowDev AI Agent</strong> from the agent picker.</div>
         </div>
-
-        <hr>
 
         <!-- Prerequisites Status -->
         <div class="section">
@@ -649,6 +861,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         </div>
 
         <hr>
+
+        <!-- Resources -->
+        <div class="section">
+            <div class="section-title">Resources</div>
+            <ul class="info-list">
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox">GitHub Repository</a></li>
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox#readme">Documentation</a></li>
+                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/issues">Report an Issue</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ═══════════ TAB: Project ═══════════ -->
+    <div id="tab-project" class="tab-content">
 
         <!-- ServiceNow Settings -->
         <div class="section">
@@ -686,7 +912,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <span>Fluent App</span>
             </div>
             <div class="field-desc" style="margin-bottom: 8px;">
-                Detected from <code style="font-size:10px;">now.config.json</code> in the workspace root.
+                Detected from <code>now.config.json</code> in the workspace root.
             </div>
             <div class="app-info" id="fluentAppInfo"></div>
         </div>
@@ -699,7 +925,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <span>Fluent Project</span>
             </div>
             <div class="field-desc" style="margin-bottom: 8px;">
-                No <code style="font-size:10px;">now.config.json</code> detected. Run <code style="font-size:10px;">now-sdk init</code> in a terminal to create a new Fluent SDK project.
+                No <code>now.config.json</code> detected. Run <code>now-sdk init</code> to scaffold a new Fluent SDK project.
             </div>
             <button class="btn-secondary" id="initFluentProject">Initialize Fluent Project&hellip;</button>
         </div>
@@ -721,18 +947,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 </div>
                 <div class="file-path" id="filePath" style="display:none;"></div>
             </div>
-        </div>
-
-        <hr>
-
-        <!-- Resources -->
-        <div class="section">
-            <div class="section-title">Resources</div>
-            <ul class="info-list">
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox">GitHub Repository</a></li>
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox#readme">Documentation</a></li>
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/issues">Report an Issue</a></li>
-            </ul>
         </div>
     </div>
 
@@ -819,6 +1033,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <div class="sdk-cmd-actions">
                         <button class="sdk-help-btn" data-cmd="transform" title="Transform help">?</button>
                         <button class="sdk-opts-btn" data-opts="opts-transform" title="Transform options">&#9881;</button>
+                        <button class="fix-btn" id="transformFromXmlBtn" title="Transform a local XML file or folder (--from)">From XML&hellip;</button>
                         <button class="fix-btn sdk-run-btn" data-cmd="transform">Run</button>
                     </div>
                 </div>
@@ -838,6 +1053,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <div class="sdk-cmd-actions">
                         <button class="sdk-help-btn" data-cmd="dependencies" title="Dependencies help">?</button>
                         <button class="sdk-opts-btn" data-opts="opts-deps" title="Dependencies options">&#9881;</button>
+                        <button class="fix-btn" id="openDepPickerBtn" title="Browse instance and add dependencies">Browse&hellip;</button>
+                        <button class="fix-btn" id="openContextScannerBtn" title="Scan instance for relevant scripts and knowledge articles">Scan for Context&hellip;</button>
                         <button class="fix-btn sdk-run-btn" data-cmd="dependencies">Run</button>
                     </div>
                 </div>
@@ -873,6 +1090,30 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 </div>
                 <div class="sdk-cmd-status" id="sdkStatus-download"></div>
                 <div id="checkChangesStatus" class="changes-status" style="display:none;"></div>
+            </div>
+
+            <!-- Sync + Move side by side -->
+            <div style="display:flex;gap:6px;">
+                <div class="sdk-cmd-card" style="flex:1;">
+                    <div class="sdk-cmd-row">
+                        <span class="sdk-cmd-name">Sync</span>
+                        <div class="sdk-cmd-actions">
+                            <button class="fix-btn sdk-run-btn" data-cmd="sync" title="Incremental download then transform">Run</button>
+                        </div>
+                    </div>
+                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Download &rarr; Transform</div>
+                    <div class="sdk-cmd-status" id="sdkStatus-sync"></div>
+                </div>
+                <div class="sdk-cmd-card" style="flex:1;">
+                    <div class="sdk-cmd-row">
+                        <span class="sdk-cmd-name">Move</span>
+                        <div class="sdk-cmd-actions">
+                            <button class="fix-btn sdk-run-btn" data-cmd="move" title="Transform global metadata into local Fluent code">Run</button>
+                        </div>
+                    </div>
+                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Global metadata → Fluent</div>
+                    <div class="sdk-cmd-status" id="sdkStatus-move"></div>
+                </div>
             </div>
 
             <!-- Clean + Pack side by side -->
@@ -916,6 +1157,87 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     </div>
 
+    <!-- ═══════════ TAB: Agents ═══════════ -->
+    <div id="tab-agents" class="tab-content">
+        <div class="section">
+            <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>Agent Configuration</span>
+                <div style="display:flex;gap:6px;">
+                    <button class="fix-btn" id="showAgentTopology" title="Open agent hierarchy diagram in a new tab">Topology</button>
+                    <button class="fix-btn" id="resyncAgents" title="Regenerate all workspace agent files">Resync</button>
+                </div>
+            </div>
+            <div class="field-desc agents-desc">
+                Agent files are written to <code>.github/agents/</code>. Disabled agents are not written to the workspace and are removed from orchestration routing.
+            </div>
+            <div class="agents-actions">
+                <button class="fix-btn" id="showCopilotChatLogs" title="Open the Copilot chat log view">Chat Logs</button>
+                <button class="fix-btn" id="collectCopilotDiagnostics" title="Collect diagnostics for Copilot support and troubleshooting">Diagnostics</button>
+            </div>
+            <div id="agentCards"></div>
+        </div>
+
+        <hr>
+
+        <!-- MCP Integrations -->
+        <div class="section">
+            <div class="section-title">
+                <span>MCP Integrations</span>
+                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.
+            </div>
+            <div id="mcpServersList">
+                <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
+            </div>
+
+            <div class="field-label" style="margin-top:12px;margin-bottom:6px;">ServiceNow Documentation Sources</div>
+            <div class="field-desc" style="margin-bottom:8px;">
+                Choose which MCP server agents use to look up ServiceNow API docs. Click the gear to configure each source. When set to <em>none</em>, agents fall back to built-in skill knowledge.
+            </div>
+            <div id="mcpDocSourcesList">
+                <!-- rendered by main.js updateMcpDocSources() -->
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- DevOps Integration -->
+        <div class="section">
+            <div class="section-title">
+                <span>DevOps Integration</span>
+                <label class="tool-toggle" title="Enable/disable DevOps agent">
+                    <input type="checkbox" id="devopsEnabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="field-desc" style="margin-bottom: 8px;">
+                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
+            </div>
+            <div id="devopsConfig" style="display:none;">
+                <div class="field">
+                    <label for="devopsMcpServer">MCP Server</label>
+                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
+                    <select id="devopsMcpServer">
+                        <option value="">(select a server)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Custom Instructions</label>
+                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
+                    <div class="file-picker">
+                        <div class="file-picker-row">
+                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
+                            <button class="btn-clear" id="clearDevopsFile" title="Remove instructions file" style="display:none;">&#10005;</button>
+                        </div>
+                        <div class="file-path" id="devopsFilePath" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════════ TAB: Tools ═══════════ -->
     <div id="tab-tools" class="tab-content">
         <div class="section">
@@ -928,21 +1250,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <!-- ═══════════ TAB: Agents ═══════════ -->
-    <div id="tab-agents" class="tab-content">
+    <!-- ═══════════ TAB: Activity ═══════════ -->
+    <div id="tab-activity" class="tab-content">
         <div class="section">
-            <div class="section-title">Agent Team</div>
-            <div class="field-desc" style="margin-bottom: 10px;">
-                22 specialized agents organized by role. Click a name to see its description; click the arrow to expand.
-            </div>
-            <div id="agentTree" class="agent-tree"></div>
-        </div>
-    </div>
-
-    <!-- ═══════════ TAB: Session ═══════════ -->
-    <div id="tab-session" class="tab-content">
-        <div class="section">
-            <div class="section-title">Artifact Registry</div>
+            <div class="section-title">Session Artifacts</div>
             <div id="artifactsView"></div>
         </div>
     </div>

@@ -1,5 +1,6 @@
 ---
 name: servicenow-fluent-development
+context: fork
 user-invocable: false
 description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK. Use this skill when developing full-stack React applications, creating tables (with all 52 column types), records, business rules, ACLs, cross-scope privileges, script includes, flows and subflows (with wfa, triggers, actions, FDTransform), SLAs, service catalog (29+ variable types), service portal (ServicePortal, SPMenu, SPPage, SPTheme, SPWidget), UI pages, dashboards, workspaces, email notifications, form layouts, scheduled scripts, instance scan checks, or any other ServiceNow metadata using the Fluent API. Also covers JavaScript modules (import/export from @servicenow/glide), Now.ID, Now.ref, Now.include, Now.attach, Now.UNRESOLVED, AnnotationType, default_view, and global helpers (Duration, Time, TemplateValue, FieldList). Trigger this skill whenever the user is working on a Fluent SDK project, .now.ts files, now-sdk commands, or any ServiceNow metadata authoring — even if they don't use the word "Fluent".
 ---
