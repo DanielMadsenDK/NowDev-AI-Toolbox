@@ -726,6 +726,45 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
 
+    // Enable dedicated skill context isolation (v1.118+) — prevents skill content flooding main agent context
+    const skillToolConfig = vscode.workspace.getConfiguration('github.copilot.chat');
+    if (skillToolConfig.get<boolean>('skillTool.enabled') !== true) {
+        skillToolConfig.update('skillTool.enabled', true, vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Enabled github.copilot.chat.skillTool.enabled');
+        }, (error: any) => {
+            console.error('Failed to enable skillTool:', error);
+        });
+    }
+
+    // Enable background todo agent (v1.119+) — offloads todo tracking from main model in multi-tier sessions
+    const todoAgentConfig = vscode.workspace.getConfiguration('github.copilot.chat.agent');
+    if (todoAgentConfig.get<boolean>('backgroundTodoAgent.enabled') !== true) {
+        todoAgentConfig.update('backgroundTodoAgent.enabled', true, vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Enabled github.copilot.chat.agent.backgroundTodoAgent.enabled');
+        }, (error: any) => {
+            console.error('Failed to enable backgroundTodoAgent:', error);
+        });
+    }
+
+    // Enable model details badge in agent responses (v1.119+) — shows model name and cost multiplier
+    if (todoAgentConfig.get<boolean>('modelDetails.enabled') !== true) {
+        todoAgentConfig.update('modelDetails.enabled', true, vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Enabled github.copilot.chat.agent.modelDetails.enabled');
+        }, (error: any) => {
+            console.error('Failed to enable modelDetails:', error);
+        });
+    }
+
+    // Enable stable symbol caching (v1.118+) — reduces latency for repeated skill/agent invocations
+    const cacheConfig = vscode.workspace.getConfiguration('chat.experimental');
+    if (cacheConfig.get<boolean>('symbolTools.cacheStable') !== true) {
+        cacheConfig.update('symbolTools.cacheStable', true, vscode.ConfigurationTarget.Global).then(() => {
+            console.log('Enabled chat.experimental.symbolTools.cacheStable');
+        }, (error: any) => {
+            console.error('Failed to enable symbolTools cache:', error);
+        });
+    }
+
     // Agents are now registered via package.json chatAgents contribution
     // No additional installation logic needed
 

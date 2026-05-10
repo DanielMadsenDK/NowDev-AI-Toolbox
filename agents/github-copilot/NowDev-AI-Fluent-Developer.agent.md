@@ -3,7 +3,7 @@ name: NowDev-AI-Fluent-Developer
 user-invocable: false
 description: Fluent SDK coordinator — analyzes the implementation brief, sequences work across Schema, Logic, Automation, and UI specialists, and reports back to the orchestrator
 argument-hint: "The refined implementation brief or feature description for what needs to be built — include the business requirements, user story, and any known ServiceNow context (existing tables, scope, instance details). The agent will determine the required Fluent artifacts and delegate to the right specialists."
-tools: ['read/readFile', 'search', 'web', 'todo', 'vscode/memory', 'agent', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'search', 'web', 'todo', 'vscode/memory', 'agent', 'io.github.upstash/context7/*', 'githubRepo']
 agents: ['NowDev-AI-Fluent-Schema-Developer', 'NowDev-AI-Fluent-Logic-Developer', 'NowDev-AI-Fluent-Automation-Developer', 'NowDev-AI-Fluent-UI-Developer', 'NowDev-AI-AI-Studio-Developer', 'NowDev-AI-ATF-Developer']
 handoffs:
   - label: Back to Architect
