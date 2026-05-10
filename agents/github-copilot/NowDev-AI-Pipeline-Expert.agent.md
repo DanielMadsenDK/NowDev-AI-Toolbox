@@ -3,7 +3,7 @@ name: NowDev-AI-Pipeline-Expert
 user-invocable: false
 description: specialized agent for generating CI/CD pipeline configuration — creates GitHub Actions workflows and Azure DevOps pipelines for automated Fluent SDK deployments to ServiceNow environments; covers credential management, branch strategies, and multi-scope deployments
 argument-hint: "Project root path, target environments (dev/test/prod), CI platform (github-actions/azure-devops), branch strategy (branch-per-env/trunk), and list of scopes if multi-scope"
-tools: ['read/readFile', 'search', 'web', 'todo', 'edit/createFile', 'edit/editFiles', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'search', 'web', 'todo', 'edit/createFile', 'edit/editFiles', 'io.github.upstash/context7/*', 'githubTextSearch']
 handoffs:
   - label: Back to Release Expert
     agent: NowDev-AI-Release-Expert
