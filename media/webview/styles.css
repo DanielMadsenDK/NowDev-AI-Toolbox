@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
    NowDev AI Toolbox — Sidebar Webview Styles
-   Token-driven design system. Mirrors src/SharedPanelStyles.ts so all
-   surfaces (sidebar + editor panels) share one visual language.
+   Token-driven design system. Keep in sync with src/SharedPanelStyles.ts
+   so all surfaces (sidebar + editor panels) share one visual language.
    ════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -20,6 +20,7 @@
 
     --nd-border:        var(--vscode-panel-border, var(--vscode-widget-border, rgba(255,255,255,0.10)));
     --nd-border-soft:   var(--vscode-widget-border, rgba(255,255,255,0.06));
+    --nd-border-strong: rgba(129,181,161,0.45);
 
     --nd-fg:            var(--vscode-foreground);
     --nd-fg-mute:       var(--vscode-descriptionForeground);
@@ -41,6 +42,8 @@
     --nd-sp-4: 16px;
     --nd-sp-5: 20px;
     --nd-sp-6: 24px;
+    --nd-sp-7: 28px;
+    --nd-sp-8: 32px;
 
     /* ── Radii ─────────────────────────────────────────────────── */
     --nd-r-sm:  4px;
@@ -48,12 +51,65 @@
     --nd-r-lg: 10px;
     --nd-r-pill: 999px;
 
+    /* ── Shadows ───────────────────────────────────────────────── */
+    --nd-shadow-1:    0 1px 2px rgba(0,0,0,0.18);
+    --nd-shadow-2:    0 4px 14px rgba(0,0,0,0.28);
+    --nd-shadow-glow: 0 0 0 1px rgba(129,181,161,0.25), 0 4px 18px rgba(129,181,161,0.18);
+
     /* ── Type ──────────────────────────────────────────────────── */
     --nd-font:      var(--vscode-font-family);
     --nd-font-mono: var(--vscode-editor-font-family, monospace);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ════════════════════════════════════════════════════════════════ */
+.nd-hidden  { display: none !important; }
+.nd-mt-2    { margin-top:    var(--nd-sp-2); }
+.nd-mb-2    { margin-bottom: var(--nd-sp-2); }
+.nd-mt-3    { margin-top:    var(--nd-sp-3); }
+.nd-mb-3    { margin-bottom: var(--nd-sp-3); }
+.nd-row     { display: flex; align-items: center; }
+.nd-row-gap-1 { display: flex; align-items: center; gap: var(--nd-sp-1); }
+.nd-row-gap-2 { display: flex; align-items: center; gap: var(--nd-sp-2); }
+
+/* Inline-flex button group used in section-title action slots */
+.nd-btn-group { display: flex; gap: var(--nd-sp-2); }
+
+/* Sub-label within a section (used above MCP doc sources list) */
+.nd-section-sublabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--nd-fg);
+    margin-top: var(--nd-sp-3);
+    margin-bottom: var(--nd-sp-2);
+}
+
+/* Muted italic placeholder text (scanning, loading states) */
+.nd-placeholder { font-style: italic; color: var(--nd-fg-mute); }
+
+/* Side-by-side pair of sdk-cmd-cards */
+.sdk-cmd-pair {
+    display: flex;
+    gap: var(--nd-sp-2);
+}
+.sdk-cmd-pair .sdk-cmd-card { flex: 1; min-width: 0; }
+
+/* Compact inline-code inside field-desc / auth row */
+.sdk-auth-label {
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Small inline code — used in auth alias description */
+code.nd-code-sm { font-size: 10px; }
+
+/* sdk-cmd-tagline when used standalone (Sync/Move/Clean/Pack mini cards) */
+.sdk-cmd-tagline-mt { margin-top: 2px; }
 
 body {
     font-family: var(--nd-font);
@@ -285,7 +341,14 @@ body {
    SECTIONS — uniform eyebrow heading + optional trailing actions
    ════════════════════════════════════════════════════════════════ */
 .section {
-    margin-bottom: var(--nd-sp-5);
+    margin-bottom: var(--nd-sp-6);
+}
+
+/* Subtle visual divider between major section groups — use sparingly */
+.nd-section-sep {
+    border: none;
+    border-top: 1px solid var(--nd-border-soft);
+    margin: var(--nd-sp-4) 0;
 }
 .section-title {
     font-size: 10.5px;
@@ -302,8 +365,8 @@ body {
 
 hr {
     border: none;
-    border-top: 1px solid var(--nd-border);
-    margin: var(--nd-sp-4) 0;
+    border-top: 1px solid var(--nd-border-soft);
+    margin: var(--nd-sp-3) 0 var(--nd-sp-4);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -434,7 +497,7 @@ hr {
 .check-label { flex: 1; color: var(--nd-fg); }
 
 .all-good {
-    display: none;
+    display: flex;
     align-items: center;
     gap: var(--nd-sp-2);
     font-size: 11.5px;
@@ -820,6 +883,44 @@ a:hover {
 .agent-group-label:first-child { margin-top: 0; }
 
 /* ════════════════════════════════════════════════════════════════
+   HOME TAB — Session Artifacts collapsible section
+   ════════════════════════════════════════════════════════════════ */
+#artifactsSection {
+    border-top: 1px solid var(--nd-border-soft);
+    padding-top: var(--nd-sp-3);
+    margin-top: var(--nd-sp-2);
+}
+.artifacts-section-title {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--nd-fg-mute);
+    margin-bottom: var(--nd-sp-3);
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+}
+.nd-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 16px;
+    padding: 0 5px;
+    font-size: 9.5px;
+    font-weight: 700;
+    background: rgba(129,181,161,0.18);
+    color: var(--nd-accent-hi);
+    border: 1px solid rgba(129,181,161,0.30);
+    border-radius: var(--nd-r-pill);
+}
+.artifacts-home-body {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+/* ════════════════════════════════════════════════════════════════
    SESSION ARTIFACTS
    ════════════════════════════════════════════════════════════════ */
 .artifacts-summary {
@@ -1046,6 +1147,15 @@ a:hover {
 .sdk-opts-btn:hover {
     color: var(--nd-fg);
     border-color: var(--nd-border);
+}
+
+/* Dim secondary action buttons (non-Run) to reduce visual noise */
+.sdk-cmd-actions .fix-btn:not(.sdk-run-btn) {
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.sdk-cmd-actions .fix-btn:not(.sdk-run-btn):hover {
+    opacity: 1;
 }
 .sdk-help-btn {
     font-weight: 700;
@@ -1436,6 +1546,31 @@ a:hover {
 .mcp-doc-source-panel input[type="text"]:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DOCS TAB — radio mode selector
+   ════════════════════════════════════════════════════════════════ */
+.docs-mode-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nd-sp-2);
+}
+.docs-mode-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nd-sp-2);
+    cursor: pointer;
+}
+.docs-mode-radio { margin-top: 3px; }
+.docs-mode-hint {
+    font-size: 11px;
+    color: var(--nd-fg-mute);
+    margin: 0 0 var(--nd-sp-1) 18px;
+    line-height: 1.5;
+}
+.docs-subfolder-hint {
+    margin-top: var(--nd-sp-2);
 }
 
 /* ════════════════════════════════════════════════════════════════

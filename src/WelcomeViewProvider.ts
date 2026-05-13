@@ -1011,7 +1011,471 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    // ── HTML generation ────────────────────────────────────────────
+    // ── HTML generation helpers ────────────────────────────────────
+
+    /** Render a single SDK command card. */
+    private _sdkCard(opts: {
+        name: string;
+        tagline: string;
+        statusId: string;
+        helpCmd?: string;
+        optsId?: string;
+        optsHtml?: string;
+        extraBtns?: string[];
+        runCmd: string;
+        runTitle?: string;
+        afterHtml?: string;
+    }): string {
+        const helpBtn = opts.helpCmd
+            ? `<button class="sdk-help-btn" data-cmd="${opts.helpCmd}" aria-label="Show help for ${opts.name}" title="${opts.name} help">?</button>`
+            : '';
+        const optsBtn = opts.optsId
+            ? `<button class="sdk-opts-btn" data-opts="${opts.optsId}" aria-label="Toggle options for ${opts.name}" title="${opts.name} options">&#9881;</button>`
+            : '';
+        const extraBtns = (opts.extraBtns || []).join('');
+        const optsPanel = opts.optsId && opts.optsHtml
+            ? `<div class="sdk-cmd-opts" id="${opts.optsId}">${opts.optsHtml}</div>`
+            : '';
+        return `
+            <div class="sdk-cmd-card">
+                <div class="sdk-cmd-row">
+                    <div class="sdk-cmd-info">
+                        <span class="sdk-cmd-name">${opts.name}</span>
+                        <span class="sdk-cmd-tagline">${opts.tagline}</span>
+                    </div>
+                    <div class="sdk-cmd-actions">
+                        ${helpBtn}${optsBtn}${extraBtns}
+                        <button class="fix-btn sdk-run-btn" data-cmd="${opts.runCmd}"${opts.runTitle ? ` title="${opts.runTitle}"` : ''}>Run</button>
+                    </div>
+                </div>
+                ${optsPanel}
+                <div class="sdk-cmd-status" id="${opts.statusId}"></div>
+                ${opts.afterHtml ?? ''}
+            </div>`;
+    }
+
+    /** Render a compact side-by-side pair of minimal SDK command cards. */
+    private _sdkCardMini(cards: Array<{ name: string; tagline: string; statusId: string; runCmd: string; runTitle?: string; helpCmd?: string; extra?: string }>): string {
+        const inner = cards.map(c => {
+            const helpBtn = c.helpCmd
+                ? `<button class="sdk-help-btn" data-cmd="${c.helpCmd}" aria-label="Show help for ${c.name}" title="${c.name} help">?</button>`
+                : '';
+            const extra = c.extra || '';
+            return `
+                <div class="sdk-cmd-card">
+                    <div class="sdk-cmd-row">
+                        <span class="sdk-cmd-name">${c.name}</span>
+                        <div class="sdk-cmd-actions">${helpBtn}${extra}<button class="fix-btn sdk-run-btn" data-cmd="${c.runCmd}"${c.runTitle ? ` title="${c.runTitle}"` : ''}>Run</button></div>
+                    </div>
+                    <div class="sdk-cmd-tagline sdk-cmd-tagline-mt">${c.tagline}</div>
+                    <div class="sdk-cmd-status" id="${c.statusId}"></div>
+                </div>`;
+        }).join('');
+        return `<div class="sdk-cmd-pair">${inner}</div>`;
+    }
+
+    private _renderHomeTab(): string {
+        return `
+    <!-- ═══════════ TAB: Home ═══════════ -->
+    <div id="tab-home" class="tab-content active">
+
+        <!-- At-a-glance workspace status (rendered by main.js) -->
+        <div id="workspaceStatus" class="workspace-status"></div>
+
+        <div id="onboardingSummary" class="onboarding-summary"></div>
+
+        <!-- Quick Action -->
+        <div class="section">
+            <button class="btn-primary" id="openChat" title="Open Copilot Chat (Ctrl+Shift+I)">Open Copilot Chat</button>
+            <div class="chat-picker-hint">Pick <strong>NowDev AI Agent</strong> from the agent picker.</div>
+        </div>
+
+        <!-- Prerequisites Status -->
+        <div class="section">
+            <div class="section-title">
+                <span>Configuration Status</span>
+                <button class="fix-all-btn nd-hidden" id="fixAll" title="Enable all required Copilot settings automatically">Auto-configure</button>
+            </div>
+            <div id="allGood" class="all-good nd-hidden">All prerequisites configured.</div>
+            <div id="checks">
+                <div class="check-row" data-key="subAgents">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Sub-agent invocations</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
+                <div class="check-row" data-key="memory">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Memory tool</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
+                <div class="check-row" data-key="askChatLocation">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Ask Chat Location</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
+                <div class="check-row" data-key="browserTools">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Browser tools</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Artifacts (shown only when artifacts exist) -->
+        <div id="artifactsSection" class="nd-hidden">
+            <div class="section-title artifacts-section-title" id="artifactsSectionHeader">
+                Session Artifacts <span id="artifactCount" class="nd-pill"></span>
+            </div>
+            <div id="artifactsView" class="artifacts-home-body"></div>
+        </div>
+    </div>`;
+    }
+
+    private _renderProjectTab(): string {
+        return `
+    <!-- ═══════════ TAB: Project ═══════════ -->
+    <div id="tab-project" class="tab-content">
+
+        <!-- ServiceNow Settings -->
+        <div class="section">
+            <div class="section-title">
+                <span>ServiceNow Settings</span>
+                <button class="fix-btn" id="openSettings" title="Open in VS Code Settings">Settings</button>
+            </div>
+
+            <div class="field">
+                <label for="instanceUrl">Instance URL</label>
+                <div class="field-desc">Used by agents for context (e.g. https://mydev.service-now.com)</div>
+                <div class="instance-url-row">
+                    <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
+                    <button class="fix-btn" id="testConnection" title="Test reachability of the configured instance">Test</button>
+                </div>
+                <div id="connectionStatus" class="connection-status"></div>
+            </div>
+
+            <div class="field">
+                <label for="devStyle">Development Style</label>
+                <div class="field-desc">How agents should generate ServiceNow code</div>
+                <select id="devStyle">
+                    <option value="auto">Auto (agents decide)</option>
+                    <option value="classic">Classic (Script Includes, Business Rules)</option>
+                    <option value="fluent">Fluent SDK (.now.ts TypeScript)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Fluent App Info -->
+        <div class="section nd-hidden" id="fluentAppSection">
+            <div class="section-title">
+                <span>Fluent App</span>
+            </div>
+            <div class="field-desc nd-mb-2">
+                Detected from <code>now.config.json</code> in the workspace root.
+            </div>
+            <div class="app-info" id="fluentAppInfo"></div>
+        </div>
+
+        <hr id="fluentAppHr" class="nd-hidden">
+
+        <!-- Initialize Fluent Project CTA (shown when no now.config.json) -->
+        <div class="section" id="initFluentSection">
+            <div class="section-title">
+                <span>Fluent Project</span>
+            </div>
+            <div class="field-desc nd-mb-2">
+                No <code>now.config.json</code> detected. Run <code>now-sdk init</code> to scaffold a new Fluent SDK project.
+            </div>
+            <button class="btn-secondary" id="initFluentProject">Initialize Fluent Project&hellip;</button>
+        </div>
+
+        <hr id="initFluentHr">
+
+        <!-- Custom Instructions -->
+        <div class="section">
+            <div class="section-title">
+                <span>Custom Instructions</span>
+            </div>
+            <div class="field-desc nd-mb-2">
+                Select a .md or .txt file with instructions for the AI agents. These are treated as high-priority directives.
+            </div>
+            <div class="file-picker">
+                <div class="file-picker-row">
+                    <button class="btn-secondary" id="browseFile">Browse…</button>
+                    <button class="btn-clear nd-hidden" id="clearFile" aria-label="Remove instructions file" title="Remove instructions file">✕</button>
+                </div>
+                <div class="file-path nd-hidden" id="filePath"></div>
+            </div>
+        </div>
+    </div>`;
+    }
+
+    private _renderSdkTab(): string {
+        return `
+    <!-- ═══════════ TAB: SDK ═══════════ -->
+    <div id="tab-sdk" class="tab-content">
+
+        <!-- Auth Aliases -->
+        <div class="section">
+            <div class="section-title">
+                <span>Auth Aliases</span>
+                <div class="nd-btn-group">
+                    <button class="fix-btn" id="rescanAuthAliases" title="Re-scan auth aliases">Rescan</button>
+                    <button class="fix-btn" id="sdkAuthAdd" title="Add a new auth alias">Add&hellip;</button>
+                </div>
+            </div>
+            <div class="field-desc nd-mb-2">
+                Credentials stored by <code class="nd-code-sm">now-sdk auth --add</code>
+            </div>
+            <div id="authAliasesList">
+                <div class="field-desc nd-placeholder">Scanning&hellip;</div>
+            </div>
+        </div>
+
+        <!-- SDK Commands -->
+        <div class="section">
+            <div class="section-title">SDK Commands</div>
+            <div class="sdk-auth-row">
+                <label for="sdkCmdAuth" class="sdk-auth-label">Auth alias</label>
+                <select id="sdkCmdAuth">
+                    <option value="">(SDK default)</option>
+                </select>
+            </div>
+
+            ${this._sdkCard({
+                name: 'Build', tagline: 'Compile source files',
+                statusId: 'sdkStatus-build', runCmd: 'build',
+                helpCmd: 'build', optsId: 'opts-build',
+                optsHtml: '<label class="sdk-opt"><input type="checkbox" id="buildFrozenKeys"> <code>--frozenKeys</code> <span class="sdk-opt-hint">validate keys.ts — use in CI</span></label>',
+            })}
+            ${this._sdkCard({
+                name: 'Install', tagline: 'Deploy to instance',
+                statusId: 'sdkStatus-install', runCmd: 'install',
+                helpCmd: 'install', optsId: 'opts-install',
+                optsHtml: `<label class="sdk-opt"><input type="checkbox" id="installReinstall"> <code>--reinstall</code> <span class="sdk-opt-hint">uninstall first</span></label>
+                    <label class="sdk-opt"><input type="checkbox" id="installOpenBrowser"> <code>--open-browser</code> <span class="sdk-opt-hint">open app record after install</span></label>`,
+                extraBtns: ['<button class="fix-btn" id="installInfoBtn" title="Check last deployment status (--info)">Status</button>'],
+                afterHtml: '<div id="installInfoPanel" class="install-info-panel nd-hidden"></div>',
+            })}
+            ${this._sdkCard({
+                name: 'Transform', tagline: 'Sync instance → source',
+                statusId: 'sdkStatus-transform', runCmd: 'transform',
+                helpCmd: 'transform', optsId: 'opts-transform',
+                optsHtml: '<label class="sdk-opt"><input type="checkbox" id="transformPreview"> <code>--preview</code> <span class="sdk-opt-hint">show output without saving</span></label>',
+                extraBtns: ['<button class="fix-btn" id="transformFromXmlBtn" title="Transform a local XML file or folder (--from)">From XML&hellip;</button>'],
+            })}
+            ${this._sdkCard({
+                name: 'Dependencies', tagline: 'Download type definitions',
+                statusId: 'sdkStatus-dependencies', runCmd: 'dependencies',
+                helpCmd: 'dependencies', optsId: 'opts-deps',
+                optsHtml: `<div class="sdk-opt-row"><label class="sdk-auth-label">Scope</label>
+                    <select id="depsMode">
+                        <option value="all">All (scripts + Fluent)</option>
+                        <option value="script">Scripts only</option>
+                        <option value="fluent">Fluent only</option>
+                    </select></div>`,
+                extraBtns: [
+                    '<button class="fix-btn" id="openDepPickerBtn" title="Browse instance and add dependencies">Browse&hellip;</button>',
+                    '<button class="fix-btn" id="openContextScannerBtn" title="Scan instance for relevant scripts and knowledge articles">Scan for Context&hellip;</button>',
+                ],
+            })}
+            ${this._sdkCard({
+                name: 'Download', tagline: 'Fetch metadata from instance',
+                statusId: 'sdkStatus-download', runCmd: 'download',
+                helpCmd: 'download', optsId: 'opts-download',
+                optsHtml: '<label class="sdk-opt"><input type="checkbox" id="downloadIncremental" checked> <code>--incremental</code> <span class="sdk-opt-hint">only changed records</span></label>',
+                extraBtns: ['<button class="fix-btn" id="checkChangesBtn" title="Count incremental changes on instance without downloading">Check</button>'],
+                afterHtml: '<div id="checkChangesStatus" class="changes-status nd-hidden"></div>',
+            })}
+            ${this._sdkCardMini([
+                { name: 'Sync', tagline: 'Download → Transform', statusId: 'sdkStatus-sync', runCmd: 'sync', runTitle: 'Incremental download then transform' },
+                { name: 'Move', tagline: 'Global metadata → Fluent', statusId: 'sdkStatus-move', runCmd: 'move', runTitle: 'Transform global metadata into local Fluent code' },
+            ])}
+            ${this._sdkCardMini([
+                { name: 'Clean', tagline: 'Remove build artifacts', statusId: 'sdkStatus-clean', runCmd: 'clean', helpCmd: 'clean' },
+                { name: 'Pack',  tagline: 'Package into ZIP',        statusId: 'sdkStatus-pack',  runCmd: 'pack',  helpCmd: 'pack'  },
+            ])}
+        </div>
+
+        <!-- Explain API -->
+        <div class="section">
+            <div class="section-title">Explain API</div>
+            <div class="field-desc nd-mb-2">Open documentation for a ServiceNow Fluent API</div>
+            <div class="sdk-explain-row">
+                <input type="text" id="explainApiInput" placeholder="e.g. UiPage, Table, Acl" spellcheck="false">
+                <button class="fix-btn" id="runExplain">Explain</button>
+            </div>
+        </div>
+
+    </div>`;
+    }
+
+    private _renderAgentsTab(): string {
+        return `
+    <!-- ═══════════ TAB: Agents ═══════════ -->
+    <div id="tab-agents" class="tab-content">
+        <div class="section">
+            <div class="section-title">
+                <span>Agent Configuration</span>
+                <div class="nd-btn-group">
+                    <button class="fix-btn" id="showAgentTopology" title="Open agent hierarchy diagram in a new tab">Topology</button>
+                    <button class="fix-btn" id="resyncAgents" title="Regenerate all workspace agent files">Resync</button>
+                </div>
+            </div>
+            <div class="field-desc agents-desc">
+                Agent files are written to <code>.github/agents/</code>. Disabled agents are not written to the workspace and are removed from orchestration routing.
+            </div>
+            <div class="agents-actions">
+                <button class="fix-btn" id="showCopilotChatLogs" title="Open the Copilot chat log view">Chat Logs</button>
+                <button class="fix-btn" id="collectCopilotDiagnostics" title="Collect diagnostics for Copilot support and troubleshooting">Diagnostics</button>
+            </div>
+            <div id="agentCards"></div>
+        </div>
+
+        <!-- MCP Integrations -->
+        <div class="section">
+            <div class="section-title">
+                <span>MCP Integrations</span>
+                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
+            </div>
+            <div class="field-desc nd-mb-2">
+                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.
+            </div>
+            <div id="mcpServersList">
+                <div class="field-desc nd-placeholder">Scanning&hellip;</div>
+            </div>
+
+            <div class="field-label nd-section-sublabel">ServiceNow Documentation Sources</div>
+            <div class="field-desc nd-mb-2">
+                Choose which MCP server agents use to look up ServiceNow API docs. Click the gear to configure each source. When set to <em>none</em>, agents fall back to built-in skill knowledge.
+            </div>
+            <div id="mcpDocSourcesList">
+                <!-- rendered by main.js updateMcpDocSources() -->
+            </div>
+        </div>
+
+        <!-- DevOps Integration -->
+        <div class="section">
+            <div class="section-title">
+                <span>DevOps Integration</span>
+                <label class="tool-toggle" title="Enable/disable DevOps agent">
+                    <input type="checkbox" id="devopsEnabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="field-desc nd-mb-2">
+                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
+            </div>
+            <div id="devopsConfig" class="nd-hidden">
+                <div class="field">
+                    <label for="devopsMcpServer">MCP Server</label>
+                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
+                    <select id="devopsMcpServer">
+                        <option value="">(select a server)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Custom Instructions</label>
+                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
+                    <div class="file-picker">
+                        <div class="file-picker-row">
+                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
+                            <button class="btn-clear nd-hidden" id="clearDevopsFile" aria-label="Remove DevOps instructions file" title="Remove instructions file">&#10005;</button>
+                        </div>
+                        <div class="file-path nd-hidden" id="devopsFilePath"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    }
+
+    private _renderToolsTab(): string {
+        return `
+    <!-- ═══════════ TAB: Tools ═══════════ -->
+    <div id="tab-tools" class="tab-content">
+        <div class="section">
+            <div class="section-title">
+                <span>Environment &amp; Tools</span>
+                <button class="fix-btn" id="rescanTools" title="Re-scan for available tools">Rescan</button>
+            </div>
+            <div id="envSummary" class="env-summary"></div>
+            <div id="toolsList"></div>
+        </div>
+    </div>`;
+    }
+
+    private _renderDocsTab(): string {
+        return `
+    <!-- ═══════════ TAB: Docs ═══════════ -->
+    <div id="tab-docs" class="tab-content">
+
+        <div class="section">
+            <div class="section-title">
+                <span>ServiceNow Release</span>
+                <button class="fix-btn" id="fetchDocsReleases" title="Fetch latest branches from GitHub">Refresh</button>
+            </div>
+            <div class="field-desc nd-mb-2">Select the release you are targeting in this project.</div>
+            <div class="field">
+                <select id="docsRelease">
+                    <option value="">(select a release)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Documentation Source</div>
+            <div class="field docs-mode-field">
+                <label class="docs-mode-label">
+                    <input type="radio" name="docsMode" value="remote" id="docsModeRemote" class="docs-mode-radio">
+                    <span>Remote (llms.txt URL)</span>
+                </label>
+                <div class="field-desc docs-mode-hint">Agents fetch documentation live from the configured URL.</div>
+                <label class="docs-mode-label">
+                    <input type="radio" name="docsMode" value="local" id="docsModeLocal" class="docs-mode-radio">
+                    <span>Local (downloaded copy)</span>
+                </label>
+                <div class="field-desc docs-mode-hint">Download docs from GitHub for the selected release. Agents read from the local folder.</div>
+            </div>
+        </div>
+
+        <div id="docsRemoteSection">
+            <div class="section">
+                <div class="section-title">llms.txt URL</div>
+                <div class="field-desc nd-mb-2">The URL agents will use to discover documentation. Defaults to the official ServiceNow endpoint.</div>
+                <div class="field">
+                    <input type="text" id="docsRemoteUrl"
+                           placeholder="https://www.servicenow.com/llms.txt"
+                           spellcheck="false" autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <div id="docsLocalSection" class="nd-hidden">
+            <div class="section">
+                <div class="section-title">Central Docs Folder</div>
+                <div class="field-desc nd-mb-2">
+                    A single shared location for all releases, used across every workspace.
+                    Set it once in Settings (<code>nowdev-ai-toolbox.docsLocalPath</code>) or browse below.
+                </div>
+                <div class="file-picker">
+                    <div class="file-picker-row">
+                        <button class="btn-secondary" id="browseDocsPath">Browse&hellip;</button>
+                    </div>
+                    <div class="file-path nd-hidden" id="docsGlobalPath"></div>
+                </div>
+                <div class="field-desc docs-subfolder-hint nd-hidden" id="docsSubfolder"></div>
+            </div>
+            <div class="section">
+                <div class="section-title">
+                    <span>Sync Documentation</span>
+                    <button class="fix-btn" id="syncProductDocs">Download / Update</button>
+                </div>
+                <div id="docsDownloadStatus" class="field-desc"></div>
+            </div>
+        </div>
+
+    </div>`;
+    }
 
     private _getHtml(webview: vscode.Webview): string {
         const ext = vscode.extensions.getExtension('DanielMadsenDK.nowdev-ai-toolbox');
@@ -1047,7 +1511,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <h1>NowDev AI Toolbox</h1>
             <span class="version">v${version}</span>
         </div>
-        <button class="header-chat-btn" id="openChatHeader" title="Open Copilot Chat (Ctrl+Shift+I)">Chat &rsaquo;</button>
+        <button class="header-chat-btn" id="openChatHeader" aria-label="Open Copilot Chat" title="Open Copilot Chat (Ctrl+Shift+I)">Chat &rsaquo;</button>
     </div>
 
     <!-- Tab Bar -->
@@ -1058,523 +1522,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         <button class="tab-btn" data-tab="agents">Agents</button>
         <button class="tab-btn" data-tab="tools">Tools</button>
         <button class="tab-btn" data-tab="docs">Docs</button>
-        <button class="tab-btn" data-tab="activity">Activity</button>
     </div>
 
-    <!-- ═══════════ TAB: Home ═══════════ -->
-    <div id="tab-home" class="tab-content active">
-
-        <!-- At-a-glance workspace status (rendered by main.js) -->
-        <div id="workspaceStatus" class="workspace-status"></div>
-
-        <div id="onboardingSummary" class="onboarding-summary"></div>
-
-        <!-- Quick Action -->
-        <div class="section">
-            <button class="btn-primary" id="openChat">Open Copilot Chat &nbsp;&middot;&nbsp; Ctrl+Shift+I</button>
-            <div class="chat-picker-hint">After chat opens, pick <strong>NowDev AI Agent</strong> from the agent picker.</div>
-        </div>
-
-        <!-- Prerequisites Status -->
-        <div class="section">
-            <div class="section-title">
-                <span>Configuration Status</span>
-                <button class="fix-all-btn" id="fixAll" title="Enable all required settings">Fix All</button>
-            </div>
-            <div id="allGood" class="all-good">All prerequisites are configured correctly.</div>
-            <div id="checks">
-                <div class="check-row" data-key="subAgents">
-                    <span class="check-icon fail">&#10005;</span>
-                    <span class="check-label">Sub-agent invocations</span>
-                    <button class="fix-btn">Enable</button>
-                </div>
-                <div class="check-row" data-key="memory">
-                    <span class="check-icon fail">&#10005;</span>
-                    <span class="check-label">Memory tool</span>
-                    <button class="fix-btn">Enable</button>
-                </div>
-                <div class="check-row" data-key="askChatLocation">
-                    <span class="check-icon fail">&#10005;</span>
-                    <span class="check-label">Ask Chat Location</span>
-                    <button class="fix-btn">Enable</button>
-                </div>
-                <div class="check-row" data-key="browserTools">
-                    <span class="check-icon fail">&#10005;</span>
-                    <span class="check-label">Browser tools</span>
-                    <button class="fix-btn">Enable</button>
-                </div>
-            </div>
-        </div>
-
-        <hr>
-
-        <!-- Resources -->
-        <div class="section">
-            <div class="section-title">Resources</div>
-            <ul class="info-list">
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox">GitHub Repository</a></li>
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox#readme">Documentation</a></li>
-                <li><a href="https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/issues">Report an Issue</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- ═══════════ TAB: Project ═══════════ -->
-    <div id="tab-project" class="tab-content">
-
-        <!-- ServiceNow Settings -->
-        <div class="section">
-            <div class="section-title">
-                <span>ServiceNow Settings</span>
-                <button class="fix-btn" id="openSettings" title="Open in VS Code Settings">Settings</button>
-            </div>
-
-            <div class="field">
-                <label for="instanceUrl">Instance URL</label>
-                <div class="field-desc">Used by agents for context (e.g. https://mydev.service-now.com)</div>
-                <div class="instance-url-row">
-                    <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
-                    <button class="fix-btn" id="testConnection" title="Test reachability of the configured instance">Test</button>
-                </div>
-                <div id="connectionStatus" class="connection-status"></div>
-            </div>
-
-            <div class="field">
-                <label for="devStyle">Development Style</label>
-                <div class="field-desc">How agents should generate ServiceNow code</div>
-                <select id="devStyle">
-                    <option value="auto">Auto (agents decide)</option>
-                    <option value="classic">Classic (Script Includes, Business Rules)</option>
-                    <option value="fluent">Fluent SDK (.now.ts TypeScript)</option>
-                </select>
-            </div>
-        </div>
-
-        <hr>
-
-        <!-- Fluent App Info -->
-        <div class="section" id="fluentAppSection" style="display:none;">
-            <div class="section-title">
-                <span>Fluent App</span>
-            </div>
-            <div class="field-desc" style="margin-bottom: 8px;">
-                Detected from <code>now.config.json</code> in the workspace root.
-            </div>
-            <div class="app-info" id="fluentAppInfo"></div>
-        </div>
-
-        <hr id="fluentAppHr" style="display:none;">
-
-        <!-- Initialize Fluent Project CTA (shown when no now.config.json) -->
-        <div class="section" id="initFluentSection">
-            <div class="section-title">
-                <span>Fluent Project</span>
-            </div>
-            <div class="field-desc" style="margin-bottom: 8px;">
-                No <code>now.config.json</code> detected. Run <code>now-sdk init</code> to scaffold a new Fluent SDK project.
-            </div>
-            <button class="btn-secondary" id="initFluentProject">Initialize Fluent Project&hellip;</button>
-        </div>
-
-        <hr id="initFluentHr">
-
-        <!-- Custom Instructions -->
-        <div class="section">
-            <div class="section-title">
-                <span>Custom Instructions</span>
-            </div>
-            <div class="field-desc" style="margin-bottom: 8px;">
-                Select a .md or .txt file with instructions for the AI agents. These are treated as high-priority directives.
-            </div>
-            <div class="file-picker">
-                <div class="file-picker-row">
-                    <button class="btn-secondary" id="browseFile">Browse\u2026</button>
-                    <button class="btn-clear" id="clearFile" title="Remove instructions file" style="display:none;">\u2715</button>
-                </div>
-                <div class="file-path" id="filePath" style="display:none;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════ TAB: SDK ═══════════ -->
-    <div id="tab-sdk" class="tab-content">
-
-        <!-- Auth Aliases -->
-        <div class="section">
-            <div class="section-title">
-                <span>Auth Aliases</span>
-                <div style="display:flex;gap:4px;">
-                    <button class="fix-btn" id="rescanAuthAliases" title="Re-scan auth aliases">Rescan</button>
-                    <button class="fix-btn" id="sdkAuthAdd" title="Add a new auth alias">Add&hellip;</button>
-                </div>
-            </div>
-            <div class="field-desc" style="margin-bottom:8px;">
-                Credentials stored by <code style="font-size:10px;">now-sdk auth --add</code>
-            </div>
-            <div id="authAliasesList">
-                <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
-            </div>
-        </div>
-
-        <hr>
-
-        <!-- SDK Commands -->
-        <div class="section">
-            <div class="section-title">SDK Commands</div>
-            <div class="sdk-auth-row">
-                <label for="sdkCmdAuth" style="font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;">Auth alias</label>
-                <select id="sdkCmdAuth">
-                    <option value="">(SDK default)</option>
-                </select>
-            </div>
-
-            <!-- Build -->
-            <div class="sdk-cmd-card">
-                <div class="sdk-cmd-row">
-                    <div class="sdk-cmd-info">
-                        <span class="sdk-cmd-name">Build</span>
-                        <span class="sdk-cmd-tagline">Compile source files</span>
-                    </div>
-                    <div class="sdk-cmd-actions">
-                        <button class="sdk-help-btn" data-cmd="build" title="Build help">?</button>
-                        <button class="sdk-opts-btn" data-opts="opts-build" title="Build options">&#9881;</button>
-                        <button class="fix-btn sdk-run-btn" data-cmd="build">Run</button>
-                    </div>
-                </div>
-                <div class="sdk-cmd-opts" id="opts-build">
-                    <label class="sdk-opt"><input type="checkbox" id="buildFrozenKeys"> <code>--frozenKeys</code> <span class="sdk-opt-hint">validate keys.ts — use in CI</span></label>
-                </div>
-                <div class="sdk-cmd-status" id="sdkStatus-build"></div>
-            </div>
-
-            <!-- Install -->
-            <div class="sdk-cmd-card">
-                <div class="sdk-cmd-row">
-                    <div class="sdk-cmd-info">
-                        <span class="sdk-cmd-name">Install</span>
-                        <span class="sdk-cmd-tagline">Deploy to instance</span>
-                    </div>
-                    <div class="sdk-cmd-actions">
-                        <button class="sdk-help-btn" data-cmd="install" title="Install help">?</button>
-                        <button class="sdk-opts-btn" data-opts="opts-install" title="Install options">&#9881;</button>
-                        <button class="fix-btn" id="installInfoBtn" title="Check last deployment status (--info)">Status</button>
-                        <button class="fix-btn sdk-run-btn" data-cmd="install">Run</button>
-                    </div>
-                </div>
-                <div class="sdk-cmd-opts" id="opts-install">
-                    <label class="sdk-opt"><input type="checkbox" id="installReinstall"> <code>--reinstall</code> <span class="sdk-opt-hint">uninstall first</span></label>
-                    <label class="sdk-opt"><input type="checkbox" id="installOpenBrowser"> <code>--open-browser</code> <span class="sdk-opt-hint">open app record after install</span></label>
-                </div>
-                <div class="sdk-cmd-status" id="sdkStatus-install"></div>
-                <div id="installInfoPanel" class="install-info-panel" style="display:none;"></div>
-            </div>
-
-            <!-- Transform -->
-            <div class="sdk-cmd-card">
-                <div class="sdk-cmd-row">
-                    <div class="sdk-cmd-info">
-                        <span class="sdk-cmd-name">Transform</span>
-                        <span class="sdk-cmd-tagline">Sync instance → source</span>
-                    </div>
-                    <div class="sdk-cmd-actions">
-                        <button class="sdk-help-btn" data-cmd="transform" title="Transform help">?</button>
-                        <button class="sdk-opts-btn" data-opts="opts-transform" title="Transform options">&#9881;</button>
-                        <button class="fix-btn" id="transformFromXmlBtn" title="Transform a local XML file or folder (--from)">From XML&hellip;</button>
-                        <button class="fix-btn sdk-run-btn" data-cmd="transform">Run</button>
-                    </div>
-                </div>
-                <div class="sdk-cmd-opts" id="opts-transform">
-                    <label class="sdk-opt"><input type="checkbox" id="transformPreview"> <code>--preview</code> <span class="sdk-opt-hint">show output without saving</span></label>
-                </div>
-                <div class="sdk-cmd-status" id="sdkStatus-transform"></div>
-            </div>
-
-            <!-- Dependencies -->
-            <div class="sdk-cmd-card">
-                <div class="sdk-cmd-row">
-                    <div class="sdk-cmd-info">
-                        <span class="sdk-cmd-name">Dependencies</span>
-                        <span class="sdk-cmd-tagline">Download type definitions</span>
-                    </div>
-                    <div class="sdk-cmd-actions">
-                        <button class="sdk-help-btn" data-cmd="dependencies" title="Dependencies help">?</button>
-                        <button class="sdk-opts-btn" data-opts="opts-deps" title="Dependencies options">&#9881;</button>
-                        <button class="fix-btn" id="openDepPickerBtn" title="Browse instance and add dependencies">Browse&hellip;</button>
-                        <button class="fix-btn" id="openContextScannerBtn" title="Scan instance for relevant scripts and knowledge articles">Scan for Context&hellip;</button>
-                        <button class="fix-btn sdk-run-btn" data-cmd="dependencies">Run</button>
-                    </div>
-                </div>
-                <div class="sdk-cmd-opts" id="opts-deps">
-                    <div class="sdk-opt-row">
-                        <label style="font-size:11px;font-weight:600;">Scope</label>
-                        <select id="depsMode">
-                            <option value="all">All (scripts + Fluent)</option>
-                            <option value="script">Scripts only</option>
-                            <option value="fluent">Fluent only</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="sdk-cmd-status" id="sdkStatus-dependencies"></div>
-            </div>
-
-            <!-- Download -->
-            <div class="sdk-cmd-card">
-                <div class="sdk-cmd-row">
-                    <div class="sdk-cmd-info">
-                        <span class="sdk-cmd-name">Download</span>
-                        <span class="sdk-cmd-tagline">Fetch metadata from instance</span>
-                    </div>
-                    <div class="sdk-cmd-actions">
-                        <button class="sdk-help-btn" data-cmd="download" title="Download help">?</button>
-                        <button class="sdk-opts-btn" data-opts="opts-download" title="Download options">&#9881;</button>
-                        <button class="fix-btn" id="checkChangesBtn" title="Count incremental changes on instance without downloading">Check</button>
-                        <button class="fix-btn sdk-run-btn" data-cmd="download">Run</button>
-                    </div>
-                </div>
-                <div class="sdk-cmd-opts" id="opts-download">
-                    <label class="sdk-opt"><input type="checkbox" id="downloadIncremental" checked> <code>--incremental</code> <span class="sdk-opt-hint">only changed records</span></label>
-                </div>
-                <div class="sdk-cmd-status" id="sdkStatus-download"></div>
-                <div id="checkChangesStatus" class="changes-status" style="display:none;"></div>
-            </div>
-
-            <!-- Sync + Move side by side -->
-            <div style="display:flex;gap:6px;">
-                <div class="sdk-cmd-card" style="flex:1;">
-                    <div class="sdk-cmd-row">
-                        <span class="sdk-cmd-name">Sync</span>
-                        <div class="sdk-cmd-actions">
-                            <button class="fix-btn sdk-run-btn" data-cmd="sync" title="Incremental download then transform">Run</button>
-                        </div>
-                    </div>
-                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Download &rarr; Transform</div>
-                    <div class="sdk-cmd-status" id="sdkStatus-sync"></div>
-                </div>
-                <div class="sdk-cmd-card" style="flex:1;">
-                    <div class="sdk-cmd-row">
-                        <span class="sdk-cmd-name">Move</span>
-                        <div class="sdk-cmd-actions">
-                            <button class="fix-btn sdk-run-btn" data-cmd="move" title="Transform global metadata into local Fluent code">Run</button>
-                        </div>
-                    </div>
-                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Global metadata → Fluent</div>
-                    <div class="sdk-cmd-status" id="sdkStatus-move"></div>
-                </div>
-            </div>
-
-            <!-- Clean + Pack side by side -->
-            <div style="display:flex;gap:6px;">
-                <div class="sdk-cmd-card" style="flex:1;">
-                    <div class="sdk-cmd-row">
-                        <span class="sdk-cmd-name">Clean</span>
-                        <div class="sdk-cmd-actions">
-                            <button class="sdk-help-btn" data-cmd="clean" title="Clean help">?</button>
-                            <button class="fix-btn sdk-run-btn" data-cmd="clean">Run</button>
-                        </div>
-                    </div>
-                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Remove build artifacts</div>
-                    <div class="sdk-cmd-status" id="sdkStatus-clean"></div>
-                </div>
-                <div class="sdk-cmd-card" style="flex:1;">
-                    <div class="sdk-cmd-row">
-                        <span class="sdk-cmd-name">Pack</span>
-                        <div class="sdk-cmd-actions">
-                            <button class="sdk-help-btn" data-cmd="pack" title="Pack help">?</button>
-                            <button class="fix-btn sdk-run-btn" data-cmd="pack">Run</button>
-                        </div>
-                    </div>
-                    <div class="sdk-cmd-tagline" style="margin-top:2px;">Package into ZIP</div>
-                    <div class="sdk-cmd-status" id="sdkStatus-pack"></div>
-                </div>
-            </div>
-        </div>
-
-        <hr>
-
-        <!-- Explain API -->
-        <div class="section">
-            <div class="section-title">Explain API</div>
-            <div class="field-desc" style="margin-bottom:8px;">Open documentation for a ServiceNow Fluent API</div>
-            <div class="sdk-explain-row">
-                <input type="text" id="explainApiInput" placeholder="e.g. UiPage, Table, Acl" spellcheck="false">
-                <button class="fix-btn" id="runExplain">Explain</button>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ═══════════ TAB: Agents ═══════════ -->
-    <div id="tab-agents" class="tab-content">
-        <div class="section">
-            <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
-                <span>Agent Configuration</span>
-                <div style="display:flex;gap:6px;">
-                    <button class="fix-btn" id="showAgentTopology" title="Open agent hierarchy diagram in a new tab">Topology</button>
-                    <button class="fix-btn" id="resyncAgents" title="Regenerate all workspace agent files">Resync</button>
-                </div>
-            </div>
-            <div class="field-desc agents-desc">
-                Agent files are written to <code>.github/agents/</code>. Disabled agents are not written to the workspace and are removed from orchestration routing.
-            </div>
-            <div class="agents-actions">
-                <button class="fix-btn" id="showCopilotChatLogs" title="Open the Copilot chat log view">Chat Logs</button>
-                <button class="fix-btn" id="collectCopilotDiagnostics" title="Collect diagnostics for Copilot support and troubleshooting">Diagnostics</button>
-            </div>
-            <div id="agentCards"></div>
-        </div>
-
-        <hr>
-
-        <!-- MCP Integrations -->
-        <div class="section">
-            <div class="section-title">
-                <span>MCP Integrations</span>
-                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
-            </div>
-            <div class="field-desc" style="margin-bottom: 8px;">
-                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.
-            </div>
-            <div id="mcpServersList">
-                <div class="field-desc" style="font-style:italic;">Scanning&hellip;</div>
-            </div>
-
-            <div class="field-label" style="margin-top:12px;margin-bottom:6px;">ServiceNow Documentation Sources</div>
-            <div class="field-desc" style="margin-bottom:8px;">
-                Choose which MCP server agents use to look up ServiceNow API docs. Click the gear to configure each source. When set to <em>none</em>, agents fall back to built-in skill knowledge.
-            </div>
-            <div id="mcpDocSourcesList">
-                <!-- rendered by main.js updateMcpDocSources() -->
-            </div>
-        </div>
-
-        <hr>
-
-        <!-- DevOps Integration -->
-        <div class="section">
-            <div class="section-title">
-                <span>DevOps Integration</span>
-                <label class="tool-toggle" title="Enable/disable DevOps agent">
-                    <input type="checkbox" id="devopsEnabled">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="field-desc" style="margin-bottom: 8px;">
-                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
-            </div>
-            <div id="devopsConfig" style="display:none;">
-                <div class="field">
-                    <label for="devopsMcpServer">MCP Server</label>
-                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
-                    <select id="devopsMcpServer">
-                        <option value="">(select a server)</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Custom Instructions</label>
-                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
-                    <div class="file-picker">
-                        <div class="file-picker-row">
-                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
-                            <button class="btn-clear" id="clearDevopsFile" title="Remove instructions file" style="display:none;">&#10005;</button>
-                        </div>
-                        <div class="file-path" id="devopsFilePath" style="display:none;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════ TAB: Tools ═══════════ -->
-    <div id="tab-tools" class="tab-content">
-        <div class="section">
-            <div class="section-title">
-                <span>Environment &amp; Tools</span>
-                <button class="fix-btn" id="rescanTools" title="Re-scan for available tools">Rescan</button>
-            </div>
-            <div id="envSummary" class="env-summary"></div>
-            <div id="toolsList"></div>
-        </div>
-    </div>
-
-    <!-- ═══════════ TAB: Docs ═══════════ -->
-    <div id="tab-docs" class="tab-content">
-
-        <div class="section">
-            <div class="section-title">
-                <span>ServiceNow Release</span>
-                <button class="fix-btn" id="fetchDocsReleases" title="Fetch latest branches from GitHub">Refresh</button>
-            </div>
-            <div class="field-desc" style="margin-bottom:8px;">Select the release you are targeting in this project.</div>
-            <div class="field">
-                <select id="docsRelease">
-                    <option value="">(select a release)</option>
-                </select>
-            </div>
-        </div>
-
-        <hr>
-
-        <div class="section">
-            <div class="section-title">Documentation Source</div>
-            <div class="field" style="display:flex;flex-direction:column;gap:8px;">
-                <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;">
-                    <input type="radio" name="docsMode" value="remote" id="docsModeRemote" style="margin-top:3px;">
-                    <span>Remote (llms.txt URL)</span>
-                </label>
-                <div class="field-desc" style="margin:0 0 4px 20px;">Agents fetch documentation live from the configured URL.</div>
-                <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;">
-                    <input type="radio" name="docsMode" value="local" id="docsModeLocal" style="margin-top:3px;">
-                    <span>Local (downloaded copy)</span>
-                </label>
-                <div class="field-desc" style="margin:0 0 0 20px;">Download docs from GitHub for the selected release. Agents read from the local folder.</div>
-            </div>
-        </div>
-
-        <div id="docsRemoteSection">
-            <div class="section">
-                <div class="section-title">llms.txt URL</div>
-                <div class="field-desc" style="margin-bottom:6px;">The URL agents will use to discover documentation. Defaults to the official ServiceNow endpoint.</div>
-                <div class="field">
-                    <input type="text" id="docsRemoteUrl"
-                           placeholder="https://www.servicenow.com/llms.txt"
-                           spellcheck="false" autocomplete="off">
-                </div>
-            </div>
-        </div>
-
-        <div id="docsLocalSection" style="display:none;">
-            <div class="section">
-                <div class="section-title">Central Docs Folder</div>
-                <div class="field-desc" style="margin-bottom:8px;">
-                    A single shared location for all releases, used across every workspace.
-                    Set it once in Settings (<code>nowdev-ai-toolbox.docsLocalPath</code>) or browse below.
-                </div>
-                <div class="file-picker">
-                    <div class="file-picker-row">
-                        <button class="btn-secondary" id="browseDocsPath">Browse&hellip;</button>
-                    </div>
-                    <div class="file-path" id="docsGlobalPath" style="display:none;"></div>
-                </div>
-                <div class="field-desc" id="docsSubfolder" style="margin-top:6px;display:none;"></div>
-            </div>
-            <div class="section">
-                <div class="section-title">
-                    <span>Sync Documentation</span>
-                    <button class="fix-btn" id="syncProductDocs">Download / Update</button>
-                </div>
-                <div id="docsDownloadStatus" class="field-desc"></div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ═══════════ TAB: Activity ═══════════ -->
-    <div id="tab-activity" class="tab-content">
-        <div class="section">
-            <div class="section-title">Session Artifacts</div>
-            <div id="artifactsView"></div>
-        </div>
-    </div>
+    ${this._renderHomeTab()}
+    ${this._renderProjectTab()}
+    ${this._renderSdkTab()}
+    ${this._renderAgentsTab()}
+    ${this._renderToolsTab()}
+    ${this._renderDocsTab()}
 
     <script nonce="${nonce}" src="${jsUri}"></script>
 </body>

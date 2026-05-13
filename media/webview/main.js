@@ -21,7 +21,7 @@
     // Restore last active tab (or default to 'home').
     // Migrate legacy state values from before the tab restructure.
     const saved = vscode.getState();
-    const TAB_MIGRATIONS = { setup: 'home', session: 'activity' };
+    const TAB_MIGRATIONS = { setup: 'home', session: 'home', activity: 'home' };
     const initialTab = (saved && saved.activeTab) || 'home';
     activateTab(TAB_MIGRATIONS[initialTab] || initialTab);
 
@@ -107,7 +107,7 @@
     // ── Setup tab: DevOps integration ──────────────────────────────
     document.getElementById('devopsEnabled').addEventListener('change', function () {
         var enabled = this.checked;
-        document.getElementById('devopsConfig').style.display = enabled ? '' : 'none';
+        document.getElementById('devopsConfig').classList.toggle('nd-hidden', !enabled);
         vscode.postMessage({ command: 'updateDevopsEnabled', enabled: enabled });
     });
 
@@ -259,8 +259,8 @@
             var isLocal = this.value === 'local';
             var remoteSection = document.getElementById('docsRemoteSection');
             var localSection  = document.getElementById('docsLocalSection');
-            if (remoteSection) { remoteSection.style.display = isLocal ? 'none' : ''; }
-            if (localSection)  { localSection.style.display  = isLocal ? '' : 'none'; }
+            if (remoteSection) { remoteSection.classList.toggle('nd-hidden', isLocal); }
+            if (localSection)  { localSection.classList.toggle('nd-hidden', !isLocal); }
             vscode.postMessage({ command: 'updateProductDocsMode', mode: this.value });
         });
     });
@@ -353,16 +353,16 @@
                 okCount++;
                 icon.className = 'check-icon ok';
                 icon.innerHTML = '\u2713';
-                btn.style.display = 'none';
+                btn.classList.add('nd-hidden');
             } else {
                 icon.className = 'check-icon fail';
                 icon.innerHTML = '\u2717';
-                btn.style.display = '';
+                btn.classList.remove('nd-hidden');
                 allOk = false;
             }
         });
-        document.getElementById('allGood').style.display = allOk ? 'flex' : 'none';
-        document.getElementById('fixAll').style.display = allOk ? 'none' : '';
+        document.getElementById('allGood').classList.toggle('nd-hidden', !allOk);
+        document.getElementById('fixAll').classList.toggle('nd-hidden', allOk);
         _wsState.prereqsOk = okCount;
         _wsState.prereqsTotal = total;
         renderOnboardingSummary();
@@ -419,11 +419,11 @@
         const clearBtn = document.getElementById('clearFile');
         if (settings.customInstructionsFile) {
             filePathEl.textContent = settings.customInstructionsFile;
-            filePathEl.style.display = 'block';
-            clearBtn.style.display = '';
+            filePathEl.classList.remove('nd-hidden');
+            clearBtn.classList.remove('nd-hidden');
         } else {
-            filePathEl.style.display = 'none';
-            clearBtn.style.display = 'none';
+            filePathEl.classList.add('nd-hidden');
+            clearBtn.classList.add('nd-hidden');
         }
         renderOnboardingSummary();
     }
@@ -435,19 +435,19 @@
         const initSection = document.getElementById('initFluentSection');
         const initHr = document.getElementById('initFluentHr');
         if (!fluentApp) {
-            section.style.display = 'none';
-            hr.style.display = 'none';
-            initSection.style.display = '';
-            initHr.style.display = '';
+            section.classList.add('nd-hidden');
+            hr.classList.add('nd-hidden');
+            initSection.classList.remove('nd-hidden');
+            initHr.classList.remove('nd-hidden');
             _wsState.fluentScope = null;
             renderOnboardingSummary();
             return;
         }
         _wsState.fluentScope = fluentApp.scope || null;
-        section.style.display = '';
-        hr.style.display = '';
-        initSection.style.display = 'none';
-        initHr.style.display = 'none';
+        section.classList.remove('nd-hidden');
+        hr.classList.remove('nd-hidden');
+        initSection.classList.add('nd-hidden');
+        initHr.classList.add('nd-hidden');
         const rows = [
             { key: 'Name', value: fluentApp.name },
             { key: 'Scope', value: fluentApp.scope },
@@ -556,7 +556,7 @@
             // Header row
             html += '<div class="agent-card-header">';
             html += '<div class="agent-card-title-row">';
-            html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" title="Show/hide tools">&#9654;</button>';
+            html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" aria-label="Expand tools for ' + esc(m.shortName || m.name) + '" title="Show/hide tools">&#9654;</button>';
             html += '<div class="agent-card-info">';
             html += '<span class="agent-card-name">' + esc(m.shortName || m.name) + '</span>';
             html += '<span class="agent-card-badge ' + (m.userInvocable ? 'picker' : 'sub-agent') + '">';
@@ -632,17 +632,19 @@
 
     function _renderArtifactsFiltered() {
         const container = document.getElementById('artifactsView');
+        const section   = document.getElementById('artifactsSection');
+        const pill      = document.getElementById('artifactCount');
         if (!container) return;
 
         const artifacts = _lastArtifacts;
         const sessionActive = _lastSessionActive;
+        const hasArtifacts = sessionActive && artifacts && artifacts.length > 0;
 
-        if (!sessionActive || !artifacts || artifacts.length === 0) {
-            container.innerHTML =
-                '<div class="empty-state">' +
-                '  <p>No active development session</p>' +
-                '  <p class="hint">Start one by asking <strong>@NowDev-AI</strong> in Copilot Chat.</p>' +
-                '</div>';
+        if (section) { section.classList.toggle('nd-hidden', !hasArtifacts); }
+        if (pill) { pill.textContent = hasArtifacts ? String(artifacts.length) : ''; }
+
+        if (!hasArtifacts) {
+            container.innerHTML = '';
             return;
         }
 
@@ -734,7 +736,7 @@
         if (!enabledCb || !configDiv) { return; }
 
         enabledCb.checked = !!cfg.enabled;
-        configDiv.style.display = cfg.enabled ? '' : 'none';
+        configDiv.classList.toggle('nd-hidden', !cfg.enabled);
 
         // Populate MCP server dropdown
         if (serverSel) {
@@ -757,10 +759,10 @@
         var filePathEl = document.getElementById('devopsFilePath');
         var clearBtn   = document.getElementById('clearDevopsFile');
         if (filePathEl) {
-            filePathEl.style.display = hasInstructions ? '' : 'none';
-            filePathEl.textContent   = hasInstructions ? 'Custom instructions loaded (' + cfg.customInstructions.trim().length + ' chars)' : '';
+            filePathEl.classList.toggle('nd-hidden', !hasInstructions);
+            filePathEl.textContent = hasInstructions ? 'Custom instructions loaded (' + cfg.customInstructions.trim().length + ' chars)' : '';
         }
-        if (clearBtn) { clearBtn.style.display = hasInstructions ? '' : 'none'; }
+        if (clearBtn) { clearBtn.classList.toggle('nd-hidden', !hasInstructions); }
     }
 
     // ── Docs tab rendering ─────────────────────────────────────────
@@ -796,8 +798,8 @@
         // Show/hide sections
         var remoteSection = document.getElementById('docsRemoteSection');
         var localSection  = document.getElementById('docsLocalSection');
-        if (remoteSection) { remoteSection.style.display = isLocal ? 'none' : ''; }
-        if (localSection)  { localSection.style.display  = isLocal ? '' : 'none'; }
+        if (remoteSection) { remoteSection.classList.toggle('nd-hidden', isLocal); }
+        if (localSection)  { localSection.classList.toggle('nd-hidden', !isLocal); }
 
         // Remote URL input
         var urlInput = document.getElementById('docsRemoteUrl');
@@ -808,16 +810,16 @@
         // Central folder display
         var globalPathEl = document.getElementById('docsGlobalPath');
         if (globalPathEl) {
-            globalPathEl.textContent   = globalPath || '';
-            globalPathEl.style.display = globalPath ? '' : 'none';
+            globalPathEl.textContent = globalPath || '';
+            globalPathEl.classList.toggle('nd-hidden', !globalPath);
         }
 
         // Derived release subfolder
         var subfolderEl = document.getElementById('docsSubfolder');
         if (subfolderEl) {
             var resolved = globalPath && cfg.release ? globalPath + '/' + cfg.release : '';
-            subfolderEl.textContent   = resolved ? 'Path: ' + resolved : '';
-            subfolderEl.style.display = resolved ? '' : 'none';
+            subfolderEl.textContent = resolved ? 'Path: ' + resolved : '';
+            subfolderEl.classList.toggle('nd-hidden', !resolved);
         }
 
         // Download status
@@ -1091,8 +1093,7 @@
         refreshWorkspaceStatus();
         renderOnboardingSummary();
         if (!el) { return; }
-        if (!state) { el.style.display = 'none'; return; }
-        el.style.display = 'block';
+        if (!state) { el.className = 'connection-status'; return; }
         if (state.checking) {
             el.className = 'connection-status checking';
             el.innerHTML = '<span class="conn-dot"></span><span>Checking&hellip;</span>';
@@ -1115,8 +1116,8 @@
     function renderInstallInfo(state) {
         var panel = document.getElementById('installInfoPanel');
         if (!panel) { return; }
-        if (!state) { panel.style.display = 'none'; return; }
-        panel.style.display = 'block';
+        if (!state) { panel.classList.add('nd-hidden'); return; }
+        panel.classList.remove('nd-hidden');
         if (state.loading) {
             panel.className = 'install-info-panel';
             panel.innerHTML = '<span class="install-info-loading">Fetching deployment status&hellip;</span>';
@@ -1144,8 +1145,8 @@
     function renderCheckChanges(state) {
         var el = document.getElementById('checkChangesStatus');
         if (!el) { return; }
-        if (!state) { el.style.display = 'none'; return; }
-        el.style.display = 'block';
+        if (!state) { el.className = 'changes-status nd-hidden'; return; }
+        el.classList.remove('nd-hidden');
         if (state.checking) {
             el.className = 'changes-status checking';
             el.innerHTML = '<span class="changes-dot"></span><span>Checking for changes&hellip;</span>';
