@@ -29,11 +29,12 @@ if (status === 200) {
 **OAuth token management**:
 
 ```javascript
-var oauthClient = new sn_auth.GlideOAuthClient();
-oauthClient.setCredentialId(gs.getProperty('my_app.oauth_credential_id'));
-
-var token = oauthClient.getNewAccessToken();
+// Retrieve token using OAuth Requestor Profile and Entity Profile sys_ids
+var oAuthClient = new sn_auth.GlideOAuthClient();
+var token = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
 var accessToken = token.getAccessToken();
+var expiresIn = token.getExpiresIn();
+var refreshToken = token.getRefreshToken();
 ```
 
 **Secure request signing**:

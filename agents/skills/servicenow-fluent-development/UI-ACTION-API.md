@@ -79,7 +79,7 @@ UI actions support three content delivery methods for the `script` property:
 
 1. **JavaScript function import** (for server-side logic modules):
    ```typescript
-   import { updateCarInfo } from '../server/handlers.js'
+   import { updateCarInfo } from '../server/handlers.ts'
    script: updateCarInfo
    ```
 

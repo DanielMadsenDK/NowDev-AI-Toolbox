@@ -71,19 +71,14 @@ The `script` property accepts three content formats:
 script: Now.include('./my-script.client.js')
 ```
 
-**2. Imported function (type-safe, reusable):**
-```ts
-import { onLoadHandler } from '../client/handlers.client.js'
-// ...
-script: onLoadHandler
-```
-
-**3. Inline JavaScript (for very short scripts only):**
+**2. Inline JavaScript (for very short scripts only):**
 ```ts
 script: `function onLoad() { g_form.addInfoMessage('Form loaded'); }`
 ```
 
-External files are preferred because they allow linting, testing, and reuse. The file is linked with `Now.include()` and stays synchronized with the metadata.
+> **Important:** `ClientScript.script` is **string-only** — you cannot pass an imported function. Always use `Now.include()` with a `.client.js` file, or an inline string.
+
+External files with `Now.include()` are preferred because they allow linting, testing, reuse, and two-way UI sync. The file stays synchronized with the metadata.
 
 ---
 

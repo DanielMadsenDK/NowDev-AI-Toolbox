@@ -61,14 +61,8 @@ NowAssistSkillConfig(
                 dataType: 'string',
             },
         ],
-        outputs: [
-            {
-                $id: Now.ID['output_answer'],
-                name: 'answer',
-                description: 'The generated response',
-                dataType: 'string',
-            },
-        ],
+        // outputs: omit — the platform auto-generates 5 standard outputs:
+        // response, confidence, explanation, metadata, citations
     },
     {
         providers: [
@@ -144,7 +138,7 @@ For `glide_record` inputs, always specify both required properties:
 
 ## Output Attributes
 
-If omitted or empty, the 5 standard outputs (`response`, `provider`, `errorcode`, `status`, `error`) are auto-generated. Custom outputs can be added alongside standard outputs.
+**Do NOT define custom outputs.** The platform automatically generates 5 standard outputs: `response`, `confidence`, `explanation`, `metadata`, `citations`. These are the only outputs you can reference via `${p.output.response}` in prompts. Defining custom outputs causes validation errors.
 
 ---
 

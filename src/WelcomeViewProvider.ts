@@ -60,7 +60,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _devopsConfig: DevOpsConfig = { ...DEFAULT_DEVOPS_CONFIG };
     private _productDocsConfig: ProductDocsConfig = { ...DEFAULT_PRODUCT_DOCS_CONFIG };
     private _docsReleases: string[] = [...SERVICENOW_RELEASES];
-    private _docsDownloadStatus: { loading: boolean; error?: string } = { loading: false };
+    private _docsDownloadStatus: { loading: boolean; downloaded?: number; total?: number; error?: string; cancelled?: boolean } = { loading: false };
+    private _abortDownload = false;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -293,6 +294,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._syncWorkspaceAgents();
                     this._sendAgentData();
                     break;
+                case 'openAgentFile': {
+                    const agentName = message.agentName as string;
+                    const folders = vscode.workspace.workspaceFolders;
+                    if (!folders || folders.length === 0) { break; }
+                    const agentFileName = agentName.toLowerCase().replace(/\s+/g, '-') + '.agent.md';
+                    const agentFilePath = path.join(folders[0].uri.fsPath, '.github', 'agents', agentFileName);
+                    if (!fs.existsSync(agentFilePath)) {
+                        vscode.window.showInformationMessage(`Agent file not found. Run Resync to generate agent files.`);
+                    } else {
+                        const doc = await vscode.workspace.openTextDocument(agentFilePath);
+                        vscode.window.showTextDocument(doc);
+                    }
+                    break;
+                }
                 case 'showAgentTopology':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.showAgentTopology');
                     break;
@@ -422,6 +437,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 }
                 case 'syncProductDocs': {
                     await this._downloadServiceNowDocs();
+                    break;
+                }
+                case 'cancelDocsDownload': {
+                    this._abortDownload = true;
                     break;
                 }
                 case 'fetchDocsReleases': {
@@ -688,6 +707,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             return;
         }
 
+        this._abortDownload = false;
         this._docsDownloadStatus = { loading: true };
         this._updateStatus();
 
@@ -700,10 +720,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             const mdFiles = (tree.tree ?? []).filter(
                 (item) => item.type === 'blob' && item.path.endsWith('.md')
             );
+            const total = mdFiles.length;
 
-            // Download in batches of 10
+            // Download in batches of 10, reporting progress after each batch
             const batchSize = 10;
-            for (let i = 0; i < mdFiles.length; i += batchSize) {
+            let downloaded = 0;
+            for (let i = 0; i < total; i += batchSize) {
+                if (this._abortDownload) { break; }
                 const batch = mdFiles.slice(i, i + batchSize);
                 await Promise.all(batch.map(async (item) => {
                     const raw = await this._rawGithubGet(
@@ -713,6 +736,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     fs.mkdirSync(path.dirname(dest), { recursive: true });
                     fs.writeFileSync(dest, raw, 'utf-8');
                 }));
+                downloaded = Math.min(i + batchSize, total);
+                this._view?.webview.postMessage({ command: 'docsProgress', downloaded, total });
+            }
+
+            if (this._abortDownload) {
+                this._docsDownloadStatus = { loading: false, cancelled: true, downloaded, total };
+                this._updateStatus();
+                return;
             }
 
             // Also try to fetch llms.txt from root of branch
@@ -1239,6 +1270,12 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <select id="sdkCmdAuth">
                     <option value="">(SDK default)</option>
                 </select>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="sdk-quick-actions">
+                <button class="fix-btn sdk-run-btn sdk-deploy-btn" data-cmd="deploy" title="Build then Install — stops if Build fails">Deploy (Build &rarr; Install)</button>
+                <div class="sdk-cmd-status" id="sdkStatus-deploy"></div>
             </div>
 
             ${this._sdkCard({

@@ -12,10 +12,9 @@ description: Secure data and credentials using cryptographic operations, encrypt
 **Data encryption** (KMF — preferred for new code):
 
 ```javascript
-var operation = new sn_kmf_ns.KMFCryptoOperation()
-    .setCryptoModuleID('module_sys_id')
-    .setOperation('symmetric_encrypt')
-    .setData('sensitive_data');
+// Constructor takes (cryptoModuleID, operationName)
+var operation = new sn_kmf_ns.KMFCryptoOperation('global.my_crypto_module', 'SYMMETRIC_ENCRYPTION')
+    .withData('sensitive_data');
 
 var encrypted = operation.doOperation();
 ```
@@ -23,16 +22,20 @@ var encrypted = operation.doOperation();
 **Message digest** (hashing):
 
 ```javascript
-var digest = new GlideDigest('SHA256');
-var hash = digest.hexDigest('input_string');
+// Constructor takes no parameters; use algorithm-specific methods
+var digest = new GlideDigest();
+var hash = digest.getSHA256Hex('input_string');
 ```
 
 **Certificate operations**:
 
 ```javascript
 var cert = new GlideCertificateEncryption();
-var signature = cert.sign('data_to_sign', 'private_key');
-var verified = cert.verify('signature', 'public_key', 'data');
+// sign(certificateID, alias, aliasPassword, dataToSign, algorithm)
+var signature = cert.sign('cert_sys_id', 'key_alias', 'alias_password', 'data_to_sign', 'SHA-256');
+
+// Generate HMAC for message authentication
+var mac = cert.generateMac(GlideStringUtil.base64Encode('secret_key'), 'HmacSHA256', 'data');
 ```
 
 **Request signing** (AWS, OAuth, custom):
@@ -54,23 +57,25 @@ var authedData = signedRequest.getAuthorizedRequest();
 **OAuth token management** (credential lifecycle — for HTTP flows, see `servicenow-http-integrations`):
 
 ```javascript
-var oauth = new sn_auth.GlideOAuthClient();
-oauth.setCredentialId('credential_sys_id_here');
+var oAuthClient = new sn_auth.GlideOAuthClient();
 
-// Get new access token
-var token = oauth.getNewAccessToken();
+// Retrieve token using OAuth Requestor Profile and Entity Profile sys_ids
+var token = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
 var accessToken = token.getAccessToken();
 var expiresIn = token.getExpiresIn();
+var refreshToken = token.getRefreshToken();
 
-// Refresh token
-var refreshed = oauth.refreshAccessToken('refresh_token_value');
+// Or request token by client name and JSON credentials
+var params = {grant_type: 'password', username: 'integration_user', password: 'pwd'};
+var tokenResponse = oAuthClient.requestToken('MyOAuthClient', JSON.stringify(params));
+var newToken = tokenResponse.getToken();
 ```
 
 **Message digest** (hash generation):
 
 ```javascript
-var digest = new GlideDigest('SHA256');
-var hash = digest.hexDigest('input_string');
+var digest = new GlideDigest();
+var hash = digest.getSHA256Hex('input_string');
 ```
 
 ## Security APIs
@@ -106,14 +111,15 @@ var hash = digest.hexDigest('input_string');
 
 ```javascript
 var provider = new sn_cc.StandardCredentialsProvider();
-var credential = provider.getAuthCredentialByID('credential_sys_id');
+var credential = provider.getCredentialByID('credential_sys_id');
 ```
 
 **Security Manager for ACLs**:
 
 ```javascript
-var secMgr = new GlideSecurityManager();
-var hasAccess = secMgr.canRead(grRecord, true); // true = enforcing
+var secMgr = GlideSecurityManager.get();
+var grInc = new GlideRecord('incident');
+var hasAccess = secMgr.hasRightsTo('record/incident/read', grInc);
 ```
 
 ## Reference

@@ -139,7 +139,7 @@ The `script` property defines custom permission logic. Scripts can:
 
 4. **Reference a function from a module:**
    ```ts
-   import { checkPermission } from '../server/permissions.js'
+   import { checkPermission } from '../server/permissions.ts'
 
    Acl({
      $id: Now.ID['custom_perm'],

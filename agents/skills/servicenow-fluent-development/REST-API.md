@@ -84,7 +84,7 @@ Create a scripted REST API service definition `[sys_ws_definition]` to define we
 
 ```ts
 import { RestApi, Acl } from '@servicenow/sdk/core'
-import { process } from '../server/handler.js'
+import { process } from '../server/handler.ts'
 
 const acl = Acl({
   $id: Now.ID['rest_acl'],
@@ -165,7 +165,7 @@ Use the `routes` array within the **RestApi object**.
 Module-based handlers are the preferred pattern for route scripts. Import handler functions from `src/server/` files rather than writing inline scripts. This keeps route definitions clean, scripts testable, and enables full IDE support.
 
 ```ts
-import { handler } from '../server/handler.js'
+import { handler } from '../server/handler.ts'
 
 export const api = RestApi({
   routes: [
@@ -179,10 +179,12 @@ export const api = RestApi({
 })
 ```
 
-**Server module (`handler.js`):**
+**Server module (`handler.ts` — imports required for TypeScript modules):**
 
-```javascript
-export function handler(request, response) {
+```typescript
+import { GlideRecord } from '@servicenow/glide'
+
+export function handler(request: any, response: any) {
   const id = request.pathParams.id
 
   const gr = new GlideRecord('sys_user')
@@ -519,7 +521,7 @@ export const api = RestApi({
 
 ```ts
 import { RestApi, Acl } from '@servicenow/sdk/core'
-import { getUserHandler, createUserHandler, updateUserHandler } from '../server/userHandlers.js'
+import { getUserHandler, createUserHandler, updateUserHandler } from '../server/userHandlers.ts'
 
 // Define ACL for API access
 const userApiAcl = Acl({

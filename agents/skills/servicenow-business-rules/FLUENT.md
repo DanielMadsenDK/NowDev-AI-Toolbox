@@ -64,7 +64,7 @@ Run before database save, allowing you to modify the current record.
 
 You have multiple options for providing the script and conditions:
 
-**Option 1: Import JavaScript module with filterCondition** (preferred — typed Glide APIs, code reuse)
+**Option 1: Import TypeScript module with filterCondition** (preferred — typed Glide APIs, code reuse)
 
 ```typescript
 import { BusinessRule } from '@servicenow/sdk/core'
@@ -83,11 +83,11 @@ export default BusinessRule({
 })
 ```
 
-```javascript
-// server/business-rules/incident-before.js
-import { gs } from '@servicenow/glide'
+```typescript
+// server/business-rules/incident-before.ts
+import { gs, GlideRecord } from '@servicenow/glide'
 
-export function beforeRuleHandler(current, previous) {
+export function beforeRuleHandler(current: GlideRecord<'incident'>, previous: GlideRecord<'incident'>) {
     if (current.priority === previous.priority) return;
     current.setValue('urgency', '1');
 }
@@ -162,8 +162,13 @@ export default BusinessRule({
 
 ### Before Rule with Validation and Message
 
+> **Important:** When using module functions, Glide APIs must be explicitly imported from `@servicenow/glide`. They are NOT globally available in TypeScript module context.
+
+Fluent definition (`src/fluent/business-rules/incident-validation.now.ts`):
+
 ```typescript
 import { BusinessRule } from '@servicenow/sdk/core'
+import { validateIncident } from '../../server/business-rules/validate-incident'
 
 export default BusinessRule({
     $id: Now.ID['incident_validation_rule'],
@@ -173,50 +178,49 @@ export default BusinessRule({
     action: ['insert', 'update'],
     addMessage: true,
     message: '<p>Please ensure all required fields are properly filled.</p>',
-    abortAction: false, // Set to true if you want to block invalid records
     order: 50,
     active: true,
-    script: (current, previous) => {
-        const errors = [];
-
-        // Multi-step validation
-        if (!current.short_description) {
-            errors.push('Short description is required');
-        } else if (current.short_description.length < 10) {
-            errors.push('Short description must be at least 10 characters');
-        }
-
-        if (!current.category) {
-            errors.push('Category is required');
-        }
-
-        // Validate date relationships
-        if (current.start_date && current.end_date) {
-            const startTime = new GlideDateTime(current.start_date).getNumericValue();
-            const endTime = new GlideDateTime(current.end_date).getNumericValue();
-
-            if (startTime >= endTime) {
-                errors.push('End date must be after start date');
-            }
-
-            // Warn if duration is long
-            const daysApart = (endTime - startTime) / (1000 * 60 * 60 * 24);
-            if (daysApart > 30) {
-                gs.addWarningMessage('Duration exceeds 30 days');
-            }
-        }
-
-        // Apply validations
-        if (errors.length > 0) {
-            errors.forEach(error => gs.addErrorMessage(error));
-            // Uncomment next line to prevent save if validation fails
-            // current.setAbortAction(true);
-            return;
-        }
-
-        gs.info('Validation passed for incident');
-    }
+    script: validateIncident,
 })
+```
+
+Module file (`src/server/business-rules/validate-incident.ts`):
+
+```typescript
+import { gs, GlideRecord, GlideDateTime } from '@servicenow/glide'
+
+export function validateIncident(current: GlideRecord<'incident'>, previous: GlideRecord<'incident'>): void {
+    const errors: string[] = [];
+
+    // Multi-step validation
+    if (!current.getValue('short_description')) {
+        errors.push('Short description is required');
+    } else if ((current.getValue('short_description') as string).length < 10) {
+        errors.push('Short description must be at least 10 characters');
+    }
+
+    if (!current.getValue('category')) {
+        errors.push('Category is required');
+    }
+
+    // Validate date relationships
+    const startDate = current.getValue('start_date');
+    const endDate = current.getValue('end_date');
+    if (startDate && endDate) {
+        const startDt = new GlideDateTime(startDate as string);
+        const endDt = new GlideDateTime(endDate as string);
+
+        if (startDt.getNumericValue() >= endDt.getNumericValue()) {
+            errors.push('End date must be after start date');
+        }
+    }
+
+    // Apply validations
+    if (errors.length > 0) {
+        errors.forEach(error => gs.addErrorMessage(error));
+        current.setAbortAction(true);
+    }
+}
 ```
 
 ### Before Rule with Role Conditions

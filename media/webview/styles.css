@@ -862,6 +862,25 @@ a:hover {
 }
 .agent-chevron:hover { color: var(--nd-fg); }
 
+.agent-file-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--nd-fg-mute);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 2px;
+    line-height: 1;
+    width: 16px;
+    text-align: center;
+    transition: color 0.15s;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+.agent-card:hover .agent-file-btn,
+.agent-file-btn:focus { opacity: 1; }
+.agent-file-btn:hover { color: var(--nd-accent); }
+
 /* Section groupings inside Agents tab */
 .agent-group-label {
     font-size: 10px;
@@ -1232,6 +1251,27 @@ a:hover {
 .sdk-cmd-status.ok   { color: var(--nd-success); }
 .sdk-cmd-status.fail { color: var(--nd-danger); }
 
+.sdk-quick-actions {
+    margin-bottom: var(--nd-sp-3);
+    padding: var(--nd-sp-2) var(--nd-sp-3);
+    background: var(--nd-bg-card);
+    border: 1px solid var(--nd-border-strong);
+    border-radius: var(--nd-r-md);
+}
+.sdk-deploy-btn {
+    width: 100%;
+    justify-content: center;
+    font-weight: 600;
+    background: rgba(129,181,161,0.12);
+    color: var(--nd-accent-hi);
+    border-color: rgba(129,181,161,0.35);
+}
+.sdk-deploy-btn:hover {
+    background: rgba(129,181,161,0.22);
+    color: var(--nd-accent-hi);
+    border-color: var(--nd-accent);
+}
+
 .sdk-explain-row {
     display: flex;
     gap: var(--nd-sp-2);
@@ -1571,6 +1611,11 @@ a:hover {
 }
 .docs-subfolder-hint {
     margin-top: var(--nd-sp-2);
+}
+
+.docs-cancel-btn {
+    margin-left: var(--nd-sp-2);
+    vertical-align: middle;
 }
 
 /* ════════════════════════════════════════════════════════════════

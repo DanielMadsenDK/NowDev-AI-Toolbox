@@ -114,7 +114,7 @@ wfa.flowLogic.assignSubflowOutputs({ $id: Now.ID['assign_out'] }, { result: data
 - Own metadata references use `constant.$id` — never `Now.ID['...']` in data fields
 - Field names must exactly match `@types/servicenow/schema/`
 - Import from `@servicenow/sdk/automation` for all flow objects
-- Import `@servicenow/sdk/global` once per project for `Now.ID`, `TemplateValue`, etc.
+- Import `@servicenow/sdk/global` at the top of each `.now.ts` file where `Now.ID`, `TemplateValue`, etc. are used
 
 ## Session Artifact Registry
 

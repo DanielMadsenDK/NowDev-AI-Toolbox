@@ -52,7 +52,7 @@ Script actions support three content delivery methods:
 
 1. **JavaScript function import** (for server-side logic modules):
    ```typescript
-   import { insertIncident } from '../server/scripts.js'
+   import { insertIncident } from '../server/scripts.ts'
    script: insertIncident
    ```
 
@@ -103,7 +103,7 @@ conditionScript: Now.include('./condition-check.js')
 
 ```typescript
 import { ScriptAction } from '@servicenow/sdk/core'
-import { insertIncident } from '../server/scripts.js'
+import { insertIncident } from '../server/scripts.ts'
 
 export const sampleAction = ScriptAction({
     $id: Now.ID['sample-script-action'],
@@ -257,7 +257,7 @@ export const notifyAssigned = ScriptAction({
 
 ```typescript
 import { ScriptAction } from '@servicenow/sdk/core'
-import { safeInsertIncident } from '../server/handlers.js'
+import { safeInsertIncident } from '../server/handlers.ts'
 
 export const incidentCreation = ScriptAction({
     $id: Now.ID['safe-incident-creation'],

@@ -100,8 +100,8 @@ var formatter = {
 
 // User locale formatting
 var locale = GlideLocale.get();
-var datePattern = locale.getDatePattern();
-var timePattern = locale.getTimePattern();
+var groupingSep = locale.getGroupingSeparator();  // e.g. ','
+var decimalSep = locale.getDecimalSeparator();    // e.g. '.'
 ```
 
 ## Business Hours & Schedules
@@ -213,8 +213,9 @@ function calculateSLADueDate(createdDate, priority) {
             break;
     }
     
-    // Add business hours
-    var schedule = new GlideSchedule('business_hours');
+    // Add business hours (load schedule by sys_id from cmn_schedule)
+    var schedule = new GlideSchedule();
+    schedule.load('schedule_sys_id'); // sys_id of business hours schedule
     var endTime = new GlideDateTime();
     endTime.setValue(schedule.add(gdt.getValue(), hours * 60 * 60 * 1000));
     
@@ -250,8 +251,9 @@ function setDueDate(current) {
     var created = new GlideDateTime(current.sys_created_on);
     var due = new GlideDateTime();
     
-    // 5 business days from creation
-    var schedule = new GlideSchedule('business_hours');
+    // 5 business days from creation (load schedule by sys_id from cmn_schedule)
+    var schedule = new GlideSchedule();
+    schedule.load('schedule_sys_id'); // sys_id of business hours schedule
     due.setValue(schedule.add(created.getValue(), 5 * 24 * 60 * 60 * 1000));
     
     current.due_date = due;

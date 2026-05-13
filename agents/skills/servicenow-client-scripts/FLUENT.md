@@ -114,11 +114,12 @@ src/
 
 You have two options for providing the script:
 
-**Option 1: Import JavaScript function** (when co-locating logic)
+**Option 1: Reference via `Now.include()`** (preferred — enables two-way sync and syntax highlighting)
+
+> **Important:** `ClientScript.script` is **string-only**. You cannot pass an imported function. Always use `Now.include()` with a `.client.js` file, or an inline string.
 
 ```typescript
 import { ClientScript } from '@servicenow/sdk/core'
-import { incidentFormOnLoad } from '../handlers/incident-form.client.js'
 
 export const cs = ClientScript({
     $id: Now.ID['incident_onload_script'],
@@ -130,7 +131,7 @@ export const cs = ClientScript({
     description: 'Initializes form with defaults and field visibility',
     active: true,
     appliesExtended: false,
-    script: incidentFormOnLoad,
+    script: Now.include('../handlers/incident-form.client.js'),
 })
 ```
 

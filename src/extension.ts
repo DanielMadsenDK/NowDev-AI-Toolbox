@@ -397,6 +397,27 @@ export function activate(context: vscode.ExtensionContext) {
             spawnSdkCmd('Install', cmdArgs, cwd, 'install');
         }),
 
+        // Deploy (Build then Install)
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkDeploy', async (args: { reinstall?: boolean; openBrowser?: boolean; auth?: string } = {}) => {
+            const cwd = getWorkspaceFolder();
+            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            welcomeProvider.setSdkCommandStatus('deploy', true, 'Building…');
+            const buildArgs = ['build', '.'];
+            if (args.auth) { buildArgs.push('--auth', args.auth); }
+            const buildOk = await spawnSdkCmd('Build', buildArgs, cwd, 'build');
+            if (!buildOk) {
+                welcomeProvider.setSdkCommandStatus('deploy', false, 'Deploy failed — Build error');
+                return;
+            }
+            welcomeProvider.setSdkCommandStatus('deploy', true, 'Build succeeded · Installing…');
+            const installArgs = ['install'];
+            if (args.reinstall) { installArgs.push('--reinstall'); }
+            if (args.openBrowser) { installArgs.push('--open-browser'); }
+            if (args.auth) { installArgs.push('--auth', args.auth); }
+            const installOk = await spawnSdkCmd('Install', installArgs, cwd, 'install');
+            welcomeProvider.setSdkCommandStatus('deploy', installOk, installOk ? 'Deployed successfully' : 'Deploy failed — Install error');
+        }),
+
         // Transform (with preview → virtual document; supports --from <path> for local XML)
         vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', async (args: { preview?: boolean; auth?: string; from?: string; pickFrom?: boolean } = {}) => {
             const cwd = getWorkspaceFolder();

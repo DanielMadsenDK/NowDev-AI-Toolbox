@@ -83,8 +83,8 @@ JavaScript modules are the **preferred approach** for server-side scripts. Modul
 | Record | data values |
 
 ```ts
-// PREFERRED: JavaScript module import (server-side) — typed Glide APIs
-import { fn } from '../server/module.js'
+// PREFERRED: TypeScript module import (server-side) — typed Glide APIs
+import { fn } from '../server/module.ts'
 BusinessRule({ script: fn })
 
 // Now.include() for string-only APIs — enables two-way sync

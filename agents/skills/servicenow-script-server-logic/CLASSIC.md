@@ -163,7 +163,7 @@ function getGroupByName(groupName) {
 function formatDate(dateValue) {
     if (!dateValue) return '';
     var dt = new GlideDateTime(dateValue);
-    return dt.format('yyyy-MM-dd HH:mm:ss');
+    return dt.getValue(); // returns 'yyyy-MM-dd HH:mm:ss' in UTC
 }
 
 /**

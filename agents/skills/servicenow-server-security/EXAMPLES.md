@@ -17,22 +17,26 @@ Examples for cryptographic operations, encryption, hashing, credential managemen
 ### Hash Strings (SHA-256, MD5, etc.)
 
 ```javascript
-// MD5 hash (legacy, not recommended for sensitive data)
+// GlideDigest constructor takes no parameters
+// Use algorithm-specific methods: getMD5Hex, getSHA1Hex, getSHA256Hex
 var text = 'password123';
-var md5 = new GlideDigest('MD5', text).getDigest();
+var digest = new GlideDigest();
+
+// MD5 hash (legacy, not recommended for sensitive data)
+var md5 = digest.getMD5Hex(text);
 gs.info('MD5: ' + md5);
 
 // SHA-256 hash (recommended)
-var sha256 = new GlideDigest('SHA-256', text).getDigest();
+var sha256 = digest.getSHA256Hex(text);
 gs.info('SHA-256: ' + sha256);
 
-// SHA-512 hash (stronger)
-var sha512 = new GlideDigest('SHA-512', text).getDigest();
-gs.info('SHA-512: ' + sha512);
-
 // SHA-1 (legacy, acceptable for non-cryptographic uses)
-var sha1 = new GlideDigest('SHA-1', text).getDigest();
+var sha1 = digest.getSHA1Hex(text);
 gs.info('SHA-1: ' + sha1);
+
+// Base64 variants also available
+var sha1Base64 = digest.getSHA1Base64(text);
+var sha256Base64 = digest.getSHA256Base64(text);
 ```
 
 ### Hash with Salt (Password Hashing)
@@ -41,21 +45,23 @@ gs.info('SHA-1: ' + sha1);
 function hashPassword(password, salt) {
     // Generate salt if not provided
     if (!salt) {
-        salt = gs.generateSecureRandomString(16);
+        salt = GlideSecureRandomUtil.getSecureRandomString(16);
     }
 
     // Create digest with salt
-    var digest = new GlideDigest('SHA-256', salt + password).getDigest();
+    var digest = new GlideDigest();
+    var hash = digest.getSHA256Hex(salt + password);
 
     return {
-        hash: digest,
+        hash: hash,
         salt: salt,
         algorithm: 'SHA-256'
     };
 }
 
 function verifyPassword(password, storedHash, salt) {
-    var rehashed = new GlideDigest('SHA-256', salt + password).getDigest();
+    var digest = new GlideDigest();
+    var rehashed = digest.getSHA256Hex(salt + password);
     return rehashed === storedHash;
 }
 
@@ -205,17 +211,16 @@ function createOAuthCredential(name, clientId, clientSecret, tokenUrl) {
     return id;
 }
 
-function getOAuthToken(credentialId) {
-    var oauthClient = new sn_auth.GlideOAuthClient();
-    oauthClient.setCredentialId(credentialId);
+function getOAuthToken(clientName, requestorProfileId, entityProfileId) {
+    var oAuthClient = new sn_auth.GlideOAuthClient();
 
     try {
-        var token = oauthClient.getNewAccessToken();
+        // Retrieve token using profile sys_ids
+        var token = oAuthClient.getToken(requestorProfileId, entityProfileId);
         return {
             accessToken: token.getAccessToken(),
             refreshToken: token.getRefreshToken(),
-            expiresIn: token.getExpiresIn(),
-            tokenType: token.getTokenType()
+            expiresIn: token.getExpiresIn()
         };
     } catch (error) {
         gs.error('OAuth token error: ' + error.message);
@@ -224,15 +229,14 @@ function getOAuthToken(credentialId) {
 }
 
 // Usage
-var credId = createOAuthCredential(
+var token = getOAuthToken(
     'Third Party API',
-    'client_id_123',
-    'client_secret_456',
-    'https://api.example.com/oauth/token'
+    'requestor_profile_sys_id',
+    'entity_profile_sys_id'
 );
-
-var token = getOAuthToken(credId);
-gs.info('Access Token: ' + token.accessToken);
+if (token) {
+    gs.info('Access Token: ' + token.accessToken);
+}
 ```
 
 ### API Key Management
@@ -240,7 +244,7 @@ gs.info('Access Token: ' + token.accessToken);
 ```javascript
 function generateAPIKey(userId) {
     var keyLength = 32;
-    var apiKey = gs.generateSecureRandomString(keyLength);
+    var apiKey = GlideSecureRandomUtil.getSecureRandomString(keyLength);
 
     // Store in database
     var apiKeyRecord = new GlideRecord('x_api_keys');
@@ -422,7 +426,7 @@ gs.info('Phone valid: ' + validateAndSanitize('(555) 123-4567', 'phone'));
 
 ```javascript
 function generateSecureToken(length) {
-    return gs.generateSecureRandomString(length || 32);
+    return GlideSecureRandomUtil.getSecureRandomString(length || 32);
 }
 
 function generateSecurePassword(length) {

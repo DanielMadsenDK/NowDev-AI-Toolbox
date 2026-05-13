@@ -323,7 +323,7 @@ export const initialChangeList = List({
 
 ```typescript
 import { List, Record, default_view } from '@servicenow/sdk/core'
-import { myCustomTable } from './tables/MyCustomTable.now.js'
+import { myCustomTable } from './tables/MyCustomTable.now.ts'
 
 const customAppView = Record({
     $id: Now.ID['custom_app_view'],
@@ -358,7 +358,7 @@ export const customTableList = List({
 
 ```typescript
 import { BusinessRule } from '@servicenow/sdk/core'
-import { beforeRuleHandler } from '../server/before-rule.server.js'
+import { beforeRuleHandler } from '../server/before-rule.server.ts'
 
 export default BusinessRule({
     $id: Now.ID['incident_before_rule'],
@@ -555,9 +555,9 @@ export default RestApi({
 
 ```typescript
 import { RestApi } from '@servicenow/sdk/core'
-import { getIncidentsHandler } from '../server/api-handlers/get-incidents.js'
-import { createIncidentHandler } from '../server/api-handlers/create-incident.js'
-import { updateIncidentHandler } from '../server/api-handlers/update-incident.js'
+import { getIncidentsHandler } from '../server/api-handlers/get-incidents.ts'
+import { createIncidentHandler } from '../server/api-handlers/create-incident.ts'
+import { updateIncidentHandler } from '../server/api-handlers/update-incident.ts'
 
 export default RestApi({
     $id: Now.ID['modular_rest_api'],
@@ -1576,7 +1576,6 @@ export const employeeImportSet = ImportSet({
 
 ```typescript
 import { ScriptInclude } from '@servicenow/sdk/core'
-import { MyScriptInclude } from '../server/MyScriptInclude.server.js'
 
 export default ScriptInclude({
     $id: Now.ID['my_script_include'],
@@ -1584,7 +1583,8 @@ export default ScriptInclude({
     active: true,
     apiName: 'x_ai_toolbox.MyScriptInclude',
     client_callable: false,
-    script: MyScriptInclude,
+    // ScriptInclude.script is string-only — use Now.include() with a Class.create() JS file
+    script: Now.include('../server/MyScriptInclude.server.js')
 })
 ```
 
@@ -1596,7 +1596,6 @@ export default ScriptInclude({
 
 ```typescript
 import { ClientScript } from '@servicenow/sdk/core'
-import { formOnLoadHandler } from '../client/form-onload.client.js'
 
 export const cs = ClientScript({
     $id: Now.ID['incident_onload'],
@@ -1605,7 +1604,8 @@ export const cs = ClientScript({
     table: 'incident',
     global: false,
     active: true,
-    script: formOnLoadHandler,
+    // ClientScript.script is string-only — use Now.include() with a .client.js file
+    script: Now.include('../client/form-onload.client.js'),
 })
 ```
 

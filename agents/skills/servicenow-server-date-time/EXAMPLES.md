@@ -40,20 +40,17 @@ gs.info('Numeric: ' + currentTime.getNumericValue()); // Milliseconds since epoc
 ```javascript
 var dt = new GlideDateTime('2026-03-15 14:30:00');
 
-// Standard formats
-gs.info(dt.format('yyyy-MM-dd')); // 2026-03-15
-gs.info(dt.format('MM/dd/yyyy')); // 03/15/2026
-gs.info(dt.format('dd-MMM-yyyy')); // 15-Mar-2026
-gs.info(dt.format('EEEE, MMMM d, yyyy')); // Sunday, March 15, 2026
-gs.info(dt.format('yyyy-MM-dd HH:mm:ss')); // 2026-03-15 14:30:00
-gs.info(dt.format('hh:mm a')); // 02:30 PM
+// Documented output methods
+gs.info(dt.getValue());        // 2026-03-15 14:30:00 (internal/UTC format)
+gs.info(dt.getDisplayValue()); // Formatted per user's date/time preferences
+gs.info(dt.toString());        // 2026-03-15 14:30:00
+gs.info(dt.getDate().getValue()); // 2026-03-15 (date portion only)
 
 // Get components
-gs.info('Year: ' + dt.getYearNoTZ()); // 2026
-gs.info('Month: ' + dt.getMonthNoTZ()); // 3
-gs.info('Day: ' + dt.getDayOfMonthNoTZ()); // 15
-gs.info('Hour: ' + dt.getHourNoTZ()); // 14
-gs.info('Minute: ' + dt.getMinutesNoTZ()); // 30
+gs.info('Year: ' + dt.getYearUTC());          // 2026
+gs.info('Month: ' + dt.getMonthUTC());        // 3
+gs.info('Day: ' + dt.getDayOfMonthUTC());     // 15
+gs.info('Day of Week: ' + dt.getDayOfWeekUTC()); // Day of week (1-7)
 ```
 
 ### Work with GlideDate (Date Only, No Time)
@@ -152,8 +149,8 @@ endOfDay.setTime(23, 59, 59, 999); // Set to 23:59:59
 
 // Start of week (Monday)
 var startOfWeek = new GlideDateTime(now);
-var dayOfWeek = startOfWeek.getDayOfWeekNoTZ(); // 1=Sunday, 2=Monday, etc
-var daysToSubtract = dayOfWeek === 1 ? 6 : dayOfWeek - 2; // Get to Monday
+var dayOfWeek = startOfWeek.getDayOfWeekLocalTime(); // 1=Monday, 7=Sunday
+var daysToSubtract = dayOfWeek - 1; // Get to Monday
 startOfWeek.addDays(-daysToSubtract);
 startOfWeek.setTime(0, 0, 0, 0);
 
@@ -252,11 +249,11 @@ function calculateBusinessHours(startTime, endTime) {
 
     // Simple calculation: 8 hours per weekday
     while (currentTime.getNumericValue() < end.getNumericValue()) {
-        var dayOfWeek = currentTime.getDayOfWeekNoTZ();
+        var dayOfWeek = currentTime.getDayOfWeekLocalTime();
 
-        // 1 = Sunday, 7 = Saturday (not business hours)
-        if (dayOfWeek !== 1 && dayOfWeek !== 7) {
-            var hour = currentTime.getHourNoTZ();
+        // 6 = Saturday, 7 = Sunday (not business hours)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            var hour = currentTime.getTime().getHourOfDayLocalTime();
             // Count only 9-17 (business hours)
             if (hour >= 9 && hour < 17) {
                 businessHours += 1;
@@ -285,11 +282,11 @@ function calculateSLADeadline(createdTime, slaHours) {
     while (hoursAdded < slaHours) {
         deadline.addSeconds(3600); // Add 1 hour
 
-        var dayOfWeek = deadline.getDayOfWeekNoTZ();
-        var hour = deadline.getHourNoTZ();
+        var dayOfWeek = deadline.getDayOfWeekLocalTime();
+        var hour = deadline.getTime().getHourOfDayLocalTime();
 
         // Only count business hours (Mon-Fri, 9-17)
-        if (dayOfWeek >= 2 && dayOfWeek <= 6 && hour >= 9 && hour < 17) {
+        if (dayOfWeek >= 1 && dayOfWeek <= 5 && hour >= 9 && hour < 17) {
             hoursAdded++;
         }
     }
@@ -311,10 +308,10 @@ gs.info('SLA Deadline: ' + slaDeadline); // Friday 14:00:00 or Monday 10:00:00
 ```javascript
 function isWithinBusinessHours(dateTime) {
     var dt = new GlideDateTime(dateTime);
-    var dayOfWeek = dt.getDayOfWeekNoTZ(); // 1=Sun, 7=Sat
-    var hour = dt.getHourNoTZ();
+    var dayOfWeek = dt.getDayOfWeekLocalTime(); // 1=Mon, 7=Sun
+    var hour = dt.getTime().getHourOfDayLocalTime();
 
-    var isWeekday = dayOfWeek >= 2 && dayOfWeek <= 6;
+    var isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
     var isBusinessHour = hour >= 9 && hour < 17;
 
     return isWeekday && isBusinessHour;
@@ -322,20 +319,20 @@ function isWithinBusinessHours(dateTime) {
 
 function isWithinMaintenanceWindow(dateTime) {
     var dt = new GlideDateTime(dateTime);
-    var dayOfWeek = dt.getDayOfWeekNoTZ();
-    var hour = dt.getHourNoTZ();
+    var dayOfWeek = dt.getDayOfWeekLocalTime();
+    var hour = dt.getTime().getHourOfDayLocalTime();
 
     // Maintenance: Sundays 2-4 AM
-    return dayOfWeek === 1 && hour >= 2 && hour < 4;
+    return dayOfWeek === 7 && hour >= 2 && hour < 4;
 }
 
 function isUrgentPeriod(dateTime) {
     var dt = new GlideDateTime(dateTime);
-    var hour = dt.getHourNoTZ();
-    var dayOfWeek = dt.getDayOfWeekNoTZ();
+    var hour = dt.getTime().getHourOfDayLocalTime();
+    var dayOfWeek = dt.getDayOfWeekLocalTime();
 
     // Peak hours: Mon-Fri 9-5, or any time on weekends
-    if (dayOfWeek >= 2 && dayOfWeek <= 6) {
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
         return hour >= 9 && hour < 17;
     } else {
         return true; // Weekend = always urgent
@@ -357,8 +354,8 @@ function getNextBusinessDay(fromDate) {
     next.addDays(1);
 
     while (true) {
-        var dayOfWeek = next.getDayOfWeekNoTZ();
-        if (dayOfWeek >= 2 && dayOfWeek <= 6) {
+        var dayOfWeek = next.getDayOfWeekLocalTime();
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
             // Monday through Friday
             return next;
         }
@@ -369,8 +366,9 @@ function getNextBusinessDay(fromDate) {
 function getNextHour(fromDate) {
     var next = new GlideDateTime(fromDate);
     next.addSeconds(3600); // Add 1 hour
-    next.setMinutesNoTZ(0);
-    next.setSecondsNoTZ(0);
+    // Zero out minutes and seconds
+    var val = next.getValue(); // 'yyyy-MM-dd HH:mm:ss'
+    next.setValue(val.substring(0, 14) + '00:00');
     return next;
 }
 
@@ -380,8 +378,8 @@ function getWorkingDaysBetween(startDate, endDate) {
     var end = new GlideDateTime(endDate);
 
     while (current.getNumericValue() <= end.getNumericValue()) {
-        var dayOfWeek = current.getDayOfWeekNoTZ();
-        if (dayOfWeek >= 2 && dayOfWeek <= 6) {
+        var dayOfWeek = current.getDayOfWeekLocalTime();
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
             count++;
         }
         current.addDays(1);
@@ -413,9 +411,10 @@ function getWorkingDaysBetween(startDate, endDate) {
 | Get current time | new GlideDateTime() |
 | Add time | dt.addSeconds(), addDays(), etc |
 | Calculate difference | end.getNumericValue() - start.getNumericValue() |
-| Format for display | dt.format('pattern') |
-| Get component | dt.getHourNoTZ(), getMonthNoTZ(), etc |
-| Business hours logic | Check getDayOfWeekNoTZ() and getHourNoTZ() |
+| Format for display | dt.getDisplayValue(), dt.getValue() |
+| Get component (UTC) | dt.getDayOfMonthUTC(), getMonthUTC(), getYearUTC() |
+| Get component (local) | dt.getDayOfMonthLocalTime(), getMonthLocalTime() |
+| Business hours logic | Check getDayOfWeekLocalTime() and time values |
 | SLA deadline | Add business hours, skip weekends |
 
 See [BEST_PRACTICES.md](BEST_PRACTICES.md) for advanced scheduling and timezone patterns.

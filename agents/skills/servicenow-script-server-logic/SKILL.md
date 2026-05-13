@@ -32,12 +32,12 @@ var isProduction = gs.getProperty('glide.install.type') === 'prod';
 
 ```javascript
 // Queue a business event
-gs.eventQueue('my.custom.event', current, oldCurrent, {
-    priority: 1
-});
+// Signature: gs.eventQueue(name, instance, parm1, parm2, queue)
+// parm1/parm2 are optional Strings saved with the event
+gs.eventQueue('my.custom.event', current, current.getValue('sys_id'), 'additional_info');
 
 // Publish event for other listeners
-gs.eventQueue('incident.priority.updated', current, oldCurrent);
+gs.eventQueue('incident.priority.updated', current, current.getValue('priority'), current.getValue('state'));
 ```
 
 > **Related:** Events published via `gs.eventQueue()` trigger **Script Actions** defined in Fluent applications. See servicenow-fluent-development: [SCRIPT-ACTION-API.md](../servicenow-fluent-development/SCRIPT-ACTION-API.md) for creating event-triggered automation.
@@ -51,14 +51,17 @@ var sessionID = gs.getSessionID();
 var timezoneID = gs.getTimeZoneID();
 ```
 
-**Impersonation** (admin only):
+**Impersonation** (admin only, Global scope):
 
 ```javascript
 var impersonate = new GlideImpersonate();
-impersonate.loginAs('admin');
-// Now running as admin
-impersonate.back();
-// Back to original user
+// impersonate() takes a sys_id, not a username
+var previousUser = impersonate.impersonate('6816f79cc0a8016401c5a33be04be441');
+// Now running as the impersonated user
+// previousUser contains the sys_id of the original user
+
+// Check if currently impersonating
+var isImpersonating = new GlideImpersonate().isImpersonating();
 ```
 
 ## Common patterns
@@ -74,15 +77,16 @@ var result = evaluator.evaluateScript(grRecord, 'script_field', {});
 
 ```javascript
 var locale = GlideLocale.get();
-var datePattern = locale.getDatePattern();
-var timePattern = locale.getTimePattern();
+var groupingSeparator = locale.getGroupingSeparator(); // e.g. ','
+var decimalSeparator = locale.getDecimalSeparator();   // e.g. '.'
 ```
 
 **Secure random generation**:
 
 ```javascript
-var random = GlideSecureRandomUtil.getRandomString(16);
-var randomInt = GlideSecureRandomUtil.getRandomInt(1, 100);
+var random = GlideSecureRandomUtil.getSecureRandomString(16);
+var randomInt = GlideSecureRandomUtil.getSecureRandomIntBound(100); // 0 to 99
+var randomLong = GlideSecureRandomUtil.getSecureRandomLong();
 ```
 
 **User preferences** (per-user key-value store, no custom table needed):
@@ -144,6 +148,19 @@ In Fluent projects, JavaScript modules are the **preferred** approach for new se
 |-----------|-------------------|-----|
 | **Module files** (normal functions) | **YES** — `import { gs } from '@servicenow/glide'` | Glide APIs NOT auto-available |
 | **Script Include class files** (`Class.create`) | **NO** — do NOT import Glide APIs | Glide APIs ARE auto-available |
+
+### APIs that accept module functions vs. string-only
+
+| API | Script type | How to provide script |
+|-----|------------|----------------------|
+| `BusinessRule`, `ScriptAction`, `UiAction` | **Module function** (preferred) | `import { fn } from './module.ts'` then `script: fn` |
+| `ScheduledScript` | **String only** | `script: Now.include('./file.js')` with IIFE wrapper |
+| `ScriptInclude` | **String only** | `script: Now.include('./file.js')` with `Class.create()` |
+| `ClientScript` | **String only** | `script: Now.include('./file.client.js')` |
+
+> **ScheduledScript:** The `script` property is **string-only** — do NOT pass module imports. Use `Now.include('../../server/scheduled-scripts/my-job.js')`. The script file must wrap logic in an IIFE: `(function() { ... })();`
+
+> **Scoped app restriction:** `gs.nowDateTime()` is **not allowed** in scoped applications. Use `new GlideDateTime().getDisplayValue()` instead.
 
 When your logic lives in a module but needs to be accessible via one of the mechanisms above, use the **module bridging pattern**: create a thin Script Include wrapper that uses `require()` to load the module. See servicenow-fluent-development: [MODULE-GUIDE.md](../servicenow-fluent-development/MODULE-GUIDE.md) for the full pattern.
 

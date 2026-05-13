@@ -313,7 +313,7 @@ import { TriggerDefinition, FDTransform } from '@servicenow/sdk/automation'  // 
 import { gs, GlideRecord } from '@servicenow/glide'                 // Server-side SN APIs
 import { role as globalRole } from '#now:global/security'           // instance roles
 import htmlEntry from '../../client/index.html'                     // HTML assets
-import { myFn } from '../server/module.js'                          // TS module functions
+import { myFn } from '../server/module.ts'                          // TS module functions (use .ts extension)
 // Duration(), Time(), TemplateValue(), FieldList() are global functions (no import needed)
 // They are declared globally via '@servicenow/sdk/global'
 ```
@@ -567,7 +567,7 @@ The `application` field **must** reference `menu.$id` — never use `Now.ID[...]
 // src/fluent/navigation.now.ts
 import '@servicenow/sdk/global'
 import { ApplicationMenu, Record } from '@servicenow/sdk/core'
-import { myTable } from './tables/MyTable.now.js'
+import { myTable } from './tables/MyTable.now.ts'
 
 export const menu = ApplicationMenu({
   $id: Now.ID['app.menu'],
@@ -624,7 +624,7 @@ Record({
 Export from `src/fluent/index.now.ts`:
 
 ```ts
-export { menu } from './navigation.now.js'
+export { menu } from './navigation.now.ts'
 ```
 
 ---

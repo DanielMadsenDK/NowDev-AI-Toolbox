@@ -40,19 +40,18 @@ var nextMonth = new GlideDate('2026-03-06');
 **GlideDuration** (time spans):
 
 ```javascript
-var duration = new GlideDuration('PT8H30M'); // 8 hours 30 minutes
+var duration = new GlideDuration('0 08:30:00'); // 8 hours 30 minutes (days HH:mm:ss)
 gs.info(duration.getDisplayValue()); // 08:30:00
 ```
 
 **Schedule operations**:
 
 ```javascript
-var schedule = new GlideSchedule('9-to-5', 'UTC');
+// Constructor takes no args; load() takes a schedule sys_id
+var schedule = new GlideSchedule();
+schedule.load('08fcd0830a0a0b2600079f56b1adb9ae'); // sys_id from cmn_schedule
+schedule.setTimeZone('UTC');
 var isAvailable = schedule.isInSchedule(new GlideDateTime());
-
-// Add schedule segments
-schedule.add(new GlideDateTime('2026-02-06 09:00:00'), 
-             new GlideDateTime('2026-02-06 17:00:00'));
 ```
 
 **Recurring schedules**:

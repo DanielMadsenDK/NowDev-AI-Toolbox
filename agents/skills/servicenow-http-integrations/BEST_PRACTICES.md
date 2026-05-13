@@ -53,27 +53,20 @@ rest.setHeader('X-Custom-Header', 'custom-value');
 
 ### Token Lifecycle
 ```javascript
-// Initial token request
-var oauth = new sn_auth.GlideOAuthClient();
-oauth.setCredentialId('your_credential_sys_id');
-oauth.setTokenEndpoint('https://provider.com/oauth/token');
+// Retrieve token using OAuth profile sys_ids
+var oAuthClient = new sn_auth.GlideOAuthClient();
 
-// Get access token
-var token = oauth.getNewAccessToken();
+// getToken(requestorProfileId, entityProfileId)
+var token = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
 var accessToken = token.getAccessToken();
 var expiresIn = token.getExpiresIn(); // Seconds
-
-// Token refresh
-if (token.isExpired()) {
-    var refreshed = oauth.refreshAccessToken(token.getRefreshToken());
-    accessToken = refreshed.getAccessToken();
-}
+var refreshToken = token.getRefreshToken();
 ```
 
 ### OAuth Error Handling
 ```javascript
 try {
-    var token = oauth.getNewAccessToken();
+    var token = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
     if (!token) {
         gs.error('OAuth token acquisition failed');
         return null;

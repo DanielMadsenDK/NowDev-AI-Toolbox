@@ -40,11 +40,11 @@ export default BusinessRule({
 })
 ```
 
-```javascript
-// server/business-rules/auto-set-urgency.js
-import { gs } from '@servicenow/glide'
+```typescript
+// server/business-rules/auto-set-urgency.ts
+import { gs, GlideRecord } from '@servicenow/glide'
 
-export function autoSetUrgency(current, previous) {
+export function autoSetUrgency(current: GlideRecord<'incident'>, previous: GlideRecord<'incident'>) {
     current.setValue('urgency', '1');
 }
 ```

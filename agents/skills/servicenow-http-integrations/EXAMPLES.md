@@ -162,10 +162,10 @@ export default RestApi({
 
 ```typescript
 import { RestApi } from '@servicenow/sdk/core'
-import { getIncidentsHandler } from '../server/api-handlers/get-incidents.js'
-import { createIncidentHandler } from '../server/api-handlers/create-incident.js'
-import { updateIncidentHandler } from '../server/api-handlers/update-incident.js'
-import { deleteIncidentHandler } from '../server/api-handlers/delete-incident.js'
+import { getIncidentsHandler } from '../server/api-handlers/get-incidents.ts'
+import { createIncidentHandler } from '../server/api-handlers/create-incident.ts'
+import { updateIncidentHandler } from '../server/api-handlers/update-incident.ts'
+import { deleteIncidentHandler } from '../server/api-handlers/delete-incident.ts'
 
 export default RestApi({
     $id: Now.ID['modular_rest_api'],
@@ -330,12 +330,11 @@ export function createIncidentHandler() {
     };
 
     try {
-        // Initialize OAuth client
-        var oauthClient = new sn_auth.GlideOAuthClient();
-        oauthClient.setCredentialId('5b61c16f73533300f662cff8faf6a74b');
+        // Initialize OAuth client and retrieve token
+        var oAuthClient = new sn_auth.GlideOAuthClient();
 
-        // Get new access token (with automatic refresh if expired)
-        var token = oauthClient.getNewAccessToken();
+        // getToken(requestorProfileId, entityProfileId)
+        var token = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
         var accessToken = token.getAccessToken();
 
         // Make API call with OAuth token
@@ -353,7 +352,7 @@ export function createIncidentHandler() {
             response.data = JSON.parse(responseBody);
         } else if (statusCode === 401) {
             // Token might be invalid, request new one
-            var newToken = oauthClient.getNewAccessToken();
+            var newToken = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
             // Retry the request...
             response.status = 'error';
             response.message = 'Authentication failed - token refreshed, please retry';

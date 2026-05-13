@@ -35,9 +35,11 @@ while (gr.next()) {
 }
 ```
 
-**Fluent SDK (GlideQuery)** - Modern approach:
+**Fluent SDK (GlideQuery)** - Modern approach (TypeScript module file — imports required):
 
 ```typescript
+import { gs, GlideQuery } from '@servicenow/glide'
+
 const records = new GlideQuery('incident')
     .where('state', 'Open')
     .where('priority', '<=', 2)

@@ -381,7 +381,7 @@ Export from your main fluent file:
 
 ```ts
 // src/fluent/index.now.ts
-export { menu, listModule, newModule, dashboardModule } from './navigation.now.js'
+export { menu, listModule, newModule, dashboardModule } from './navigation.now.ts'
 ```
 
 ---

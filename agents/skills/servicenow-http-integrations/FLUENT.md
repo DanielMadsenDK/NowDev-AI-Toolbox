@@ -16,11 +16,15 @@ See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow
 
 HTTP integrations in the Fluent SDK use similar underlying mechanisms to the classic approach but with modern TypeScript syntax and improved type safety.
 
+> **Critical: Import rules differ by file type**
+> - **`.server.js` files used via `Now.include()`** (Script Include context): `RESTMessageV2`, `SOAPMessageV2`, `GlideOAuthClient`, `GlideRecord`, `gs` are **globally available — no import needed**. These run in Script Include execution context.
+> - **TypeScript module files (`.ts`) used in BusinessRule, RestApi routes, etc.**: ALL Glide APIs must be **explicitly imported** from `@servicenow/glide` namespaces. Use `import { RESTMessageV2 } from '@servicenow/glide/sn_ws'`, `import { GlideOAuthClient } from '@servicenow/glide/sn_auth'`.
+
+The examples in this file use `.server.js` handler files (Script Include context via `Now.include()`). For TypeScript module files, add the corresponding imports.
+
 ---
 
 ## REST API Calls
-
-> **Note:** `RESTMessageV2`, `SOAPMessageV2`, and `GlideOAuthClient` are global ServiceNow APIs available in `.server.js` handler files — no import needed. These run as server-side GlideScript, not TypeScript.
 
 ### Basic REST Request with SDK
 
@@ -82,12 +86,12 @@ function createIncident(payload) {
 
 ```javascript
 // Inside your .server.js handler file — GlideOAuthClient is a global API
-function getOAuthToken(credentialId) {
+function getOAuthToken(requestorProfileId, entityProfileId) {
     try {
-        var oauthClient = new GlideOAuthClient();
-        oauthClient.setCredentialId(credentialId);
+        var oAuthClient = new GlideOAuthClient();
 
-        var token = oauthClient.getNewAccessToken();
+        // getToken(requestorProfileId, entityProfileId)
+        var token = oAuthClient.getToken(requestorProfileId, entityProfileId);
         var accessToken = token.getAccessToken();
         var expiresIn = token.getExpiresIn();
 
@@ -99,8 +103,8 @@ function getOAuthToken(credentialId) {
     }
 }
 
-function callProtectedAPI(credentialId, endpoint) {
-    var token = getOAuthToken(credentialId);
+function callProtectedAPI(requestorProfileId, entityProfileId, endpoint) {
+    var token = getOAuthToken(requestorProfileId, entityProfileId);
 
     if (!token) {
         return null;
@@ -217,10 +221,11 @@ function callExternalAPIWithRetry(endpoint, method, payload, maxRetries) {
 ✓ **Handle errors gracefully** - With try-catch
 ✓ **Log all requests** - For debugging and audit
 ✓ **Validate SSL certificates** - In production
-✓ **Store credentials securely** - Use sys_password table or Connection & Credential Aliases
-✓ **Test thoroughly** - On sub-production first
-✓ **Document API contracts** - External specifications
-✓ **No SDK imports needed** - RESTMessageV2, SOAPMessageV2, GlideOAuthClient are all global APIs in .server.js files
+✓ **Store credentials securely** — Use sys_password table or Connection & Credential Aliases
+✓ **Test thoroughly** — On sub-production first
+✓ **Document API contracts** — External specifications
+✓ **In `.server.js` (Script Include context)** — `RESTMessageV2`, `SOAPMessageV2`, `GlideOAuthClient` are global (no import needed)
+✓ **In TypeScript module files** — Import from `@servicenow/glide/sn_ws` and `@servicenow/glide/sn_auth`
 
 ---
 

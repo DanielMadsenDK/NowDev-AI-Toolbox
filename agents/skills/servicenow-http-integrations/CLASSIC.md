@@ -89,11 +89,11 @@ gs.info('Response Content-Type: ' + contentType);
 ### Get OAuth Access Token
 
 ```javascript
-var oauthClient = new sn_auth.GlideOAuthClient();
-oauthClient.setCredentialId('credential_sys_id_here');
+// Retrieve token using OAuth Requestor Profile and Entity Profile sys_ids
+var oAuthClient = new sn_auth.GlideOAuthClient();
 
 try {
-    var token = oauthClient.getNewAccessToken();
+    var token = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
     var accessToken = token.getAccessToken();
     var expiresIn = token.getExpiresIn();
 
@@ -115,18 +115,16 @@ try {
 ### Refresh OAuth Token
 
 ```javascript
-function getValidOAuthToken(credentialId) {
-    var oauthClient = new sn_auth.GlideOAuthClient();
-    oauthClient.setCredentialId(credentialId);
+function getValidOAuthToken(requestorProfileId, entityProfileId) {
+    var oAuthClient = new sn_auth.GlideOAuthClient();
 
     try {
-        var token = oauthClient.getNewAccessToken();
+        var token = oAuthClient.getToken(requestorProfileId, entityProfileId);
 
         return {
             accessToken: token.getAccessToken(),
             refreshToken: token.getRefreshToken(),
-            expiresIn: token.getExpiresIn(),
-            tokenType: token.getTokenType()
+            expiresIn: token.getExpiresIn()
         };
     } catch (error) {
         gs.error('Failed to get OAuth token: ' + error.message);

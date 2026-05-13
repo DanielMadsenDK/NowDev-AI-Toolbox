@@ -33,6 +33,7 @@ STOP if writing `current.update()` or `current.insert()` inside a Business Rule 
 STOP if implementing Flow or Subflow artifacts — those belong to NowDev-AI-Fluent-Automation-Developer
 STOP if implementing UI artifacts — those belong to NowDev-AI-Fluent-UI-Developer
 STOP if implementing AiAgent, AiAgenticWorkflow, or NowAssistSkillConfig — those belong to NowDev-AI-AI-Studio-Developer
+STOP if using `Now.module()` — this function does not exist in the Fluent SDK. Use direct ES module `import`/`export` for function-accepting APIs, or `Now.include()` for string-only APIs
 </stopping_rules>
 
 <documentation>
@@ -82,9 +83,27 @@ When multiple artifacts are needed:
 
 ## Script Content Rules
 
-Scripts inside Fluent objects are **ServiceNow JavaScript**, not TypeScript:
-- **Module pattern preferred** for `BusinessRule`, `ScriptAction`, `RestApi`, and `ScheduledScript` — these APIs accept functions, so use `Now.module('./file.js')` to get type-safe linking with automatic parameter injection. See MODULE-GUIDE.md.
-- Use `Now.include('./file.js')` only for string-only APIs (ClientScript, UiPolicy, etc.) or when the module pattern is not supported
+**Module pattern (preferred for function-accepting APIs):** `BusinessRule`, `ScriptAction`, `RestApi`, `ScheduledScript`, and `UiAction` all accept function references. Write logic as a TypeScript module in `src/server/` and import it directly in the `.now.ts` definition file:
+
+```typescript
+import '@servicenow/sdk/global'
+import { BusinessRule } from '@servicenow/sdk/core'
+import { validateRequest } from '../server/business-rules/validate-request'
+
+BusinessRule({
+  $id: Now.ID['validate-request'],
+  name: 'Validate Request',
+  table: 'x_myapp_request',
+  when: 'before',
+  action: ['insert', 'update'],
+  script: validateRequest, // function reference, NOT a string
+})
+```
+
+Module files (`src/server/**/*.ts`) must import every Glide API explicitly from `@servicenow/glide` — they are NOT globally available in module context. See MODULE-GUIDE.md for the full pattern.
+
+**`Now.include()` pattern (for string-only APIs):** `ScriptInclude`, `ClientScript`, `CatalogClientScript`, `UiPolicy`, and `CatalogUiPolicy` require `Now.include('./file.js')` — these properties only accept strings. The `.js` file is the bridge wrapper; the actual logic lives in a `.ts` module that the wrapper loads via `require()`.
+
 - Business Rules: `current.update()` and `current.insert()` are **forbidden** in scripts
 - Script Includes: `Class.create()` pattern required for client-callable (GlideAjax) includes
 - Always wrap logic in try-catch

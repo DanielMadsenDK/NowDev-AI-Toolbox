@@ -168,7 +168,6 @@ export default ScriptInclude({
 
 ```typescript
 import { ScriptInclude } from '@servicenow/sdk/core'
-import { MyScriptInclude } from '../server/MyScriptInclude.server.js'
 
 export default ScriptInclude({
     $id: Now.ID['my_script_include'],
@@ -177,7 +176,8 @@ export default ScriptInclude({
     active: true,
     apiName: 'x_ai_toolbox.MyScriptInclude',
     client_callable: false,
-    script: MyScriptInclude,
+    // ScriptInclude.script is string-only — use Now.include() with a Class.create() .server.js file
+    script: Now.include('../server/MyScriptInclude.server.js'),
 })
 ```
 
@@ -412,13 +412,13 @@ function sendEmailNotification(toEmail, subject, body) {
 /**
  * Format date for display
  */
-function formatDate(dateStr, format) {
+function formatDate(dateStr) {
     if (!dateStr) {
         return '';
     }
 
     var dt = new GlideDateTime(dateStr);
-    return dt.format(format || 'yyyy-MM-dd HH:mm:ss');
+    return dt.getDisplayValue(); // user-locale formatted string
 }
 
 /**

@@ -196,9 +196,9 @@ function dateUtils() {
     return gdt.toString()
   }
 
-  this.formatDate = function(date, format) {
+  this.formatDate = function(date) {
     var gdt = new GlideDateTime(date)
-    return gdt.format(format)
+    return gdt.getDisplayValue()
   }
 }
 ```

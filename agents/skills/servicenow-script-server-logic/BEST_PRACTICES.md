@@ -16,12 +16,12 @@ if (user.hasRole('admin')) {
     // Admin only logic
 }
 
-// Impersonation (admin only)
+// Impersonation (admin only, Global scope)
 var impersonate = new GlideImpersonate();
-impersonate.loginAs('admin');
-// Now running as admin
-impersonate.back();
-// Back to original user
+// impersonate() takes a sys_id, not a username
+var previousUser = impersonate.impersonate('6816f79cc0a8016401c5a33be04be441');
+// Now running as the impersonated user
+// previousUser contains the sys_id of the original user
 ```
 
 ### Logging Levels
@@ -60,18 +60,15 @@ var value = gs.getProperty('custom.my_setting');
 ### Event Publishing
 ```javascript
 // Publish business event
-gs.eventQueue('incident.priority_changed', current, oldCurrent, {
-    priority: 'high'
-});
+// Signature: gs.eventQueue(name, instance, parm1, parm2, queue)
+// parm1/parm2 are optional Strings saved with the event
+gs.eventQueue('incident.priority_changed', current, current.getValue('priority'), current.getValue('state'));
 
 // Other code can listen for this event:
 // Business Rules, Workflow triggers, etc.
 
 // Custom events
-gs.eventQueue('custom.approval_required', current, null, {
-    approver: 'admin_group',
-    reason: 'high_value_transaction'
-});
+gs.eventQueue('custom.approval_required', current, 'admin_group', 'high_value_transaction');
 ```
 
 ### Event Processing
@@ -94,8 +91,8 @@ var timeZoneId = gs.getTimeZoneID();
 
 // Get locale
 var locale = GlideLocale.get();
-var datePattern = locale.getDatePattern();
-var timePattern = locale.getTimePattern();
+var groupingSep = locale.getGroupingSeparator();  // e.g. ','
+var decimalSep = locale.getDecimalSeparator();    // e.g. '.'
 ```
 
 ## String Utilities
@@ -124,10 +121,10 @@ var encoded = util.urlEncode(text);
 ### Secure Random Values
 ```javascript
 // Generate random strings
-var randomString = GlideSecureRandomUtil.getRandomString(16);
+var randomString = GlideSecureRandomUtil.getSecureRandomString(16);
 
 // Generate random integers
-var randomInt = GlideSecureRandomUtil.getRandomInt(1, 100);
+var randomInt = GlideSecureRandomUtil.getSecureRandomIntBound(100); // 0 to 99
 
 // Use for:
 // - Temporary tokens

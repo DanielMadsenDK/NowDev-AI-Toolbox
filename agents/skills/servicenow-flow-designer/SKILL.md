@@ -7,7 +7,18 @@ description: Execute custom scripts and logic within Flow Designer and Integrati
 
 # Flow Designer Scripting
 
-> **Scope:** This skill covers **Classic FlowAPI** execution \u2014 running flows, subflows, and actions programmatically from server-side scripts using `sn_fd.FlowAPI`. For the **Fluent SDK** `wfa` automation API (declarative `Flow()`, `wfa.trigger()`, `wfa.action()`), see [servicenow-fluent-development/FLOW-API.md](../servicenow-fluent-development/FLOW-API.md).
+> **Scope:** This skill covers **Classic FlowAPI** execution — running flows, subflows, and actions programmatically from server-side scripts using `sn_fd.FlowAPI`. For the **Fluent SDK** `wfa` automation API (declarative `Flow()`, `wfa.trigger()`, `wfa.action()`), see [servicenow-fluent-development/FLOW-API.md](../servicenow-fluent-development/FLOW-API.md).
+
+## Classic FlowAPI vs Fluent SDK WFA
+
+| Use Case | Approach |
+|----------|----------|
+| **Execute an existing flow** from a Business Rule or Script Include | Classic `sn_fd.FlowAPI` (this skill) |
+| **Define a new flow** as code in a Fluent SDK project | Fluent `wfa.trigger()` / `wfa.action()` (see FLOW-API.md) |
+| Trigger a flow from a GlideAjax handler | Classic `sn_fd.FlowAPI` |
+| Event-driven / scheduled automation in a Fluent app | Fluent WFA (`Flow()` with `trigger.record.*` or `trigger.scheduled.*`) |
+
+> **Fluent WFA critical notes:** When building flows with the Fluent SDK, `Time`, `Duration`, and `TemplateValue` are **globally available** — do NOT import them. Data pills (`wfa.dataPill()`) must be used **directly** in action parameters — never assign them to variables first. WFA flows are declarative DSL; do not mix JavaScript abstractions.
 
 ## Quick start
 

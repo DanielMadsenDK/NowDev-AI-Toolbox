@@ -319,6 +319,24 @@
             case 'updateDevopsConfig':
                 updateDevopsSection(msg.devopsConfig, null);
                 break;
+            case 'docsProgress': {
+                var statusEl = document.getElementById('docsDownloadStatus');
+                if (statusEl) {
+                    var pct = Math.round((msg.downloaded / msg.total) * 100);
+                    statusEl.innerHTML =
+                        'Downloading ' + msg.downloaded + ' / ' + msg.total + ' files (' + pct + '%)' +
+                        ' <button class="fix-btn docs-cancel-btn" id="cancelDocsDownload">Cancel</button>';
+                    var cancelBtn = document.getElementById('cancelDocsDownload');
+                    if (cancelBtn) {
+                        cancelBtn.onclick = function () {
+                            vscode.postMessage({ command: 'cancelDocsDownload' });
+                            cancelBtn.disabled = true;
+                            cancelBtn.textContent = 'Cancelling…';
+                        };
+                    }
+                }
+                break;
+            }
         }
     });
 
@@ -570,6 +588,7 @@
                 html += '<span class="slider"></span>';
                 html += '</label>';
             }
+            html += '<button class="agent-file-btn" data-agent="' + esc(m.name) + '" aria-label="Open agent file for ' + esc(m.shortName || m.name) + '" title="Open generated .agent.md file">&#8599;</button>';
             html += '</div>'; // agent-card-title-row
             html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
             html += '</div>'; // agent-card-header
@@ -614,6 +633,13 @@
         container.querySelectorAll('.agent-tool-cb').forEach(function (cb) {
             cb.addEventListener('change', function () {
                 vscode.postMessage({ command: 'toggleAgentTool', agentName: cb.getAttribute('data-agent'), toolName: cb.getAttribute('data-tool'), enabled: cb.checked });
+            });
+        });
+
+        // Bind open-agent-file buttons
+        container.querySelectorAll('.agent-file-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                vscode.postMessage({ command: 'openAgentFile', agentName: btn.getAttribute('data-agent') });
             });
         });
     }
@@ -826,7 +852,9 @@
         var statusEl = document.getElementById('docsDownloadStatus');
         if (statusEl) {
             if (docsDownloadStatus && docsDownloadStatus.loading) {
-                statusEl.textContent = 'Downloading… (this may take a while for large releases)';
+                statusEl.textContent = 'Starting download…';
+            } else if (docsDownloadStatus && docsDownloadStatus.cancelled) {
+                statusEl.textContent = 'Download cancelled (' + docsDownloadStatus.downloaded + ' of ' + docsDownloadStatus.total + ' files saved).';
             } else if (docsDownloadStatus && docsDownloadStatus.error) {
                 statusEl.textContent = 'Error: ' + docsDownloadStatus.error;
             } else if (docsLastSynced) {

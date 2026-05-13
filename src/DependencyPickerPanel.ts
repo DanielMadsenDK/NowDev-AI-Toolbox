@@ -644,6 +644,14 @@ button.danger { color: var(--nd-danger); }
 }
 .hint { color: var(--nd-fg-mute); font-size: 11px; }
 hr { border: none; border-top: 1px solid var(--nd-border-soft); margin: 12px 0; }
+.filter-bar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.filter-bar input {
+    flex: 1; background: var(--nd-bg-input); color: var(--nd-fg);
+    border: 1px solid var(--nd-border); border-radius: var(--nd-r-sm);
+    padding: 4px 8px; font-size: 12px; font-family: var(--nd-font);
+}
 `;
 
 const PANEL_HTML = `
@@ -684,6 +692,10 @@ const PANEL_HTML = `
         <button id="addSelectedBtn" class="primary" disabled>Add Selected to now.config.json</button>
         <button id="addWildcardBtn" title="Add the * wildcard for the current category + scope">Add wildcard (*)</button>
         <span id="selCount" class="hint">No items selected</span>
+    </div>
+    <div class="filter-bar">
+        <input type="text" id="filterInput" placeholder="Quick filter loaded results…" autocomplete="off">
+        <span id="filterCount" class="hint"></span>
     </div>
     <div id="resultsList" class="list"><div class="empty">Connect to an instance and search to begin.</div></div>
 </div>
@@ -746,6 +758,7 @@ const PANEL_SCRIPT = `
         const scope = $('scopeSelect').value;
         const term = $('searchInput').value;
         $('searchStatus').textContent = 'Searching…';
+        $('filterInput').value = '';
         post({ type: 'search', category, scope, term });
     }
     $('searchBtn').addEventListener('click', triggerSearch);
@@ -755,6 +768,12 @@ const PANEL_SCRIPT = `
     });
     $('categorySelect').addEventListener('change', triggerSearch);
     $('scopeSelect').addEventListener('change', triggerSearch);
+
+    let filterTimer;
+    $('filterInput').addEventListener('input', () => {
+        clearTimeout(filterTimer);
+        filterTimer = setTimeout(renderResults, 150);
+    });
 
     $('addSelectedBtn').addEventListener('click', () => {
         const scope = $('scopeSelect').value || 'global';
@@ -788,9 +807,23 @@ const PANEL_SCRIPT = `
             list.innerHTML = '<div class="empty">No results. Try a different search.</div>';
             $('addSelectedBtn').disabled = true;
             $('selCount').textContent = 'No items selected';
+            $('filterCount').textContent = '';
             return;
         }
-        list.innerHTML = state.results.map(r => {
+        const q = ($('filterInput').value || '').toLowerCase().trim();
+        const visible = q
+            ? state.results.filter(r =>
+                (r.name || '').toLowerCase().includes(q) ||
+                (r.label || '').toLowerCase().includes(q) ||
+                (r.sys_id || '').toLowerCase().includes(q))
+            : state.results;
+        $('filterCount').textContent = q ? visible.length + ' of ' + state.results.length : '';
+        if (!visible.length) {
+            list.innerHTML = '<div class="empty">No results match "' + esc(q) + '".</div>';
+            $('addSelectedBtn').disabled = true;
+            return;
+        }
+        list.innerHTML = visible.map(r => {
             const key = state.currentCategory + ':' + r.sys_id;
             const checked = state.selected.has(key) ? 'checked' : '';
             return '<label class="list-row">' +

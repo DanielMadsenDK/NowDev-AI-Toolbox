@@ -73,7 +73,6 @@ src/
 
 ```typescript
 import { ScriptInclude } from '@servicenow/sdk/core'
-import { IncidentUtils } from '../handlers/IncidentUtils.server.js'
 
 export default ScriptInclude({
     $id: Now.ID['incident_utils'],
@@ -82,7 +81,8 @@ export default ScriptInclude({
     active: true,
     apiName: 'x_my_app.IncidentUtils',
     clientCallable: false,  // Server-side only
-    script: IncidentUtils,
+    // ScriptInclude.script is string-only — use Now.include() with a Class.create() .server.js file
+    script: Now.include('../handlers/IncidentUtils.server.js'),
 })
 ```
 
@@ -259,7 +259,7 @@ export default ScriptInclude({
         formatDate(dateValue) {
             if (!dateValue) return '';
             const dt = new GlideDateTime(dateValue);
-            return dt.format('yyyy-MM-dd HH:mm:ss');
+            return dt.getValue(); // returns 'yyyy-MM-dd HH:mm:ss' in UTC
         }
 
         /**

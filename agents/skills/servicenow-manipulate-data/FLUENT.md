@@ -21,14 +21,15 @@ See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow
 5. [Complex Filtering](#complex-filtering)
 6. [Best Practices](#best-practices)
 
+> **Critical: Import rules differ by file type**
+> - **`.server.js` files used via `Now.include()`** (Script Include context): `GlideRecord`, `GlideQuery`, `GlideAggregate`, `gs` are **globally available — no import needed**.
+> - **TypeScript module files (`.ts`)** used in BusinessRule, ScriptAction, RestApi routes, etc.: ALL Glide APIs must be **explicitly imported**: `import { gs, GlideRecord, GlideQuery } from '@servicenow/glide'`
+>
+> The examples below use `.server.js` handler files (Script Include context). For TypeScript module files, add the corresponding imports.
+
 ---
 
 ## Query Patterns
-
-> **Note:** All code in this section runs inside `.server.js` handler files (not `.now.ts` metadata files).
-> `GlideQuery`, `GlideRecord`, and `GlideAggregate` are global ServiceNow APIs — no import needed.
-
-### Simple Query with Fluent API
 
 ```javascript
 // Inside your .server.js handler file

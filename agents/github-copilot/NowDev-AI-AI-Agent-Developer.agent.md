@@ -20,7 +20,7 @@ handoffs:
 5. Build a todo list in dependency order (Script Includes before Agents that call them; Agents before Workflows that include them)
 6. Verify APIs using {{FLUENT_SDK_MCP}}
 7. Implement .now.ts metadata files and linked .js server scripts in dependency order
-8. Self-validate: check $id uniqueness, access control (acl or dataAccess), tool types, trigger active status
+8. Self-validate: check $id uniqueness, securityAcl present (mandatory on both AiAgent and AiAgenticWorkflow), tool types, versionDetails vs versions used correctly
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (agent/workflow names)
 10. Return created file list to the coordinator
 </workflow>
@@ -37,7 +37,7 @@ Always consult the servicenow-ai-agent-studio skill for each artifact type:
   - AiAgent (required fields, versionDetails, tools array, trigger config, executionMode, dataAccess)
   - AiAgenticWorkflow (team structure, contextProcessingScript, scheduled triggers, versions)
   - Tool types (crud, script, subflow, action, rag, web_automation, mcp, knowledge_graph, topic, capability)
-  - Access control patterns (acl vs dataAccess.roleList vs runAsUser)
+  - Access control patterns (securityAcl mandatory on both AiAgent and AiAgenticWorkflow, dataAccess.roleList, runAsUser for agents vs runAs for workflows)
   - Trigger flow definition types (record_create, record_update, email, scheduled, daily, weekly, monthly)
 
   - {{FLUENT_SDK_MCP}} for SDK object patterns
@@ -101,11 +101,30 @@ When multiple AI Studio artifacts are needed:
 | Rule | Why |
 |------|-----|
 | Every artifact needs `$id: Now.ID['...']` | Unique metadata identity |
-| Always set `acl` or `dataAccess.roleList` | Open agents create security risks |
-| `runAsUser` and `dataAccess.roleList` are mutually exclusive | Platform constraint |
-| Start with `active: false` on triggers | Prevents accidental execution during development |
-| Instructions go in `versionDetails`, not `contextProcessingScript` | Script is for data enrichment only |
+| `securityAcl` is **mandatory** on both `AiAgent` and `AiAgenticWorkflow` | Open agents create security risks |
+| For `AiAgent`: set `runAsUser` **or** `dataAccess.roleList` — not both | Platform constraint |
+| For `AiAgenticWorkflow`: set `runAs` **or** `dataAccess` — `dataAccess` is **mandatory** when `runAs` is absent | Platform constraint |
+| `processingMessage` / `postProcessingMessage` are AiAgent-only — not valid on AiAgenticWorkflow | API difference |
+| `versionDetails` for `AiAgent`; `versions` for `AiAgenticWorkflow` | Different property names |
+| Script tool `inputs` is an **array** `[...]`, not an object `{...}` | Common mistake |
+| Never use CRUD tools for journal fields (`work_notes`, `comments`) — use Script tool with `GlideRecordSecure` | Platform security |
+| Instructions go in `versionDetails` (agent) or `versions` (workflow), not `contextProcessingScript` | Script is for data enrichment only |
 | Use `constant.$id` to reference own exported agents | Never `Now.ID[...]` in data fields |
+
+### Common Hallucinations to Avoid
+
+| Wrong | Correct |
+|-------|---------|
+| `acl: "..."` | `securityAcl: { $id, type, roles? }` |
+| `versions` on AiAgent | `versionDetails` |
+| `versionDetails` on AiAgenticWorkflow | `versions` |
+| `runAs` on AiAgent | `runAsUser` |
+| `processingMessage` on AiAgenticWorkflow | Agent-only — remove |
+| `inputs: {...}` for script tools | `inputs: [...]` (array) |
+| Omitting `dataAccess` on workflow when `runAs` absent | `dataAccess` is mandatory |
+| `team.description` set manually | Auto-populated from workflow description — omit |
+| Manual `inputSchema` | Auto-generated from `inputs` — never set |
+| `"nap"` channel on workflow triggers | `"Now Assist Panel"` |
 
 ## Universal Fluent Rules (Always Apply)
 
