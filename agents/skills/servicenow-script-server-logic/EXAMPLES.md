@@ -33,10 +33,10 @@ IncidentUtils.prototype = {
         this.logger = gs.getLogger();
     },
     getIncidentCount: function(state) {
-        var gr = new GlideRecord('incident');
-        gr.addQuery('state', state);
-        gr.query();
-        return gr.getRowCount();
+        var incidentGr = new GlideRecord('incident');
+        incidentGr.addQuery('state', state);
+        incidentGr.query();
+        return incidentGr.getRowCount();
     },
     type: 'IncidentUtils'
 };
@@ -64,10 +64,10 @@ export default ScriptInclude({
     apiName: 'x_my_app.IncidentUtils',
     script: class {
         getIncidentCount(state) {
-            const gr = new GlideRecord('incident');
-            gr.addQuery('state', state);
-            gr.query();
-            return gr.getRowCount();
+            const incidentGr = new GlideRecord('incident');
+            incidentGr.addQuery('state', state);
+            incidentGr.query();
+            return incidentGr.getRowCount();
         }
     }
 })
@@ -306,10 +306,11 @@ MyScriptInclude.prototype = {
     getIncidentStats: function (daysBack) {
         try {
             var days = daysBack || 30;
-            var cutoffDate = GlideDateTime.subtract(GlideDateTime.now(), days * 24 * 60 * 60 * 1000);
+            var cutoffDate = new GlideDateTime();
+            cutoffDate.addDaysLocalTime(-days);
 
-            var incident = new GlideRecord('incident');
-            incident.addQuery('created_on', '>=', cutoffDate);
+            var incidentGr = new GlideRecord('incident');
+            incidentGr.addQuery('created_on', '>=', cutoffDate);
 
             var stats = {
                 total: 0,
@@ -321,21 +322,20 @@ MyScriptInclude.prototype = {
             var totalResTime = 0;
             var resolvedCount = 0;
 
-            incident.query();
-            while (incident.next()) {
+            incidentGr.query();
+            while (incidentGr.next()) {
                 stats.total++;
 
-                var priority = incident.priority.toString();
+                var priority = incidentGr.priority.toString();
                 stats.byPriority[priority] = (stats.byPriority[priority] || 0) + 1;
 
-                var state = incident.state.toString();
+                var state = incidentGr.state.toString();
                 stats.byState[state] = (stats.byState[state] || 0) + 1;
 
-                if (incident.resolved_at && incident.created_on) {
-                    var resTime = GlideDateTime.subtract(
-                        incident.resolved_at,
-                        incident.created_on
-                    );
+                if (incidentGr.resolved_at && incidentGr.created_on) {
+                    var resolvedDt = new GlideDateTime(incidentGr.getValue('resolved_at'));
+                    var createdDt = new GlideDateTime(incidentGr.getValue('created_on'));
+                    var resTime = resolvedDt.getNumericValue() - createdDt.getNumericValue();
                     totalResTime += resTime;
                     resolvedCount++;
                 }
@@ -397,11 +397,10 @@ function getGroupByName(groupName) {
  */
 function sendEmailNotification(toEmail, subject, body) {
     try {
-        var email = new GlideEmailOutbound();
-        email.setTo(toEmail);
-        email.setSubject(subject);
-        email.setBody(body);
-        email.send();
+        var outboundEmail = new GlideEmailOutbound();
+        outboundEmail.addAddress('to', toEmail);
+        outboundEmail.setSubject(subject);
+        outboundEmail.setBody(body);
         return true;
     } catch (error) {
         gs.error('Error sending email: ' + error.message);
@@ -435,12 +434,12 @@ function daysBetween(date1, date2) {
  * Check if user has role
  */
 function userHasRole(userId, roleName) {
-    var userRole = new GlideRecord('sys_user_has_role');
-    userRole.addQuery('user', userId);
-    userRole.addQuery('role.name', roleName);
-    userRole.query();
+    var userRoleGr = new GlideRecord('sys_user_has_role');
+    userRoleGr.addQuery('user', userId);
+    userRoleGr.addQuery('role.name', roleName);
+    userRoleGr.query();
 
-    return userRole.getRowCount() > 0;
+    return userRoleGr.getRowCount() > 0;
 }
 
 /**
@@ -489,17 +488,17 @@ function logWithContext(message, level) {
  */
 function safeQuery(tableName, conditions) {
     try {
-        var gr = new GlideRecord(tableName);
+        var queryGr = new GlideRecord(tableName);
 
         // Add conditions
         if (conditions && typeof conditions === 'object') {
             for (var field in conditions) {
-                gr.addQuery(field, conditions[field]);
+                queryGr.addQuery(field, conditions[field]);
             }
         }
 
-        gr.query();
-        return gr;
+        queryGr.query();
+        return queryGr;
     } catch (error) {
         gs.error('Query error on ' + tableName + ': ' + error.message);
         return null;
@@ -510,8 +509,8 @@ function safeQuery(tableName, conditions) {
  * Count records matching criteria
  */
 function countRecords(tableName, conditions) {
-    var gr = safeQuery(tableName, conditions);
-    return gr ? gr.getRowCount() : 0;
+    var countGr = safeQuery(tableName, conditions);
+    return countGr ? countGr.getRowCount() : 0;
 }
 
 /**
@@ -520,18 +519,18 @@ function countRecords(tableName, conditions) {
 function aggregateByField(tableName, groupByField, aggregateField) {
     try {
         var result = {};
-        var gr = new GlideRecord(tableName);
+        var aggregateGr = new GlideRecord(tableName);
 
         // Get distinct values
         var distinctValues = {};
-        gr.query();
+        aggregateGr.query();
 
-        while (gr.next()) {
-            var key = gr.getValue(groupByField);
+        while (aggregateGr.next()) {
+            var key = aggregateGr.getValue(groupByField);
             if (!distinctValues[key]) {
                 distinctValues[key] = [];
             }
-            distinctValues[key].push(gr.getValue(aggregateField));
+            distinctValues[key].push(aggregateGr.getValue(aggregateField));
         }
 
         // Calculate aggregates
@@ -551,24 +550,24 @@ function aggregateByField(tableName, groupByField, aggregateField) {
  */
 function getPaginatedRecords(tableName, pageSize, pageNumber, sortField) {
     try {
-        var gr = new GlideRecord(tableName);
+        var paginatedGr = new GlideRecord(tableName);
 
         if (sortField) {
-            gr.orderBy(sortField);
+            paginatedGr.orderBy(sortField);
         } else {
-            gr.orderByDesc('sys_created_on');
+            paginatedGr.orderByDesc('sys_created_on');
         }
 
         var offset = (pageNumber - 1) * pageSize;
-        gr.setLimit(pageSize);
-        gr.setStartRow(offset);
-        gr.query();
+        paginatedGr.setLimit(pageSize);
+        paginatedGr.setStartRow(offset);
+        paginatedGr.query();
 
         var records = [];
-        while (gr.next()) {
+        while (paginatedGr.next()) {
             records.push({
-                id: gr.getUniqueValue(),
-                displayValue: gr.getDisplayValue()
+                id: paginatedGr.getUniqueValue(),
+                displayValue: paginatedGr.getDisplayValue()
             });
         }
 
@@ -576,7 +575,7 @@ function getPaginatedRecords(tableName, pageSize, pageNumber, sortField) {
             records: records,
             pageNumber: pageNumber,
             pageSize: pageSize,
-            totalCount: gr.getRowCount() // Note: This is approximate
+            totalCount: paginatedGr.getRowCount() // Note: This is approximate
         };
     } catch (error) {
         gs.error('Pagination error: ' + error.message);
@@ -589,27 +588,27 @@ function getPaginatedRecords(tableName, pageSize, pageNumber, sortField) {
  */
 function bulkUpdateRecords(tableName, conditions, updateFields) {
     try {
-        var gr = new GlideRecord(tableName);
+        var bulkUpdateGr = new GlideRecord(tableName);
 
         // Add conditions
         if (conditions && typeof conditions === 'object') {
             for (var field in conditions) {
-                gr.addQuery(field, conditions[field]);
+                bulkUpdateGr.addQuery(field, conditions[field]);
             }
         }
 
-        gr.query();
+        bulkUpdateGr.query();
 
         var updateCount = 0;
-        while (gr.next()) {
+        while (bulkUpdateGr.next()) {
             // Apply updates
             if (updateFields && typeof updateFields === 'object') {
                 for (var field in updateFields) {
-                    gr.setValue(field, updateFields[field]);
+                    bulkUpdateGr.setValue(field, updateFields[field]);
                 }
             }
 
-            gr.update();
+            bulkUpdateGr.update();
             updateCount++;
         }
 

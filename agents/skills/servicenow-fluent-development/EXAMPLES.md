@@ -394,11 +394,10 @@ export default BusinessRule({
     script: `
         (function executeAsyncRule(current, previous) {
             try {
-                var email = new GlideEmailOutbound();
-                email.setTo(current.assignment_group.manager.email);
-                email.setSubject('Critical Incident: ' + current.number);
-                email.setBody('Critical incident created: ' + current.short_description);
-                email.send();
+                var notificationEmail = new GlideEmailOutbound();
+                notificationEmail.addAddress('to', current.assignment_group.manager.email);
+                notificationEmail.setSubject('Critical Incident: ' + current.number);
+                notificationEmail.setBody('Critical incident created: ' + current.short_description);
                 gs.info('Notification sent for ' + current.number);
             } catch (error) {
                 gs.error('Error sending notification: ' + error);

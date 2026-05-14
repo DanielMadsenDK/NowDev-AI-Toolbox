@@ -38,9 +38,8 @@ if (parent.get(current.parent_id)) {
 - **Error handling**: Failures don't prevent main transaction
 
 ```javascript
-// ✓ Send email asynchronously
-var noti = new GlideNotification();
-noti.send(current.assigned_to, 'Task assigned to you');
+// ✓ Send email notification asynchronously via event queue
+gs.eventQueue('task.assigned', current, current.getValue('assigned_to'), 'Task assigned notification');
 ```
 
 ### Display Rules
@@ -117,19 +116,19 @@ group.get(groupId);
 ```javascript
 // ✗ SLOW - queries every record
 (function executeRule(current, previous) {
-    var gr = new GlideRecord('incident');
-    gr.query(); // Queries ALL incidents
-    while (gr.next()) {
+    var allIncidentGr = new GlideRecord('incident');
+    allIncidentGr.query(); // Queries ALL incidents
+    while (allIncidentGr.next()) {
         // Process...
     }
 })(current, previous);
 
 // ✓ BETTER - limit with addQuery
-var gr = new GlideRecord('incident');
-gr.addQuery('assigned_to', current.assigned_to);
-gr.addQuery('state', 'open');
-gr.setLimit(100);
-gr.query();
+var assignedIncidentGr = new GlideRecord('incident');
+assignedIncidentGr.addQuery('assigned_to', current.assigned_to);
+assignedIncidentGr.addQuery('state', 'open');
+assignedIncidentGr.setLimit(100);
+assignedIncidentGr.query();
 ```
 
 ## Conditions & Filters
@@ -177,11 +176,11 @@ var assignedName = current.getDisplayValue('assigned_to');
 ### Batch Updates
 ```javascript
 // ✗ Multiple updates = multiple table writes
-var gr = new GlideRecord('incident');
-gr.query();
-while (gr.next()) {
-    gr.state = 'resolved';
-    gr.update(); // Each update writes to DB
+var resolveIncidentGr = new GlideRecord('incident');
+resolveIncidentGr.query();
+while (resolveIncidentGr.next()) {
+    resolveIncidentGr.state = 'resolved';
+    resolveIncidentGr.update(); // Each update writes to DB
 }
 
 // ✓ Consider scheduled job or Script Include for bulk operations

@@ -8,7 +8,9 @@
 var userId = gs.getUserID();     // sys_id
 var userName = gs.getUser().getName();
 var userEmail = gs.getUser().getEmail();
-var userDept = gs.getUser().getDepartmentID();
+var userGr = new GlideRecord('sys_user');
+userGr.get(gs.getUserID());
+var userDept = userGr.getValue('department');
 
 // Check user roles
 var user = gs.getUser();
@@ -73,11 +75,11 @@ gs.eventQueue('custom.approval_required', current, 'admin_group', 'high_value_tr
 
 ### Event Processing
 ```javascript
-// Listen to events (in Business Rule)
-if (gs.getEventName() === 'incident.state_changed') {
-    var parm = gs.getEventParm1();
-    gs.info('Event fired: ' + parm);
-}
+// Listen to events in a Script Action
+// In Script Actions, event parameters are available via the 'event' object:
+var parm1 = event.parm1;
+var parm2 = event.parm2;
+gs.info('Event fired with parm1: ' + parm1);
 ```
 
 ## Session Management
@@ -86,8 +88,8 @@ if (gs.getEventName() === 'incident.state_changed') {
 ```javascript
 // Get current session information
 var sessionId = gs.getSessionID();
-var domainId = gs.getDomainID();
-var timeZoneId = gs.getTimeZoneID();
+var domainId = gs.getSession().getCurrentDomainID();
+var timeZoneName = gs.getSession().getTimeZoneName();
 
 // Get locale
 var locale = GlideLocale.get();
@@ -137,39 +139,40 @@ var randomInt = GlideSecureRandomUtil.getSecureRandomIntBound(100); // 0 to 99
 
 ### Send Notifications
 ```javascript
-var notification = new GlideNotification();
-notification.send(targetUserId, 'Message text');
+// Use gs.eventQueue() to trigger email notifications
+// Register a notification in ServiceNow tied to the event name
+gs.eventQueue('incident.escalated', current, current.getValue('assigned_to'), 'Incident has been escalated');
 
-// More advanced - create custom notification
-var noti = new GlideNotification();
-noti.setTitle('Incident Escalated');
-noti.setMessage('Your incident has been escalated');
-noti.send(userId);
+// For direct email (e.g., in a mail script or async business rule context):
+var escalationEmail = new GlideEmailOutbound();
+escalationEmail.addAddress('to', recipientEmail);
+escalationEmail.setSubject('Incident Escalated');
+escalationEmail.setBody('Your incident has been escalated.');
 ```
 
-## Database Transactions
+## Error Handling in Business Rules
 
-### Transaction Control
+### Abort and Revert Pattern
 ```javascript
-// Explicit transaction management
-gs.getSession().setSavePoint('before_update');
-
+// ServiceNow manages database transactions automatically.
+// To prevent a save on error, use setAbortAction in Before rules:
 try {
     current.state = 'resolved';
-    current.update();
-    
-    // Cascade updates
-    var gr = new GlideRecord('incident');
-    gr.addQuery('parent', current.sys_id);
-    gr.query();
-    while (gr.next()) {
-        gr.state = 'resolved';
-        gr.update();
+    // In Before rules, direct assignment is auto-saved — no update() call needed
+
+    // Cascade updates to child records
+    var childIncidentGr = new GlideRecord('incident');
+    childIncidentGr.addQuery('parent', current.sys_id);
+    childIncidentGr.query();
+    while (childIncidentGr.next()) {
+        childIncidentGr.state = 'resolved';
+        childIncidentGr.update();
     }
 } catch (e) {
-    // Rollback on error
-    gs.getSession().setSavePoint('before_update');
-    gs.error('Transaction rolled back: ' + e.getMessage());
+    // Block the save on error
+    current.setAbortAction(true);
+    gs.addErrorMessage('Error processing record: ' + e.getMessage());
+    gs.error('Transaction error: ' + e.getMessage());
 }
 ```
 
@@ -217,12 +220,15 @@ var result = evaluator.evaluateScript(record, 'script_field', {});
 
 ### Avoid Synchronous AJAX
 ```javascript
-// ✗ BLOCKS AND DEPRECATED
-var answer = gs.getXMLWait();
+// ✗ BLOCKS AND DEPRECATED — getXMLWait() is a GlideAjax method, never use it
+// var ga = new GlideAjax('MyScriptInclude');
+// ga.getXMLWait(); // Synchronous, blocks the browser!
 
-// ✓ USE ASYNC
-gs.getXMLAnswer(function(response) {
-    // Process response
+// ✓ USE ASYNC GlideAjax
+var ga = new GlideAjax('MyScriptInclude');
+ga.addParam('sysparm_name', 'myMethod');
+ga.getXMLAnswer(function(answer) {
+    // Process response asynchronously
 });
 
 // Better: use server-side REST instead
@@ -235,11 +241,11 @@ var response = rest.execute();
 ### Try-Catch Pattern
 ```javascript
 try {
-    var gr = new GlideRecord('incident');
-    gr.addQuery('sys_id', incidentId);
-    gr.query();
+    var incidentGr = new GlideRecord('incident');
+    incidentGr.addQuery('sys_id', incidentId);
+    incidentGr.query();
     
-    if (gr.next()) {
+    if (incidentGr.next()) {
         // Process
     } else {
         gs.warn('Incident not found: ' + incidentId);

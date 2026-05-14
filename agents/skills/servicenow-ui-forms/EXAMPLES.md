@@ -199,12 +199,21 @@ export const escalateAction = UiAction({
         current.escalated_on = new GlideDateTime().toString();
         current.update();
 
-        var mgr = gs.getUser().getManagerID();
-        var email = new GlideEmailOutbound();
-        email.setTo(gs.getUser(mgr).getEmail());
-        email.setSubject('Escalated Incident: ' + current.number);
-        email.setBody('Incident ' + current.number + ' has been escalated.');
-        email.send();
+        // Get the current user's manager from sys_user record
+        var currentUserGr = new GlideRecord('sys_user');
+        currentUserGr.get(gs.getUserID());
+        var mgrId = currentUserGr.getValue('manager');
+
+        if (mgrId) {
+            var managerGr = new GlideRecord('sys_user');
+            managerGr.get(mgrId);
+            var mgrEmail = managerGr.getValue('email');
+
+            var escalationEmail = new GlideEmailOutbound();
+            escalationEmail.addAddress('to', mgrEmail);
+            escalationEmail.setSubject('Escalated Incident: ' + current.number);
+            escalationEmail.setBody('Incident ' + current.number + ' has been escalated.');
+        }
 
         action.setRedirectURL(current);
     `,

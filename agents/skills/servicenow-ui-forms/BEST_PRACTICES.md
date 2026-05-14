@@ -7,7 +7,7 @@
 // ✓ CORRECT - use g_form API
 function updatefield() {
     g_form.setValue('priority', '1');
-    g_form.setLabel('priority', 'Critical Priority');
+    g_form.setLabelOf('priority', 'Critical Priority');
     var value = g_form.getValue('priority');
     var display = g_form.getDisplayValue('priority');
 }
@@ -161,10 +161,10 @@ g_form.addInfoMessage('Record will be processed overnight');
 g_form.clearMessages();
 
 // Field-level error
-g_form.setFieldError('priority', 'Priority must be 1 or 2');
+g_form.showErrorBox('priority', 'Priority must be 1 or 2');
 
 // Mark field as invalid
-g_form.setFieldMessagesVisible('priority', true);
+g_form.showFieldMsg('priority', 'Invalid value', 'error');
 ```
 
 ## Form Event Handlers
@@ -206,7 +206,7 @@ function onChangeAssignmentGroup() {
     
     // Fetch group info and update UI
     var groupInfo = getGroupInfo(groupId);
-    g_form.setLabel('assignment_group', 'Group: ' + groupInfo.name);
+    g_form.setLabelOf('assignment_group', 'Group: ' + groupInfo.name);
     
     // Update related fields
     g_form.setValue('assignment_team', groupInfo.default_team);
@@ -272,11 +272,12 @@ function lookupUserInfo() {
     });
 }
 
-// ✗ WRONG - blocks form
-var answer = g_form.getXMLWait('MyScript', 'getSomething');
+// ✗ WRONG - blocks form (getXMLWait is a GlideAjax method, never use it)
+// var ga = new GlideAjax('MyScript');
+// ga.getXMLWait(); // Synchronous, blocks the browser!
 
-// ✗ WRONG - blocks browser
-var result = gs.getXMLWait();
+// ✗ WRONG - getXMLWait is not a gs method
+// var result = gs.getXMLWait();
 ```
 
 ### Async Field Population
@@ -285,7 +286,7 @@ function populateDependentField() {
     var parentValue = g_form.getValue('category');
     
     // Show loading state
-    g_form.setLabel('subcategory', 'Loading...');
+    g_form.setLabelOf('subcategory', 'Loading...');
     g_form.setDisabled('subcategory', true);
     
     var ga = new GlideAjax('FieldLookup');
@@ -301,7 +302,7 @@ function populateDependentField() {
         
         // Re-enable field
         g_form.setDisabled('subcategory', false);
-        g_form.setLabel('subcategory', 'Sub-Category');
+        g_form.setLabelOf('subcategory', 'Sub-Category');
     });
 }
 ```
@@ -436,8 +437,9 @@ g_form.refreshDisplay(); // Single refresh
 
 ### ✗ Synchronous AJAX
 ```javascript
-// WRONG - blocks form interaction
-var answer = g_form.getXMLWait('script', 'function');
+// WRONG - blocks form interaction (getXMLWait is a GlideAjax method, never use it)
+// var ga = new GlideAjax('script');
+// ga.getXMLWait(); // Synchronous, blocks the browser!
 
 // CORRECT - use async callback
 var ga = new GlideAjax('script');

@@ -19,53 +19,53 @@
 ### 1. Use `setLimit()` for Existence Checks
 ```javascript
 // ✗ SLOW - iterates all records and counts
-var gr = new GlideRecord('incident');
-gr.addQuery('assigned_to', gs.getUserID());
-gr.query();
+var assignedIncidentGr = new GlideRecord('incident');
+assignedIncidentGr.addQuery('assigned_to', gs.getUserID());
+assignedIncidentGr.query();
 var count = 0;
-while (gr.next()) count++;
+while (assignedIncidentGr.next()) count++;
 if (count > 0) { /* has records */ }
 
 // ✓ FAST - just checks if exists
-var gr = new GlideRecord('incident');
-gr.addQuery('assigned_to', gs.getUserID());
-gr.setLimit(1);
-gr.query();
-if (gr.getRowCount() > 0) { /* has records */ }
+var assignedIncidentGr = new GlideRecord('incident');
+assignedIncidentGr.addQuery('assigned_to', gs.getUserID());
+assignedIncidentGr.setLimit(1);
+assignedIncidentGr.query();
+if (assignedIncidentGr.getRowCount() > 0) { /* has records */ }
 ```
 
 ### 2. Avoid Dot-Walking in Loops
 ```javascript
 // ✗ SLOW - dot-walk per iteration (N+1 problem)
-var gr = new GlideRecord('incident');
-gr.query();
-while (gr.next()) {
-    var assignedUser = gr.assigned_to.name; // Lookups assignment
-    var callerUser = gr.caller_id.name;     // Lookups caller
+var incidentGr = new GlideRecord('incident');
+incidentGr.query();
+while (incidentGr.next()) {
+    var assignedUser = incidentGr.assigned_to.name; // Lookups assignment
+    var callerUser = incidentGr.caller_id.name;     // Lookups caller
 }
 
 // ✓ FASTER - join or separate queries
-var gr = new GlideRecord('incident');
-gr.addJoinQuery('sys_user', 'assigned_to', 'sys_id');
-gr.query();
-while (gr.next()) {
-    var name = gr.assigned_to.name; // Already joined
+var joinedIncidentGr = new GlideRecord('incident');
+joinedIncidentGr.addJoinQuery('sys_user', 'assigned_to', 'sys_id');
+joinedIncidentGr.query();
+while (joinedIncidentGr.next()) {
+    var name = joinedIncidentGr.assigned_to.name; // Already joined
 }
 ```
 
 ### 3. Use `addEncodedQuery()` for Complex Filters
 ```javascript
 // ✗ HARD TO READ - multiple addQuery() calls
-var gr = new GlideRecord('incident');
-gr.addQuery('priority', '<=', 2);
-gr.addQuery('state', 'IN', 'open,assigned,new');
-gr.addQuery('assigned_to', 'NOT EMPTY');
+var incidentGr = new GlideRecord('incident');
+incidentGr.addQuery('priority', '<=', 2);
+incidentGr.addQuery('state', 'IN', 'open,assigned,new');
+incidentGr.addQuery('assigned_to', 'NOT EMPTY');
 
 // ✓ CLEANER - copy from list view
-var gr = new GlideRecord('incident');
+var incidentGr = new GlideRecord('incident');
 // Copy encoded query from list view:
-gr.addEncodedQuery('priority<=2^stateIN open,assigned,new^assigned_toISNOTEMPTY');
-gr.query();
+incidentGr.addEncodedQuery('priority<=2^stateIN open,assigned,new^assigned_toISNOTEMPTY');
+incidentGr.query();
 ```
 
 ## Aggregate Operations
@@ -73,11 +73,11 @@ gr.query();
 ### Counting Records
 ```javascript
 // ✗ SLOW - counts in code
-var gr = new GlideRecord('incident');
-gr.addQuery('state', 'open');
-gr.query();
+var openIncidentGr = new GlideRecord('incident');
+openIncidentGr.addQuery('state', 'open');
+openIncidentGr.query();
 var count = 0;
-while (gr.next()) count++;
+while (openIncidentGr.next()) count++;
 
 // ✓ FAST - database does the work
 var agg = new GlideAggregate('incident');
@@ -127,8 +127,8 @@ while (agg.next()) {
 ### GlideRecordSecure with ACLs
 ```javascript
 // Standard - ignores ACLs
-var gr = new GlideRecord('incident');
-gr.query();
+var incidentGr = new GlideRecord('incident');
+incidentGr.query();
 // Returns ALL incidents, regardless of user permissions
 
 // Secure - respects ACLs
@@ -149,14 +149,14 @@ if (canRead) {
 ### Insert Pattern
 ```javascript
 function createIncident(shortDescription, priority) {
-    var gr = new GlideRecord('incident');
-    gr.initialize(); // Initialize with defaults
-    gr.short_description = shortDescription;
-    gr.priority = priority;
-    gr.caller_id = gs.getUserID();
+    var incidentGr = new GlideRecord('incident');
+    incidentGr.initialize(); // Initialize with defaults
+    incidentGr.short_description = shortDescription;
+    incidentGr.priority = priority;
+    incidentGr.caller_id = gs.getUserID();
     
     try {
-        return gr.insert(); // Returns sys_id
+        return incidentGr.insert(); // Returns sys_id
     } catch (e) {
         gs.error('Insert failed: ' + e.getMessage());
         return null;
@@ -167,13 +167,13 @@ function createIncident(shortDescription, priority) {
 ### Update Pattern
 ```javascript
 function updateIncident(incidentId, newState) {
-    var gr = new GlideRecord('incident');
-    if (gr.get(incidentId)) {
-        gr.state = newState;
-        gr.updated_by = gs.getUserID();
+    var incidentGr = new GlideRecord('incident');
+    if (incidentGr.get(incidentId)) {
+        incidentGr.state = newState;
+        incidentGr.updated_by = gs.getUserID();
         
         try {
-            gr.update();
+            incidentGr.update();
             return true;
         } catch (e) {
             gs.error('Update failed: ' + e.getMessage());
@@ -191,11 +191,11 @@ function batchInsertIncidents(incidents) {
     var insertedIds = [];
     
     for (var i = 0; i < incidents.length; i++) {
-        var gr = new GlideRecord('incident');
-        gr.short_description = incidents[i].description;
-        gr.priority = incidents[i].priority;
+        var incidentGr = new GlideRecord('incident');
+        incidentGr.short_description = incidents[i].description;
+        incidentGr.priority = incidents[i].priority;
         
-        var id = gr.insert();
+        var id = incidentGr.insert();
         if (id) {
             insertedIds.push(id);
         }
@@ -227,11 +227,11 @@ var dataType = element.getED().getInternalType();
 
 ### Custom Logic on Fields
 ```javascript
-var gr = new GlideRecord('incident');
-gr.query();
+var incidentGr = new GlideRecord('incident');
+incidentGr.query();
 
-while (gr.next()) {
-    var priorityElement = gr.getElement('priority');
+while (incidentGr.next()) {
+    var priorityElement = incidentGr.getElement('priority');
     
     // Check field properties
     if (priorityElement.canCreate()) {
@@ -273,8 +273,8 @@ var incidents = new GlideRecord('incident');
 incidents.query();
 
 while (incidents.next()) {
-    var gr = new GlideRecord('cmdb_ci_server');
-    gr.get(incidents.cmdb_ci);  // Additional query per iteration!
+    var serverGr = new GlideRecord('cmdb_ci_server');
+    serverGr.get(incidents.cmdb_ci);  // Additional query per iteration!
 }
 
 // ✓ SOLUTION - fetch all at once

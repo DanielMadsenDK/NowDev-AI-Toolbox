@@ -370,14 +370,14 @@ export default BusinessRule({
 
     try {
         // Send notification
-        const group = new GlideRecord('sys_user_group');
-        if (group.get(current.assignment_group)) {
-            const managerEmail = group.manager.getDisplayValue();
+        const assignmentGroupGr = new GlideRecord('sys_user_group');
+        if (assignmentGroupGr.get(current.assignment_group)) {
+            const managerEmail = assignmentGroupGr.manager.getDisplayValue();
 
-            const email = new GlideEmailOutbound();
-            email.setTo(managerEmail);
-            email.setSubject(`Critical Incident: ${current.number}`);
-            email.setBody(`
+            const notificationEmail = new GlideEmailOutbound();
+            notificationEmail.addAddress('to', managerEmail);
+            notificationEmail.setSubject(`Critical Incident: ${current.number}`);
+            notificationEmail.setBody(`
 High Priority Incident Created:
 - Number: ${current.number}
 - Description: ${current.short_description}
@@ -386,7 +386,6 @@ High Priority Incident Created:
 
 Please respond immediately.
             `);
-            email.send();
 
             gs.info(`Notification sent for incident: ${current.number}`);
         }

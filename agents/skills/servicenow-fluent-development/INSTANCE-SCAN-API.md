@@ -277,8 +277,8 @@ export const staleIncidentCheck = TableCheck({
   script: `(function(engine, current) {
     var lastUpdated = new GlideDateTime(current.sys_updated_on);
     var now = new GlideDateTime();
-    var diff = GlideDateTime.subtract(lastUpdated, now);
-    if (diff.getNumericValue() > 7776000000) {
+    var diffMs = now.getNumericValue() - lastUpdated.getNumericValue();
+    if (diffMs > 7776000000) {
         engine.finding.increment();
     }
 })(current);`,
@@ -299,11 +299,11 @@ export const adminRoleAudit = ScriptOnlyCheck({
   priority: '1',
   shortDescription: 'Flags if admin users exceed 5% of total active users',
   script: `(function(finding) {
-    var gr = new GlideRecord('sys_user_has_role');
-    gr.addQuery('role.name', 'admin');
-    gr.addQuery('user.active', true);
-    gr.query();
-    var adminCount = gr.getRowCount();
+    var adminRoleGr = new GlideRecord('sys_user_has_role');
+    adminRoleGr.addQuery('role.name', 'admin');
+    adminRoleGr.addQuery('user.active', true);
+    adminRoleGr.query();
+    var adminCount = adminRoleGr.getRowCount();
 
     var ga = new GlideAggregate('sys_user');
     ga.addQuery('active', true);

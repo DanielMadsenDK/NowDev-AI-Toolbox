@@ -46,9 +46,9 @@ gs.eventQueue('incident.priority.updated', current, current.getValue('priority')
 
 ```javascript
 // Current session context
-var domainId = gs.getDomainID();
+var domainId = gs.getSession().getCurrentDomainID();
 var sessionID = gs.getSessionID();
-var timezoneID = gs.getTimeZoneID();
+var timezoneName = gs.getSession().getTimeZoneName();
 ```
 
 **Impersonation** (admin only, Global scope):

@@ -266,10 +266,10 @@ function setDueDate(current) {
 ```javascript
 // ✗ INEFFICIENT - new GlideDateTime on each reference
 function processRecords() {
-    var gr = new GlideRecord('incident');
-    gr.query();
-    while (gr.next()) {
-        if (new GlideDateTime() > new GlideDateTime(gr.due_date)) {
+    var incidentGr = new GlideRecord('incident');
+    incidentGr.query();
+    while (incidentGr.next()) {
+        if (new GlideDateTime() > new GlideDateTime(incidentGr.due_date)) {
             // Create new object each iteration!
         }
     }
@@ -278,10 +278,10 @@ function processRecords() {
 // ✓ EFFICIENT - cache datetime objects
 function processRecords() {
     var now = new GlideDateTime();
-    var gr = new GlideRecord('incident');
-    gr.query();
-    while (gr.next()) {
-        var dueDate = new GlideDateTime(gr.due_date);
+    var incidentGr = new GlideRecord('incident');
+    incidentGr.query();
+    while (incidentGr.next()) {
+        var dueDate = new GlideDateTime(incidentGr.due_date);
         if (now.getMilliseconds() > dueDate.getMilliseconds()) {
             // Reuse objects
         }

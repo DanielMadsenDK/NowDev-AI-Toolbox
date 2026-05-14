@@ -147,16 +147,16 @@ UserUtils.prototype = {
   },
 
   getUserByName: function(userName) {
-    var gr = new GlideRecord(this.table)
-    gr.addQuery('user_name', userName)
-    gr.query()
-    return gr.getNext() ? gr.sys_id.toString() : null
+    var userGr = new GlideRecord(this.table)
+    userGr.addQuery('user_name', userName)
+    userGr.query()
+    return userGr.next() ? userGr.sys_id.toString() : null
   },
 
   getUserEmail: function(userId) {
-    var gr = new GlideRecord(this.table)
-    if (gr.get(userId)) {
-      return gr.email.toString()
+    var userGr = new GlideRecord(this.table)
+    if (userGr.get(userId)) {
+      return userGr.email.toString()
     }
     return null
   },
@@ -230,15 +230,15 @@ Object.extendsObject(global.AbstractAjaxProcessor, {
     var groupId = this.getParameter('sysparm_group_id')
     var members = []
 
-    var gr = new GlideRecord('sys_user_grmember')
-    gr.addQuery('group', groupId)
-    gr.query()
+    var groupMemberGr = new GlideRecord('sys_user_grmember')
+    groupMemberGr.addQuery('group', groupId)
+    groupMemberGr.query()
 
-    while (gr.next()) {
+    while (groupMemberGr.next()) {
       members.push({
-        userId: gr.user.sys_id.toString(),
-        userName: gr.user.user_name.toString(),
-        displayName: gr.user.name.toString()
+        userId: groupMemberGr.user.sys_id.toString(),
+        userName: groupMemberGr.user.user_name.toString(),
+        displayName: groupMemberGr.user.name.toString()
       })
     }
 
@@ -605,15 +605,15 @@ export const configManager = ScriptInclude({
 **configManager.server.js:**
 ```javascript
 function getConfig(configKey) {
-  var gr = new GlideRecord('x_myapp_config')
-  gr.addQuery('key', configKey)
-  gr.query()
+  var configGr = new GlideRecord('x_myapp_config')
+  configGr.addQuery('key', configKey)
+  configGr.query()
 
-  if (gr.next()) {
+  if (configGr.next()) {
     return {
-      key: gr.key.toString(),
-      value: gr.value.toString(),
-      type: gr.type.toString()
+      key: configGr.key.toString(),
+      value: configGr.value.toString(),
+      type: configGr.type.toString()
     }
   }
 

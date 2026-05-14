@@ -9,14 +9,14 @@ Use for existing ServiceNow instances, legacy codebases, and business rules.
 
 **Quick example:**
 ```javascript
-var gr = new GlideRecord('incident');
-gr.addQuery('active', 'true');
-gr.addQuery('priority', '1');
-gr.orderBy('created_on');
-gr.query();
+var incidentGr = new GlideRecord('incident');
+incidentGr.addQuery('active', 'true');
+incidentGr.addQuery('priority', '1');
+incidentGr.orderBy('created_on');
+incidentGr.query();
 
-while (gr.next()) {
-    gs.info('Incident: ' + gr.getValue('number'));
+while (incidentGr.next()) {
+    gs.info('Incident: ' + incidentGr.getValue('number'));
 }
 ```
 
@@ -87,11 +87,11 @@ incidents.forEach(incident => {
 ### Classic GlideRecord
 ```javascript
 // JavaScript syntax
-var gr = new GlideRecord('incident');
-gr.addQuery('priority', '1');
-gr.query();
-while (gr.next()) {
-    var number = gr.getValue('number');
+var incidentGr = new GlideRecord('incident');
+incidentGr.addQuery('priority', '1');
+incidentGr.query();
+while (incidentGr.next()) {
+    var number = incidentGr.getValue('number');
 }
 ```
 

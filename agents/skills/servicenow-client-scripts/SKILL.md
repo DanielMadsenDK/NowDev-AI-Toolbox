@@ -72,7 +72,7 @@ g_scratchpad.vip = true;
 
 // OnLoad script (client):
 if (g_scratchpad.vip) {
-    g_form.setLabel('priority', 'VIP Priority');
+    g_form.setLabelOf('priority', 'VIP Priority');
 }
 ```
 

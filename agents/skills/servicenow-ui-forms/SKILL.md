@@ -31,12 +31,10 @@ g_form.setMandatory('field_name', true);
 var isMandatory = g_form.isMandatory('field_name');
 
 // Read-only
-g_form.setReadonly('field_name', true);
-var isReadonly = g_form.isReadonly('field_name');
+g_form.setReadOnly('field_name', true);
 
-// Hidden
-g_form.setHidden('field_name', true);
-var isHidden = g_form.isHidden('field_name');
+// Hidden (use setVisible with inverted logic)
+g_form.setVisible('field_name', false);
 
 // Disabled
 g_form.setDisabled('field_name', true);
@@ -45,11 +43,11 @@ g_form.setDisabled('field_name', true);
 **Validation**:
 
 ```javascript
-// Add validation error
-g_form.setFieldError('field_name', 'Error message here');
+// Add field-level validation error
+g_form.showErrorBox('field_name', 'Error message here');
 
-// Clear validation error
-g_form.clearFieldError('field_name');
+// Clear field-level validation error
+g_form.hideErrorBox('field_name');
 
 // Form-level validation
 function onSubmit() {
@@ -71,7 +69,7 @@ g_form.setVisible('section_name', true);
 g_form.switchToTab('tab_name');
 
 // Set section label
-g_form.setLabel('section_name', 'New Label');
+g_form.setLabelOf('section_name', 'New Label');
 ```
 
 **Form state**:
@@ -96,7 +94,7 @@ function onLoad() {
     var status = g_form.getValue('state');
     
     if (status === 'resolved') {
-        g_form.setReadonly('resolution_details', true);
+        g_form.setReadOnly('resolution_details', true);
     }
     
     // Use g_scratchpad for server-pushed data

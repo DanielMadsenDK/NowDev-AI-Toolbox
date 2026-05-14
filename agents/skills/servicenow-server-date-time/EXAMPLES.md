@@ -174,8 +174,8 @@ startOfYear.setTime(0, 0, 0, 0);
 
 ```javascript
 // Get current timezone
-var tzId = gs.getTimeZoneID();
-gs.info('Current timezone: ' + tzId); // e.g., "America/New_York"
+var tzName = gs.getSession().getTimeZoneName();
+gs.info('Current timezone: ' + tzName); // e.g., "America/New_York"
 
 // Get user's timezone
 var user = gs.getUser();

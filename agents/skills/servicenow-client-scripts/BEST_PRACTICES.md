@@ -67,7 +67,7 @@ g_scratchpad.vip = (current.annual_revenue > 1000000);
 Client OnLoad consume:
 ```javascript
 function onLoad() {
-	if (g_scratchpad.vip) g_form.setLabel('priority', 'VIP Priority');
+	if (g_scratchpad.vip) g_form.setLabelOf('priority', 'VIP Priority');
 }
 ```
 

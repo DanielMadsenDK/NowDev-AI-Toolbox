@@ -112,7 +112,7 @@ Used for field validation and auto-population before database save.
         // Warn if duration exceeds threshold
         var daysApart = (endTime - startTime) / (1000 * 60 * 60 * 24);
         if (daysApart > 30) {
-            gs.addWarningMessage('Duration exceeds 30 days');
+            gs.addInfoMessage('Warning: Duration exceeds 30 days');
         }
     }
 
@@ -152,27 +152,27 @@ Used for updating related records after the main record is saved.
 
     // Update related change request
     if (current.change_request && current.state == 'closed') {
-        var change = new GlideRecord('change_request');
-        if (change.get(current.change_request)) {
-            change.status = 'closed';
-            change.update(); // Required in After rule
+        var changeGr = new GlideRecord('change_request');
+        if (changeGr.get(current.change_request)) {
+            changeGr.status = 'closed';
+            changeGr.update(); // Required in After rule
         }
     }
 
     // Update parent incident if this is a child
     if (current.parent_incident && current.state == 'resolved') {
         // Check if all children are resolved
-        var unresolved = new GlideRecord('incident');
-        unresolved.addQuery('parent_incident', current.parent_incident);
-        unresolved.addQuery('state', '!=', 'resolved');
-        unresolved.query();
+        var unresolvedChildGr = new GlideRecord('incident');
+        unresolvedChildGr.addQuery('parent_incident', current.parent_incident);
+        unresolvedChildGr.addQuery('state', '!=', 'resolved');
+        unresolvedChildGr.query();
 
-        if (unresolved.getRowCount() === 0) {
+        if (unresolvedChildGr.getRowCount() === 0) {
             // All children resolved, close parent
-            var parent = new GlideRecord('incident');
-            if (parent.get(current.parent_incident)) {
-                parent.state = 'resolved';
-                parent.update();
+            var parentIncidentGr = new GlideRecord('incident');
+            if (parentIncidentGr.get(current.parent_incident)) {
+                parentIncidentGr.state = 'resolved';
+                parentIncidentGr.update();
             }
         }
     }
@@ -195,18 +195,17 @@ Used for notifications, integrations, and heavy processing after record is saved
     if (current.priority == '1') {
         try {
             // Get assignment group and send notification
-            var group = new GlideRecord('sys_user_group');
-            if (group.get(current.assignment_group)) {
-                var managerEmail = group.manager.getDisplayValue();
+            var assignmentGroupGr = new GlideRecord('sys_user_group');
+            if (assignmentGroupGr.get(current.assignment_group)) {
+                var managerEmail = assignmentGroupGr.manager.getDisplayValue();
 
-                // Send email
-                var email = new GlideEmailOutbound();
-                email.setTo(managerEmail);
-                email.setSubject('High Priority Incident: ' + current.number);
-                email.setBody('A high priority incident has been created.\n' +
+                // Send email via GlideEmailOutbound
+                var notificationEmail = new GlideEmailOutbound();
+                notificationEmail.addAddress('to', managerEmail);
+                notificationEmail.setSubject('High Priority Incident: ' + current.number);
+                notificationEmail.setBody('A high priority incident has been created.\n' +
                     'Number: ' + current.number + '\n' +
                     'Description: ' + current.short_description);
-                email.send();
 
                 gs.info('Notification sent for: ' + current.number);
             }
@@ -352,7 +351,7 @@ Used for notifications, integrations, and heavy processing after record is saved
 | `current` | GlideRecord being processed |
 | `previous` | Snapshot of record before changes |
 | `gs.addErrorMessage()` | Show error to user, can block save |
-| `gs.addWarningMessage()` | Show warning to user, doesn't block |
+| `gs.addInfoMessage()` | Show informational message to user |
 | `current.setAbortAction(true)` | Cancel the database transaction |
 | `current.isNewRecord()` | Check if this is an insert operation |
 | `gs.info()` | Log informational message |

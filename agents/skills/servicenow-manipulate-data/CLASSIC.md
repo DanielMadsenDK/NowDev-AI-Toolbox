@@ -40,16 +40,16 @@ return results;
 ### Multiple Conditions with OR Logic
 
 ```javascript
-var gr = new GlideRecord('incident');
-gr.addQuery('active', 'true');
-gr.addQuery('state', '!=', 'closed');
-gr.addOrCondition('priority', '1');
-gr.addOrCondition('priority', '2');
-gr.orderBy('priority');
-gr.query();
+var activeIncidentGr = new GlideRecord('incident');
+activeIncidentGr.addQuery('active', 'true');
+activeIncidentGr.addQuery('state', '!=', 'closed');
+var priorityCondition = activeIncidentGr.addQuery('priority', '1');
+priorityCondition.addOrCondition('priority', '2');
+activeIncidentGr.orderBy('priority');
+activeIncidentGr.query();
 
 var count = 0;
-while (gr.next()) {
+while (activeIncidentGr.next()) {
     count++;
     // Process record
 }
@@ -125,11 +125,11 @@ return false;
 
 ```javascript
 var stats = {};
-var gr = new GlideRecord('incident');
-gr.query();
+var incidentStatsGr = new GlideRecord('incident');
+incidentStatsGr.query();
 
-while (gr.next()) {
-    var priority = gr.getValue('priority');
+while (incidentStatsGr.next()) {
+    var priority = incidentStatsGr.getValue('priority');
     stats[priority] = (stats[priority] || 0) + 1;
 }
 
@@ -141,12 +141,12 @@ return stats;
 
 ```javascript
 var total = 0;
-var gr = new GlideRecord('incident');
-gr.addQuery('state', 'resolved');
-gr.query();
+var resolvedIncidentGr = new GlideRecord('incident');
+resolvedIncidentGr.addQuery('state', 'resolved');
+resolvedIncidentGr.query();
 
-while (gr.next()) {
-    var timeWorked = gr.getValue('time_worked');
+while (resolvedIncidentGr.next()) {
+    var timeWorked = resolvedIncidentGr.getValue('time_worked');
     total += parseInt(timeWorked) || 0;
 }
 
@@ -179,23 +179,23 @@ return stats;
 
 ```javascript
 function bulkUpdateIncidents(conditions, updateFields) {
-    var gr = new GlideRecord('incident');
+    var incidentGr = new GlideRecord('incident');
 
     // Add conditions
     for (var field in conditions) {
-        gr.addQuery(field, conditions[field]);
+        incidentGr.addQuery(field, conditions[field]);
     }
 
-    gr.query();
+    incidentGr.query();
 
     var updateCount = 0;
-    while (gr.next()) {
+    while (incidentGr.next()) {
         // Apply updates
         for (var field in updateFields) {
-            gr.setValue(field, updateFields[field]);
+            incidentGr.setValue(field, updateFields[field]);
         }
 
-        gr.update();
+        incidentGr.update();
         updateCount++;
     }
 
@@ -212,15 +212,15 @@ var updated = bulkUpdateIncidents(
 ### Bulk Delete
 
 ```javascript
-var gr = new GlideRecord('incident');
-gr.addQuery('state', 'closed');
-gr.addQuery('closed_on', '<', '2024-01-01');
-gr.setLimit(1000);
-gr.query();
+var closedIncidentGr = new GlideRecord('incident');
+closedIncidentGr.addQuery('state', 'closed');
+closedIncidentGr.addQuery('closed_on', '<', '2024-01-01');
+closedIncidentGr.setLimit(1000);
+closedIncidentGr.query();
 
 var deleteCount = 0;
-while (gr.next()) {
-    gr.deleteRecord();
+while (closedIncidentGr.next()) {
+    closedIncidentGr.deleteRecord();
     deleteCount++;
 }
 
@@ -234,28 +234,28 @@ return deleteCount;
 ### NOT Condition
 
 ```javascript
-var gr = new GlideRecord('incident');
-var query = gr.addQuery('active', 'true');
-query.addCondition('state', '!=', 'closed');
-query.addCondition('state', '!=', 'resolved');
-gr.query();
+var activeIncidentGr = new GlideRecord('incident');
+var qc = activeIncidentGr.addQuery('active', 'true');
+qc.addCondition('state', '!=', 'closed');
+qc.addCondition('state', '!=', 'resolved');
+activeIncidentGr.query();
 ```
 
 ### IN Operator
 
 ```javascript
-var gr = new GlideRecord('incident');
-gr.addQuery('priority', 'IN', '1,2,3');
-gr.addQuery('state', 'IN', 'new,in_progress');
-gr.query();
+var priorityIncidentGr = new GlideRecord('incident');
+priorityIncidentGr.addQuery('priority', 'IN', '1,2,3');
+priorityIncidentGr.addQuery('state', 'IN', 'new,in_progress');
+priorityIncidentGr.query();
 ```
 
 ### Using Encoded Queries
 
 ```javascript
-var gr = new GlideRecord('incident');
-gr.addEncodedQuery('activeISfalse^priority=1^ORpriority=2');
-gr.query();
+var filteredIncidentGr = new GlideRecord('incident');
+filteredIncidentGr.addEncodedQuery('activeISfalse^priority=1^ORpriority=2');
+filteredIncidentGr.query();
 ```
 
 ---
@@ -280,7 +280,7 @@ gr.query();
 | Method | Purpose |
 |--------|---------|
 | `addQuery(field, value)` | Add AND condition |
-| `addOrCondition(field, value)` | Add OR condition |
+| `addOrCondition(field, value)` | Add OR condition (call on a GlideQueryCondition returned by addQuery) |
 | `addEncodedQuery(query)` | Complex query from list view |
 | `orderBy(field)` | Sort ascending |
 | `orderByDesc(field)` | Sort descending |

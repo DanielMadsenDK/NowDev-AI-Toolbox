@@ -34,11 +34,11 @@ IncidentUtils.prototype = {
      * @return {number} Count of incidents
      */
     getIncidentCount: function(state) {
-        var gr = new GlideRecord(this.tableName);
-        gr.addQuery('state', state);
-        gr.query();
+        var incidentGr = new GlideRecord(this.tableName);
+        incidentGr.addQuery('state', state);
+        incidentGr.query();
 
-        var count = gr.getRowCount();
+        var count = incidentGr.getRowCount();
         this.logger.info('Found ' + count + ' incidents in state: ' + state);
 
         return count;
@@ -51,15 +51,15 @@ IncidentUtils.prototype = {
      */
     createIncident: function(fields) {
         try {
-            var gr = new GlideRecord(this.tableName);
-            gr.initialize();
+            var newIncidentGr = new GlideRecord(this.tableName);
+            newIncidentGr.initialize();
 
             // Set fields from object
             for (var field in fields) {
-                gr.setValue(field, fields[field]);
+                newIncidentGr.setValue(field, fields[field]);
             }
 
-            var newId = gr.insert();
+            var newId = newIncidentGr.insert();
             this.logger.info('Incident created: ' + newId);
 
             return newId;
@@ -75,14 +75,14 @@ IncidentUtils.prototype = {
      * @return {object} Incident data or null
      */
     getIncidentByNumber: function(number) {
-        var gr = new GlideRecord(this.tableName);
-        if (gr.get('number', number)) {
+        var incidentGr = new GlideRecord(this.tableName);
+        if (incidentGr.get('number', number)) {
             return {
-                sys_id: gr.sys_id.toString(),
-                number: gr.number.toString(),
-                short_description: gr.short_description.toString(),
-                state: gr.state.toString(),
-                priority: gr.priority.toString()
+                sys_id: incidentGr.sys_id.toString(),
+                number: incidentGr.number.toString(),
+                short_description: incidentGr.short_description.toString(),
+                state: incidentGr.state.toString(),
+                priority: incidentGr.priority.toString()
             };
         }
         return null;
@@ -100,17 +100,17 @@ IncidentUtils.prototype = {
  */
 
 function getUserByEmail(email) {
-    var gr = new GlideRecord('sys_user');
-    gr.addQuery('email', email);
-    gr.setLimit(1);
-    gr.query();
+    var userGr = new GlideRecord('sys_user');
+    userGr.addQuery('email', email);
+    userGr.setLimit(1);
+    userGr.query();
 
-    if (gr.next()) {
+    if (userGr.next()) {
         return {
-            sys_id: gr.sys_id.toString(),
-            name: gr.name.toString(),
-            email: gr.email.toString(),
-            active: gr.active.toString()
+            sys_id: userGr.sys_id.toString(),
+            name: userGr.name.toString(),
+            email: userGr.email.toString(),
+            active: userGr.active.toString()
         };
     }
     return null;
@@ -118,15 +118,15 @@ function getUserByEmail(email) {
 
 function getUsersInGroup(groupId) {
     var users = [];
-    var gr = new GlideRecord('sys_user_grmember');
-    gr.addQuery('group', groupId);
-    gr.query();
+    var memberGr = new GlideRecord('sys_user_grmember');
+    memberGr.addQuery('group', groupId);
+    memberGr.query();
 
-    while (gr.next()) {
+    while (memberGr.next()) {
         users.push({
-            sys_id: gr.user.sys_id.toString(),
-            name: gr.user.name.toString(),
-            email: gr.user.email.toString()
+            sys_id: memberGr.user.sys_id.toString(),
+            name: memberGr.user.name.toString(),
+            email: memberGr.user.email.toString()
         });
     }
 
@@ -134,16 +134,16 @@ function getUsersInGroup(groupId) {
 }
 
 function getGroupByName(groupName) {
-    var gr = new GlideRecord('sys_user_group');
-    gr.addQuery('name', groupName);
-    gr.setLimit(1);
-    gr.query();
+    var groupGr = new GlideRecord('sys_user_group');
+    groupGr.addQuery('name', groupName);
+    groupGr.setLimit(1);
+    groupGr.query();
 
-    if (gr.next()) {
+    if (groupGr.next()) {
         return {
-            sys_id: gr.sys_id.toString(),
-            name: gr.name.toString(),
-            manager: gr.manager.getDisplayValue()
+            sys_id: groupGr.sys_id.toString(),
+            name: groupGr.name.toString(),
+            manager: groupGr.manager.getDisplayValue()
         };
     }
     return null;
@@ -204,35 +204,42 @@ function parseJson(jsonString) {
 
 ```javascript
 /**
- * Send email
+ * Send email using gs.eventQueue (recommended approach)
+ * Register a notification in ServiceNow tied to the event name.
+ */
+function sendEmailViaEvent(record, toAddress, context) {
+    gs.eventQueue('custom.send_email', record, toAddress, context);
+}
+
+/**
+ * Send email directly (for use in mail script or notification context)
  */
 function sendEmail(toAddress, subject, body) {
     try {
-        var email = new GlideEmailOutbound();
-        email.setTo(toAddress);
-        email.setSubject(subject);
-        email.setBody(body);
-        email.setFrom(gs.getProperty('glide.system.from.email', 'noreply@company.com'));
-
-        return email.send();
+        var outboundEmail = new GlideEmailOutbound();
+        outboundEmail.addAddress('to', toAddress);
+        outboundEmail.setSubject(subject);
+        outboundEmail.setBody(body);
+        outboundEmail.setFrom(gs.getProperty('glide.system.from.email', 'noreply@company.com'));
+        return true;
     } catch (error) {
         gs.error('Error sending email: ' + error.message);
-        return null;
+        return false;
     }
 }
 
 /**
- * Send email to group
+ * Send email to group members via events
  */
 function sendEmailToGroup(groupId, subject, body) {
-    var gr = new GlideRecord('sys_user_grmember');
-    gr.addQuery('group', groupId);
-    gr.query();
+    var memberGr = new GlideRecord('sys_user_grmember');
+    memberGr.addQuery('group', groupId);
+    memberGr.query();
 
     var sendCount = 0;
-    while (gr.next()) {
-        var email = gr.user.email.toString();
-        if (sendEmail(email, subject, body)) {
+    while (memberGr.next()) {
+        var memberEmail = memberGr.user.email.toString();
+        if (sendEmail(memberEmail, subject, body)) {
             sendCount++;
         }
     }
@@ -253,25 +260,25 @@ function sendEmailToGroup(groupId, subject, body) {
  * Query with limit and offset for pagination
  */
 function queryWithPagination(tableName, pageNum, pageSize) {
-    var gr = new GlideRecord(tableName);
-    gr.addActiveQuery();  // Only active records
-    gr.addQuery('state', '!=', 'deleted');
-    gr.orderByDesc('created_on');
+    var paginatedGr = new GlideRecord(tableName);
+    paginatedGr.addActiveQuery();  // Only active records
+    paginatedGr.addQuery('state', '!=', 'deleted');
+    paginatedGr.orderByDesc('created_on');
 
     var offset = (pageNum - 1) * pageSize;
-    gr.setLimit(pageSize);
-    var query = gr.query();
+    paginatedGr.setLimit(pageSize);
+    var query = paginatedGr.query();
 
     // Skip to offset
-    for (var i = 0; i < offset && gr.next(); i++) {
+    for (var i = 0; i < offset && paginatedGr.next(); i++) {
         // Skip rows
     }
 
     var results = [];
-    while (gr.next()) {
+    while (paginatedGr.next()) {
         results.push({
-            sys_id: gr.sys_id.toString(),
-            number: gr.getValue('number')
+            sys_id: paginatedGr.sys_id.toString(),
+            number: paginatedGr.getValue('number')
         });
     }
 
@@ -282,43 +289,43 @@ function queryWithPagination(tableName, pageNum, pageSize) {
  * Count records safely
  */
 function countRecords(tableName, query) {
-    var gr = new GlideRecord(tableName);
+    var countGr = new GlideRecord(tableName);
 
     // Add query conditions if provided
     if (query) {
         for (var field in query) {
-            gr.addQuery(field, query[field]);
+            countGr.addQuery(field, query[field]);
         }
     }
 
-    gr.query();
-    return gr.getRowCount();
+    countGr.query();
+    return countGr.getRowCount();
 }
 
 /**
  * Bulk update with error handling
  */
 function bulkUpdate(tableName, query, updateFields) {
-    var gr = new GlideRecord(tableName);
+    var bulkGr = new GlideRecord(tableName);
 
     // Add query conditions
     for (var field in query) {
-        gr.addQuery(field, query[field]);
+        bulkGr.addQuery(field, query[field]);
     }
 
-    gr.query();
+    bulkGr.query();
 
     var updateCount = 0;
     var errorCount = 0;
 
-    while (gr.next()) {
+    while (bulkGr.next()) {
         try {
             // Apply updates
             for (var field in updateFields) {
-                gr.setValue(field, updateFields[field]);
+                bulkGr.setValue(field, updateFields[field]);
             }
 
-            gr.update();
+            bulkGr.update();
             updateCount++;
         } catch (error) {
             gs.error('Error updating record: ' + error.message);
@@ -388,8 +395,7 @@ function getCurrentUser() {
         name: user.getName(),
         email: user.getEmail(),
         roles: user.getRoles(),
-        isAdmin: user.hasRole('admin'),
-        isActive: user.isActive()
+        isAdmin: user.hasRole('admin')
     };
 }
 
@@ -397,11 +403,11 @@ function getCurrentUser() {
  * Check if user has role
  */
 function userHasRole(userId, roleName) {
-    var user = new GlideRecord('sys_user');
-    if (user.get(userId)) {
-        return user.hasRole(roleName);
-    }
-    return false;
+    var userRoleGr = new GlideRecord('sys_user_has_role');
+    userRoleGr.addQuery('user', userId);
+    userRoleGr.addQuery('role.name', roleName);
+    userRoleGr.query();
+    return userRoleGr.hasNext();
 }
 
 /**

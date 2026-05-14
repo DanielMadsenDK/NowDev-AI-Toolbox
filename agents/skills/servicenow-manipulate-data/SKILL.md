@@ -24,14 +24,14 @@ Use for new TypeScript-based projects, full-stack applications, and modern devel
 **Classic GlideRecord** - Traditional approach:
 
 ```javascript
-var gr = new GlideRecord('incident');
-gr.addQuery('state', 'Open');
-gr.addQuery('priority', '<=', 2);
-gr.orderBy('created_on');
-gr.query();
+var incidentGr = new GlideRecord('incident');
+incidentGr.addQuery('state', 'Open');
+incidentGr.addQuery('priority', '<=', 2);
+incidentGr.orderBy('created_on');
+incidentGr.query();
 
-while (gr.next()) {
-    gs.info('Incident: ' + gr.getValue('number'));
+while (incidentGr.next()) {
+    gs.info('Incident: ' + incidentGr.getValue('number'));
 }
 ```
 
@@ -68,8 +68,8 @@ while (agg.next()) {
 **Secure access** (with ACL enforcement):
 
 ```javascript
-var gr = new GlideRecordSecure('confidential_table');
-gr.query();
+var secureGr = new GlideRecordSecure('confidential_table');
+secureGr.query();
 // Only returns records user has permission to see
 ```
 

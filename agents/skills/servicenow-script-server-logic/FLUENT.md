@@ -99,11 +99,11 @@ export class IncidentUtils {
      * Get incident count by state
      */
     getIncidentCount(state) {
-        const gr = new GlideRecord(this.tableName);
-        gr.addQuery('state', state);
-        gr.query();
+        const incidentGr = new GlideRecord(this.tableName);
+        incidentGr.addQuery('state', state);
+        incidentGr.query();
 
-        const count = gr.getRowCount();
+        const count = incidentGr.getRowCount();
         this.logger.info(`Found ${count} incidents in state: ${state}`);
 
         return count;
@@ -114,15 +114,15 @@ export class IncidentUtils {
      */
     createIncident(fields) {
         try {
-            const gr = new GlideRecord(this.tableName);
-            gr.initialize();
+            const newIncidentGr = new GlideRecord(this.tableName);
+            newIncidentGr.initialize();
 
             // Set fields from object
             Object.keys(fields).forEach(field => {
-                gr.setValue(field, fields[field]);
+                newIncidentGr.setValue(field, fields[field]);
             });
 
-            const newId = gr.insert();
+            const newId = newIncidentGr.insert();
             this.logger.info(`Incident created: ${newId}`);
 
             return newId;
@@ -136,14 +136,14 @@ export class IncidentUtils {
      * Get incident by number
      */
     getIncidentByNumber(number) {
-        const gr = new GlideRecord(this.tableName);
-        if (gr.get('number', number)) {
+        const incidentGr = new GlideRecord(this.tableName);
+        if (incidentGr.get('number', number)) {
             return {
-                sys_id: gr.sys_id.toString(),
-                number: gr.number.toString(),
-                short_description: gr.short_description.toString(),
-                state: gr.state.toString(),
-                priority: gr.priority.toString()
+                sys_id: incidentGr.sys_id.toString(),
+                number: incidentGr.number.toString(),
+                short_description: incidentGr.short_description.toString(),
+                state: incidentGr.state.toString(),
+                priority: incidentGr.priority.toString()
             };
         }
         return null;
@@ -154,10 +154,10 @@ export class IncidentUtils {
      */
     updateIncidentState(incidentId, newState) {
         try {
-            const gr = new GlideRecord(this.tableName);
-            if (gr.get(incidentId)) {
-                gr.state = newState;
-                gr.update();
+            const incidentGr = new GlideRecord(this.tableName);
+            if (incidentGr.get(incidentId)) {
+                incidentGr.state = newState;
+                incidentGr.update();
 
                 this.logger.info(`Incident ${incidentId} state updated to ${newState}`);
                 return true;
@@ -191,17 +191,17 @@ export default ScriptInclude({
          * Get user by email
          */
         getUserByEmail(email) {
-            const gr = new GlideRecord('sys_user');
-            gr.addQuery('email', email);
-            gr.setLimit(1);
-            gr.query();
+            const userGr = new GlideRecord('sys_user');
+            userGr.addQuery('email', email);
+            userGr.setLimit(1);
+            userGr.query();
 
-            if (gr.next()) {
+            if (userGr.next()) {
                 return {
-                    sys_id: gr.sys_id.toString(),
-                    name: gr.name.toString(),
-                    email: gr.email.toString(),
-                    active: gr.active.toString()
+                    sys_id: userGr.sys_id.toString(),
+                    name: userGr.name.toString(),
+                    email: userGr.email.toString(),
+                    active: userGr.active.toString()
                 };
             }
             return null;
@@ -212,15 +212,15 @@ export default ScriptInclude({
          */
         getUsersInGroup(groupId) {
             const users = [];
-            const gr = new GlideRecord('sys_user_grmember');
-            gr.addQuery('group', groupId);
-            gr.query();
+            const memberGr = new GlideRecord('sys_user_grmember');
+            memberGr.addQuery('group', groupId);
+            memberGr.query();
 
-            while (gr.next()) {
+            while (memberGr.next()) {
                 users.push({
-                    sys_id: gr.user.sys_id.toString(),
-                    name: gr.user.name.toString(),
-                    email: gr.user.email.toString()
+                    sys_id: memberGr.user.sys_id.toString(),
+                    name: memberGr.user.name.toString(),
+                    email: memberGr.user.email.toString()
                 });
             }
 
@@ -231,11 +231,11 @@ export default ScriptInclude({
          * Check if user has role
          */
         userHasRole(userId, roleName) {
-            const user = new GlideRecord('sys_user');
-            if (user.get(userId)) {
-                return user.hasRole(roleName);
-            }
-            return false;
+            const userRoleGr = new GlideRecord('sys_user_has_role');
+            userRoleGr.addQuery('user', userId);
+            userRoleGr.addQuery('role.name', roleName);
+            userRoleGr.query();
+            return userRoleGr.hasNext();
         }
     }
 })
@@ -299,35 +299,35 @@ export default ScriptInclude({
          * Count records matching query
          */
         countRecords(tableName, queryConditions = {}) {
-            const gr = new GlideRecord(tableName);
+            const countGr = new GlideRecord(tableName);
 
             Object.keys(queryConditions).forEach(field => {
-                gr.addQuery(field, queryConditions[field]);
+                countGr.addQuery(field, queryConditions[field]);
             });
 
-            gr.query();
-            return gr.getRowCount();
+            countGr.query();
+            return countGr.getRowCount();
         }
 
         /**
          * Bulk update records
          */
         bulkUpdate(tableName, queryConditions, updateFields) {
-            const gr = new GlideRecord(tableName);
+            const bulkGr = new GlideRecord(tableName);
 
             Object.keys(queryConditions).forEach(field => {
-                gr.addQuery(field, queryConditions[field]);
+                bulkGr.addQuery(field, queryConditions[field]);
             });
 
-            gr.query();
+            bulkGr.query();
 
             let updateCount = 0;
             let errorCount = 0;
 
-            while (gr.next()) {
+            while (bulkGr.next()) {
                 try {
-                    Object.assign(gr, updateFields);
-                    gr.update();
+                    Object.assign(bulkGr, updateFields);
+                    bulkGr.update();
                     updateCount++;
                 } catch (error) {
                     gs.error(`Error updating record: ${error.message}`);
