@@ -10,6 +10,7 @@ import {
     addDependencies,
     reloadConfig,
 } from './NowConfigManager';
+import { extractScriptDependencies, checkLocalStatus } from './ScriptDependencyAnalyzer';
 
 interface ScanTableDef {
     sdkKey: string;
@@ -178,6 +179,10 @@ class ScannerController {
                 await this.previewScript(msg.sys_id, msg.table);
                 return;
             }
+            case 'findCallers': {
+                await this.findCallers(String(msg.name ?? ''));
+                return;
+            }
             case 'addSelected': {
                 await this.addSelected(msg.scope, msg.items);
                 return;
@@ -316,10 +321,67 @@ class ScannerController {
             const r = (res.result as any[])[0];
             if (!r) { return; }
             const script = String(r.script ?? r.text ?? '');
-            this.post({ type: 'scriptPreview', sys_id: sysId, script });
+
+            // Detect Script Include (and other callable artifact) references
+            // in the script body — works regardless of the calling script type
+            // (Business Rules, Client Scripts, UI Actions, etc. all use the same
+            // `new ClassName()` / `ClassName.method()` calling conventions).
+            const depNames = extractScriptDependencies(script);
+            const anchorPath = this.currentPackage?.configPath ??
+                (vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '');
+            const scriptDeps = depNames.map(name => ({
+                name,
+                status: checkLocalStatus(name, anchorPath),
+            }));
+
+            this.post({ type: 'scriptPreview', sys_id: sysId, script, scriptDeps });
         } catch (err: any) {
             this.post({ type: 'error', message: `Preview failed: ${err.message ?? err}` });
         }
+    }
+
+    /**
+     * Cross-reference inspector (Feature 4) — queries the instance for all
+     * scripts of any type that reference the given Script Include name.
+     * Covers: Script Includes, Business Rules, Client Scripts, UI Actions,
+     * UI Scripts, and Scheduled Scripts.
+     */
+    private async findCallers(name: string): Promise<void> {
+        if (!this.currentAlias || !name) { return; }
+
+        const CALLER_TABLES = [
+            { table: 'sys_script_include', nameField: 'name', label: 'Script Include' },
+            { table: 'sys_script',         nameField: 'name', label: 'Business Rule' },
+            { table: 'sys_script_client',  nameField: 'name', label: 'Client Script' },
+            { table: 'sys_ui_action',      nameField: 'name', label: 'UI Action' },
+            { table: 'sys_ui_script',      nameField: 'name', label: 'UI Script' },
+            { table: 'sysauto_script',     nameField: 'name', label: 'Scheduled Script' },
+        ];
+
+        const callers: Array<{ tableLabel: string; name: string; sys_id: string }> = [];
+        // Sanitise: only allow safe identifier chars to avoid injection into query string
+        const safeName = name.replace(/[^A-Za-z0-9_]/g, '');
+        if (!safeName) { return; }
+
+        for (const def of CALLER_TABLES) {
+            try {
+                const res = await this.client.query(this.currentAlias, def.table, {
+                    query: `scriptLIKE${safeName}`,
+                    fields: ['sys_id', def.nameField],
+                    limit: 25,
+                });
+                for (const r of (res.result as any[])) {
+                    const sys_id = String((r.sys_id as any)?.value ?? r.sys_id ?? '');
+                    const rname  = String((r[def.nameField] as any)?.display_value ??
+                                          r[def.nameField] ?? '');
+                    if (sys_id) {
+                        callers.push({ tableLabel: def.label, name: rname, sys_id });
+                    }
+                }
+            } catch { /* skip tables that fail */ }
+        }
+
+        this.post({ type: 'callersResult', name, callers });
     }
 
     private async addSelected(scope: string, items: { tableKey: string; sysId: string }[]): Promise<void> {
@@ -559,12 +621,49 @@ textarea:focus { outline: none; border-color: var(--nd-accent); }
 .chip.table-chip { background: rgba(129,181,161,0.1); color: var(--nd-accent-hi); border-color: rgba(129,181,161,0.25); }
 .preview-toggle { font-size: 11px; color: var(--nd-link); cursor: pointer; background: none; border: none; padding: 0; font-family: var(--nd-font); }
 .preview-toggle:hover { color: var(--nd-link-hi); }
+.preview-wrap { display: none; margin-top: 8px; }
 .script-preview {
-    display: none; margin-top: 8px;
     background: var(--nd-bg-code); border: 1px solid var(--nd-border-soft); border-radius: var(--nd-r-sm);
     padding: 10px; font-family: var(--nd-font-mono); font-size: 11px; color: var(--nd-fg);
     white-space: pre-wrap; word-break: break-all; max-height: 260px; overflow-y: auto;
 }
+/* Feature 8: script dependency badges */
+.script-deps {
+    border-top: 1px solid var(--nd-border-soft); padding: 6px 8px; margin-top: 0;
+    background: var(--nd-bg-soft);
+}
+.deps-label {
+    font-size: 10px; font-weight: 700; color: var(--nd-fg-mute); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 5px;
+}
+.deps-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.dep-chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+    border-radius: var(--nd-r-pill); font-size: 11px; font-family: var(--nd-font-mono);
+    border: 1px solid var(--nd-border-soft);
+}
+.dep-chip.dep-available { background: rgba(78,201,139,0.1); border-color: rgba(78,201,139,0.3); }
+.dep-chip.dep-missing   { background: rgba(232,148,78,0.12); border-color: rgba(232,148,78,0.35); }
+.dep-status-dot { font-size: 9px; }
+.dep-available .dep-status-dot { color: var(--nd-success); }
+.dep-missing .dep-status-dot   { color: var(--nd-warning); }
+/* Feature 4: callers section */
+.find-callers-btn {
+    background: none; border: none; font-size: 10px; color: var(--nd-link);
+    cursor: pointer; padding: 0 3px; font-family: var(--nd-font);
+}
+.find-callers-btn:hover { color: var(--nd-link-hi); text-decoration: underline; }
+.callers-section {
+    display: none; border-top: 1px solid var(--nd-border-soft); padding: 7px 8px;
+    background: var(--nd-bg-soft);
+}
+.callers-header { font-size: 11px; font-weight: 600; color: var(--nd-fg-mute); margin-bottom: 5px; }
+.caller-row {
+    display: flex; align-items: center; gap: 6px; padding: 3px 0;
+    border-bottom: 1px solid var(--nd-border-soft); font-size: 11px;
+}
+.caller-row:last-child { border-bottom: none; }
+.caller-name { color: var(--nd-fg); font-weight: 500; }
 .actions-bar {
     display: flex; gap: 8px; align-items: center; padding: 10px 0; flex-wrap: wrap;
 }
@@ -695,6 +794,7 @@ const PANEL_SCRIPT = `
         progressMap: {},
         totalTables: 0,
         doneCount: 0,
+        callersMap: {}, // depName -> preview idx (for routing callersResult back)
     };
 
     function post(msg) { vscode.postMessage(msg); }
@@ -868,7 +968,14 @@ const PANEL_SCRIPT = `
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                '<pre class="script-preview" id="preview-' + idx + '"></pre>' +
+                '<div class="preview-wrap" id="pwrap-' + idx + '">' +
+                    '<pre class="script-preview" id="preview-' + idx + '"></pre>' +
+                    '<div class="script-deps" id="deps-' + idx + '" style="display:none;"></div>' +
+                    '<div class="callers-section" id="callers-' + idx + '">' +
+                        '<div class="callers-header" id="callers-hdr-' + idx + '">Callers on instance:</div>' +
+                        '<div id="callers-list-' + idx + '"></div>' +
+                    '</div>' +
+                '</div>' +
             '</div>';
         }).join('');
 
@@ -889,14 +996,15 @@ const PANEL_SCRIPT = `
         list.querySelectorAll('.preview-toggle').forEach(btn => {
             btn.addEventListener('click', () => {
                 const idx = btn.dataset.idx;
+                const pwrapEl = $('pwrap-' + idx);
                 const preEl = $('preview-' + idx);
-                if (preEl.style.display === 'block') {
-                    preEl.style.display = 'none';
+                if (pwrapEl.style.display === 'block') {
+                    pwrapEl.style.display = 'none';
                     btn.textContent = 'Preview script';
                     return;
                 }
                 if (preEl.textContent) {
-                    preEl.style.display = 'block';
+                    pwrapEl.style.display = 'block';
                     btn.textContent = 'Hide script';
                     return;
                 }
@@ -980,14 +1088,69 @@ const PANEL_SCRIPT = `
                 // Find the result by sys_id and show the preview
                 const idx = state.results.findIndex(r => r.sys_id === msg.sys_id);
                 if (idx < 0) { break; }
-                const preEl = $('preview-' + idx);
+                const pwrapEl = $('pwrap-' + idx);
+                const preEl   = $('preview-' + idx);
+                const depsEl  = $('deps-' + idx);
                 const btn = document.querySelector('.preview-toggle[data-idx="' + idx + '"]');
                 if (preEl) {
                     // Strip HTML tags for knowledge articles
                     const cleaned = msg.script.replace(/<[^>]+>/g, '');
                     preEl.textContent = cleaned || '(empty)';
-                    preEl.style.display = 'block';
+                    if (pwrapEl) { pwrapEl.style.display = 'block'; }
                     if (btn) { btn.textContent = 'Hide script'; }
+                }
+                // Feature 8: render detected script dependencies (any caller type)
+                if (depsEl && msg.scriptDeps && msg.scriptDeps.length > 0) {
+                    depsEl.style.display = 'block';
+                    depsEl.innerHTML =
+                        '<div class="deps-label">Dependencies detected in this script (' + msg.scriptDeps.length + '):</div>' +
+                        '<div class="deps-chips">' +
+                        msg.scriptDeps.map(d =>
+                            '<span class="dep-chip dep-' + d.status + '">' +
+                            '<span class="dep-status-dot">' + (d.status === 'available' ? '●' : '●') + '</span>' +
+                            esc(d.name) +
+                            // Feature 4: "Find callers" button on each dep
+                            '<button class="find-callers-btn" data-name="' + esc(d.name) + '" data-idx="' + idx + '">' +
+                            'callers ↗</button>' +
+                            '</span>'
+                        ).join('') +
+                        '</div>';
+                    // Bind find-callers buttons
+                    depsEl.querySelectorAll('.find-callers-btn').forEach(fcBtn => {
+                        fcBtn.addEventListener('click', () => {
+                            const depName = fcBtn.dataset.name;
+                            const i = parseInt(fcBtn.dataset.idx, 10);
+                            const callersEl = $('callers-' + i);
+                            const callersHdrEl = $('callers-hdr-' + i);
+                            const callersListEl = $('callers-list-' + i);
+                            if (callersEl) { callersEl.style.display = 'block'; }
+                            if (callersHdrEl) {
+                                callersHdrEl.innerHTML = 'Scripts calling <code>' + esc(depName) + '</code> on instance:';
+                            }
+                            if (callersListEl) {
+                                callersListEl.innerHTML = '<span class="hint">Searching across Business Rules, Client Scripts, UI Actions…</span>';
+                            }
+                            state.callersMap[depName] = i;
+                            post({ type: 'findCallers', name: depName });
+                        });
+                    });
+                }
+                break;
+            }
+            case 'callersResult': {
+                const idx = state.callersMap[msg.name];
+                if (idx === undefined) { break; }
+                const callersListEl = $('callers-list-' + idx);
+                if (!callersListEl) { break; }
+                if (!msg.callers || msg.callers.length === 0) {
+                    callersListEl.innerHTML = '<span class="hint">No callers found on instance for "' + esc(msg.name) + '".</span>';
+                } else {
+                    callersListEl.innerHTML = msg.callers.map(c =>
+                        '<div class="caller-row">' +
+                        '<span class="chip table-chip">' + esc(c.tableLabel) + '</span>' +
+                        '<span class="caller-name">' + esc(c.name) + '</span>' +
+                        '</div>'
+                    ).join('');
                 }
                 break;
             }

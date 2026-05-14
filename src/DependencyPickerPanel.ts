@@ -484,42 +484,41 @@ class PanelController {
     private runDependenciesAdd(scope: string, sdkKey: string, ids: string[]): Promise<void> {
         return new Promise((resolve) => {
             if (!this.currentPackage) { resolve(); return; }
-            // Step 1: write the entries directly into now.config.json.
-            // The SDK CLI has no `--add` flag; the documented workflow is to
-            // edit the file manually and then run `now-sdk dependencies` to
-            // download the TypeScript definitions.
-            try {
-                addDependencies(this.currentPackage, scope, sdkKey, ids);
-                this.currentPackage = reloadConfig(this.currentPackage);
-            } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : String(err);
-                vscode.window.showErrorMessage(`Failed to update now.config.json: ${msg}`);
-                resolve();
-                return;
-            }
-
-            // Step 2: run `now-sdk dependencies` so the SDK downloads the
-            // TypeScript definitions for the newly-added entries.
             const cwd = path.dirname(this.currentPackage.configPath);
-            const args = ['dependencies'];
-            if (this.currentAlias) { args.push('--auth', this.currentAlias); }
             const label = ids.length === 1 && ids[0] === '*' ? 'wildcard' : `${ids.length} item(s)`;
+
+            // Use `now-sdk dependencies --add <table> <ids> --scope <scope>` so the
+            // SDK updates now.config.json and downloads type definitions in one step.
+            const args = ['dependencies', '--add', sdkKey, ...ids, '--scope', scope];
+            if (this.currentAlias) { args.push('--auth', this.currentAlias); }
+
             const chan = vscode.window.createOutputChannel('NowDev: SDK Dependencies');
             chan.show(true);
-            chan.appendLine(`✓ Updated now.config.json — added ${label} to ${sdkKey} (scope: ${scope}).`);
-            chan.appendLine(`\n> now-sdk ${args.join(' ')}\n`);
+            chan.appendLine(`> now-sdk ${args.join(' ')}\n`);
             const proc = cp.spawn('now-sdk', args, { cwd, shell: getShell() });
             proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.on('close', (code) => {
                 if (code === 0) {
-                    chan.appendLine(`\n✓ Dependencies downloaded successfully.`);
-                    this.post({ type: 'addResult', ok: true, sdkKey, count: ids.length, scope });
+                    chan.appendLine(`\n✓ Added ${label} to ${sdkKey} (scope: ${scope}) and downloaded type definitions.`);
+                    if (this.currentPackage) {
+                        try { this.currentPackage = reloadConfig(this.currentPackage); } catch { /* keep previous */ }
+                    }
                 } else {
-                    chan.appendLine(`\n✗ now-sdk dependencies failed (exit ${code}). The entries were saved to now.config.json — run 'now-sdk dependencies' manually to download.`);
-                    // Still report success for the JSON write; only the download step failed.
-                    this.post({ type: 'addResult', ok: true, sdkKey, count: ids.length, scope });
+                    // Fallback: write JSON manually so definitions can be fetched later.
+                    chan.appendLine(`\n⚠ SDK --add failed (exit ${code}). Falling back to manual now.config.json update.`);
+                    try {
+                        if (this.currentPackage) {
+                            addDependencies(this.currentPackage, scope, sdkKey, ids);
+                            this.currentPackage = reloadConfig(this.currentPackage);
+                            chan.appendLine(`✓ Updated now.config.json. Run 'now-sdk dependencies' manually to download type definitions.`);
+                        }
+                    } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        chan.appendLine(`✗ JSON update also failed: ${msg}`);
+                    }
                 }
+                this.post({ type: 'addResult', ok: true, sdkKey, count: ids.length, scope });
                 resolve();
             });
         });

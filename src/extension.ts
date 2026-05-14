@@ -10,8 +10,12 @@ import { showSdkExplainPanel } from './SdkExplainPanel';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
 import { showDependencyPickerPanel } from './DependencyPickerPanel';
 import { showContextScannerPanel } from './ContextScannerPanel';
+import { showDependencyGraphPanel } from './DependencyGraphPanel';
 import { InstanceClient } from './InstanceClient';
 import { getShell } from './shellConfig';
+import { ScriptDependencyAnalyzer } from './ScriptDependencyAnalyzer';
+import { generateContextBundle } from './ContextBundleGenerator';
+import { ChangeWatcher } from './ChangeWatcher';
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -103,6 +107,21 @@ export function activate(context: vscode.ExtensionContext) {
     welcomeProvider.scanTools();
     welcomeProvider.scanMcp();
     welcomeProvider.loadAgentRegistry();
+
+    // Smart Script Dependency Analyzer — diagnostics + code lens + sidebar context
+    const scriptAnalyzer = new ScriptDependencyAnalyzer(context);
+    scriptAnalyzer.onContextChanged((data) => {
+        welcomeProvider.setActiveFileContext(data.fileName, data.refs);
+    });
+
+    // Change Watcher — monitors @types/servicenow/ for updates, refreshes diagnostics
+    const changeWatcher = new ChangeWatcher(context);
+    changeWatcher.start(() => {
+        // Re-analyze the active editor whenever type definitions change
+        const active = vscode.window.activeTextEditor;
+        if (active) { scriptAnalyzer.analyzeDocument(active.document); }
+    });
+    context.subscriptions.push({ dispose: () => changeWatcher.dispose() });
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(WelcomeViewProvider.viewType, welcomeProvider, {
@@ -645,6 +664,32 @@ export function activate(context: vscode.ExtensionContext) {
             showContextScannerPanel(context);
         }),
 
+        // Show the Script Dependency Graph panel (Feature 3)
+        vscode.commands.registerCommand('nowdev-ai-toolbox.showDependencyGraph', () => {
+            showDependencyGraphPanel(context);
+        }),
+
+        // Generate a Markdown context bundle from workspace scripts (Feature 5)
+        vscode.commands.registerCommand('nowdev-ai-toolbox.generateContextBundle', () => {
+            void generateContextBundle(context);
+        }),
+
+        // Fetch a Script Include from the instance (invoked from Code Lens / Code Action)
+        vscode.commands.registerCommand('nowdev-ai-toolbox.fetchScriptDependency', (name?: string) => {
+            showContextScannerPanel(context);
+            if (name) {
+                // Small delay so the panel has time to initialise before we pre-fill
+                setTimeout(() => {
+                    vscode.window.showInformationMessage(
+                        `Open the \'Instance Context Scanner\' and search for "${name}" to fetch it as a dependency.`,
+                        'Open Scanner'
+                    ).then(choice => {
+                        if (choice === 'Open Scanner') { showContextScannerPanel(context); }
+                    });
+                }, 300);
+            }
+        }),
+
         // Clear stored REST credentials for an auth alias
         vscode.commands.registerCommand('nowdev-ai-toolbox.clearAliasCredentials', async (alias?: string) => {
             const client = new InstanceClient(context.secrets);
@@ -697,6 +742,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (args.auth) { transformArgs.push('--auth', args.auth); }
             const transformOk = await spawnSdkCmd('Transform', transformArgs, cwd, 'transform');
             welcomeProvider.setSdkCommandStatus('sync', transformOk, transformOk ? 'Sync completed' : 'Sync stopped: transform failed');
+            if (transformOk) { changeWatcher.notifyRefreshed(); }
         })
     );
     // Enable ask-chat-location so Copilot questions appear in the chat view

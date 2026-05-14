@@ -9,6 +9,7 @@ import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
+import { ScriptReference } from './ScriptDependencyAnalyzer';
 
 interface SdkCommandStatus {
     ok: boolean;
@@ -97,6 +98,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         this._checkChangesResult = state;
         if (this._view) {
             this._view.webview.postMessage({ command: 'updateCheckChanges', state });
+        }
+    }
+
+    /** Receives the active file's detected Script Include references and pushes them to the webview. */
+    public setActiveFileContext(fileName: string, refs: ScriptReference[]): void {
+        if (this._view) {
+            this._view.webview.postMessage({ command: 'updateActiveContext', fileName, refs });
         }
     }
 
@@ -298,10 +306,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     const agentName = message.agentName as string;
                     const folders = vscode.workspace.workspaceFolders;
                     if (!folders || folders.length === 0) { break; }
-                    const agentFileName = agentName.toLowerCase().replace(/\s+/g, '-') + '.agent.md';
+                    // Filename is preserved exactly as bundled (e.g. NowDev-AI-Script-Developer.agent.md)
+                    const agentFileName = agentName + '.agent.md';
                     const agentFilePath = path.join(folders[0].uri.fsPath, '.github', 'agents', agentFileName);
                     if (!fs.existsSync(agentFilePath)) {
-                        vscode.window.showInformationMessage(`Agent file not found. Run Resync to generate agent files.`);
+                        vscode.window.showInformationMessage(`Agent file not found at ${agentFilePath}. Run Resync to generate agent files.`);
                     } else {
                         const doc = await vscode.workspace.openTextDocument(agentFilePath);
                         vscode.window.showTextDocument(doc);
@@ -361,6 +370,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'openContextScanner':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.openContextScanner');
+                    break;
+                case 'showDepGraph':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.showDependencyGraph');
+                    break;
+                case 'generateContextBundle':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.generateContextBundle');
+                    break;
+                case 'fetchScriptDependency':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.fetchScriptDependency', message.name);
                     break;
                 case 'sdkAuthAdd':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthAdd');
@@ -1245,6 +1263,17 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     <!-- ═══════════ TAB: SDK ═══════════ -->
     <div id="tab-sdk" class="tab-content">
 
+        <!-- Active File Context -->
+        <div class="section" id="activeContextSection">
+            <div class="section-title">
+                <span>Active File Context</span>
+                <button class="fix-btn" id="openContextScannerFromCtx" title="Open Instance Context Scanner">Scan Instance&hellip;</button>
+            </div>
+            <div id="activeContextBody">
+                <div class="field-desc nd-placeholder">Open a ServiceNow script file to see its dependencies.</div>
+            </div>
+        </div>
+
         <!-- Auth Aliases -->
         <div class="section">
             <div class="section-title">
@@ -1323,6 +1352,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 extraBtns: ['<button class="fix-btn" id="checkChangesBtn" title="Count incremental changes on instance without downloading">Check</button>'],
                 afterHtml: '<div id="checkChangesStatus" class="changes-status nd-hidden"></div>',
             })}
+            <div class="sdk-analysis-row">
+                <button class="sdk-analysis-btn" id="showDepGraphBtn" title="Visualise cross-file and Script Include dependencies across all workspace scripts">
+                    <span class="sdk-analysis-icon">⬡</span> Dep Graph
+                </button>
+                <button class="sdk-analysis-btn" id="genContextBundleBtn" title="Generate a Markdown context bundle from workspace scripts for use with AI agents">
+                    <span class="sdk-analysis-icon">⊞</span> Context Bundle
+                </button>
+            </div>
             ${this._sdkCardMini([
                 { name: 'Sync', tagline: 'Download → Transform', statusId: 'sdkStatus-sync', runCmd: 'sync', runTitle: 'Incremental download then transform' },
                 { name: 'Move', tagline: 'Global metadata → Fluent', statusId: 'sdkStatus-move', runCmd: 'move', runTitle: 'Transform global metadata into local Fluent code' },

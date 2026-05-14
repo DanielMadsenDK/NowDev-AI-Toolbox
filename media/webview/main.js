@@ -176,6 +176,30 @@
         });
     }
 
+    // Show Dependency Graph panel (Feature 3)
+    var showDepGraphBtn = document.getElementById('showDepGraphBtn');
+    if (showDepGraphBtn) {
+        showDepGraphBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'showDepGraph' });
+        });
+    }
+
+    // Generate Context Bundle from workspace scripts (Feature 5)
+    var genContextBundleBtn = document.getElementById('genContextBundleBtn');
+    if (genContextBundleBtn) {
+        genContextBundleBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'generateContextBundle' });
+        });
+    }
+
+    // Open Context Scanner from Active File Context section
+    var openCtxFromActiveBtn = document.getElementById('openContextScannerFromCtx');
+    if (openCtxFromActiveBtn) {
+        openCtxFromActiveBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openContextScanner' });
+        });
+    }
+
     // Transform from local XML
     var transformFromXmlBtn = document.getElementById('transformFromXmlBtn');
     if (transformFromXmlBtn) {
@@ -315,6 +339,9 @@
                 break;
             case 'updateCheckChanges':
                 renderCheckChanges(msg.state);
+                break;
+            case 'updateActiveContext':
+                renderActiveContext(msg.fileName, msg.refs);
                 break;
             case 'updateDevopsConfig':
                 updateDevopsSection(msg.devopsConfig, null);
@@ -1197,6 +1224,85 @@
             el.innerHTML = '<span class="changes-dot"></span><span>' + state.count + ' change' + (state.count !== 1 ? 's' : '') + ' on instance' +
                 (timeAgo ? ' <span class="changes-detail">' + esc(timeAgo) + '</span>' : '') +
                 ' — run Transform to sync</span>';
+        }
+    }
+
+    // ── Active File Context (Script Dependency Detection) ──────────
+
+    function renderActiveContext(fileName, refs) {
+        var el = document.getElementById('activeContextBody');
+        if (!el) { return; }
+
+        if (!fileName) {
+            el.innerHTML = '<div class="field-desc nd-placeholder">Open a ServiceNow script file (.js / .ts) to see its dependencies.</div>';
+            return;
+        }
+
+        var missing = (refs || []).filter(function (r) { return r.localStatus === 'missing'; });
+        var available = (refs || []).filter(function (r) { return r.localStatus === 'available'; });
+        var total = (refs || []).length;
+
+        if (total === 0) {
+            el.innerHTML =
+                '<div class="active-ctx-file">' + esc(fileName) + '</div>' +
+                '<div class="field-desc">No Script Include references detected.</div>';
+            return;
+        }
+
+        var html = '<div class="active-ctx-file">' + esc(fileName) + '</div>';
+
+        // Summary pill row
+        html += '<div class="active-ctx-summary">';
+        if (available.length > 0) {
+            html += '<span class="ctx-pill ctx-pill-ok">' + available.length + ' available</span>';
+        }
+        if (missing.length > 0) {
+            html += '<span class="ctx-pill ctx-pill-warn">' + missing.length + ' missing</span>';
+        }
+        html += '</div>';
+
+        // Ref list
+        html += '<div class="active-ctx-list">';
+        for (var i = 0; i < (refs || []).length; i++) {
+            var ref = refs[i];
+            var isOk = ref.localStatus === 'available';
+            var ctxLabel = ref.context === 'glideajax' ? 'GlideAjax' :
+                           ref.context === 'include' ? 'gs.include' :
+                           ref.context === 'instantiation' ? 'new …()' : 'static';
+            html += '<div class="ctx-ref-row">';
+            html += '<span class="ctx-ref-dot ' + (isOk ? 'ok' : 'warn') + '" title="' + (isOk ? 'Available locally' : 'Not found locally — fetch from instance') + '"></span>';
+            html += '<span class="ctx-ref-name">' + esc(ref.name) + '</span>';
+            html += '<span class="ctx-ref-ctx">' + esc(ctxLabel) + '</span>';
+            if (!isOk) {
+                html += '<button class="ctx-fetch-btn fix-btn" data-name="' + esc(ref.name) + '" title="Fetch \'' + esc(ref.name) + '\' from instance">Fetch</button>';
+            } else {
+                html += '<span class="ctx-ref-ok">&#10003;</span>';
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+
+        if (missing.length > 0) {
+            html += '<div class="active-ctx-actions">';
+            html += '<button class="fix-btn" id="fetchAllMissingBtn" title="Open Context Scanner to fetch all missing dependencies">Fetch missing (' + missing.length + ')&hellip;</button>';
+            html += '</div>';
+        }
+
+        el.innerHTML = html;
+
+        // Bind individual fetch buttons
+        el.querySelectorAll('.ctx-fetch-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                vscode.postMessage({ command: 'fetchScriptDependency', name: btn.getAttribute('data-name') });
+            });
+        });
+
+        // Bind bulk fetch button
+        var fetchAllBtn = document.getElementById('fetchAllMissingBtn');
+        if (fetchAllBtn) {
+            fetchAllBtn.addEventListener('click', function () {
+                vscode.postMessage({ command: 'openContextScanner' });
+            });
         }
     }
 
