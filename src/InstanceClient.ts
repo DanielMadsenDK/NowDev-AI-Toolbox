@@ -204,7 +204,6 @@ export class InstanceClient {
                     path: url.pathname + url.search,
                     method,
                     timeout: 20000,
-                    rejectUnauthorized: false,
                     headers: {
                         Authorization: authHeader,
                         Accept: 'application/json',

@@ -29,10 +29,22 @@ export function showSdkExplainPanel(apiName: string): void {
 
     _panels.set(key, panel);
     panel.onDidDispose(() => _panels.delete(key));
+
+    // Reject input that contains shell metacharacters — API names are identifiers only
+    if (!/^[\w.-]+$/.test(apiName)) {
+        panel.webview.html = errorHtml(`Invalid API name. Names may only contain letters, digits, dots, underscores, and hyphens.`);
+        return;
+    }
+
     panel.webview.html = loadingHtml(apiName);
 
-    cp.exec(`now-sdk explain ${apiName}`, { timeout: 15000, encoding: 'utf-8', shell: getShell() }, (_err, stdout, stderr) => {
-        const output = String(stdout || stderr || '').trim();
+    const proc = cp.spawn('now-sdk', ['explain', apiName], { timeout: 15000, shell: getShell() });
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
+    proc.stderr.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
+    proc.on('close', () => {
+        const output = (stdout || stderr || '').trim();
         if (!output) {
             panel.webview.html = errorHtml(`No documentation found for "${apiName}". Check that the API name is correct and now-sdk is installed.`);
             return;
@@ -46,6 +58,9 @@ export function showSdkExplainPanel(apiName: string): void {
         }
 
         panel.webview.html = renderHtml(apiName, output);
+    });
+    proc.on('error', () => {
+        panel.webview.html = errorHtml(`Failed to run now-sdk. Make sure it is installed and accessible.`);
     });
 }
 

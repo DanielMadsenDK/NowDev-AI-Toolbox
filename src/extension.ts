@@ -45,7 +45,7 @@ function checkInstanceReachability(
         try {
             const parsed = new URL(normalizedUrl + '/api/now/ping');
             const req = https.request(
-                { hostname: parsed.hostname, port: parsed.port || 443, path: '/api/now/ping', method: 'GET', timeout: 10000, rejectUnauthorized: false },
+                { hostname: parsed.hostname, port: parsed.port || 443, path: '/api/now/ping', method: 'GET', timeout: 10000 },
                 (res) => {
                     resolve({ reachable: true, statusCode: res.statusCode, responseTime: Date.now() - start });
                     res.resume();

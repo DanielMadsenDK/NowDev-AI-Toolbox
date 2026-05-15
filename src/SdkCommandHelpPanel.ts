@@ -5,12 +5,18 @@ import { getSharedPanelStyles } from './SharedPanelStyles';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
 
+const ALLOWED_SDK_COMMANDS = new Set([
+    'build', 'install', 'transform', 'dependencies', 'download', 'clean', 'pack',
+]);
+
 /**
  * Opens (or reveals) a webview panel showing nicely formatted CLI help
  * for a ServiceNow SDK command by running `now-sdk <command> --help`
  * and rendering the output as HTML with the same style as SdkExplainPanel.
  */
 export function showSdkCommandHelpPanel(command: string): void {
+    if (!ALLOWED_SDK_COMMANDS.has(command)) { return; }
+
     const key = `cmd:${command}`;
 
     const existing = _panels.get(key);
@@ -31,14 +37,22 @@ export function showSdkCommandHelpPanel(command: string): void {
     panel.onDidDispose(() => _panels.delete(key));
     panel.webview.html = loadingHtml(label);
 
-    cp.exec(`now-sdk ${command} --help`, { timeout: 10000, encoding: 'utf-8', shell: getShell() }, (_err, stdout, stderr) => {
+    const proc = cp.spawn('now-sdk', [command, '--help'], { timeout: 10000, shell: getShell() });
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
+    proc.stderr.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
+    proc.on('close', () => {
         // Commander.js sends --help to stdout; some CLIs use stderr
-        const output = String(stdout || stderr || '').trim();
+        const output = (stdout || stderr || '').trim();
         if (!output) {
             panel.webview.html = errorHtml(`No help available for "now-sdk ${command}". Make sure now-sdk is installed and accessible.`);
             return;
         }
         panel.webview.html = renderHtml(label, command, output);
+    });
+    proc.on('error', () => {
+        panel.webview.html = errorHtml(`Failed to run now-sdk. Make sure it is installed and accessible.`);
     });
 }
 
