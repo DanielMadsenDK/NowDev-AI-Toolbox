@@ -6,7 +6,7 @@ Components for displaying and editing ServiceNow records. All require a `RecordP
 
 ## RecordProvider
 
-Hook-based provider that loads a ServiceNow record and exposes it to all children via context.
+Hook-based provider that loads a ServiceNow record and exposes it to all children via context. Uses a modular architecture with specialized API hooks for each concern.
 
 ```tsx
 import {RecordProvider} from '@servicenow/react-components/RecordContext';
@@ -22,6 +22,7 @@ import {RecordProvider} from '@servicenow/react-components/RecordContext';
 - Never nest `RecordProvider` inside another `RecordProvider`
 - Never create two `RecordProvider` instances for the same record — wrap all components for one record in a single provider
 - For new records, always use `sysId="-1"` (never `null`, `undefined`, or a custom ID)
+- When displaying multiple records simultaneously, use sibling `RecordProvider` components — never nested
 
 **useRecord() hook** (available to any child component):
 
@@ -29,7 +30,21 @@ import {RecordProvider} from '@servicenow/react-components/RecordContext';
 import {useRecord} from '@servicenow/react-components';
 
 function MyChild() {
-  const {form, header, actions, notifications, isLoading, table, sysId} = useRecord();
+  const {
+    form,           // useFormAPI — form data, fields, dirty state
+    header,         // useHeaderAPI — record display value, primary value
+    actions,        // useActionsAPI — form actions, UI actions
+    notifications,  // useNotifications — add/dismiss notifications
+    email,          // useEmailAPI — email functionality
+    globals,        // useUXGlobalsAPI — UX globals, session data
+    attachments,    // useAttachmentsAPI — attachment permissions
+    domain,         // useDomainAPI — domain separation data
+    activityStream, // useActivityStreamAPI — activity stream data
+    openRecord,     // useOpenRecordAPI — record navigation, modal management
+    isLoading,
+    table,
+    sysId
+  } = useRecord();
 
   // Form data
   const fields = form.data.fields;

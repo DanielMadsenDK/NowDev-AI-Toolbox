@@ -30,7 +30,8 @@ handoffs:
 STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with configured docs MCP or the skill
 STOP if building a React UI without <sdk:now-ux-globals> in index.html — globals will not initialize
 STOP if using GlideRecord in any client-side (.tsx, .ts, client .js) file — use GlideAjax or REST instead
-STOP if using generic UI libraries (Material UI, Ant Design, plain HTML forms) when @servicenow/react-components HDS components are available
+STOP if using generic UI libraries (Material UI, Ant Design, Bootstrap, plain HTML forms/buttons/inputs) when @servicenow/react-components HDS components are available — there is no valid reason to use generic libraries for standard UI elements in ServiceNow
+STOP if @servicenow/react-components is placed in `dependencies` instead of `devDependencies` in package.json — it MUST be in devDependencies for the SDK build pipeline to work
 STOP if using Now.ID[...] in data fields to reference own metadata — use constant.$id
 STOP if using deprecated script\`\` or html\`\` tagged template literals — use Now.include('./file.js')
 STOP if implementing server-side Logic artifacts — those belong to NowDev-AI-Fluent-Logic-Developer
@@ -90,7 +91,17 @@ src/client/components/*.tsx          → UI components using @servicenow/react-c
 src/client/global.d.ts               → declare global { Window.g_ck, GlideAjax }
 ```
 
-**Always use `@servicenow/react-components`** (Horizon Design System) for all React UI — buttons, modals, inputs, tabs, cards, alerts, forms. Consult the `servicenow-react-ui-components` skill for component API and usage.
+**Always use `@servicenow/react-components`** (Horizon Design System) for all React UI — buttons, modals, inputs, tabs, cards, alerts, forms, badges, navigation, empty states, and more. This library contains 50+ components that cover every UI need and ensures visual consistency, platform theming (dark mode, high contrast), and accessibility. **Never** use generic alternatives (Material UI, Ant Design, Bootstrap, or raw HTML elements like `<button>`, `<input>`, `<select>`). Add it to `devDependencies` in `package.json`:
+
+```json
+{
+  "devDependencies": {
+    "@servicenow/react-components": "latest"
+  }
+}
+```
+
+Consult the `servicenow-react-ui-components` skill for component API and usage.
 
 ## Client Script Rules
 

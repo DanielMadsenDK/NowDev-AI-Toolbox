@@ -229,17 +229,32 @@ const [selected, setSelected] = React.useState<string[]>([]);
 
 ### DropdownItem shape
 
+Items are mutually exclusive — only one visual indicator type per item:
+
 ```tsx
-{
-  id: string | number,       // required, unique
-  label: string,             // required
-  sublabel?: string,
-  disabled?: boolean,
-  count?: number,
-  // Only one visual indicator allowed at a time:
-  icon?: string,             // icon name
-  avatarProps?: { userName, imageSrc?, presence? },
-  presence?: 'available' | 'busy' | 'away' | 'offline',
-  image?: { src, alt }
-}
+// Basic item
+{ id: string | number, label: string, sublabel?: string, disabled?: boolean, count?: number }
+
+// Item with icon
+{ id: string | number, label: string, icon: string }
+
+// Item with avatar (for user lists)
+{ id: string | number, label: string, avatarProps: { userName: string, imageSrc?: string, icon?: string, presence?: 'available' | 'busy' | 'away' | 'offline' } }
+
+// Item with presence indicator
+{ id: string | number, label: string, presence: 'available' | 'busy' | 'away' | 'offline' }
+
+// Item with image
+{ id: string | number, label: string, image: { src: string, alt: string } }
 ```
+
+`DropdownSection` groups items under a header:
+```tsx
+{ id: string | number, label: string, children: DropdownItem[] }
+```
+
+### Dropdown variants
+
+- `primary`, `secondary` (default), `tertiary`
+- `primary-selection`, `secondary-selection`, `tertiary-selection` — shows selected item label
+- `primary-ai`, `secondary-ai`, `tertiary-ai` — AI-themed style

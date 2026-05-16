@@ -120,21 +120,35 @@ import {Card} from '@servicenow/react-components/Card';
 | `interaction` | `'none'\|'click'\|'select'` | `'none'` | Interaction mode |
 | `hideShadow` | `boolean` | `false` | Remove drop shadow |
 | `selected` | `boolean` | `false` | Selected state (use with `interaction="select"`) |
-| `variant` | `'initial'\|'ai'` | `'initial'` | Visual variant |
+| `manageSelected` | `boolean` | `false` | Override automatic selected state management |
+| `variant` | `'initial'\|'ai'` | `'initial'` | Visual variant (`'ai'` for AI-themed cards) |
 | `sidebar` | `{color, variant}` | — | Colored sidebar indicator |
 
-**Sidebar colors:** `critical`, `high`, `moderate`, `warning`, `info`, `positive`, `low`, `magenta`, `pink`, `orange`, `yellow`, `brown`, `green`, `green-yellow`, `blue`, `gray`, `teal`, `purple`
+**Sidebar colors:** `critical`, `high`, `moderate`, `warning`, `info`, `positive`, `low`, `magenta`, `pink`, `orange`, `yellow`, `brown`, `green`, `green-yellow`, `blue`, `gray`, `teal`, `purple`, `ai`
 **Sidebar variants:** `primary`, `secondary`, `tertiary`
 
 > When using `interaction="click"` or `interaction="select"`, you **must** provide `configAria.button['aria-label']` for accessibility.
 
+**Events:** `onClicked` (when `interaction="click"`), `onSelectedSet` (when `interaction="select"`)
+
 ### Card Sub-Components
+
+Use these to structure content within a Card:
 
 ```tsx
 import {CardHeader} from '@servicenow/react-components/CardHeader';
 import {CardFooter} from '@servicenow/react-components/CardFooter';
 import {CardActions} from '@servicenow/react-components/CardActions';
 import {CardDivider} from '@servicenow/react-components/CardDivider';
+
+<Card size="md">
+  <CardHeader />
+  <CardDivider />
+  <p>Card body content</p>
+  <CardDivider />
+  <CardFooter />
+  <CardActions />
+</Card>
 ```
 
 ---
@@ -144,11 +158,11 @@ import {CardDivider} from '@servicenow/react-components/CardDivider';
 Navigation between content sections.
 
 ```tsx
-import {Tabs} from '@servicenow/react-components/Tabs';
+import {Tabs, TabsSelectedItemSet, TabItem} from '@servicenow/react-components/Tabs';
 
 const [activeTab, setActiveTab] = React.useState('overview');
 
-const tabItems = [
+const tabItems: TabItem[] = [
   {id: 'overview', label: 'Overview'},
   {id: 'details', label: 'Details', icon: 'info-circle-outline'},
   {id: 'history', label: 'History', count: 12},

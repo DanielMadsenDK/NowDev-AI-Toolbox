@@ -528,23 +528,39 @@ export function activate(context: vscode.ExtensionContext) {
             );
             if (!typePick) { return; }
 
-            const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Add');
-            chan.show(true);
             const cmdArgs = ['auth', '--add', instance.trim(), '--type', typePick.label];
             if (alias?.trim()) { cmdArgs.push('--alias', alias.trim()); }
-            chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
 
-            const proc = cp.spawn('now-sdk', cmdArgs, { shell: getShell() });
-            proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
-            proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
-            proc.on('close', (code: number | null) => {
-                if (code === 0) {
-                    chan.appendLine('\n✓ Auth alias added.');
-                    welcomeProvider.refreshAuthAliases();
-                } else {
-                    chan.appendLine(`\n✗ Auth add failed (exit code ${code}).`);
-                }
-            });
+            if (typePick.label === 'oauth') {
+                // OAuth requires interactive stdin so the user can paste the authorization
+                // code from the browser. An Output Channel is read-only, so we open a
+                // real VS Code terminal instead.
+                const terminal = vscode.window.createTerminal({ name: 'NowDev: SDK Auth Add (OAuth)' });
+                terminal.show();
+                terminal.sendText(`now-sdk ${cmdArgs.join(' ')}`);
+                const listener = vscode.window.onDidCloseTerminal(t => {
+                    if (t === terminal) {
+                        listener.dispose();
+                        welcomeProvider.refreshAuthAliases();
+                    }
+                });
+            } else {
+                const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Add');
+                chan.show(true);
+                chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
+
+                const proc = cp.spawn('now-sdk', cmdArgs, { shell: getShell() });
+                proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
+                proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
+                proc.on('close', (code: number | null) => {
+                    if (code === 0) {
+                        chan.appendLine('\n✓ Auth alias added.');
+                        welcomeProvider.refreshAuthAliases();
+                    } else {
+                        chan.appendLine(`\n✗ Auth add failed (exit code ${code}).`);
+                    }
+                });
+            }
         }),
 
         // Auth — Remove

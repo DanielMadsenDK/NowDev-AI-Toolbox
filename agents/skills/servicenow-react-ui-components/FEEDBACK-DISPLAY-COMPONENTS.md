@@ -330,24 +330,49 @@ import {Image} from '@servicenow/react-components/Image';
 
 ## TemplateMessage
 
-Empty state component with illustration, heading, body text, and action buttons.
+Empty state component with illustration, heading, body text, and action buttons. Use for no-results screens, error states, or onboarding prompts.
 
 ```tsx
-import {TemplateMessage} from '@servicenow/react-components/TemplateMessage';
+import {TemplateMessage, TemplateMessageActionClicked} from '@servicenow/react-components/TemplateMessage';
 
+{/* No results */}
 <TemplateMessage
-  illustration="no-results"
-  heading="No incidents found"
-  content="Try adjusting your filters or create a new incident."
+  heading={{label: 'No results found', level: 4}}
+  content="Try adjusting your filters or create a new record."
+  illustration="no-search-results"
+/>
+
+{/* With actions */}
+<TemplateMessage
+  heading={{label: 'No incidents', level: 3}}
+  content="Create an incident to get started."
+  illustration="no-data"
+  alignment="vertical-centered"
   actions={[
-    {label: 'Clear Filters', variant: 'secondary'},
-    {label: 'Create Incident', variant: 'primary'}
+    {label: 'Create Incident', variant: 'primary', icon: 'add-outline'},
+    {label: 'Learn More', variant: 'secondary'}
   ]}
   onActionClicked={e => {
-    if (e.detail.payload.action.label === 'Create Incident') setShowNewForm(true);
+    const {action} = e.detail.payload;
+    if (action.label === 'Create Incident') setShowNewForm(true);
   }}
 />
 ```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `heading` | `{label: string, level?: 1-6}` | — | **Required.** Primary heading |
+| `content` | `string` | — | Supporting body text |
+| `illustration` | see below | — | Illustration name |
+| `alignment` | `'adaptive'\|'vertical-centered'` | — | Layout alignment |
+| `actions` | `TemplateMessageActionItem[]` | — | Action buttons |
+| `onActionClicked` | `TemplateMessageActionClicked` | — | Action click handler |
+
+**Illustration values:** `add-attachment`, `add-data`, `ai-general`, `completed-tasks`, `error`, `first-time-user`, `interrupted`, `no-activities`, `no-data`, `no-search-results`, `offline`, `permissions`, `unconfigured`
+
+**TemplateMessageActionItem:** `{label: string, icon?: string, variant?: string, disabled?: boolean, tooltipContent?: string}`
 
 ---
 
@@ -356,24 +381,86 @@ import {TemplateMessage} from '@servicenow/react-components/TemplateMessage';
 Page location hierarchy for navigation context.
 
 ```tsx
-import {Breadcrumbs} from '@servicenow/react-components/Breadcrumbs';
+import {Breadcrumbs, BreadcrumbsItemClicked} from '@servicenow/react-components/Breadcrumbs';
 
 <Breadcrumbs
   items={[
-    {label: 'Home', href: '/'},
+    {label: 'Home', href: '/', icon: 'home-fill'},
     {label: 'Service Desk', href: '/service-desk'},
     {label: 'Incidents', href: '/incidents'},
-    {label: 'INC0001234'}  {/* Current page — no href */}
+    {label: 'INC0001234'}  // Current page — no href
   ]}
+  onItemClicked={e => {
+    const item = e.detail.payload;
+    if (item.href) navigate(item.href);
+  }}
 />
+
+{/* Overflow behaviors */}
+<Breadcrumbs items={items} overflow="truncate-collapse" delimiter="arrow" />
+<Breadcrumbs items={items} overflow="wrap" />
 ```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | `BreadcrumbsItem[]` | — | **Required.** Array from root to current page |
+| `overflow` | `'collapse'\|'truncate-collapse'\|'wrap'` | `'collapse'` | Overflow behavior |
+| `delimiter` | `'chevron'\|'arrow'` | `'chevron'` | Separator symbol |
+| `overflowMenuPosition` | `'start'\|'end'` | `'start'` | Overflow menu position |
+| `onItemClicked` | `BreadcrumbsItemClicked` | — | Click handler |
+
+**BreadcrumbsItem:** `{label: string, href?: string, icon?: string, hideLabel?: boolean}`
 
 ---
 
 ## ContentTree
 
-Hierarchical tree for navigating nested data (e.g. asset trees, org charts, file systems).
+Hierarchical tree for navigating nested data (folders, categories, org charts, file systems). Supports selection, async loading, drag-and-drop, and actions.
 
 ```tsx
-import {ContentTree} from '@servicenow/react-components/ContentTree';
+import {ContentTree, ContentTreeItem, ContentTreeItemClicked} from '@servicenow/react-components/ContentTree';
+
+const treeItems: ContentTreeItem[] = [
+  {
+    id: 'root',
+    label: 'Root',
+    children: [
+      {id: 'child-1', label: 'Child 1'},
+      {id: 'child-2', label: 'Child 2', children: [{id: 'grandchild', label: 'Grandchild'}]}
+    ]
+  }
+];
+
+const [selectedItems, setSelectedItems] = React.useState<Array<string | number>>([]);
+
+<ContentTree
+  items={treeItems}
+  selectedItems={[selectedItems]}  // array of path arrays
+  select="single"
+  manageSelectedItems
+  size="md"
+  onItemClicked={e => {
+    const item = e.detail.payload.item;
+    setSelectedItems([item.id]);
+  }}
+/>
 ```
+
+### Key Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | `ContentTreeItem[]` | — | **Required.** Tree data |
+| `selectedItems` | `Array<Array<string\|number>>` | — | Path arrays to selected items |
+| `select` | `'none'\|'single'\|'multi'` | — | Selection mode |
+| `size` | `'sm'\|'md'` | `'md'` | Item size |
+| `overflow` | `'wrap'\|'truncate'` | — | Text overflow behavior |
+| `searchTerm` | `string` | — | Highlight matching labels |
+| `showDividers` | `boolean` | — | Show item borders |
+| `showActionsOnHover` | `boolean` | — | Show item actions on hover |
+| `triggerIcon` | `'chevron'\|'plus-minus'\|'caret'` | — | Expand/collapse icon type |
+| `dragdropConfig` | `{enableDrag, enableDrop, effect}` | — | Drag-and-drop configuration |
+| `manageItems` / `manageSelectedItems` / `manageExpandedItems` | `boolean` | — | Override automatic state management |
+

@@ -298,12 +298,13 @@ import {RadioButtons} from '@servicenow/react-components/RadioButtons';
 Date and/or time picker with calendar.
 
 ```tsx
-import {DateTime} from '@servicenow/react-components/DateTime';
+import {DateTime, DateTimeValueSet, DateTimeInvalidSet} from '@servicenow/react-components/DateTime';
 
 {/* Date only */}
 <DateTime
   label="Due Date"
   type="date"
+  format="yyyy-MM-dd"
   value={dueDate}
   required
   onValueSet={e => setDueDate(e.detail.payload.value)}
@@ -311,26 +312,91 @@ import {DateTime} from '@servicenow/react-components/DateTime';
 
 {/* Date and time */}
 <DateTime
-  label="Schedule"
+  label="Appointment Date & Time"
   type="date-time"
-  value={schedule}
+  format="yyyy-MM-dd HH:mm:ss"
+  required
   onValueSet={e => setSchedule(e.detail.payload.value)}
+  messages={[{status: 'info', content: 'Select your preferred time', icon: 'circle-info-outline'}]}
+/>
+
+{/* Time only */}
+<DateTime label="Meeting Time" type="time" format="HH:mm:ss" />
+
+{/* Month picker */}
+<DateTime label="Birth Month" type="month" format="MMMM yyyy" />
+
+{/* With disabled date ranges */}
+<DateTime
+  label="Available Date"
+  type="date"
+  format="yyyy-MM-dd"
+  disabledItems={[
+    {before: '2024-01-01'},
+    {start: '2024-12-24', end: '2024-12-26'},
+    {value: '2024-07-04'}
+  ]}
+  disableWeekends
+  onInvalidSet={e => console.log('invalid:', e.detail.payload.value)}
 />
 ```
+
+**type values:** `'date'`, `'time'`, `'date-time'`, `'month'`, `'year'`, `'quarter'`, `'week'`
+
+**Events:** `onValueSet` (on blur/select), `onInvalidSet` (when invalid), `onOpenedSet` (calendar open/close)
 
 ---
 
 ## InputUrl
 
-URL input with edit/display mode switching.
+URL input with edit/display modes, built-in URL validation, and clickable link display.
 
 ```tsx
-import {InputUrl} from '@servicenow/react-components/InputUrl';
+import {InputUrl, InputUrlValueSet, InputUrlInput, InputUrlInvalidSet} from '@servicenow/react-components/InputUrl';
 
+{/* Basic URL input */}
 <InputUrl
-  label="Reference URL"
-  value={url}
+  label="Website"
+  placeholder="https://example.com"
   required
   onValueSet={e => setUrl(e.detail.payload.value)}
 />
+
+{/* With validation pattern */}
+<InputUrl
+  label="Documentation Link"
+  placeholder="https://docs.example.com"
+  pattern="^https://.*"
+  maxlength={200}
+  helperContent="URL must start with https://"
+  onValueSet={e => setUrl(e.detail.payload.value)}
+  onInvalidSet={e => console.log('invalid:', e.detail.payload.value)}
+  messages={[{status: 'info', content: 'Enter the full URL with protocol', icon: 'circle-info-outline'}]}
+/>
+
+{/* Disabled / read-only */}
+<InputUrl label="System URL" value="https://system.example.com" disabled readonly />
+
+{/* Optional */}
+<InputUrl label="Personal Website" placeholder="https://yoursite.com" optional />
 ```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | — | Field label |
+| `value` | `string` | — | Current URL value |
+| `placeholder` | `string` | — | Hint text |
+| `required` | `boolean` | `false` | Mark as required |
+| `optional` | `boolean` | `false` | Mark as optional |
+| `disabled` | `boolean` | `false` | Prevent interaction |
+| `readonly` | `boolean` | `false` | Show but prevent editing |
+| `invalid` | `boolean` | `false` | Invalid state |
+| `pattern` | `string` | — | Regex validation pattern |
+| `maxlength` | `number` | — | Max characters |
+| `minlength` | `number` | — | Min characters |
+| `messages` | `InputMessage[]` | — | Inline messages below field |
+| `helperContent` | `string` | — | Helper popup next to label |
+
+**Events:** `onValueSet` (on blur), `onInput` (on keystroke), `onInvalidSet` (on blur if invalid)

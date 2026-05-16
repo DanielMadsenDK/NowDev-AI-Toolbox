@@ -7,35 +7,29 @@ description: Comprehensive guide for using @servicenow/react-components when bui
 
 # ServiceNow React UI Components
 
-The `@servicenow/react-components` package provides React wrappers around ServiceNow's Horizon Design System (HDS) web components. Using these components is strongly preferred when building ServiceNow UIs because they ensure visual and behavioral consistency with the rest of the platform.
+The `@servicenow/react-components` package provides React wrappers around ServiceNow's Horizon Design System (HDS) web components. Using these components is **mandatory** when building ServiceNow UIs — they ensure visual and behavioral consistency, platform theming support, accessibility, user preferences, and deep integration with the ServiceNow platform. These are the official ServiceNow UI elements used throughout the product.
 
-> **Always use these components instead of generic alternatives like Material UI, Ant Design, or plain HTML elements** when building ServiceNow UIs. The Horizon Design System is what ServiceNow itself uses throughout its product.
+> **MANDATORY: Always use `@servicenow/react-components` instead of generic alternatives like Material UI, Ant Design, Bootstrap, or plain HTML elements** when building ServiceNow UIs. Using generic UI libraries produces an inconsistent, non-native look and breaks theming (dark mode, high contrast, user preferences). The 50+ components in `@servicenow/react-components` cover every UI need — buttons, forms, modals, layouts, charts, navigation, and more.
 
 ## Installation
 
-The `@servicenow/react-components` package must be installed in the project. Add it to the `dependencies` section of `package.json` and run `npm install`.
+The `@servicenow/react-components` package must be added to `devDependencies` in `package.json`. The ServiceNow SDK build system resolves it from `devDependencies` — placing it in `dependencies` or `peerDependencies` will not work correctly.
 
-```bash
-npm install @servicenow/react-components --save
+```json
+{
+  "devDependencies": {
+    "@servicenow/react-components": "latest"
+  }
+}
 ```
+
+After updating `package.json`, run `npm install` to install the package.
 
 **Requirements:**
 - Node.js >= 20.0.0
 - React >= 18.0.0
 
-The package.json must look like this (at minimum):
-
-```json
-{
-  "dependencies": {
-    "@servicenow/react-components": "latest"
-  },
-  "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  }
-}
-```
+> **IMPORTANT:** Always add `@servicenow/react-components` to `devDependencies`, **not** `dependencies`. This is required for the ServiceNow SDK build pipeline to bundle it correctly.
 
 After modifying `package.json`, remind the user to run `npm install` to install the package.
 
@@ -86,6 +80,43 @@ See [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md) for full details on eac
 ---
 
 ## Critical Rules
+
+### Package Must Be in devDependencies
+
+`@servicenow/react-components` **must** go in `devDependencies`, not `dependencies`:
+
+```json
+{
+  "devDependencies": {
+    "@servicenow/react-components": "latest"
+  }
+}
+```
+
+The ServiceNow SDK build pipeline resolves UI component packages from `devDependencies`. Placing it in `dependencies` will cause build or runtime failures.
+
+### Always Use @servicenow/react-components for UI
+
+**Never** use Material UI, Ant Design, Bootstrap, plain `<button>`, `<input>`, `<select>` or other generic HTML/CSS alternatives. Every UI element needed is available in `@servicenow/react-components`:
+
+| Instead of... | Use... |
+|--------------|--------|
+| `<button>` | `<Button>`, `<ButtonBare>`, `<ButtonIconic>` |
+| `<input type="text">` | `<Input>` |
+| `<select>` | `<Select>`, `<Dropdown>`, `<Typeahead>` |
+| `<input type="checkbox">` | `<Checkbox>` |
+| `<input type="radio">` | `<RadioButtons>` |
+| `<textarea>` | `<Textarea>` |
+| Custom modal | `<Modal>` |
+| Custom tabs | `<Tabs>` |
+| Custom accordion | `<Accordion>` / `<AccordionItem>` |
+| Custom alert/toast | `<Alert>` |
+| Custom spinner | `<Loader>` |
+| Custom breadcrumbs | `<Breadcrumbs>` |
+| `<h1>...<h6>` | `<Heading>` |
+| `<img>` | `<Image>` |
+| Custom empty state | `<TemplateMessage>` |
+| Custom tree | `<ContentTree>` |
 
 ### RecordProvider is Required for Form Components
 
