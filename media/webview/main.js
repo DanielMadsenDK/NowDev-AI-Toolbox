@@ -533,6 +533,46 @@
 
     // ── Agent card rendering ───────────────────────────────────────
 
+    function buildAgentToolsHtml(m, disabledSet) {
+        var html = '<div class="agent-card-tools" id="at-' + esc(m.name) + '">';
+        for (var j = 0; j < m.baseTools.length; j++) {
+            var tool = m.baseTools[j];
+            html += '<label class="agent-tool-row">';
+            html += '<input type="checkbox" class="agent-tool-cb" data-agent="' + esc(m.name) + '" data-tool="' + esc(tool) + '"' + (!disabledSet[tool] ? ' checked' : '') + '>';
+            html += '<span class="agent-tool-name">' + esc(tool) + '</span>';
+            html += '</label>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function buildAgentCardHtml(m, overrides, extraClass, showToggle, bundleName) {
+        var override = (overrides && overrides[m.name]) || { enabled: true, disabledTools: [] };
+        var agentEnabled = override.enabled !== false;
+        var disabledSet = {};
+        if (override.disabledTools) { override.disabledTools.forEach(function (t) { disabledSet[t] = true; }); }
+        var enabledCount = m.baseTools.filter(function (t) { return !disabledSet[t]; }).length;
+
+        var cardClass = 'agent-card' + (extraClass ? ' ' + extraClass : '') + (agentEnabled ? '' : ' agent-disabled');
+        var html = '<div class="' + cardClass + '" data-agent-name="' + esc(m.name) + '">';
+        html += '<div class="agent-card-header">';
+        html += '<div class="agent-card-title-row">';
+        html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" aria-label="Expand tools" title="Show/hide tools">&#9654;</button>';
+        html += '<div class="agent-card-info"><span class="agent-card-name">' + esc(m.shortName || m.name) + '</span></div>';
+        if (showToggle === 'agent') {
+            html += '<label class="tool-toggle" title="Enable/disable agent">';
+            html += '<input type="checkbox" class="agent-enable-cb" data-agent="' + esc(m.name) + '"' + (agentEnabled ? ' checked' : '') + '>';
+            html += '<span class="slider"></span></label>';
+        }
+        html += '<button class="agent-file-btn" data-filename="' + esc(m.filename) + '" title="Open .agent.md file">&#8599;</button>';
+        html += '</div>';
+        html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
+        html += '</div>';
+        html += buildAgentToolsHtml(m, disabledSet);
+        html += '</div>';
+        return html;
+    }
+
     function renderAgentCards(manifests, overrides) {
         var container = document.getElementById('agentCards');
         if (!container) { return; }
@@ -541,71 +581,59 @@
             return;
         }
 
-        // User-invocable agents first, then sub-agents; alphabetical within each group
-        var sorted = manifests.slice().sort(function (a, b) {
-            if (a.userInvocable !== b.userInvocable) { return a.userInvocable ? -1 : 1; }
-            return a.name.localeCompare(b.name);
+        // Partition into locked, bundles, and standalone optional
+        var locked = manifests.filter(function (m) { return m.locked; })
+            .sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+        var bundleMap = {};
+        manifests.forEach(function (m) {
+            if (!m.locked && m.bundle) {
+                if (!bundleMap[m.bundle]) { bundleMap[m.bundle] = []; }
+                bundleMap[m.bundle].push(m);
+            }
         });
 
+        // DevOps agent is managed via dedicated DevOps config UI — exclude from here
+        var standalone = manifests.filter(function (m) {
+            return !m.locked && !m.bundle && m.name !== 'NowDev-AI-DevOps';
+        }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+
         var html = '';
-        var lastGroup = null;
-        for (var i = 0; i < sorted.length; i++) {
-            var m = sorted[i];
-            var thisGroup = m.userInvocable ? 'picker' : 'sub';
-            if (thisGroup !== lastGroup) {
-                html += '<div class="agent-group-label">' +
-                    (thisGroup === 'picker'
-                        ? 'User-invocable Agents (Pickers)'
-                        : 'Sub-agents') +
-                    '</div>';
-                lastGroup = thisGroup;
-            }
-            var override = (overrides && overrides[m.name]) || { enabled: true, disabledTools: [] };
-            var agentEnabled = override.enabled !== false;
-            var disabledSet = {};
-            if (override.disabledTools) {
-                override.disabledTools.forEach(function (t) { disabledSet[t] = true; });
-            }
-            var enabledCount = m.baseTools.filter(function (t) { return !disabledSet[t]; }).length;
 
-            var cardClass = 'agent-card' + (agentEnabled ? '' : ' agent-disabled');
-            html += '<div class="' + cardClass + '" data-agent-name="' + esc(m.name) + '">';
+        // Section 1: Locked Core
+        if (locked.length > 0) {
+            html += '<div class="agent-group-label">Locked Core <span title="These agents are always active and cannot be disabled">&#128274;</span></div>';
+            locked.forEach(function (m) {
+                html += buildAgentCardHtml(m, overrides, 'agent-locked', 'lock', null);
+            });
+        }
 
-            // Header row
-            html += '<div class="agent-card-header">';
-            html += '<div class="agent-card-title-row">';
-            html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" aria-label="Expand tools for ' + esc(m.shortName || m.name) + '" title="Show/hide tools">&#9654;</button>';
-            html += '<div class="agent-card-info">';
-            html += '<span class="agent-card-name">' + esc(m.shortName || m.name) + '</span>';
-            html += '<span class="agent-card-badge ' + (m.userInvocable ? 'picker' : 'sub-agent') + '">';
-            html += m.userInvocable ? 'picker' : 'sub-agent';
-            html += '</span>';
+        // Section 2: Bundles — one toggle controls all members
+        var bundleNames = Object.keys(bundleMap).sort();
+        bundleNames.forEach(function (bundleName) {
+            var members = bundleMap[bundleName].sort(function (a, b) { return a.name.localeCompare(b.name); });
+            // Bundle enabled state: all members share the same enabled value after a bundle toggle
+            var firstOverride = (overrides && overrides[members[0].name]) || { enabled: true, disabledTools: [] };
+            var bundleEnabled = firstOverride.enabled !== false;
+
+            html += '<div class="agent-group-label">' + esc(bundleName) + ' Bundle</div>';
+            html += '<div class="agent-bundle-row">';
+            html += '<label class="tool-toggle" title="Enable or disable all ' + esc(bundleName) + ' agents">';
+            html += '<input type="checkbox" class="bundle-enable-cb" data-bundle="' + esc(bundleName) + '"' + (bundleEnabled ? ' checked' : '') + '>';
+            html += '<span class="slider"></span></label>';
+            html += '<span class="agent-bundle-label">' + esc(bundleName) + ' agents are toggled as a unit</span>';
             html += '</div>';
-            // Enable/disable toggle — all agents except the orchestrator (NowDev AI Agent)
-            if (m.name !== 'NowDev AI Agent') {
-                html += '<label class="tool-toggle" title="Enable/disable agent">';
-                html += '<input type="checkbox" class="agent-enable-cb" data-agent="' + esc(m.name) + '"' + (agentEnabled ? ' checked' : '') + '>';
-                html += '<span class="slider"></span>';
-                html += '</label>';
-            }
-            html += '<button class="agent-file-btn" data-agent="' + esc(m.name) + '" aria-label="Open agent file for ' + esc(m.shortName || m.name) + '" title="Open generated .agent.md file">&#8599;</button>';
-            html += '</div>'; // agent-card-title-row
-            html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
-            html += '</div>'; // agent-card-header
+            members.forEach(function (m) {
+                html += buildAgentCardHtml(m, overrides, 'agent-bundle-member', null, bundleName);
+            });
+        });
 
-            // Collapsible tools section — hidden by default via CSS class
-            html += '<div class="agent-card-tools" id="at-' + esc(m.name) + '">';
-            for (var j = 0; j < m.baseTools.length; j++) {
-                var tool = m.baseTools[j];
-                var toolOn = !disabledSet[tool];
-                html += '<label class="agent-tool-row">';
-                html += '<input type="checkbox" class="agent-tool-cb" data-agent="' + esc(m.name) + '" data-tool="' + esc(tool) + '"' + (toolOn ? ' checked' : '') + '>';
-                html += '<span class="agent-tool-name">' + esc(tool) + '</span>';
-                html += '</label>';
-            }
-            html += '</div>'; // agent-card-tools
-
-            html += '</div>'; // agent-card
+        // Section 3: Standalone Optional
+        if (standalone.length > 0) {
+            html += '<div class="agent-group-label">Standalone Optional</div>';
+            standalone.forEach(function (m) {
+                html += buildAgentCardHtml(m, overrides, null, 'agent', null);
+            });
         }
 
         container.innerHTML = html;
@@ -622,7 +650,14 @@
             });
         });
 
-        // Bind agent enable/disable toggles
+        // Bind bundle-level toggles
+        container.querySelectorAll('.bundle-enable-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                vscode.postMessage({ command: 'toggleBundle', bundle: cb.getAttribute('data-bundle'), enabled: cb.checked });
+            });
+        });
+
+        // Bind standalone agent enable/disable toggles
         container.querySelectorAll('.agent-enable-cb').forEach(function (cb) {
             cb.addEventListener('change', function () {
                 vscode.postMessage({ command: 'toggleAgent', name: cb.getAttribute('data-agent'), enabled: cb.checked });
@@ -639,7 +674,7 @@
         // Bind open-agent-file buttons
         container.querySelectorAll('.agent-file-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                vscode.postMessage({ command: 'openAgentFile', agentName: btn.getAttribute('data-agent') });
+                vscode.postMessage({ command: 'openAgentFile', filename: btn.getAttribute('data-filename') });
             });
         });
     }

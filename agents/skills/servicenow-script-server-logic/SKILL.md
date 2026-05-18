@@ -3,9 +3,22 @@ name: servicenow-script-server-logic
 context: fork
 user-invocable: false
 description: General server-side operations including Script Includes, JavaScript modules, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes and modules for SDK projects. Use for reusable server-side utilities, gs.* system operations, user context, and event publishing via gs.eventQueue(). Trigger this skill whenever the user needs to write a Script Include, create reusable server-side logic, use gs.* APIs, manage user sessions or preferences, queue events, or implement impersonation. JavaScript modules are preferred for new Fluent projects; Script Includes remain required for GlideAjax and cross-scope APIs.
+last_verified: "2026-05-18"
 ---
 
 # General Server Logic
+
+## Scoped App Restrictions
+
+> **Critical:** Several `gs.*` methods are **not available in scoped applications**. The most common pitfall:
+>
+> | Blocked in scoped apps | Use instead |
+> |------------------------|-------------|
+> | `gs.nowDateTime()` | `new GlideDateTime().getDisplayValue()` |
+> | `gs.log()` (two-arg form) | `gs.info()` |
+> | `GlideRecord` without scope prefix on table name | Always use fully-qualified table names |
+>
+> When writing code for a scoped app, default to the replacements above.
 
 ## Quick start
 
@@ -17,11 +30,14 @@ var userId = gs.getUserID();
 var userName = gs.getUser().getName();
 var userEmail = gs.getUser().getEmail();
 
-// Logging
+// Logging (works in both global and scoped apps)
 gs.info('Information message');
 gs.warn('Warning message');
 gs.error('Error message');
 gs.debug('Debug message', myObject);
+
+// Current timestamp — use GlideDateTime in scoped apps (gs.nowDateTime() is blocked)
+var now = new GlideDateTime().getDisplayValue();
 
 // System properties
 var timeout = gs.getProperty('system.timeout', '30000');

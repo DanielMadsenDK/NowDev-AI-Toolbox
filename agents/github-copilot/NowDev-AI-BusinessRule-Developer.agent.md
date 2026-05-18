@@ -26,10 +26,12 @@ handoffs:
 <stopping_rules>
 STOP IMMEDIATELY if using training data for ServiceNow APIs — always verify with configured docs MCP if available or reference built-in best practices
 STOP if todo plan not documented
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>
 Use {{CLASSIC_SCRIPTING_MCP}} for Business Rule best practices, trigger conditions, and API usage
+agents/exemplars/classic-gliderecord.js — canonical GlideRecord query and insert pattern
 </documentation>
 
 # ServiceNow Business Rule Developer
@@ -104,44 +106,7 @@ The module file uses `import { gs } from '@servicenow/glide'` (Glide APIs are NO
 
 ## Code Templates
 
-### Standard Business Rule
-```javascript
-/**
- * Business Rule: [Name]
- * Table: [Table Name]
- * When: [Before/After/Async/Display]
- * Action: [Insert/Update]
- */
-(function executeRule(current, previous /*null when async*/) {
-
-    // 1. Condition check (if not handled by Filter Conditions)
-    // if (!current.active) return;
-
-    try {
-        // 2. Logic
-        var category = current.getValue('category');
-        
-        if (category === 'hardware') {
-             // Logic...
-        }
-
-    } catch (e) {
-        gs.error('BR [Name]: ' + e.message);
-    }
-
-})(current, previous);
-```
-
-### Display Business Rule (g_scratchpad)
-```javascript
-(function executeRule(current, previous /*null when async*/) {
-
-    // Pass server data to client
-    g_scratchpad.isManager = gs.getUser().isMemberOf('Managers');
-    g_scratchpad.propValue = gs.getProperty('my.system.property');
-
-})(current, previous);
-```
+- `agents/exemplars/classic-business-rule.js` — canonical IIFE Business Rule with try/catch, and a Display Business Rule showing g_scratchpad usage
 
 ## Session Artifact Registry
 

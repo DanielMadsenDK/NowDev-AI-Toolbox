@@ -35,6 +35,7 @@ STOP if @servicenow/react-components is placed in `dependencies` instead of `dev
 STOP if using Now.ID[...] in data fields to reference own metadata — use constant.$id
 STOP if using deprecated script\`\` or html\`\` tagged template literals — use Now.include('./file.js')
 STOP if implementing server-side Logic artifacts — those belong to NowDev-AI-Fluent-Logic-Developer
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>

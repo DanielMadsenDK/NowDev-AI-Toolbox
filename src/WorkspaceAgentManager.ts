@@ -87,9 +87,58 @@ const AGENTS_SRC       = path.join('agents', 'github-copilot');
 const AGENTS_OUT       = path.join('.github', 'agents');
 const HASH_TAG         = '# nowdev-hash:';
 const MANAGED_TAG      = '# nowdev-managed: true';
-const ORCHESTRATOR_NAME = 'NowDev AI Agent'; // always written — cannot be disabled
 
 const DEVOPS_AGENT_NAME = 'NowDev-AI-DevOps';
+
+/** Agents that are always written and cannot be disabled by the user. */
+export const LOCKED_AGENT_NAMES: ReadonlySet<string> = new Set([
+    'NowDev AI Agent',
+    'NowDev-AI-Refinement',
+    'NowDev-AI-Reviewer',
+    'NowDev-AI-Release-Expert',
+    'NowDev-AI-Assistant',
+]);
+
+/**
+ * Groups of agents that must be enabled/disabled as a unit because they have
+ * hard handoff dependencies on each other.  Disabling one member of a bundle
+ * without disabling the others would silently break coordinator delegation.
+ */
+export const AGENT_BUNDLES: Readonly<Record<string, readonly string[]>> = {
+    'Classic Development': [
+        'NowDev-AI-Classic-Developer',
+        'NowDev-AI-Script-Developer',
+        'NowDev-AI-BusinessRule-Developer',
+        'NowDev-AI-Client-Developer',
+        'NowDev-AI-Classic-Reviewer',
+        'NowDev-AI-Classic-Release',
+    ],
+    'Fluent Development': [
+        'NowDev-AI-Fluent-Developer',
+        'NowDev-AI-Fluent-Schema-Developer',
+        'NowDev-AI-Fluent-Logic-Developer',
+        'NowDev-AI-Fluent-Automation-Developer',
+        'NowDev-AI-Fluent-UI-Developer',
+        'NowDev-AI-ATF-Developer',
+        'NowDev-AI-Fluent-Reviewer',
+        'NowDev-AI-Fluent-Release',
+    ],
+    'AI Studio': [
+        'NowDev-AI-AI-Studio-Developer',
+        'NowDev-AI-AI-Agent-Developer',
+        'NowDev-AI-NowAssist-Developer',
+    ],
+};
+
+/** Returns the bundle name for a given agent, or undefined if it is not in any bundle. */
+export function getAgentBundleName(agentName: string): string | undefined {
+    for (const [bundleName, members] of Object.entries(AGENT_BUNDLES)) {
+        if ((members as readonly string[]).includes(agentName)) {
+            return bundleName;
+        }
+    }
+    return undefined;
+}
 
 /**
  * Writes every bundled agent file into `.github/agents/` in the workspace,
@@ -122,7 +171,7 @@ export function syncAllAgents(
     const disabledAgentNames = new Set<string>(
         manifests
             .filter(m => {
-                if (m.name === ORCHESTRATOR_NAME) { return false; }
+                if (LOCKED_AGENT_NAMES.has(m.name)) { return false; }
                 if (m.name === DEVOPS_AGENT_NAME) { return !devops.enabled; }
                 return cfg.agentOverrides[m.name]?.enabled === false;
             })
@@ -137,7 +186,7 @@ export function syncAllAgents(
 
         const isDevOpsAgent = manifest.name === DEVOPS_AGENT_NAME;
         const override      = cfg.agentOverrides[manifest.name];
-        const enabled       = manifest.name === ORCHESTRATOR_NAME ||
+        const enabled       = LOCKED_AGENT_NAMES.has(manifest.name) ||
                               (isDevOpsAgent ? devops.enabled : (override?.enabled ?? true));
         const disabledTools = new Set(override?.disabledTools ?? []);
 

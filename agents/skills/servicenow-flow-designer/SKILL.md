@@ -3,6 +3,7 @@ name: servicenow-flow-designer
 context: fork
 user-invocable: false
 description: Execute custom scripts and logic within Flow Designer and IntegrationHub workflows. Covers FlowAPI methods, flow execution, and subprocess orchestration. Use when building workflow automations, executing flows programmatically from server scripts, triggering subflows conditionally, running IntegrationHub actions from code, or orchestrating multi-step approval and notification flows. Trigger this skill whenever the user mentions Flow Designer, subflows, FlowAPI, IntegrationHub, or wants to run a flow from a script.
+last_verified: "2026-05-18"
 ---
 
 # Flow Designer Scripting

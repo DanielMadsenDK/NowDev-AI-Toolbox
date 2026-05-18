@@ -3,6 +3,7 @@ name: servicenow-deployment
 context: fork
 user-invocable: false
 description: Deploy ServiceNow configuration changes safely — either via Update Sets (classic instances) or now-sdk install (Fluent SDK projects). Covers Update Set naming, parent/child batching, preview validation, and SDK build/install workflows. Use when managing releases, migrating between instances, promoting changes from dev to test to prod, or orchestrating complex deployments with multiple Update Sets. Trigger this skill whenever the user mentions deployment, Update Sets, moving changes between environments, release management, or now-sdk install.
+last_verified: "2026-05-18"
 ---
 
 # ServiceNow Deployment

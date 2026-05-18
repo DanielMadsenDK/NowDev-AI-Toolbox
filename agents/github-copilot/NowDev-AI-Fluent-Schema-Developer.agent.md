@@ -30,6 +30,7 @@ STOP if using `Now.ID[...]` in data fields to reference own metadata — always 
 STOP if using deprecated `script\`\`` or `html\`\`` tagged template literals — use `Now.include('./file.js')`
 STOP if implementing Logic, Automation, or UI artifacts — those belong to other specialists
 STOP if implementing AiAgent, AiAgenticWorkflow, or NowAssistSkillConfig — those belong to NowDev-AI-AI-Studio-Developer
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>
@@ -54,6 +55,7 @@ Always consult the servicenow-fluent-development skill for each artifact type:
 
   - {{FLUENT_SDK_MCP}} for SDK object patterns
   - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in script content
+  - agents/exemplars/fluent-table.now.ts — canonical table + role + ACL shape
 </documentation>
 
 # Fluent Schema Developer

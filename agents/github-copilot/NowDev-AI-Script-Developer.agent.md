@@ -26,10 +26,12 @@ handoffs:
 <stopping_rules>
 STOP IMMEDIATELY if using training data for ServiceNow APIs — always verify with configured docs MCP if available or reference built-in best practices
 STOP if todo plan not documented
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>
 Use {{CLASSIC_SCRIPTING_MCP}} for API availability, parameter requirements, and usage patterns
+agents/exemplars/classic-gliderecord.js — canonical GlideRecord query loop and secure insert shape
 </documentation>
 
 # ServiceNow Script Include Developer
@@ -102,79 +104,13 @@ See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` for the full b
 
 ## Code Templates
 
-### Standard Script Include
-```javascript
-/**
- * Class Description
- * @class [ClassName]
- * @param {Object} [param] - Optional parameters
- */
-var [ClassName] = Class.create();
-[ClassName].prototype = {
-    initialize: function() {
-        // Initialize logging source
-        this.logPrefix = '[ClassName]: ';
-    },
-
-    /**
-     * Public method description
-     * @param {string} param1 - Description
-     * @return {boolean} success
-     */
-    processLogic: function(param1) {
-        if (!param1) return false;
-        
-        try {
-            this._helperMethod(param1);
-            return true;
-        } catch (e) {
-            gs.error(this.logPrefix + e.message);
-            return false;
-        }
-    },
-
-    /**
-     * Private helper method
-     * @private
-     */
-    _helperMethod: function(data) {
-        // Logic here
-    },
-
-    type: '[ClassName]'
-};
-```
+- `agents/exemplars/classic-script-include.js` — canonical Script Include with `Class.create()`, try/catch, and private method prefix
+- `agents/exemplars/classic-glideajax.js` — client-callable Script Include extending `AbstractAjaxProcessor`, JSON return pattern
 
 ### GlideAjax (Client-Callable)
 *   **Must extend** `AbstractAjaxProcessor` (Global) or `global.AbstractAjaxProcessor` (Scoped).
 *   **Return:** Always return a JSON string for complex data.
 *   **Security:** Verify inputs (`this.getParameter`) immediately.
-
-```javascript
-var [ClassName] = Class.create();
-[ClassName].prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
-
-    getDetails: function() {
-        var result = {
-            status: 'error',
-            data: {}
-        };
-        
-        var paramID = this.getParameter('sysparm_id');
-        
-        if (!paramID) {
-            return JSON.stringify(result);
-        }
-
-        // Logic ...
-        result.status = 'success';
-        
-        return JSON.stringify(result);
-    },
-
-    type: '[ClassName]'
-});
-```
 
 ## Session Artifact Registry
 

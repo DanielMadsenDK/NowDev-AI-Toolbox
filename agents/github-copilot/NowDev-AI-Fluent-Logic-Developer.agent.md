@@ -34,6 +34,7 @@ STOP if implementing Flow or Subflow artifacts — those belong to NowDev-AI-Flu
 STOP if implementing UI artifacts — those belong to NowDev-AI-Fluent-UI-Developer
 STOP if implementing AiAgent, AiAgenticWorkflow, or NowAssistSkillConfig — those belong to NowDev-AI-AI-Studio-Developer
 STOP if using `Now.module()` — this function does not exist in the Fluent SDK. Use direct ES module `import`/`export` for function-accepting APIs, or `Now.include()` for string-only APIs
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>
@@ -47,6 +48,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - Scheduled Scripts (frequency, conditional execution, run-as, timezone) → SCHEDULED-SCRIPT-API.md
   - Advanced patterns (Record() seed data, Now.ref, server-side logging, helpers) → ADVANCED-PATTERNS.md
   - Module pattern for script linking (preferred for function-accepting APIs) → MODULE-GUIDE.md
+  - agents/exemplars/fluent-script-include.now.ts — canonical ScriptInclude with Now.include() bridge shape
+  - agents/exemplars/fluent-business-rule.now.ts — canonical BusinessRule with ES module import shape
   - Client-server communication patterns (GlideAjax setup, server methods) → CLIENT-SERVER-PATTERNS.md
   - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for Script Actions → registering-events-guide.md
   - Data helpers for Record() fields (Duration(), Time(), TemplateValue(), FieldList()) → data-helpers-guide.md

@@ -868,17 +868,13 @@ a:hover {
     border: none;
     color: var(--nd-fg-mute);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 15px;
     padding: 0 2px;
     line-height: 1;
-    width: 16px;
+    width: 20px;
     text-align: center;
     transition: color 0.15s;
-    opacity: 0;
-    transition: opacity 0.15s, color 0.15s;
 }
-.agent-card:hover .agent-file-btn,
-.agent-file-btn:focus { opacity: 1; }
 .agent-file-btn:hover { color: var(--nd-accent); }
 
 /* Section groupings inside Agents tab */
@@ -900,6 +896,17 @@ a:hover {
     background: var(--nd-border-soft);
 }
 .agent-group-label:first-child { margin-top: 0; }
+
+.agent-bundle-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+    margin-bottom: var(--nd-sp-2);
+}
+.agent-bundle-label {
+    font-size: 11px;
+    color: var(--nd-fg-mute);
+}
 
 /* ════════════════════════════════════════════════════════════════
    HOME TAB — Session Artifacts collapsible section

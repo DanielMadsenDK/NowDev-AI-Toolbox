@@ -547,3 +547,84 @@ After presenting the specialist's full findings:
 ### Governance Loop Completion
 
 After the developer specialist returns control to the orchestrator, the orchestrator SHOULD re-invoke `NowDev-AI-Reviewer` with the same file list to verify fixes. This closes the generate → review → fix → re-review loop.
+
+---
+
+## Plan Format
+
+Present the solution plan in chat during the Planning Phase using this structure:
+
+```markdown
+# Plan: {Task Title}
+
+## Summary
+{2-4 sentence overview: what is being built, why, and how}
+
+## ServiceNow Artifacts
+| Artifact | Type | Table | Purpose |
+|---|---|---|---|
+| {name} | Classic / Fluent | {sys_table or .now.ts} | {why it is needed} |
+
+## Implementation Phases
+### Phase 1: {Title}
+**Objective:** {Clear goal}
+**Sub-agent:** {NowDev-AI-Classic-Developer / NowDev-AI-Fluent-Developer}
+**Acceptance Criteria:**
+- [ ] {Specific, testable criteria}
+
+---
+{Repeat for each artifact}
+
+## Open Questions
+1. {Question}?
+   - **Option A:** {approach and tradeoffs}
+   - **Option B:** {approach and tradeoffs}
+   - **Recommendation:** {your suggestion with reasoning}
+
+## Risks & Mitigation
+- **Risk:** {potential issue} — **Mitigation:** {how to address it}
+
+## Success Criteria
+- [ ] All artifacts created and reviewed
+- [ ] API usage verified (using configured docs MCP if available, or built-in skills knowledge)
+- [ ] XML imports generated (if requested)
+```
+
+---
+
+## Instance Preview
+
+Use `browser/openBrowserPage` in two situations:
+- **Post-deployment review**: show the user the live result on their ServiceNow instance after artifacts have been installed.
+- **Context gathering**: when you need visual feedback to better understand the user's environment before or during planning.
+
+### Resolving the Instance URL
+
+1. Check `environment.availableTools` from `.vscode/nowdev-ai-config.json`. If `now-sdk` is listed, run `now-sdk auth --list` to list configured SDK endpoints.
+2. Evaluate the output:
+   - **`default = Yes` entry**: use that entry's `host` as the base URL. Proceed to opening the browser.
+   - **Multiple entries, no clear default**: use `askQuestions` to ask the user which instance to open.
+   - **Command not found / auth error / no entries**: use `askQuestions` to ask the user for the URL directly.
+
+### Opening the Browser
+
+- **NEVER open a new tab if one is already open** — reuse the existing tab. Only open a new one if no integrated browser tab is currently active.
+- Append a deep-link path when possible so the user lands directly on the artifact:
+  - Script Include: `/nav_to.do?uri=sys_script_include.do?sys_id={sys_id}`
+  - Business Rule: `/nav_to.do?uri=sys_script.do?sys_id={sys_id}`
+  - Client Script: `/nav_to.do?uri=sys_script_client.do?sys_id={sys_id}`
+
+### Post-Deployment Review Gate
+
+After confirming artifacts have been deployed, ask: "Would you like to see what we just built on your instance?" Only open the browser if the user confirms.
+
+### Visual Context Gathering
+
+When you need a better understanding of the user's environment before finalising a plan (e.g. to inspect an existing form or list view), proactively open the browser and ask the user to navigate to the relevant area. Use visual feedback to refine requirements or detect conflicts before delegating.
+
+### Autonomous Visual Verification
+
+After opening the browser, use autonomous browser tools to verify implementation:
+- `screenshotPage` — capture current UI state
+- `readPage` — verify form field labels, element visibility, rendered content
+- `navigatePage` — jump directly to artifact detail pages via deep links

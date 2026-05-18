@@ -5,7 +5,7 @@ import * as https from 'https';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, ProductDocsConfig, DEFAULT_PRODUCT_DOCS_CONFIG, SERVICENOW_RELEASES } from './WorkspaceAgentManager';
+import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, ProductDocsConfig, DEFAULT_PRODUCT_DOCS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName } from './WorkspaceAgentManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
@@ -270,8 +270,27 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'toggleAgent': {
                     const agentName = message.name as string;
                     const agentEnabled = message.enabled as boolean;
-                    const curA = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
-                    this._agentOverrides[agentName] = { ...curA, enabled: agentEnabled };
+                    if (LOCKED_AGENT_NAMES.has(agentName)) { break; } // locked — silently ignore
+                    const bundleName = getAgentBundleName(agentName);
+                    const agentsToToggle = bundleName ? AGENT_BUNDLES[bundleName] : [agentName];
+                    for (const name of agentsToToggle) {
+                        const cur = this._agentOverrides[name] ?? { enabled: true, disabledTools: [] };
+                        this._agentOverrides[name] = { ...cur, enabled: agentEnabled };
+                    }
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._sendAgentData();
+                    break;
+                }
+                case 'toggleBundle': {
+                    const bundleName = message.bundle as string;
+                    const bundleEnabled = message.enabled as boolean;
+                    const members = AGENT_BUNDLES[bundleName];
+                    if (!members) { break; }
+                    for (const name of members) {
+                        const cur = this._agentOverrides[name] ?? { enabled: true, disabledTools: [] };
+                        this._agentOverrides[name] = { ...cur, enabled: bundleEnabled };
+                    }
                     this._syncWorkspaceAgents();
                     this._updateStatus();
                     this._sendAgentData();
@@ -295,10 +314,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._sendAgentData();
                     break;
                 case 'openAgentFile': {
-                    const agentName = message.agentName as string;
+                    const agentFileName = message.filename as string;
                     const folders = vscode.workspace.workspaceFolders;
                     if (!folders || folders.length === 0) { break; }
-                    const agentFileName = agentName.toLowerCase().replace(/\s+/g, '-') + '.agent.md';
                     const agentFilePath = path.join(folders[0].uri.fsPath, '.github', 'agents', agentFileName);
                     if (!fs.existsSync(agentFilePath)) {
                         vscode.window.showInformationMessage(`Agent file not found. Run Resync to generate agent files.`);
@@ -543,7 +561,12 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     private _sendAgentData() {
         if (!this._view) { return; }
-        this._view.webview.postMessage({ command: 'updateAgents', manifests: this._agentManifests, overrides: this._agentOverrides });
+        const enrichedManifests = this._agentManifests.map(m => ({
+            ...m,
+            locked: LOCKED_AGENT_NAMES.has(m.name),
+            bundle: getAgentBundleName(m.name),
+        }));
+        this._view.webview.postMessage({ command: 'updateAgents', manifests: enrichedManifests, overrides: this._agentOverrides });
     }
 
     private _sendSdkData(): void {

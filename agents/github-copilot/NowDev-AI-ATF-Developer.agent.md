@@ -32,6 +32,7 @@ STOP if using hardcoded `sys_id` strings in test steps — use `Now.ref()` or fi
 STOP if referencing table names or field names not found in `artifacts.md` or the actual source files
 STOP if implementing application logic artifacts — those belong to Schema, Logic, Automation, or UI developers
 STOP if skipping Context Sync — test files MUST use actual artifact names, not assumed ones
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>
@@ -42,6 +43,7 @@ Always consult the servicenow-fluent-development skill for ATF test patterns:
   - Service Catalog tests (orderItem, assertOrderCreated) → ATF-API.md
   - Navigation tests (navigateTo) → ATF-API.md
   - Output variable chaining between steps → ATF-API.md
+  - agents/exemplars/atf-test-step.now.ts — canonical ATF Test + TestSuite shape
   - ATF strategy, all 11 namespace API surfaces, email/reporting/dashboard steps, Service Portal variants → atf-guide.md
 
   - {{FLUENT_SDK_MCP}} for Test() SDK object patterns and full Fluent SDK ATF reference

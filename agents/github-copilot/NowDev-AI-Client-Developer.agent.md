@@ -27,6 +27,7 @@ handoffs:
 STOP IMMEDIATELY if using training data for ServiceNow APIs — always verify with configured docs MCP if available or reference built-in best practices
 STOP IMMEDIATELY if using GlideRecord in client script (massive performance killer)
 STOP if todo plan not documented
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>
@@ -127,49 +128,7 @@ If a shared page is present in context, proceed immediately with read-only inspe
 
 ## Code Templates
 
-### onChange Client Script
-```javascript
-function onChange(control, oldValue, newValue, isLoading, isTemplate) {
-    // 1. Performance: Stop if loading or empty
-    if (isLoading || newValue === '') {
-        return;
-    }
-
-    // 2. Performance: Stop if value didn't change
-    if (newValue === oldValue) {
-        return;
-    }
-
-    // 3. Logic / Server Call
-    var ga = new GlideAjax('MyScriptInclude'); // Name of Script Include
-    ga.addParam('sysparm_name', 'myMethod'); // Name of Method
-    ga.addParam('sysparm_id', newValue);
-    
-    // 4. Async Callback
-    ga.getXMLAnswer(function(answer) {
-        if (answer) {
-            var result = JSON.parse(answer);
-            g_form.setValue('short_description', result.msg);
-            
-            if (result.isError) {
-                g_form.showErrorBox('field_name', 'Error message');
-            }
-        }
-    });
-}
-```
-
-### onLoad Client Script
-```javascript
-function onLoad() {
-    // Check g_scratchpad (populated by Display BR)
-    if (g_scratchpad.isManager) {
-        g_form.setReadOnly('sensitive_field', false);
-    } else {
-        g_form.setReadOnly('sensitive_field', true);
-    }
-}
-```
+- `agents/exemplars/classic-client-script.js` — canonical onChange (with isLoading guard and async GlideAjax callback) and onLoad (with g_scratchpad) patterns
 
 ## Session Artifact Registry
 

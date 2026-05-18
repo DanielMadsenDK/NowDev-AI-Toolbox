@@ -2,7 +2,8 @@
 name: servicenow-manipulate-data
 context: fork
 user-invocable: false
-description: Query, insert, update, and delete records in the ServiceNow database with emphasis on performance and security. Covers two approaches: (1) Classic GlideRecord API for existing instances and legacy code, and (2) Modern Fluent SDK (GlideQuery) for new TypeScript projects. Use when working with database records, aggregating data, or implementing data-driven logic. For legacy/existing instances, recommend Classic patterns; for new SDK projects, recommend Fluent patterns. Trigger this skill whenever the user needs to query, create, update, or delete ServiceNow records, aggregate data with GlideAggregate, or perform any database operations — even for simple lookups or record iteration.
+description: Query, insert, update, and delete records in the ServiceNow database with emphasis on performance and security. Covers two approaches: (1) Classic GlideRecord/GlideAggregate API for existing instances and legacy code, and (2) Modern Fluent SDK (GlideQuery, GlideQuery.select, .selectOne, .reduce) for new TypeScript projects. Use when working with database records, aggregating data, or implementing data-driven logic. For legacy/existing instances, recommend Classic patterns; for new SDK projects, recommend Fluent GlideQuery patterns. Trigger this skill whenever the user needs to query, create, update, or delete ServiceNow records, aggregate data with GlideAggregate or GlideQuery, count records, or perform any database operations — even for simple lookups or record iteration.
+last_verified: "2026-05-18"
 ---
 
 # Manipulate ServiceNow Data

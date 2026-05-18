@@ -31,6 +31,7 @@ STOP if any wfa.trigger, wfa.action, or wfa.flowLogic call is missing a unique $
 STOP if using raw strings instead of TemplateValue() for createRecord/updateRecord field values
 STOP if referencing own metadata with Now.ID[...] in data fields — use constant.$id
 STOP if implementing Business Rules, Script Includes, or UI artifacts — those belong to other specialists
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>

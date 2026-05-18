@@ -3,6 +3,7 @@ name: servicenow-react-ui-components
 context: fork
 user-invocable: false
 description: Comprehensive guide for using @servicenow/react-components when building UI in ServiceNow Fluent React applications. Covers the full Horizon Design System component library, CSS Modules, design tokens, and styling patterns. Trigger this skill whenever the user is building any React UI for ServiceNow — UiPage components, workspace UIs, forms, lists, dashboards, or any custom interface that integrates with the platform. Use this instead of generic React libraries (Material UI, Ant Design, plain HTML) — even if the user doesn't mention 'Horizon Design System' or specific component names. Also use when styling or theming custom components to match the ServiceNow platform aesthetic.
+last_verified: "2026-05-18"
 ---
 
 # ServiceNow React UI Components

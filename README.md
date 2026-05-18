@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.5.5-blue)
+  ![Version](https://img.shields.io/badge/version-0.5.6-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.120+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -256,6 +256,18 @@ graph TD
 - **Three-Tier Agent Hierarchy**: The orchestrator delegates to domain coordinators (Classic Developer, Fluent Developer, Reviewer, Release Expert), which in turn delegate to focused specialists (Script Developer, Business Rule Developer, Classic Reviewer, Fluent Release, etc.). Each tier handles only its own concerns — you never need to pick the right specialist manually.
 
 ## Code Examples
+
+### Canonical Exemplars
+
+`agents/exemplars/` contains minimal reference files for each artifact type — the "what good looks like" shapes that agents pattern-match when generating code:
+
+| Category | Files |
+|----------|-------|
+| Fluent SDK | Table + Role + ACL, ScriptInclude, BusinessRule, ATF Test |
+| Classic scripting | GlideRecord, Script Include, GlideAjax, Business Rule, Client Script |
+| CI/CD pipelines | GitHub Actions (4 strategies), Azure DevOps, branching strategy docs |
+
+### Skill Examples
 
 The project includes comprehensive code examples from the official [ServiceNow SDK Examples Repository](https://github.com/servicenow/sdk-examples) integrated directly into the skills. Each skill in the `agents/skills/` directory includes an `EXAMPLES.md` file with code examples:
 

@@ -3,6 +3,7 @@ name: servicenow-http-integrations
 context: fork
 user-invocable: false
 description: Establish outbound HTTP connections to external systems using REST, SOAP, and HTTP protocols. Covers RESTMessageV2, SOAPMessageV2, OAuth token retrieval as part of API flows, and response parsing. Use when making outbound API calls to external or third-party systems, consuming REST/SOAP services, or handling full HTTP request/response flows. For encrypting data, managing cryptographic keys, certificate operations, or security primitives, use the servicenow-server-security skill. Trigger this skill whenever the user needs to call an external API, integrate with a third-party service, make outbound HTTP requests from ServiceNow, or consume REST or SOAP web services.
+last_verified: "2026-05-18"
 ---
 
 # HTTP Integrations (REST/SOAP)
@@ -51,27 +52,48 @@ var authRequest = new sn_auth.RequestAuthAPI().generateAuth(credential, request)
 var authedData = authRequest.getAuthorizedRequest();
 ```
 
+## Decision Matrix: Which Integration Approach to Use
+
+| Requirement | GlideAjax | RESTMessageV2 | SOAPMessageV2 |
+|------------|-----------|---------------|---------------|
+| Internal ServiceNow app calling its own server logic | **Best** | Overkill | No |
+| External REST API (JSON) | No | **Best** | No |
+| External SOAP/WSDL legacy service | No | No | **Best** |
+| Mobile or non-browser client | No | **Required** | Possible |
+| OpenAPI documentation needed | No | Supported | No |
+| ServiceNow native session security | Built-in | Manual | Manual |
+
+**When to use this skill vs. adjacent skills:**
+
+| Need | Skill to use |
+|------|--------------|
+| Call an external REST or SOAP API | **This skill** |
+| OAuth token retrieval as part of an outbound API call | **This skill** (GlideOAuthClient) |
+| Encrypt/decrypt data, manage certificates, HMAC/signing primitives | `servicenow-server-security` |
+| ServiceNow internal client→server communication (GlideAjax) | `servicenow-client-scripts` |
+
 ## HTTP APIs
 
 | API | Use Case |
 |-----|----------|
-| GlideHTTPRequest | Basic HTTP client operations |
-| RESTMessageV2 | Outbound REST messages with full control |
-| SOAPMessageV2 | SOAP web service calls |
-| GlideOAuthClient | OAuth token retrieval and refresh |
-| RequestAuthAPI | Cryptographic request signing |
+| `sn_ws.RESTMessageV2` | Outbound REST — full control over headers, body, auth |
+| `sn_ws.SOAPMessageV2` | SOAP web service calls |
+| `sn_auth.GlideOAuthClient` | OAuth token retrieval and refresh |
+| `sn_auth.RequestAuthAPI` | Cryptographic request signing (HMAC, etc.) |
+| `GlideHTTPRequest` | Simple HTTP; prefer RESTMessageV2 for production use |
 
 ## Best practices
 
-- Always check response status codes before parsing
-- Use RESTMessageV2 for complex REST integrations
-- Handle OAuth token expiration and refresh gracefully
-- Validate SSL certificates in production
-- Use SOAP messages for legacy integrations
-- Test timeouts on slow connections
-- Encrypt sensitive credentials using standard providers
-- Implement retry logic for transient failures
-- Log integration errors for troubleshooting
+| Practice | Why it matters |
+|----------|----------------|
+| Always check `getStatusCode()` before parsing body | Non-200 responses can return non-JSON |
+| Use named REST Message records (not hardcoded URLs) | Keeps endpoints configurable per environment |
+| Set `setHttpTimeout()` explicitly | Default timeout can be too long for UI-blocking calls |
+| Handle OAuth token expiration and refresh | Tokens expire; build refresh logic or use GlideOAuthClient |
+| Validate SSL certificates in production | Disabling SSL validation is a security risk |
+| Use `sn_ws.SOAPMessageV2` for WSDL-based services | Handles SOAP envelope, namespace, and WSDL parsing |
+| Implement retry logic for transient failures | Network errors are common; exponential backoff is safer |
+| Log integration errors with `gs.error()` | Required for audit trail and debugging in production |
 
 ## Response handling
 

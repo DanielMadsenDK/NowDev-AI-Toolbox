@@ -3,6 +3,7 @@ name: servicenow-server-date-time
 context: fork
 user-invocable: false
 description: Perform date arithmetic, time calculations, timezone conversions, and schedule management using server-side APIs. Covers GlideDateTime, GlideDate, GlideDuration, GlideSchedule, and related scheduling operations. Trigger this skill whenever you need to add or subtract time from dates, compare date ranges, calculate durations, work with business calendars, format dates for display or storage, query scheduled jobs, calculate SLA time windows, handle relative time expressions, or implement any time-based business logic — even for simple date comparisons or timestamp formatting.
+last_verified: "2026-05-18"
 ---
 
 # Server Date & Time

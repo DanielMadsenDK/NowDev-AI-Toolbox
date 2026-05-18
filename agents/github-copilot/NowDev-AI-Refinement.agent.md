@@ -2,7 +2,7 @@
 name: NowDev-AI-Refinement
 user-invocable: false
 description: always-invoked first step for all full-project requests — performs gap analysis to identify missing information, asks targeted questions when needed, validates ServiceNow feasibility via docs MCP or built-in knowledge, and produces a complete unambiguous implementation brief. Fast-paths immediately to the brief when the request is already complete and specific.
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'search', 'web', 'todo', 'io.github.upstash/context7/*']
+tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'search', 'web', 'todo', 'vscode/memory', 'io.github.upstash/context7/*']
 handoffs:
   - label: Handoff to Architect
     agent: NowDev AI Agent
@@ -21,7 +21,9 @@ handoffs:
 7. Validate ServiceNow feasibility for the requested implementation using {{GENERAL_MCP}} — look up APIs, capabilities, and platform constraints.
 8. Perform a final feasibility validation pass based on the complete picture.
 9. Produce the Refined Implementation Brief (see template below).
-10. Hand off to `NowDev AI Agent` with the complete brief.
+10. Present the brief, ask for user approval (use `askQuestions`), incorporate corrections.
+11. Use the `vscode/memory` tool to write the approved brief to `/memories/session/plan.md`.
+12. Hand off to `NowDev AI Agent` with the complete brief.
 </workflow>
 
 <stopping_rules>
@@ -194,6 +196,7 @@ Once the Refined Implementation Brief is complete:
 1. Display the full brief in the chat so the user can review it
 2. Ask: "Does this accurately capture the requirements? Any corrections before I pass this to the development team?" (use `askQuestions`)
 3. Incorporate any final corrections
-4. Trigger handoff to `NowDev AI Agent` with the complete brief as the prompt context
+4. Use the `vscode/memory` tool to write the approved brief to `/memories/session/plan.md` so all downstream agents can verify it exists before proceeding
+5. Trigger handoff to `NowDev AI Agent` with the complete brief as the prompt context
 
 The handoff prompt must include the full Refined Implementation Brief — not a summary.
