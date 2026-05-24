@@ -36,6 +36,9 @@ Create a table [sys_db_object] in an application.
 | `index` | Array | A list of column references to generate indexes in the metadata XML of the table. A database index increases the speed of accessing data with the expense of additional storage. Format: `[{ name: 'String', element: 'String', unique: Boolean }, ...]` |
 | `autoNumber` | Object | The auto-numbering configuration [sys_number] for a table. For more information, see autoNumber object. |
 | `scriptableTable` | Boolean | Flag that indicates whether the table is a remote table that uses data retrieved from an external source. Valid values: `true` (The table is a remote table), `false` (The table isn't a remote table). Default: `false`. For more information, see Remote tables. |
+| `augment` | Boolean | Set to `true` when adding columns to an existing table that is outside the application scope (e.g., extending a global or out-of-box table). Use this instead of `extends` when you need to augment rather than inherit. Default: `false`. |
+| `createAccessControls` | Boolean | When `true`, creates default access controls for the table automatically on install. Default: `false`. |
+| `userRole` | String | Wires the table's auto-generated access controls to a specific user role. Used together with `createAccessControls: true`. Example: `'x_myapp.user'`. |
 
 ### Example
 

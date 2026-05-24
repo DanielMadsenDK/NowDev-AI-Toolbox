@@ -3,7 +3,7 @@ name: servicenow-ai-agent-studio
 context: fork
 user-invocable: false
 description: Build AI Agent definitions and Agentic Workflows for ServiceNow's AI Agent Studio using the Fluent SDK. Covers AiAgent (autonomous task agents with tools, triggers, and versioned instructions) and AiAgenticWorkflow (orchestrated multi-agent team workflows). Use when creating AI-powered automation in Now Assist Panel or Virtual Agent channels, or when building agent teams that coordinate across records, schedules, or business events. Trigger this skill whenever the user mentions AI agents, AiAgent, AiAgenticWorkflow, agent tools, Now Assist Panel automation, or building AI-powered workflows in ServiceNow, even if they don't explicitly mention the AI Agent Studio.
-last_verified: "2026-05-18"
+last_verified: "2026-05-24"
 ---
 
 # ServiceNow AI Agent Studio — Fluent SDK
@@ -17,7 +17,7 @@ The AI Agent Studio lets you define autonomous agents that can reason over Servi
 | `AiAgent` | `sn_aia_agent` | A single agent with a role, instructions, tools, and optional triggers |
 | `AiAgenticWorkflow` | `sn_aia_usecase` | An orchestrated team of agents sharing a workflow objective |
 
-Both are imported from `@servicenow/sdk/core`. Requires SDK 4.4.0 or higher.
+Both are imported from `@servicenow/sdk/core`.
 
 ---
 
@@ -107,6 +107,7 @@ export const myAgent = AiAgent({
 | Property | Type | Default | Purpose |
 |----------|------|---------|---------|
 | `active` | boolean | `true` | Whether the agent is active |
+| `agentDescriptor` | string | — | Lifecycle/origin marker: `'require_caller_id'`, `'created_by_ai_agent_advisor'`, `'created_by_build_agent'`, or `''`. Written to `sn_aia_agent_config`. SDK 4.7.0+. |
 | `advancedMode` | boolean | `false` | Enables advanced configuration options |
 | `agentLearning` | boolean | `false` | Enable agent learning from interactions |
 | `agentType` | string | `'internal'` | `'internal'`, `'external'`, `'voice'`, or `'aia_internal'` |
@@ -249,9 +250,15 @@ Set **either** `runAsUser` (agent) / `runAs` (workflow) **or** `dataAccess` — 
 // Option A — fixed service account (agent)
 runAsUser: 'sys_id_of_service_account',
 
-// Option B — dynamic identity (caller's permissions, restricted to listed roles)
+// Option B — dynamic identity, using roleMap (recommended for ZP10+ instances, SDK 4.7.0+)
 dataAccess: {
-    roleList: ['282bf1fac6112285017366cb5f867469'],  // itil role sys_id
+    roleMap: ['itil'],       // role names stored in M2M sys_agent_access_role_mapping
+    description: 'Restrict to itil role',
+},
+
+// Option B (pre-ZP10) — use roleList with role sys_ids instead
+dataAccess: {
+    roleList: ['282bf1fac6112285017366cb5f867469'],  // role sys_id
     description: 'Restrict to itil role',
 },
 ```
@@ -313,7 +320,8 @@ export const reviewWorkflow = AiAgenticWorkflow({
 | Every `AiAgent` and `AiAgenticWorkflow` needs a unique `$id: Now.ID['...']` | Prevents duplicate records on install |
 | Use `constant.$id` (not `Now.ID[...]`) when referencing your own exported agents | Fluent cross-reference pattern |
 | `securityAcl` is **mandatory** on all agents and workflows | Auto-generates ACL records |
-| `runAsUser` and `dataAccess.roleList` are mutually exclusive | Platform constraint |
+| `runAsUser` and `dataAccess` (`roleList`/`roleMap`) are mutually exclusive | Platform constraint |
+| Prefer `dataAccess.roleMap` on ZP10+ instances; use `roleList` (sys_ids) on older instances | `roleMap` stores role names in M2M records, more portable |
 | Set triggers `active: false` initially; enable after testing | Prevents accidental execution during development |
 | Keep instructions in `versionDetails` — never hardcode behaviour in `contextProcessingScript` | `contextProcessingScript` is for data enrichment, not behavioural guidance |
 

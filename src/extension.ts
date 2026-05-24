@@ -419,7 +419,7 @@ export function activate(context: vscode.ExtensionContext) {
         }),
 
         // Transform (with preview → virtual document; supports --from <path> for local XML)
-        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', async (args: { preview?: boolean; auth?: string; from?: string; pickFrom?: boolean } = {}) => {
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', async (args: { preview?: boolean; from?: string; pickFrom?: boolean; metadataFolder?: string } = {}) => {
             const cwd = getWorkspaceFolder();
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
 
@@ -436,9 +436,13 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const cmdArgs = ['transform'];
-            if (fromPath) { cmdArgs.push('--from', fromPath); }
+            if (fromPath) {
+                cmdArgs.push('--from', fromPath);
+            } else {
+                const metaFolder = args.metadataFolder?.trim() || 'metadata';
+                cmdArgs.push('--from', path.join(cwd, metaFolder));
+            }
             if (args.preview) { cmdArgs.push('--preview'); }
-            if (args.auth) { cmdArgs.push('--auth', args.auth); }
 
             if (args.preview) {
                 const chan = vscode.window.createOutputChannel('NowDev: Transform Preview');
@@ -701,6 +705,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('nowdev-ai-toolbox.sdkSync', async (args: { auth?: string } = {}) => {
             const cwd = getWorkspaceFolder();
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
+            welcomeProvider.setSdkCommandStatus('sync', true, 'Downloading…');
             const downloadDir = path.join(cwd, 'metadata');
             const downloadArgs = ['download', downloadDir, '--incremental'];
             if (args.auth) { downloadArgs.push('--auth', args.auth); }
@@ -709,8 +714,8 @@ export function activate(context: vscode.ExtensionContext) {
                 welcomeProvider.setSdkCommandStatus('sync', false, 'Sync stopped: download failed');
                 return;
             }
-            const transformArgs = ['transform'];
-            if (args.auth) { transformArgs.push('--auth', args.auth); }
+            welcomeProvider.setSdkCommandStatus('sync', true, 'Download succeeded · Transforming…');
+            const transformArgs = ['transform', '--from', downloadDir];
             const transformOk = await spawnSdkCmd('Transform', transformArgs, cwd, 'transform');
             welcomeProvider.setSdkCommandStatus('sync', transformOk, transformOk ? 'Sync completed' : 'Sync stopped: transform failed');
         })

@@ -130,12 +130,23 @@ Prompts for alias, username, and password. Credentials stored in `.now-sdk/` (gi
 npx now-sdk auth --use <alias>
 ```
 
-### Non-Interactive (CI/CD)
+### Non-Interactive (CI/CD) — Basic Auth
 
 ```bash
 export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
 export SN_SDK_USER=admin
 export SN_SDK_USER_PWD=password
+```
+
+### Non-Interactive (CI/CD) — OAuth client_credentials (SDK 4.7.0+)
+
+Use OAuth `client_credentials` flow for the `install` command in CI/CD pipelines:
+
+```bash
+export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
+export SN_SDK_CLIENT_ID=<oauth_client_id>
+export SN_SDK_CLIENT_SECRET=<oauth_client_secret>
+export SN_SDK_AUTH_TYPE=client_credentials
 ```
 
 Environment variables take precedence over stored credentials.
@@ -169,6 +180,9 @@ Existing metadata XML and supporting files are placed inside the `metadata` fold
 After initializing from an instance or repo, metadata will be in `metadata/` in XML form. Use `transform` to convert to fluent code:
 
 ```bash
+# Transform the metadata directory (most common — default when using the NowDev extension)
+npx @servicenow/sdk transform --from metadata
+
 # Transform a single file
 npx @servicenow/sdk transform --from metadata/update/sys_script_<sys_id>.xml
 
@@ -177,9 +191,15 @@ npx @servicenow/sdk transform --from .
 
 # Transform a specific directory
 npx @servicenow/sdk transform --from metadata/update
+
+# Transform only specific tables (SDK 4.7.0+)
+npx @servicenow/sdk transform --table incident,problem
+npx @servicenow/sdk transform --table sys_script_include
 ```
 
 Transformed files are scaffolded into the generated directory (configurable in `now.config.json`) and removed from `metadata` upon successful conversion.
+
+When using `--table`, records are filtered to the metadata directory and transformed XML files are cleaned up automatically.
 
 > **Note:** Records that exist as both a fluent entity (`.now.ts` file) and an XML file in `metadata` will use the XML version on `build`. Remove converted XML files to avoid conflicts.
 
@@ -359,6 +379,15 @@ The `now.config.json` file at the project root configures all aspects of the Flu
 
 **`scripts`**
 - Task runner scripts (async, executed before build)
+
+**`linter`** (SDK 4.7.0+)
+- Override the Fluent linting level for server modules:
+```json
+{
+  "linter": { "level": "warn" }
+}
+```
+Valid `level` values: `"error"` (default), `"warn"`, `"off"`.
 
 ---
 

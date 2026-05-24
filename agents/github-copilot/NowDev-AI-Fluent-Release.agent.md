@@ -3,7 +3,7 @@ name: NowDev-AI-Fluent-Release
 user-invocable: false
 description: specialized agent for Fluent SDK deployment — runs now-sdk build and install, verifies build output, and guides the user through SDK-based deployment to a ServiceNow instance
 argument-hint: "Project root path, target auth alias (from now-sdk auth --list), and whether a clean reinstall (--reinstall) is needed"
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Release Expert
     agent: NowDev-AI-Release-Expert

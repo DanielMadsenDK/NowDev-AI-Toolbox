@@ -1278,6 +1278,19 @@ a:hover {
     color: var(--nd-accent-hi);
     border-color: var(--nd-accent);
 }
+.sdk-sync-btn {
+    width: 100%;
+    justify-content: center;
+    font-weight: 600;
+    background: rgba(129,181,161,0.12);
+    color: var(--nd-accent-hi);
+    border-color: rgba(129,181,161,0.35);
+}
+.sdk-sync-btn:hover {
+    background: rgba(129,181,161,0.22);
+    color: var(--nd-accent-hi);
+    border-color: var(--nd-accent);
+}
 
 .sdk-explain-row {
     display: flex;

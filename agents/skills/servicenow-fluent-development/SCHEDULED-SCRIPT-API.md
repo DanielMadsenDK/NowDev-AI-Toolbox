@@ -37,7 +37,7 @@ Set `frequency` to control how often the job runs:
 |-------|-------------|----------------|
 | `'once'` | A single run at `executionStart` | `executionStart` |
 | `'daily'` | Every day at `executionTime` | `executionTime` |
-| `'weekly'` | On `daysOfWeek` at `executionTime` | `daysOfWeek` (mandatory array) |
+| `'weekly'` | On `daysOfWeek` at `executionTime` | `daysOfWeek` (array) or `dayOfWeek` (string) — at least one required (SDK 4.7.0+ accepts either) |
 | `'monthly'` | On `dayOfMonth` at `executionTime` | `dayOfMonth` (1–31; 31 = month-end) |
 | `'periodically'` | Every `executionInterval` starting from `executionStart` | `executionInterval` (mandatory) |
 | `'on_demand'` | Never runs automatically; triggered manually | (none) |
@@ -65,6 +65,8 @@ daysOfWeek: ['monday', 'wednesday', 'friday'],
 ```
 
 Valid values: `'sunday'`, `'monday'`, `'tuesday'`, `'wednesday'`, `'thursday'`, `'friday'`, `'saturday'`
+
+> **SDK 4.7.0+:** The singular form `dayOfWeek: 'monday'` is also accepted for `weekly` frequency. Prefer `daysOfWeek` (array) for new code as it allows multiple days.
 
 ### Day of Month (monthly)
 

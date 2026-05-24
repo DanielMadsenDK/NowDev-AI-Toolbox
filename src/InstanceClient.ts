@@ -139,7 +139,15 @@ export class InstanceClient {
         const creds = await this.getCredentials(alias);
         if (!creds) { return { ok: false, error: 'No credentials' }; }
         try {
-            const res = await this.requestRaw(creds, 'GET', '/api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id');
+            const pingPath = '/api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id';
+            let res = await this.requestRaw(creds, 'GET', pingPath);
+            if (res.statusCode === 401) {
+                // Stored credentials are wrong — clear them and re-prompt once
+                await this.clearCredentials(alias);
+                const fresh = await this.getCredentials(alias);
+                if (!fresh) { return { ok: false, error: 'No credentials' }; }
+                res = await this.requestRaw(fresh, 'GET', pingPath);
+            }
             const ok = res.statusCode === 200;
             return { ok, statusCode: res.statusCode, error: ok ? undefined : `HTTP ${res.statusCode}` };
         } catch (err: any) {
@@ -161,7 +169,14 @@ export class InstanceClient {
         params.set('sysparm_exclude_reference_link', 'true');
 
         const path = `/api/now/table/${encodeURIComponent(table)}?${params.toString()}`;
-        const res = await this.requestRaw(creds, 'GET', path);
+        let res = await this.requestRaw(creds, 'GET', path);
+        if (res.statusCode === 401) {
+            // Stored credentials rejected — clear and re-prompt once, then retry
+            await this.clearCredentials(alias);
+            const fresh = await this.getCredentials(alias);
+            if (!fresh) { throw new Error('Authentication cancelled'); }
+            res = await this.requestRaw(fresh, 'GET', path);
+        }
         if (res.statusCode !== 200) {
             const errPayload = this.tryParse(res.body)?.error?.message ?? `HTTP ${res.statusCode}`;
             throw new Error(errPayload);
@@ -204,6 +219,7 @@ export class InstanceClient {
                     path: url.pathname + url.search,
                     method,
                     timeout: 20000,
+                    rejectUnauthorized: true,
                     headers: {
                         Authorization: authHeader,
                         Accept: 'application/json',

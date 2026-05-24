@@ -661,11 +661,11 @@ const PANEL_HTML = `
 <div id="errorBanner" class="error-banner" style="display:none;"></div>
 
 <div class="toolbar">
-    <label for="aliasSelect">Auth alias</label>
+    <label for="aliasSelect">Instance</label>
     <select id="aliasSelect"></select>
     <span id="hostHint" class="hint"></span>
     <button id="connectBtn" class="primary">Connect</button>
-    <button id="forgetBtn" title="Forget stored credentials for this alias">Forget</button>
+    <button id="forgetBtn" title="Forget stored REST credentials for this instance">Forget</button>
     <span id="connBadge" class="badge idle">Not connected</span>
     <span style="flex:1;"></span>
     <label for="packageSelect">Package</label>
@@ -697,7 +697,7 @@ const PANEL_HTML = `
         <input type="text" id="filterInput" placeholder="Quick filter loaded results…" autocomplete="off">
         <span id="filterCount" class="hint"></span>
     </div>
-    <div id="resultsList" class="list"><div class="empty">Connect to an instance and search to begin.</div></div>
+    <div id="resultsList" class="list"><div class="empty">Connect to an instance and search to begin.<br><span style="font-size:0.85em;opacity:0.7">Instance login credentials are separate from SDK auth — you will be prompted once per instance.</span></div></div>
 </div>
 
 <div id="tab-current" class="tab-content">

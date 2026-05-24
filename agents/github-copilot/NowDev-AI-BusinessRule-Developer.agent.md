@@ -3,7 +3,7 @@ name: NowDev-AI-BusinessRule-Developer
 user-invocable: false
 description: specialized agent for creating and optimizing ServiceNow Business Rules
 argument-hint: "The business requirement for the database-level automation to implement — describe which table is involved, what event or condition should trigger it, and what the automation should do. The agent will determine the trigger type, timing, and implementation details itself."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
 handoffs:
   - label: Back to Classic Developer
     agent: NowDev-AI-Classic-Developer

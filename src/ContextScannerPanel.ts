@@ -605,11 +605,11 @@ const PANEL_HTML = `
 <!-- Step 1: Describe -->
 <div id="step-describe" class="step active">
     <div class="toolbar">
-        <label for="aliasSelect">Auth alias</label>
+        <label for="aliasSelect">Instance</label>
         <select id="aliasSelect"></select>
         <span id="hostHint" class="hint"></span>
         <button id="connectBtn" class="primary">Connect</button>
-        <button id="forgetBtn" title="Forget stored credentials">Forget</button>
+        <button id="forgetBtn" title="Forget stored REST credentials for this instance">Forget</button>
         <span id="connBadge" class="badge idle">Not connected</span>
     </div>
     <div class="section-label">Describe your task</div>
@@ -617,6 +617,7 @@ const PANEL_HTML = `
     <div class="actions-bar">
         <button id="nextBtn" class="primary" disabled>Next: Configure Scan ›</button>
         <span class="hint" id="nextHint">Connect to an instance and enter a task description to continue.</span>
+        <span class="hint">Instance login credentials are separate from SDK auth — you will be prompted once per instance.</span>
     </div>
 </div>
 

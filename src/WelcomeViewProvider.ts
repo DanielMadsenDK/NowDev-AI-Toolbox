@@ -1299,6 +1299,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div class="sdk-quick-actions">
                 <button class="fix-btn sdk-run-btn sdk-deploy-btn" data-cmd="deploy" title="Build then Install — stops if Build fails">Deploy (Build &rarr; Install)</button>
                 <div class="sdk-cmd-status" id="sdkStatus-deploy"></div>
+                <button class="fix-btn sdk-run-btn sdk-sync-btn" data-cmd="sync" title="Incremental download from instance, then transform XML to Fluent source">Sync (Download &rarr; Transform)</button>
+                <div class="sdk-cmd-status" id="sdkStatus-sync"></div>
             </div>
 
             ${this._sdkCard({
@@ -1320,7 +1322,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 name: 'Transform', tagline: 'Sync instance → source',
                 statusId: 'sdkStatus-transform', runCmd: 'transform',
                 helpCmd: 'transform', optsId: 'opts-transform',
-                optsHtml: '<label class="sdk-opt"><input type="checkbox" id="transformPreview"> <code>--preview</code> <span class="sdk-opt-hint">show output without saving</span></label>',
+                optsHtml: `<label class="sdk-opt"><input type="checkbox" id="transformPreview"> <code>--preview</code> <span class="sdk-opt-hint">show output without saving</span></label>
+                    <div class="sdk-opt-row"><label class="sdk-auth-label">Metadata folder</label><input type="text" id="transformMetadataFolder" value="metadata" placeholder="metadata" style="flex:1;min-width:0"></div>`,
                 extraBtns: ['<button class="fix-btn" id="transformFromXmlBtn" title="Transform a local XML file or folder (--from)">From XML&hellip;</button>'],
             })}
             ${this._sdkCard({
@@ -1347,7 +1350,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 afterHtml: '<div id="checkChangesStatus" class="changes-status nd-hidden"></div>',
             })}
             ${this._sdkCardMini([
-                { name: 'Sync', tagline: 'Download → Transform', statusId: 'sdkStatus-sync', runCmd: 'sync', runTitle: 'Incremental download then transform' },
                 { name: 'Move', tagline: 'Global metadata → Fluent', statusId: 'sdkStatus-move', runCmd: 'move', runTitle: 'Transform global metadata into local Fluent code' },
             ])}
             ${this._sdkCardMini([

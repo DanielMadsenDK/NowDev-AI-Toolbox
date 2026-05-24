@@ -32,6 +32,9 @@
 - [Applicability](#applicability)
 - [Workspace](#workspace)
 - [Sla](#sla)
+- [DataPolicy](#datapolicy)
+- [Universal $override Property](#universal-override-property)
+- [protectionPolicy](#protectionpolicy)
 
 ---
 
@@ -1694,3 +1697,82 @@ Sla({
 ```
 
 For complete property documentation, examples with retroactive timing, variable schedules, custom behavior, and best practices, see [SLA-API.md](./SLA-API.md).
+
+---
+
+## DataPolicy
+
+`DataPolicy` creates `sys_data_policy2` records. Use it to enforce field-level data validation for records created via import sets or SOAP, independent of UI policies.
+
+```ts
+import { DataPolicy } from '@servicenow/sdk/core'
+
+DataPolicy({
+    $id: Now.ID['import_soap_policy'],
+    table: 'incident',
+    shortDescription: 'Data Policy for Import and SOAP',
+    description: 'Enforce data validation for records created via import sets or SOAP',
+    applyToImportSets: true,
+    applyToSOAP: true,
+    useAsUiPolicyOnClient: false,
+    rules: {
+        short_description: { mandatory: true },
+        caller_id: { mandatory: true },
+        category: { mandatory: true },
+    },
+})
+```
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `$id` | `Now.ID[...]` | Yes | Unique metadata identifier |
+| `table` | String | Yes | Target table name |
+| `shortDescription` | String | No | Short label for this policy |
+| `description` | String | No | Full description |
+| `applyToImportSets` | Boolean | No | Enforce during import set processing. Default: `false` |
+| `applyToSOAP` | Boolean | No | Enforce for records created via SOAP/REST. Default: `false` |
+| `useAsUiPolicyOnClient` | Boolean | No | Also behave as a UI policy on the client. Default: `false` |
+| `rules` | Object | No | Field rules keyed by column name. Each value is `{ mandatory?: boolean }` |
+
+---
+
+## Universal $override Property
+
+All Fluent API objects accept an optional `$override` property. Use it to set any field not otherwise exposed by the API surface — for example, custom fields from other application scopes.
+
+```ts
+import { BusinessRule } from '@servicenow/sdk/core'
+
+BusinessRule({
+    $id: Now.ID['my_rule'],
+    name: 'My Rule',
+    table: 'incident',
+    $override: {
+        x_myscope_customfield: 'value',
+        u_globalfield: 'value1'
+    }
+})
+```
+
+`$override` values are written directly to the metadata XML. Only use this for fields that are not exposed through the typed API — prefer the typed properties where they exist.
+
+---
+
+## protectionPolicy
+
+Most Fluent API objects that produce `sys_metadata` records accept a `protectionPolicy` property (added universally in SDK 4.7.0 to all APIs that have `sys_policy` support). Valid values:
+
+| Value | Effect |
+|-------|--------|
+| `'read'` | Record is read-only when downloaded to another instance |
+| `'protected'` | Record content is encrypted on download |
+| `''` (empty string) | No protection (default) |
+
+```ts
+ScriptInclude({
+    $id: Now.ID['my_include'],
+    name: 'MyInclude',
+    protectionPolicy: 'read',
+    script: Now.include('./my-include.js'),
+})
+```

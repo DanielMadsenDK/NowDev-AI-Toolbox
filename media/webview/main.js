@@ -218,6 +218,8 @@
                 args.openBrowser = !!(document.getElementById('installOpenBrowser') && document.getElementById('installOpenBrowser').checked);
             } else if (cmd === 'transform') {
                 args.preview = !!(document.getElementById('transformPreview') && document.getElementById('transformPreview').checked);
+                var metaFolderEl = document.getElementById('transformMetadataFolder');
+                args.metadataFolder = (metaFolderEl && metaFolderEl.value.trim()) ? metaFolderEl.value.trim() : 'metadata';
             } else if (cmd === 'dependencies') {
                 args.mode = document.getElementById('depsMode') ? document.getElementById('depsMode').value : 'all';
             } else if (cmd === 'download') {

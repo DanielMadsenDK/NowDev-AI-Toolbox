@@ -1874,3 +1874,109 @@ export const changeRiskTaggingFlow = Flow(
 - **Wrap field values in `TemplateValue`** — for record updates and creates
 - **Use data pills correctly** — match the data type to the field's actual type (`'string'`, `'reference'`, `'integer'`, etc.)
 - **Test with background execution** — set `run_flow_in: 'background'` and monitor for errors
+
+---
+
+## SDK 4.7.0 Flow Enhancements
+
+### Flow Stages
+
+Flows now support stage definitions. Stages appear in the flow execution UI and provide progress tracking. Stages can also be used inside `tryCatch` blocks.
+
+Add a `stages` property to the Flow configuration object:
+
+```ts
+export const myFlow = Flow(
+  {
+    $id: Now.ID['my_flow'],
+    name: 'My Flow',
+    stages: [
+      { $id: Now.ID['stage_open'], name: 'Open', value: 'open' },
+      { $id: Now.ID['stage_in_progress'], name: 'In Progress', value: 'in_progress' },
+      { $id: Now.ID['stage_closed'], name: 'Closed', value: 'closed' },
+    ],
+  },
+  wfa.trigger(trigger.record.created, { $id: Now.ID['trigger_id'] }, triggerOptions),
+  (params) => {
+    // flow body
+  }
+)
+```
+
+---
+
+### wfa.tryCatch
+
+`wfa.tryCatch` defines a try/catch logic block for structured error handling within a flow.
+
+```ts
+wfa.tryCatch(
+  { $id: Now.ID['try_catch_block'] },
+  (tryParams) => {
+    // actions that may fail
+    wfa.action(action.core.lookUpRecord, { $id: Now.ID['lookup'] }, {
+      table_name: 'incident',
+      filters: `number=${wfa.dataPill(tryParams.trigger.current.number, 'string')}`,
+    })
+  },
+  (catchParams) => {
+    // error handling actions
+    wfa.action(action.core.log, { $id: Now.ID['log_error'] }, {
+      log_message: 'Flow error caught',
+    })
+  }
+)
+```
+
+---
+
+### wfa.doInParallel
+
+`wfa.doInParallel` runs multiple actions or logic blocks in parallel within a flow.
+
+```ts
+wfa.doInParallel(
+  { $id: Now.ID['parallel_block'] },
+  (parallelParams) => {
+    wfa.action(action.core.log, { $id: Now.ID['log_a'] }, { log_message: 'Branch A' })
+  },
+  (parallelParams) => {
+    wfa.action(action.core.log, { $id: Now.ID['log_b'] }, { log_message: 'Branch B' })
+  }
+)
+```
+
+---
+
+### wfa.appendToFlowVariables
+
+`wfa.appendToFlowVariables` appends a value to an existing flow variable collection (array-type flow variable).
+
+```ts
+wfa.appendToFlowVariables(
+  { $id: Now.ID['append_to_list'] },
+  {
+    variable: wfa.dataPill(params.trigger.flowVariables.myList, 'array'),
+    value: wfa.dataPill(params.trigger.current.sys_id, 'string'),
+  }
+)
+```
+
+---
+
+### Action Outputs and Error Evaluation
+
+Flows can now evaluate action outputs and error states as part of flow logic. Access action outputs via data pills referencing the action's `$id`, and use error evaluation to branch on failure.
+
+```ts
+const lookupResult = wfa.action(action.core.lookUpRecord, { $id: Now.ID['lookup'] }, {
+  table_name: 'incident',
+  filters: 'active=true',
+})
+
+// Reference action output as a data pill in subsequent steps
+wfa.action(action.core.updateRecord, { $id: Now.ID['update'] }, {
+  record: wfa.dataPill(lookupResult.record, 'reference'),
+  fields: { state: TemplateValue('2') },
+})
+```

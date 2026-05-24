@@ -3,7 +3,7 @@ name: servicenow-now-assist
 context: fork
 user-invocable: false
 description: Build NowAssist Skill configurations using the Fluent SDK NowAssistSkillConfig API. Covers the two-argument skill definition pattern, input/output typing, tool graph construction (Script, InlineScript, FlowAction, Subflow, WebSearch, Decision), LLM provider and prompt configuration with versioning, mandatory security controls, and deployment settings. Use when creating AI-powered skills that appear in the Now Assist Panel, UI Actions, or as reusable Flow Actions. Trigger this skill whenever the user mentions NowAssist, NowAssistSkillConfig, Now Assist skills, LLM-powered skills, generative AI in ServiceNow, prompt configuration, or building AI capabilities with the Fluent SDK.
-last_verified: "2026-05-18"
+last_verified: "2026-05-24"
 ---
 
 # ServiceNow NowAssist Skill Configuration — Fluent SDK
@@ -51,7 +51,7 @@ NowAssistSkillConfig(
                 $id: Now.ID['my_skill_acl'],
                 type: 'authenticated',
             },
-            roleRestrictions: ['sys_id_of_itil_role'],
+            roleMap: ['itil'],   // preferred on ZP10/AP3+; use roleRestrictions with sys_ids on older instances
         },
         inputs: [
             {
@@ -102,9 +102,15 @@ securityControls: {
         type: 'authenticated',   // or 'roles' to restrict to specific roles
         roles: ['sys_id_of_role_1', 'sys_id_of_role_2'],  // required when type is 'roles'
     },
-    roleRestrictions: ['sys_id_of_role'],   // Roles the skill can inherit during execution
+    // SDK 4.7.0+: use roleMap (role names) on ZP10 / AP3+ instances — preferred
+    roleMap: ['itil', 'admin'],
+
+    // Pre-ZP10 / AP3: use roleRestrictions (role sys_ids) instead
+    // roleRestrictions: ['sys_id_of_role'],
 },
 ```
+
+At least one of `roleMap` or `roleRestrictions` must be defined. Use `roleMap` for new skills on ZP10 or AP3+ instances; it stores role names in M2M records rather than hardcoded sys_ids, making the skill more portable across instances.
 
 ---
 
@@ -206,60 +212,15 @@ tools: (t) => {
 
 ### Skill Tool (`t.Skill()`)
 
-Call another published NowAssist skill as a tool. The referenced skill must already be published in the target instance via the Skill Builder UI.
-
-```typescript
-t.Skill('KnowledgeSearch', {
-    $id: Now.ID['tool_knowledge_skill'],
-    skillId: '<sys_id_of_published_skill>',
-    inputs: [
-        {
-            definitionAttributeId: '<input_attribute_sys_id>',
-            value: t.input['user query'],
-        },
-    ],
-    outputs: {
-        provider: { definitionAttributeId: '<provider_attr_id>' },
-        response: { definitionAttributeId: '<response_attr_id>', truncate: true },
-        error: { definitionAttributeId: '<error_attr_id>' },
-        errorcode: { definitionAttributeId: '<errorcode_attr_id>' },
-        status: { definitionAttributeId: '<status_attr_id>' },
-    },
-    depends: [previousTool],
-})
-```
+Call another published NowAssist skill as a tool. The referenced skill must already be published in the target instance via the Skill Builder UI. See [EXAMPLES.md](./EXAMPLES.md) for full code.
 
 ### Decision Routing
 
-Use `t.Decision` to branch execution based on prior tool output:
-
-```typescript
-t.Decision('Route', {
-    $id: Now.ID['tool_route'],
-    depends: [classifyResult],
-    targets: ['ApproveAction', 'EscalateAction'] as const,
-    branches: (targets) => [
-        {
-            name: 'Auto Approve',
-            to: targets.ApproveAction,
-            condition: { field: classifyResult.output, operator: 'is', value: 'approved' },
-        },
-    ],
-    default: (targets) => targets.EscalateAction,
-})
-```
+Use `t.Decision` to branch execution to named targets based on a prior tool's output. Targets are declared upfront as a `const` tuple, then each branch binds to one target. See [EXAMPLES.md](./EXAMPLES.md) for a complete Decision + downstream script example.
 
 ### Tool Dependencies
 
-Use `depends` to sequence tools explicitly — otherwise they may run in parallel:
-
-```typescript
-const step2 = t.Script('Step2', {
-    $id: Now.ID['tool_step2'],
-    depends: [step1],   // waits for step1 to finish
-    ...
-})
-```
+Use `depends` to sequence tools explicitly — without it, tools may run in parallel. Pass the tool handle (the return value from a previous `t.*()` call) into `depends: [prevTool]`.
 
 ---
 
@@ -412,6 +373,12 @@ DocumentIntelligence, PredictIntelligence, and Retriever are **not supported** i
 
 - A skill can have at most **one** input of type `glide_record`
 - `glide_record` inputs are NOT accessible inside tools — they can only be referenced in prompts via `p.input.recordName.fieldName`
-- The `maint` role is NOT allowed in `roleRestrictions`
+- The `maint` role is NOT allowed in `roleRestrictions` or `roleMap`
 - Skill names must be 40 characters or fewer
 - The referenced skill in `t.Skill()` must already be published on the target instance via Skill Builder UI
+
+---
+
+## Reference
+
+For complete working examples (incident summarizer, `t.Skill()`, `t.Decision()` routing, tool dependencies), see [EXAMPLES.md](./EXAMPLES.md).
