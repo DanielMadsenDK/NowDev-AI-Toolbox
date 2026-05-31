@@ -51,15 +51,14 @@ stages:
                   displayName: 'Build Fluent SDK artifacts'
 
                 - script: |
-                    npx @servicenow/sdk install \
-                      --url "$(NOW_INSTANCE_URL)" \
-                      --username "$(NOW_USERNAME)" \
-                      --password "$(NOW_PASSWORD)"
+                    npx @servicenow/sdk install
                   displayName: 'Deploy to Dev ServiceNow instance'
                   env:
-                    NOW_INSTANCE_URL: $(NOW_INSTANCE_URL)
-                    NOW_USERNAME: $(NOW_USERNAME)
-                    NOW_PASSWORD: $(NOW_PASSWORD)
+                    SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+                    SN_SDK_AUTH_TYPE: basic
+                    SN_SDK_INSTANCE_URL: $(SN_SDK_INSTANCE_URL)
+                    SN_SDK_USER: $(SN_SDK_USER)
+                    SN_SDK_USER_PWD: $(SN_SDK_USER_PWD)
 
   - stage: Deploy_Test
     displayName: 'Deploy to Test'
@@ -83,14 +82,13 @@ stages:
                 - script: npm ci
                 - script: npx @servicenow/sdk build
                 - script: |
-                    npx @servicenow/sdk install \
-                      --url "$(NOW_INSTANCE_URL)" \
-                      --username "$(NOW_USERNAME)" \
-                      --password "$(NOW_PASSWORD)"
+                    npx @servicenow/sdk install
                   env:
-                    NOW_INSTANCE_URL: $(NOW_INSTANCE_URL)
-                    NOW_USERNAME: $(NOW_USERNAME)
-                    NOW_PASSWORD: $(NOW_PASSWORD)
+                    SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+                    SN_SDK_AUTH_TYPE: basic
+                    SN_SDK_INSTANCE_URL: $(SN_SDK_INSTANCE_URL)
+                    SN_SDK_USER: $(SN_SDK_USER)
+                    SN_SDK_USER_PWD: $(SN_SDK_USER_PWD)
 
   - stage: Deploy_Prod
     displayName: 'Deploy to Production'
@@ -114,11 +112,10 @@ stages:
                 - script: npm ci
                 - script: npx @servicenow/sdk build
                 - script: |
-                    npx @servicenow/sdk install \
-                      --url "$(NOW_INSTANCE_URL)" \
-                      --username "$(NOW_USERNAME)" \
-                      --password "$(NOW_PASSWORD)"
+                    npx @servicenow/sdk install
                   env:
-                    NOW_INSTANCE_URL: $(NOW_INSTANCE_URL)
-                    NOW_USERNAME: $(NOW_USERNAME)
-                    NOW_PASSWORD: $(NOW_PASSWORD)
+                    SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+                    SN_SDK_AUTH_TYPE: basic
+                    SN_SDK_INSTANCE_URL: $(SN_SDK_INSTANCE_URL)
+                    SN_SDK_USER: $(SN_SDK_USER)
+                    SN_SDK_USER_PWD: $(SN_SDK_USER_PWD)

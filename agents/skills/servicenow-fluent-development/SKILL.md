@@ -2,8 +2,8 @@
 name: servicenow-fluent-development
 context: fork
 user-invocable: false
-description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK. Use this skill when developing full-stack React applications, creating tables (with all 52 column types, augment/createAccessControls/userRole), records, business rules, ACLs, cross-scope privileges, script includes, flows and subflows (with wfa, triggers, actions, FDTransform, stages, tryCatch, doInParallel, appendToFlowVariables), SLAs, service catalog (29+ variable types), service portal (ServicePortal, SPMenu, SPPage, SPTheme, SPWidget), UI pages, dashboards, workspaces, email notifications, form layouts, scheduled scripts, instance scan checks, DataPolicy, or any other ServiceNow metadata using the Fluent API. Also covers universal $override property, protectionPolicy, JavaScript modules (import/export from @servicenow/glide), Now.ID, Now.ref, Now.include, Now.attach, Now.UNRESOLVED, AnnotationType, default_view, and global helpers (Duration, Time, TemplateValue, FieldList). Trigger this skill whenever the user is working on a Fluent SDK project, .now.ts files, now-sdk commands, or any ServiceNow metadata authoring — even if they don't use the word "Fluent".
-last_verified: "2026-05-24"
+description: Expert knowledge for authoring ServiceNow Fluent (.now.ts) metadata and TypeScript/JavaScript modules using the ServiceNow SDK 4.7.0. Use when developing Fluent apps, .now.ts metadata, now-sdk workflows, tables and augments, records, assignment rules, data policies, business rules, ACLs, script includes, flows and subflows, service catalog, service portal, UI pages, dashboards, workspaces, email notifications, scheduled scripts, instance scan checks, now.config.json, $override, JavaScript modules, Now.ID, Now.ref, Now.include, Now.attach, and other Fluent API artifacts.
+last_verified: "2026-05-31"
 ---
 
 # ServiceNow Fluent Development
@@ -18,7 +18,7 @@ Expert knowledge for authoring **ServiceNow Fluent (.now.ts)** metadata and Type
 - **Fluent Language Constructs:** `Now.ID` (define IDs), `Now.ref` (reference external metadata), `Now.include` (external file content), `Now.attach` (image files) — see [API-REFERENCE.md](./API-REFERENCE.md)
 - Full-stack React apps via `UiPage` with client code in `src/client/`
 - Flow/workflow automation available via `@servicenow/sdk/automation`
-- Service Catalog, Email Notifications, Workspaces, and SLAs all supported as Fluent metadata
+- Service Catalog, Email Notifications, Workspaces, Service Portal, Assignment Rules, Data Policies, and SLAs all supported as Fluent metadata
 
 ## Core Principles
 
@@ -189,11 +189,13 @@ The following reference files contain detailed guidance on specific topics. **Sc
 | **SLAs:** Sla object, duration, schedule, conditions, retroactive start, whenTo, timezone, flow/workflow linkage, examples | [SLA-API.md](./SLA-API.md) |
 | **JavaScript Modules:** import/export, @servicenow/glide, Script Include bridging, function-vs-string API table, third-party libs | [MODULE-GUIDE.md](./MODULE-GUIDE.md) |
 | Build commands, tsconfig, now-sdk workflows | [BUILD-WORKFLOW.md](./BUILD-WORKFLOW.md) |
+| **now.config.json:** scope, directories, dependencies, runtime policies, transform/build customization | [NOW-CONFIG-REFERENCE.md](./NOW-CONFIG-REFERENCE.md) |
 | Error diagnosis, troubleshooting steps, verification | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) |
 | Advanced topics: Record() seed data, cross-scope pattern, server-side logging, GlideRecord, Now.UNRESOLVED, Now.ref(), AnnotationType, default_view, global helpers (Duration, Time, TemplateValue, FieldList), AI/LLM integration (sn_generative_ai.LLMClient) | [ADVANCED-PATTERNS.md](./ADVANCED-PATTERNS.md) |
 | **Data Helpers:** Duration(), Time(), TemplateValue(), FieldList() — typed values for Record() data fields | [data-helpers-guide.md](./data-helpers-guide.md) |
 | **Keys File:** How keys.ts works, key types (explicit/composite/deleted), Now.ID mechanics, best practices | [keys-file-guide.md](./keys-file-guide.md) |
 | **Registering Events:** sysevent_register via Record API, scoped vs global apps, 40-char limit, custom queues | [registering-events-guide.md](./registering-events-guide.md) |
+| **Assignment Rules:** sysrule_assignment via Record API, task-table routing, group/user validation, script-based assignment | [ASSIGNMENT-RULES-GUIDE.md](./ASSIGNMENT-RULES-GUIDE.md) |
 | Flow API: triggers, actions, data pills | [FLOW-API.md](./FLOW-API.md) |
 | **Service Catalog:** CatalogItem, CatalogItemRecordProducer, VariableSet, all 29+ variable types with full options, CatalogUiPolicy, CatalogClientScript | [SERVICE-CATALOG.md](./SERVICE-CATALOG.md) |
 | **Service Portal:** ServicePortal (portal definition), SPMenu, SPPage, SPTheme, SPWidget, Angular providers, dependencies, CSS/JS includes, portal build order | [SERVICE-PORTAL-API.md](./SERVICE-PORTAL-API.md) |
@@ -202,6 +204,7 @@ The following reference files contain detailed guidance on specific topics. **Sc
 | **Form Layouts:** Form object, views, sections, one/two-column layouts, element types (table_field, annotation, formatter, related_list), role/user scoping | [FORM-API.md](./FORM-API.md) |
 | **UI Actions:** UiAction object, form/list/client/workspace objects, buttons/links/context menu items, conditions, roles, visibility control, examples | [UI-ACTION-API.md](./UI-ACTION-API.md) |
 | **UI Policies:** UiPolicy object, field actions (visible/readOnly/mandatory/cleared), related list actions, conditions, script-based behavior, inheritance | [UI-POLICY-API.md](./UI-POLICY-API.md) |
+| **Data Policies:** DataPolicy object, server-side mandatory/read-only enforcement, defaults, dot-walk rules, UI Policy/Business Rule decision guide | [DATA-POLICY-GUIDE.md](./DATA-POLICY-GUIDE.md) |
 | **Platform Views (UI Formatters):** Choosing the right approach (decision table), UI Formatters (activity/process flow/checklist), built-in formatter list, avoidance rules | [platform-view-guide.md](./platform-view-guide.md) |
 | **Platform Views (Views/ViewRules/ListControls/Relationships):** sys_ui_view, sysrule_view, sys_ui_list_control, sys_relationship with full properties and examples | [platform-view-lists-guide.md](./platform-view-lists-guide.md) |
 | **UI Pages (React):** UiPage object, React app development, index.html with `<sdk:now-ux-globals>`, React entry points, navigation integration, direct property, endpoint configuration, best practices | [UI-PAGE-API.md](./UI-PAGE-API.md) |
@@ -215,6 +218,8 @@ The following reference files contain detailed guidance on specific topics. **Sc
 | **Now.include():** When to use vs modules (decision table), syntax, how it works (build/transform), supported file types, examples (client script, UI page, SP widget, record) | [now-include-guide.md](./now-include-guide.md) |
 | **Now.attach():** Syntax, supported image formats, how it works (compression, SHA-256 deduplication), examples, file organization (assets/ pattern) | [now-attach-guide.md](./now-attach-guide.md) |
 | **Now.ref():** Syntax, reference by coalesce keys/sys_id/Now.ID, when to use vs direct references decision table | [now-ref-guide.md](./now-ref-guide.md) |
+| **Table augments:** Add scoped columns to platform/cross-scope tables with `augments` | [TABLE-AUGMENTS-GUIDE.md](./TABLE-AUGMENTS-GUIDE.md) |
+| **$override:** Last-resort escape hatch for unmodeled metadata fields | [OVERRIDE-GUIDE.md](./OVERRIDE-GUIDE.md) |
 
 ## Detailed References
 
@@ -224,6 +229,11 @@ Load these files when you need detailed guidance on specific topics:
 - **[CLIENT-SERVER-PATTERNS.md](./CLIENT-SERVER-PATTERNS.md)** — Full GlideAjax and REST implementation code, React entry patterns, navigation module
 - **[API-REFERENCE.md](./API-REFERENCE.md)** — All Fluent API objects: Table, BusinessRule, ClientScript, ScriptInclude, RestApi, UiPage, SPWidget, UiPolicy, ImportSet, Workspace, Sla, helpers; **ApplicationMenu + sys_app_module** navigation modules with full link-type field matrix and examples; **Role** (quick reference only — see ROLE-API.md for comprehensive guide); **Acl**; **CrossScopePrivilege**; **List** (quick reference only — see LIST-API.md for comprehensive guide); **ATF Test** (quick reference only — see ATF-API.md for comprehensive guide)
 - **[TABLE-API.md](./TABLE-API.md)** — **Tables:** Complete Table object reference covering all properties (name, schema, extends, label, licensing, access control, actions, audit, indexes), column types and properties, column names and scoping rules, choices object, label object (multilingual support), licensingConfig object (fulfiller/producer models), autoNumber object (prefixes and numbering), dynamic value definitions (calculated values, dependent fields, dynamic defaults, choices from other tables), best practices, and complete working examples
+- **[TABLE-AUGMENTS-GUIDE.md](./TABLE-AUGMENTS-GUIDE.md)** — **Table augments:** Add application-scoped columns to existing platform/cross-scope tables using `Table({ augments })`, including naming rules and forbidden table ownership properties
+- **[DATA-POLICY-GUIDE.md](./DATA-POLICY-GUIDE.md)** — **Data Policies:** Server-side mandatory/read-only enforcement across forms, imports, web services, and APIs; required rule `$id` values, default properties, dot-walk rules, and Data Policy vs UI Policy vs Business Rule routing
+- **[ASSIGNMENT-RULES-GUIDE.md](./ASSIGNMENT-RULES-GUIDE.md)** — **Assignment Rules:** Task-table assignment via `Record({ table: 'sysrule_assignment' })`, group/user validation, encoded query conditions ending in `^EQ`, static vs script-based routing, and when to choose Business Rules instead
+- **[OVERRIDE-GUIDE.md](./OVERRIDE-GUIDE.md)** — **$override:** Escape hatch for metadata fields that exist on the instance but are not modeled by the SDK; typed APIs remain preferred
+- **[NOW-CONFIG-REFERENCE.md](./NOW-CONFIG-REFERENCE.md)** — **now.config.json:** Required scope fields, source/output directories, dependencies, runtime policies, transform options, module paths, trusted modules, and build customization
 - **[LIST-API.md](./LIST-API.md)** — **List Views:** List object, table and view properties, columns configuration, column ordering, dot-walking field references, metadata installation control (demo, first install), view configuration (custom views and default view), best practices, troubleshooting, and complete examples
 - **[PROPERTY-API.md](./PROPERTY-API.md)** — **System Properties:** Property object, required and optional properties, type reference (string, integer, boolean, choicelist, color, date_format, image, password, timezone, etc.), role-based access control, cache behavior (ignoreCache), import control (isPrivate), installation metadata ($meta), runtime retrieval via gs.getProperty(), best practices, and complete examples
 - **[IMPORT-SETS-API.md](./IMPORT-SETS-API.md)** — **Import Sets:** Transform maps, staging tables, data sources, field mappings (sourceField, coalesce, sourceScript), transform scripts by stage (onBefore, onAfter, onReject, onStart, onComplete), required setup order, NULL reserved word warning, complete examples

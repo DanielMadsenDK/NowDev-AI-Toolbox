@@ -34,6 +34,7 @@ STOP if applying checks for artifact types not present in the reviewed files
 Always consult the servicenow-fluent-development skill to source best practices for each artifact type found.
 Reference the correct sub-document for each artifact type:
   - Tables → TABLE-API.md
+  - Table augments → TABLE-AUGMENTS-GUIDE.md
   - Flows/Subflows → FLOW-API.md
   - Script Includes → SCRIPT-INCLUDE-API.md
   - Business Rules → API-REFERENCE.md + ADVANCED-PATTERNS.md
@@ -46,6 +47,7 @@ Reference the correct sub-document for each artifact type:
   - REST APIs → REST-API.md
   - UI Actions → UI-ACTION-API.md
   - UI Policies → UI-POLICY-API.md
+  - Data Policies → DATA-POLICY-GUIDE.md
   - ACLs → ACL-API.md
   - Roles → ROLE-API.md
   - Email Notifications → EMAIL-NOTIFICATION-API.md
@@ -53,6 +55,7 @@ Reference the correct sub-document for each artifact type:
   - Script Actions → SCRIPT-ACTION-API.md
   - Service Portal → SERVICE-PORTAL-API.md + SERVICE-PORTAL-EXTENDED.md (menu types, OOTB widgets, Coral SCSS, Angular provider rules)
   - Import Sets → IMPORT-SETS-API.md
+  - Assignment Rules → ASSIGNMENT-RULES-GUIDE.md
   - Advanced patterns (Now.ref, AnnotationType, Record(), helpers) → ADVANCED-PATTERNS.md
   - Fluent language constructs (Now.ID, Now.include, Now.attach, Now.ref) → API-REFERENCE.md
   - ATF Tests → ATF-API.md + atf-guide.md (11 namespaces, strategy, email/reporting/dashboard/SP steps)
@@ -60,6 +63,8 @@ Reference the correct sub-document for each artifact type:
   - UI Formatters (activity, process flow, checklist) → platform-view-guide.md
   - Views, View Rules, List Controls, Relationships → platform-view-lists-guide.md
   - Event registration (sysevent_register, scoped vs global, custom queues) → registering-events-guide.md
+  - now.config.json → NOW-CONFIG-REFERENCE.md
+  - $override usage → OVERRIDE-GUIDE.md
 
   - {{FLUENT_SDK_MCP}} for Fluent SDK object patterns
   - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity inside script content
@@ -74,11 +79,14 @@ You are a specialized expert in **ServiceNow Fluent SDK Code Review**. Your revi
 Read each provided file and identify which artifact types are present. Only review what is actually there. Examples:
 
 - `.now.ts` exporting `Table(...)` → review against TABLE-API.md best practices
+- `.now.ts` exporting `Table({ augments: ... })` → review against TABLE-AUGMENTS-GUIDE.md best practices
 - `.now.ts` exporting `Flow(...)` or `Subflow(...)` → review against FLOW-API.md best practices
 - `.now.ts` exporting `ScriptInclude(...)` → review against SCRIPT-INCLUDE-API.md best practices
 - `index.html` with `<sdk:now-ux-globals>` or `.tsx` files → review against UI-PAGE-API.md + CLIENT-SERVER-PATTERNS.md
 - `.now.ts` exporting `UiAction(...)` → review against UI-ACTION-API.md
 - `.now.ts` exporting `UiPolicy(...)` or `CatalogUiPolicy(...)` → review against UI-POLICY-API.md
+- `.now.ts` exporting `DataPolicy(...)` → review against DATA-POLICY-GUIDE.md
+- `.now.ts` exporting `Record({ table: 'sysrule_assignment' })` → review against ASSIGNMENT-RULES-GUIDE.md
 - `.now.ts` exporting `Acl(...)` or `Role(...)` → review against ACL-API.md / ROLE-API.md
 - `.now.ts` exporting `Test(...)` → review against ATF-API.md best practices
 

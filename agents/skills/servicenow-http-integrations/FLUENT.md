@@ -10,7 +10,7 @@ When building HTTP integrations with Fluent SDK, you'll use these language const
 - **`Now.include('./script.server.js')`** — Link to external JavaScript containing integration logic with two-way sync
 - **`Now.ref('sys_user', { name: 'admin' })`** — Reference users or external system records
 
-See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/API-REFERENCE.md) for comprehensive documentation.
 
 ## Overview
 

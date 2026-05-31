@@ -23,7 +23,7 @@ In SDK projects, business rules are defined using `.now.ts` files (metadata). Ja
 - **`Now.include('./file.server.js')`** — Link to external script file with two-way synchronization (recommended for maintainability)
 - **`Now.ref('sys_user_role', { name: 'role_name' })`** — Reference a role from another application if needed
 
-See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/API-REFERENCE.md) for comprehensive documentation.
 
 ### File Structure
 

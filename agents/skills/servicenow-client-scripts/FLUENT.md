@@ -39,7 +39,7 @@ When authoring client scripts with Fluent SDK, you'll use these language constru
 - **`Now.ID['script_id']`** — Assign a human-readable ID to the client script (required for `$id`)
 - **`Now.include('./file.client.js')`** — Link to external JavaScript file with two-way synchronization (recommended for maintainability and syntax highlighting)
 
-See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/API-REFERENCE.md) for comprehensive documentation.
 
 ### File Structure
 

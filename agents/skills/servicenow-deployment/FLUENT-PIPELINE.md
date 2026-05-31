@@ -91,35 +91,26 @@ When scopes depend on each other, deploy in dependency order: foundations first,
 # deploy-all-scopes.sh — deploy scopes in dependency order
 set -euo pipefail
 
-INSTANCE_URL="${NOW_INSTANCE_URL}"
-USERNAME="${NOW_USERNAME}"
-PASSWORD="${NOW_PASSWORD}"
+: "${SN_SDK_NODE_ENV:=SN_SDK_CI_INSTALL}"
+: "${SN_SDK_AUTH_TYPE:=basic}"
+: "${SN_SDK_INSTANCE_URL:?SN_SDK_INSTANCE_URL is required}"
+: "${SN_SDK_USER:?SN_SDK_USER is required for basic auth}"
+: "${SN_SDK_USER_PWD:?SN_SDK_USER_PWD is required for basic auth}"
+export SN_SDK_NODE_ENV SN_SDK_AUTH_TYPE SN_SDK_INSTANCE_URL SN_SDK_USER SN_SDK_USER_PWD
 
 echo "==> Step 1: Deploy core (no dependencies)"
 cd packages/core-app
-npx @servicenow/sdk install \
-  --scope x_mycompany_core \
-  --url "${INSTANCE_URL}" \
-  --username "${USERNAME}" \
-  --password "${PASSWORD}"
+npx @servicenow/sdk install --scope x_mycompany_core
 cd ../..
 
 echo "==> Step 2: Deploy portal (depends on core)"
 cd packages/portal-app
-npx @servicenow/sdk install \
-  --scope x_mycompany_portal \
-  --url "${INSTANCE_URL}" \
-  --username "${USERNAME}" \
-  --password "${PASSWORD}"
+npx @servicenow/sdk install --scope x_mycompany_portal
 cd ../..
 
 echo "==> Step 3: Deploy integration layer (depends on both)"
 cd packages/integration-app
-npx @servicenow/sdk install \
-  --scope x_mycompany_integ \
-  --url "${INSTANCE_URL}" \
-  --username "${USERNAME}" \
-  --password "${PASSWORD}"
+npx @servicenow/sdk install --scope x_mycompany_integ
 cd ../..
 
 echo "==> All scopes deployed successfully"
@@ -145,21 +136,24 @@ Document your scope dependency graph and use it to enforce deployment order:
 
 | Variable | Purpose | Example Value |
 |----------|---------|---------------|
-| `NOW_INSTANCE_URL` | Full URL of the target instance | `https://mycompany.service-now.com` |
-| `NOW_USERNAME` | Service account username | `svc_sdk_deploy` |
-| `NOW_PASSWORD` | Service account password | _(secret)_ |
-| `NOW_OAUTH_TOKEN` | OAuth bearer token (alternative to user/pass) | _(secret)_ |
+| `SN_SDK_NODE_ENV` | Enables CI install mode | `SN_SDK_CI_INSTALL` |
+| `SN_SDK_AUTH_TYPE` | Auth mode | `basic` or `oauth` |
+| `SN_SDK_INSTANCE_URL` | Full URL of the target instance | `https://mycompany.service-now.com` |
+| `SN_SDK_USER` | Service account username | `svc_sdk_deploy` |
+| `SN_SDK_USER_PWD` | Service account password | _(secret)_ |
+| `SN_SDK_OAUTH_CLIENT_ID` | OAuth application client ID | _(secret)_ |
+| `SN_SDK_OAUTH_CLIENT_SECRET` | OAuth application client secret | _(secret)_ |
 
-**Username/password vs. OAuth token:** Use OAuth (`NOW_OAUTH_TOKEN`) when your organization's security policy prohibits basic-auth service accounts, or when you need short-lived credentials with automatic rotation. Use username/password (`NOW_USERNAME` + `NOW_PASSWORD`) for simpler setups where a dedicated service account is acceptable.
+**Username/password vs. OAuth client credentials:** Use OAuth (`SN_SDK_AUTH_TYPE=oauth` with `SN_SDK_OAUTH_CLIENT_ID` and `SN_SDK_OAUTH_CLIENT_SECRET`) when your organization's security policy prohibits basic-auth service accounts. Use username/password (`SN_SDK_USER` + `SN_SDK_USER_PWD`) for simpler setups where a dedicated service account is acceptable.
 
 ### Per-Environment Secret Naming Convention
 
 Use environment-prefixed names so a single pipeline file can deploy to any environment by switching the prefix:
 
 ```
-DEV_NOW_INSTANCE_URL     TEST_NOW_INSTANCE_URL     PROD_NOW_INSTANCE_URL
-DEV_NOW_USERNAME         TEST_NOW_USERNAME          PROD_NOW_USERNAME
-DEV_NOW_PASSWORD         TEST_NOW_PASSWORD          PROD_NOW_PASSWORD
+DEV_SN_SDK_INSTANCE_URL     TEST_SN_SDK_INSTANCE_URL     PROD_SN_SDK_INSTANCE_URL
+DEV_SN_SDK_USER             TEST_SN_SDK_USER             PROD_SN_SDK_USER
+DEV_SN_SDK_USER_PWD         TEST_SN_SDK_USER_PWD         PROD_SN_SDK_USER_PWD
 ```
 
 This pattern lets you resolve credentials at runtime without branching your pipeline logic:
@@ -167,13 +161,15 @@ This pattern lets you resolve credentials at runtime without branching your pipe
 ```bash
 # Resolve credentials by environment prefix
 ENV_PREFIX="${DEPLOY_ENV^^}"   # e.g. "dev" → "DEV"
-INSTANCE_URL_VAR="${ENV_PREFIX}_NOW_INSTANCE_URL"
-USERNAME_VAR="${ENV_PREFIX}_NOW_USERNAME"
-PASSWORD_VAR="${ENV_PREFIX}_NOW_PASSWORD"
+INSTANCE_URL_VAR="${ENV_PREFIX}_SN_SDK_INSTANCE_URL"
+USERNAME_VAR="${ENV_PREFIX}_SN_SDK_USER"
+PASSWORD_VAR="${ENV_PREFIX}_SN_SDK_USER_PWD"
 
-INSTANCE_URL="${!INSTANCE_URL_VAR}"
-USERNAME="${!USERNAME_VAR}"
-PASSWORD="${!PASSWORD_VAR}"
+export SN_SDK_NODE_ENV=SN_SDK_CI_INSTALL
+export SN_SDK_AUTH_TYPE=basic
+export SN_SDK_INSTANCE_URL="${!INSTANCE_URL_VAR}"
+export SN_SDK_USER="${!USERNAME_VAR}"
+export SN_SDK_USER_PWD="${!PASSWORD_VAR}"
 ```
 
 ### GitHub Actions
@@ -218,34 +214,30 @@ jobs:
       - name: Deploy core scope
         working-directory: packages/core-app
         env:
-          NOW_INSTANCE_URL: ${{ secrets.NOW_INSTANCE_URL }}
-          NOW_USERNAME: ${{ secrets.NOW_USERNAME }}
-          NOW_PASSWORD: ${{ secrets.NOW_PASSWORD }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets.SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_SDK_USER_PWD }}
         run: |
-          npx @servicenow/sdk install \
-            --scope x_mycompany_core \
-            --url "$NOW_INSTANCE_URL" \
-            --username "$NOW_USERNAME" \
-            --password "$NOW_PASSWORD"
+          npx @servicenow/sdk install --scope x_mycompany_core
 
       - name: Deploy portal scope
         working-directory: packages/portal-app
         env:
-          NOW_INSTANCE_URL: ${{ secrets.NOW_INSTANCE_URL }}
-          NOW_USERNAME: ${{ secrets.NOW_USERNAME }}
-          NOW_PASSWORD: ${{ secrets.NOW_PASSWORD }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets.SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_SDK_USER_PWD }}
         run: |
-          npx @servicenow/sdk install \
-            --scope x_mycompany_portal \
-            --url "$NOW_INSTANCE_URL" \
-            --username "$NOW_USERNAME" \
-            --password "$NOW_PASSWORD"
+          npx @servicenow/sdk install --scope x_mycompany_portal
 ```
 
 **Key GitHub Actions points:**
 
 - Use [GitHub Environments](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment) to gate prod deployments behind required reviewers
-- Environment-scoped secrets automatically shadow repository-level secrets — name them identically in each environment (`NOW_INSTANCE_URL`, `NOW_USERNAME`, `NOW_PASSWORD`) so your workflow YAML needs no changes between environments
+- Environment-scoped secrets automatically shadow repository-level secrets — name them identically in each environment (`SN_SDK_INSTANCE_URL`, `SN_SDK_USER`, `SN_SDK_USER_PWD`) so your workflow YAML needs no changes between environments
 - Never print secret values with `echo` — GitHub Actions redacts known secret values, but log-based extraction is still a risk
 
 ### Azure DevOps
@@ -282,14 +274,14 @@ stages:
 
                 - script: |
                     cd packages/core-app
-                    npx @servicenow/sdk install \
-                      --scope x_mycompany_core \
-                      --url "$(NOW_INSTANCE_URL)" \
-                      --username "$(NOW_USERNAME)" \
-                      --password "$(NOW_PASSWORD)"
+                    npx @servicenow/sdk install --scope x_mycompany_core
                   displayName: 'Deploy core scope'
                   env:
-                    NOW_PASSWORD: $(NOW_PASSWORD)   # mark as secret so it's masked in logs
+                    SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+                    SN_SDK_AUTH_TYPE: basic
+                    SN_SDK_INSTANCE_URL: $(SN_SDK_INSTANCE_URL)
+                    SN_SDK_USER: $(SN_SDK_USER)
+                    SN_SDK_USER_PWD: $(SN_SDK_USER_PWD)   # mark as secret so it's masked in logs
 ```
 
 **Azure DevOps variable group setup:**
@@ -300,9 +292,9 @@ Library → Variable Groups → New variable group
   Link secrets from Azure Key Vault: ✓
     Key Vault: kv-mycompany-servicenow
     Secrets to map:
-      NOW_INSTANCE_URL  → dev-instance-url
-      NOW_USERNAME      → dev-service-account-username
-      NOW_PASSWORD      → dev-service-account-password
+      SN_SDK_INSTANCE_URL  → dev-instance-url
+      SN_SDK_USER          → dev-service-account-username
+      SN_SDK_USER_PWD      → dev-service-account-password
 ```
 
 ### Credential Safety Rules
@@ -375,20 +367,14 @@ echo "==> Rolling back core scope with --reinstall"
 cd packages/core-app
 npx @servicenow/sdk install \
   --scope x_mycompany_core \
-  --reinstall \
-  --url "${NOW_INSTANCE_URL}" \
-  --username "${NOW_USERNAME}" \
-  --password "${NOW_PASSWORD}"
+  --reinstall
 cd ../..
 
 echo "==> Rolling back portal scope with --reinstall"
 cd packages/portal-app
 npx @servicenow/sdk install \
   --scope x_mycompany_portal \
-  --reinstall \
-  --url "${NOW_INSTANCE_URL}" \
-  --username "${NOW_USERNAME}" \
-  --password "${NOW_PASSWORD}"
+  --reinstall
 cd ../..
 
 echo "==> Rollback to ${ROLLBACK_TAG} complete"
@@ -462,30 +448,28 @@ jobs:
       - name: Rollback core scope
         working-directory: packages/core-app
         env:
-          NOW_INSTANCE_URL: ${{ secrets.NOW_INSTANCE_URL }}
-          NOW_USERNAME: ${{ secrets.NOW_USERNAME }}
-          NOW_PASSWORD: ${{ secrets.NOW_PASSWORD }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets.SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_SDK_USER_PWD }}
         run: |
           npx @servicenow/sdk install \
             --scope x_mycompany_core \
-            --reinstall \
-            --url "$NOW_INSTANCE_URL" \
-            --username "$NOW_USERNAME" \
-            --password "$NOW_PASSWORD"
+            --reinstall
 
       - name: Rollback portal scope
         working-directory: packages/portal-app
         env:
-          NOW_INSTANCE_URL: ${{ secrets.NOW_INSTANCE_URL }}
-          NOW_USERNAME: ${{ secrets.NOW_USERNAME }}
-          NOW_PASSWORD: ${{ secrets.NOW_PASSWORD }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets.SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_SDK_USER_PWD }}
         run: |
           npx @servicenow/sdk install \
             --scope x_mycompany_portal \
-            --reinstall \
-            --url "$NOW_INSTANCE_URL" \
-            --username "$NOW_USERNAME" \
-            --password "$NOW_PASSWORD"
+            --reinstall
 
       - name: Tag rollback event
         run: |
@@ -564,11 +548,12 @@ Avoid environment-specific values in source code. Keep `now.config.json` environ
 
 ```bash
 # Target instance is determined entirely by CI environment variables:
-npx @servicenow/sdk install \
-  --scope x_mycompany_core \
-  --url    "$NOW_INSTANCE_URL" \   # https://dev.service-now.com  OR  https://mycompany.service-now.com
-  --username "$NOW_USERNAME" \
-  --password "$NOW_PASSWORD"
+export SN_SDK_NODE_ENV=SN_SDK_CI_INSTALL
+export SN_SDK_AUTH_TYPE=basic
+export SN_SDK_INSTANCE_URL=https://dev.service-now.com
+export SN_SDK_USER=svc_sdk_deploy
+export SN_SDK_USER_PWD=***
+npx @servicenow/sdk install --scope x_mycompany_core
 ```
 
 If you have values that genuinely differ per environment at the application level (e.g. email recipients, integration endpoints), use **ServiceNow System Properties** set on each instance — not baked into the deployed artifact.
@@ -609,12 +594,13 @@ jobs:
           name: servicenow-build-${{ github.sha }}
       - run: |
           cd packages/core-app
-          npx @servicenow/sdk install --scope x_mycompany_core \
-            --url "$NOW_INSTANCE_URL" --username "$NOW_USERNAME" --password "$NOW_PASSWORD"
+          npx @servicenow/sdk install --scope x_mycompany_core
         env:
-          NOW_INSTANCE_URL: ${{ secrets.NOW_INSTANCE_URL }}
-          NOW_USERNAME:     ${{ secrets.NOW_USERNAME }}
-          NOW_PASSWORD:     ${{ secrets.NOW_PASSWORD }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets.SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER:     ${{ secrets.SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_SDK_USER_PWD }}
 
   deploy-test:
     needs: deploy-dev
@@ -626,12 +612,13 @@ jobs:
           name: servicenow-build-${{ github.sha }}
       - run: |
           cd packages/core-app
-          npx @servicenow/sdk install --scope x_mycompany_core \
-            --url "$NOW_INSTANCE_URL" --username "$NOW_USERNAME" --password "$NOW_PASSWORD"
+          npx @servicenow/sdk install --scope x_mycompany_core
         env:
-          NOW_INSTANCE_URL: ${{ secrets.NOW_INSTANCE_URL }}
-          NOW_USERNAME:     ${{ secrets.NOW_USERNAME }}
-          NOW_PASSWORD:     ${{ secrets.NOW_PASSWORD }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets.SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER:     ${{ secrets.SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_SDK_USER_PWD }}
 
   deploy-prod:
     needs: deploy-test
@@ -643,12 +630,13 @@ jobs:
           name: servicenow-build-${{ github.sha }}
       - run: |
           cd packages/core-app
-          npx @servicenow/sdk install --scope x_mycompany_core \
-            --url "$NOW_INSTANCE_URL" --username "$NOW_USERNAME" --password "$NOW_PASSWORD"
+          npx @servicenow/sdk install --scope x_mycompany_core
         env:
-          NOW_INSTANCE_URL: ${{ secrets.NOW_INSTANCE_URL }}
-          NOW_USERNAME:     ${{ secrets.NOW_USERNAME }}
-          NOW_PASSWORD:     ${{ secrets.NOW_PASSWORD }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets.SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER:     ${{ secrets.SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_SDK_USER_PWD }}
 ```
 
 **Why build once?**
@@ -786,19 +774,12 @@ on:
 
 ```bash
 # Standard deploy — one scope
-npx @servicenow/sdk install \
-  --scope <scope_name> \
-  --url   "$NOW_INSTANCE_URL" \
-  --username "$NOW_USERNAME" \
-  --password "$NOW_PASSWORD"
+npx @servicenow/sdk install --scope <scope_name>
 
 # Reinstall (clean deploy — removes non-package metadata first)
 npx @servicenow/sdk install \
   --scope <scope_name> \
-  --reinstall \
-  --url   "$NOW_INSTANCE_URL" \
-  --username "$NOW_USERNAME" \
-  --password "$NOW_PASSWORD"
+  --reinstall
 
 # Build before deploying (always run build first)
 npx @servicenow/sdk build && \
@@ -809,9 +790,11 @@ npx @servicenow/sdk install --scope <scope_name> ...
 
 ```bash
 # Verify all required vars are set before deploying
-: "${NOW_INSTANCE_URL:?NOW_INSTANCE_URL is required}"
-: "${NOW_USERNAME:?NOW_USERNAME is required}"
-: "${NOW_PASSWORD:?NOW_PASSWORD is required}"
+: "${SN_SDK_NODE_ENV:?SN_SDK_NODE_ENV is required}"
+: "${SN_SDK_AUTH_TYPE:?SN_SDK_AUTH_TYPE is required}"
+: "${SN_SDK_INSTANCE_URL:?SN_SDK_INSTANCE_URL is required}"
+: "${SN_SDK_USER:?SN_SDK_USER is required for basic auth}"
+: "${SN_SDK_USER_PWD:?SN_SDK_USER_PWD is required for basic auth}"
 ```
 
 ### Deployment Safety Checklist
@@ -837,7 +820,7 @@ The `@servicenow/sdk` CLI commands used in all templates were verified against t
 | Command | Source |
 |---------|--------|
 | `npx @servicenow/sdk build` | [servicenow.github.io/sdk](https://servicenow.github.io/sdk) — builds TypeScript → metadata in `dist/app/`; also see [BUILD-WORKFLOW.md](../servicenow-fluent-development/BUILD-WORKFLOW.md) |
-| `npx @servicenow/sdk install --url ... --username ... --password ...` | SDK CLI reference — direct credential flags for non-interactive (CI) auth |
+| `SN_SDK_NODE_ENV=SN_SDK_CI_INSTALL` + `SN_SDK_*` auth variables | [BUILD-WORKFLOW.md](../servicenow-fluent-development/BUILD-WORKFLOW.md) — non-interactive CI auth |
 | `npx @servicenow/sdk install --reinstall` | [BUILD-WORKFLOW.md](../servicenow-fluent-development/BUILD-WORKFLOW.md) — removes non-package metadata before redeploying |
 | `npx @servicenow/sdk install --scope <scope>` | SDK CLI reference — restricts install to a single named scope |
 

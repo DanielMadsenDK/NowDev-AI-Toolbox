@@ -36,7 +36,7 @@ STOP IF modifying any application source files — this agent generates pipeline
 
 <documentation>
 Reference `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md` for detailed pipeline patterns specific to the ServiceNow Fluent SDK
-Use {{FLUENT_SDK_MCP}} for current `@servicenow/sdk` CLI flags, including `--scope`, `--reinstall`, `--url`, `--username`, `--password`, and `--auth`
+Use {{FLUENT_SDK_MCP}} for current `@servicenow/sdk` CLI flags and CI environment variables. Prefer SDK 4.7 CI env vars (`SN_SDK_NODE_ENV`, `SN_SDK_AUTH_TYPE`, `SN_SDK_INSTANCE_URL`, `SN_SDK_USER`, `SN_SDK_USER_PWD`, `SN_SDK_OAUTH_CLIENT_ID`, `SN_SDK_OAUTH_CLIENT_SECRET`) over direct credential flags. Use `--scope` and `--reinstall` only when needed.
 Use {{CLASSIC_SCRIPTING_MCP}} for any instance-side deployment prerequisites (e.g., application scope availability, ATF integration)
 </documentation>
 
@@ -96,10 +96,11 @@ Confirm `@servicenow/sdk` appears under `devDependencies`. The pipeline will use
 
 | Secret Name | Description | Applies to |
 |-------------|-------------|-----------|
-| `NOW_INSTANCE_URL` | Full URL of the target ServiceNow instance (e.g., `https://dev12345.service-now.com`) | All platforms |
-| `NOW_USERNAME` | ServiceNow account with `admin` or deployer role | Basic auth |
-| `NOW_PASSWORD` | Password for the ServiceNow account | Basic auth |
-| `NOW_OAUTH_TOKEN` | OAuth bearer token (alternative to username/password) | OAuth auth |
+| `SN_SDK_INSTANCE_URL` | Full URL of the target ServiceNow instance (e.g., `https://dev12345.service-now.com`) | All platforms |
+| `SN_SDK_USER` | ServiceNow account with `admin` or deployer role | Basic auth |
+| `SN_SDK_USER_PWD` | Password for the ServiceNow account | Basic auth |
+| `SN_SDK_OAUTH_CLIENT_ID` | OAuth application client ID | OAuth client credentials |
+| `SN_SDK_OAUTH_CLIENT_SECRET` | OAuth application client secret | OAuth client credentials |
 
 ### Per-Environment Secret Naming Convention
 
@@ -107,9 +108,9 @@ When deploying to multiple environments, namespace secrets by environment:
 
 | Environment | Secret Names |
 |-------------|-------------|
-| Development | `DEV_NOW_INSTANCE_URL`, `DEV_NOW_USERNAME`, `DEV_NOW_PASSWORD` |
-| Test | `TEST_NOW_INSTANCE_URL`, `TEST_NOW_USERNAME`, `TEST_NOW_PASSWORD` |
-| Production | `PROD_NOW_INSTANCE_URL`, `PROD_NOW_USERNAME`, `PROD_NOW_PASSWORD` |
+| Development | `DEV_SN_SDK_INSTANCE_URL`, `DEV_SN_SDK_USER`, `DEV_SN_SDK_USER_PWD` |
+| Test | `TEST_SN_SDK_INSTANCE_URL`, `TEST_SN_SDK_USER`, `TEST_SN_SDK_USER_PWD` |
+| Production | `PROD_SN_SDK_INSTANCE_URL`, `PROD_SN_SDK_USER`, `PROD_SN_SDK_USER_PWD` |
 
 > **Security guidance for the user:** Store these secrets in your CI platform's secret store (GitHub environment secrets, Azure KeyVault-linked variable groups). Never place values in YAML files, `.env` files committed to the repository, or pipeline logs.
 
@@ -182,9 +183,6 @@ The `--scope` flag tells the SDK which application scope to target:
 
 ```bash
 npx @servicenow/sdk install \
-  --url "$NOW_INSTANCE_URL" \
-  --username "$NOW_USERNAME" \
-  --password "$NOW_PASSWORD" \
   --scope "x_contoso_scope_a"
 ```
 

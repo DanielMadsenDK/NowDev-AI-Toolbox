@@ -21,6 +21,7 @@
 - [ATF Test](#atf-test)
 - [UiPolicy](#uipolicy)
 - [ImportSet](#importset)
+- [Assignment Rules](#assignment-rules)
 - [Utility Helpers](#utility-helpers)
 - [EmailNotification](#emailnotification)
 - [InboundEmailAction](#inboundemailaction)
@@ -310,6 +311,7 @@ import { CssInclude, JsInclude } from '@servicenow/sdk/core'         // SP CSS/J
 import { Acl, CrossScopePrivilege } from '@servicenow/sdk/core'     // Security & Privileges
 import { AnnotationType, default_view } from '@servicenow/sdk/core' // Pre-defined UI constants
 import { FlowObject, FlowArray } from '@servicenow/sdk/core'        // Complex flow types
+import { DataPolicy } from '@servicenow/sdk/core'                   // Server-side field enforcement
 import { Flow, SubflowDefinition, wfa, trigger, action, actionStep } from '@servicenow/sdk/automation'  // Flow API
 import { ActionDefinition, ActionStepDefinition, ActionStep } from '@servicenow/sdk/automation'  // Custom action definitions
 import { TriggerDefinition, FDTransform } from '@servicenow/sdk/automation'  // Custom triggers & transforms
@@ -1702,24 +1704,27 @@ For complete property documentation, examples with retroactive timing, variable 
 
 ## DataPolicy
 
-`DataPolicy` creates `sys_data_policy2` records. Use it to enforce field-level data validation for records created via import sets or SOAP, independent of UI policies.
+`DataPolicy` creates `sys_data_policy2` records. Use it for server-side mandatory and read-only enforcement across forms, imports, web services, REST/SOAP, and APIs. For the complete decision guide and examples, see [DATA-POLICY-GUIDE.md](./DATA-POLICY-GUIDE.md).
 
 ```ts
+import '@servicenow/sdk/global'
 import { DataPolicy } from '@servicenow/sdk/core'
 
 DataPolicy({
-    $id: Now.ID['import_soap_policy'],
-    table: 'incident',
-    shortDescription: 'Data Policy for Import and SOAP',
-    description: 'Enforce data validation for records created via import sets or SOAP',
-    applyToImportSets: true,
-    applyToSOAP: true,
-    useAsUiPolicyOnClient: false,
-    rules: {
-        short_description: { mandatory: true },
-        caller_id: { mandatory: true },
-        category: { mandatory: true },
+  $id: Now.ID['high_priority_incident_policy'],
+  table: 'incident',
+  shortDescription: 'Require assignment for high priority incidents',
+  conditions: 'priority=1^ORpriority=2',
+  rules: {
+    assigned_to: {
+      $id: Now.ID['high_priority_incident_policy_assigned_to_rule'],
+      mandatory: true,
     },
+    assignment_group: {
+      $id: Now.ID['high_priority_incident_policy_assignment_group_rule'],
+      mandatory: true,
+    },
+  },
 })
 ```
 
@@ -1727,18 +1732,50 @@ DataPolicy({
 |----------|------|----------|-------------|
 | `$id` | `Now.ID[...]` | Yes | Unique metadata identifier |
 | `table` | String | Yes | Target table name |
-| `shortDescription` | String | No | Short label for this policy |
+| `shortDescription` | String | Yes | Short label for this policy |
 | `description` | String | No | Full description |
-| `applyToImportSets` | Boolean | No | Enforce during import set processing. Default: `false` |
-| `applyToSOAP` | Boolean | No | Enforce for records created via SOAP/REST. Default: `false` |
-| `useAsUiPolicyOnClient` | Boolean | No | Also behave as a UI policy on the client. Default: `false` |
-| `rules` | Object | No | Field rules keyed by column name. Each value is `{ mandatory?: boolean }` |
+| `conditions` | String | No | Encoded query. Omit to apply to all records. |
+| `applyToImportSets` | Boolean | No | Enforce during import set processing. Default: `true` |
+| `applyToSOAP` | Boolean | No | Enforce for SOAP/REST/API operations. Default: `true` |
+| `useAsUiPolicyOnClient` | Boolean | No | Also behave as a UI policy on the client. Default: `true` |
+| `reverseIfFalse` | Boolean | No | Invert rules when conditions are false. Default: `true` |
+| `inherit` | Boolean | No | Apply to child tables. Default: `false` |
+| `rules` | Object | Yes | Field rules keyed by column name or dot-walk path. Each rule requires `$id` and may set `mandatory` or `readOnly`. |
+
+Do not set both `mandatory: true` and `readOnly: true` on the same rule. Use dot-walk rule keys such as `'caller_id.email'` for referenced-table fields.
+
+---
+
+## Assignment Rules
+
+Assignment rules are authored with `Record()` on `sysrule_assignment`; there is no dedicated `AssignmentRule()` API. Use them only for task or task-inherited tables. For full guidance, see [ASSIGNMENT-RULES-GUIDE.md](./ASSIGNMENT-RULES-GUIDE.md).
+
+```ts
+import '@servicenow/sdk/global'
+import { Record } from '@servicenow/sdk/core'
+
+Record({
+  $id: Now.ID['hardware-incident-assignment'],
+  table: 'sysrule_assignment',
+  data: {
+    name: 'Assign Hardware Incidents',
+    table: 'incident',
+    active: true,
+    condition: 'category=hardware^EQ',
+    match_conditions: 'ALL',
+    group: '<validated_sys_user_group_sys_id>',
+    order: 100,
+  },
+})
+```
+
+Before writing static `group` or `user` values, query the instance for the target `sys_user_group` or `sys_user` unless the user explicitly provided a sys_id.
 
 ---
 
 ## Universal $override Property
 
-All Fluent API objects accept an optional `$override` property. Use it to set any field not otherwise exposed by the API surface — for example, custom fields from other application scopes.
+All Fluent API objects accept an optional `$override` property. Use it to set any field not otherwise exposed by the API surface — for example, custom fields from other application scopes. This is a last-resort escape hatch; prefer typed SDK properties when they exist. See [OVERRIDE-GUIDE.md](./OVERRIDE-GUIDE.md).
 
 ```ts
 import { BusinessRule } from '@servicenow/sdk/core'
@@ -1754,7 +1791,7 @@ BusinessRule({
 })
 ```
 
-`$override` values are written directly to the metadata XML. Only use this for fields that are not exposed through the typed API — prefer the typed properties where they exist.
+`$override` keys are database column names, not Fluent property names. Values are written directly to the metadata XML. Only use this for fields that are not exposed through the typed API — prefer the typed properties where they exist.
 
 ---
 

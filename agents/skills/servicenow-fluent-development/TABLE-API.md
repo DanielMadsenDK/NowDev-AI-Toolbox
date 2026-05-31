@@ -36,7 +36,7 @@ Create a table [sys_db_object] in an application.
 | `index` | Array | A list of column references to generate indexes in the metadata XML of the table. A database index increases the speed of accessing data with the expense of additional storage. Format: `[{ name: 'String', element: 'String', unique: Boolean }, ...]` |
 | `autoNumber` | Object | The auto-numbering configuration [sys_number] for a table. For more information, see autoNumber object. |
 | `scriptableTable` | Boolean | Flag that indicates whether the table is a remote table that uses data retrieved from an external source. Valid values: `true` (The table is a remote table), `false` (The table isn't a remote table). Default: `false`. For more information, see Remote tables. |
-| `augment` | Boolean | Set to `true` when adding columns to an existing table that is outside the application scope (e.g., extending a global or out-of-box table). Use this instead of `extends` when you need to augment rather than inherit. Default: `false`. |
+| `augments` | String | Target table name when adding columns to an existing table outside the application scope (for example, `'incident'` or `'task'`). Use this instead of `name`/`extends` when you need to augment rather than inherit. See [TABLE-AUGMENTS-GUIDE.md](./TABLE-AUGMENTS-GUIDE.md). |
 | `createAccessControls` | Boolean | When `true`, creates default access controls for the table automatically on install. Default: `false`. |
 | `userRole` | String | Wires the table's auto-generated access controls to a specific user role. Used together with `createAccessControls: true`. Example: `'x_myapp.user'`. |
 
@@ -142,6 +142,8 @@ export const x_snc_example_to_do = Table({
 > **Critical:** Set `allowWebServiceAccess: true` for any table that needs to be accessed via REST API. Without it, REST calls return `403 User Not Authorized` even when ACLs are correctly configured. Source: https://servicenow.github.io/sdk/guides/table-guide
 
 > **Build warning:** Only import column types that are actually used in the schema. Importing unused column types causes build errors. Source: https://servicenow.github.io/sdk/guides/table-guide
+
+> **Table augments:** To add fields to a platform or cross-scope table, use `Table({ augments: 'incident', schema: { x_scope_field: StringColumn(...) } })`. Do not use the old singular `augment` property, and do not include `name`, `extends`, `label`, or other table ownership properties with `augments`. Added column names must be scope-prefixed. See [TABLE-AUGMENTS-GUIDE.md](./TABLE-AUGMENTS-GUIDE.md).
 
 ---
 

@@ -2,7 +2,8 @@
 name: servicenow-script-server-logic
 context: fork
 user-invocable: false
-description: General server-side operations including Script Includes, JavaScript modules, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes and modules for SDK projects. Use for reusable server-side utilities, gs.* system operations, user context, and event publishing via gs.eventQueue(). Trigger this skill whenever the user needs to write a Script Include, create reusable server-side logic, use gs.* APIs, manage user sessions or preferences, queue events, or implement impersonation. JavaScript modules are preferred for new Fluent projects; Script Includes remain required for GlideAjax and cross-scope APIs.
+description: >-
+  General server-side operations including Script Includes, JavaScript modules, system interactions, user session management, and utility functions. Covers two approaches: (1) Classic Script Includes using Class.create() for existing instances, and (2) Fluent SDK Script Includes and modules for SDK projects. Use for reusable server-side utilities, gs.* system operations, user context, and event publishing via gs.eventQueue(). Trigger this skill whenever the user needs to write a Script Include, create reusable server-side logic, use gs.* APIs, manage user sessions or preferences, queue events, or implement impersonation. JavaScript modules are preferred for new Fluent projects; Script Includes remain required for GlideAjax and cross-scope APIs.
 last_verified: "2026-05-18"
 ---
 

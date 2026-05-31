@@ -71,6 +71,8 @@ Parent Update Set (orchestrates order)
 
 For capture lists, what moves vs what stays, and batching patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
 
+For complete Update Set release scenarios and operational checklists, see [EXAMPLES.md](./EXAMPLES.md)
+
 ---
 
 ## Fluent SDK Deployment Workflow
@@ -116,9 +118,18 @@ npx @servicenow/sdk auth --list
 npx @servicenow/sdk auth --use <alias>
 
 # Non-interactive (CI/CD) — use environment variables:
+export SN_SDK_NODE_ENV=SN_SDK_CI_INSTALL
+export SN_SDK_AUTH_TYPE=basic
 export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
 export SN_SDK_USER=admin
 export SN_SDK_USER_PWD=password
+
+# OAuth client credentials:
+export SN_SDK_NODE_ENV=SN_SDK_CI_INSTALL
+export SN_SDK_AUTH_TYPE=oauth
+export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
+export SN_SDK_OAUTH_CLIENT_ID=<oauth_client_id>
+export SN_SDK_OAUTH_CLIENT_SECRET=<oauth_client_secret>
 ```
 
 ### Converting Existing Applications

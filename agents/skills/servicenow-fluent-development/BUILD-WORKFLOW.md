@@ -133,20 +133,23 @@ npx now-sdk auth --use <alias>
 ### Non-Interactive (CI/CD) — Basic Auth
 
 ```bash
+export SN_SDK_NODE_ENV=SN_SDK_CI_INSTALL
+export SN_SDK_AUTH_TYPE=basic
 export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
 export SN_SDK_USER=admin
 export SN_SDK_USER_PWD=password
 ```
 
-### Non-Interactive (CI/CD) — OAuth client_credentials (SDK 4.7.0+)
+### Non-Interactive (CI/CD) — OAuth client_credentials
 
 Use OAuth `client_credentials` flow for the `install` command in CI/CD pipelines:
 
 ```bash
+export SN_SDK_NODE_ENV=SN_SDK_CI_INSTALL
+export SN_SDK_AUTH_TYPE=oauth
 export SN_SDK_INSTANCE_URL=https://myinstance.service-now.com
-export SN_SDK_CLIENT_ID=<oauth_client_id>
-export SN_SDK_CLIENT_SECRET=<oauth_client_secret>
-export SN_SDK_AUTH_TYPE=client_credentials
+export SN_SDK_OAUTH_CLIENT_ID=<oauth_client_id>
+export SN_SDK_OAUTH_CLIENT_SECRET=<oauth_client_secret>
 ```
 
 Environment variables take precedence over stored credentials.

@@ -60,19 +60,17 @@ jobs:
 
       - name: Deploy to ServiceNow (${{ env.TARGET_ENV }})
         env:
-          NOW_INSTANCE_URL: ${{ secrets[format('{0}_NOW_INSTANCE_URL', upper(env.TARGET_ENV))] }}
-          NOW_USERNAME:     ${{ secrets[format('{0}_NOW_USERNAME',     upper(env.TARGET_ENV))] }}
-          NOW_PASSWORD:     ${{ secrets[format('{0}_NOW_PASSWORD',     upper(env.TARGET_ENV))] }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets[format('{0}_SN_SDK_INSTANCE_URL', upper(env.TARGET_ENV))] }}
+          SN_SDK_USER:         ${{ secrets[format('{0}_SN_SDK_USER',         upper(env.TARGET_ENV))] }}
+          SN_SDK_USER_PWD:     ${{ secrets[format('{0}_SN_SDK_USER_PWD',     upper(env.TARGET_ENV))] }}
         run: |
           REINSTALL_FLAG=""
           if [ "$DO_REINSTALL" = "true" ]; then
             REINSTALL_FLAG="--reinstall"
           fi
-          npx @servicenow/sdk install \
-            --url "$NOW_INSTANCE_URL" \
-            --username "$NOW_USERNAME" \
-            --password "$NOW_PASSWORD" \
-            $REINSTALL_FLAG
+          npx @servicenow/sdk install $REINSTALL_FLAG
 
       - name: Deployment summary
         if: success()

@@ -26,7 +26,7 @@ When authoring Script Includes with Fluent SDK, you'll use these language constr
 - **`Now.include('./file.server.js')`** — Link to external JavaScript file with two-way synchronization (recommended for maintainability and syntax highlighting)
 - **`Now.ref('sys_user', { email: 'admin@example.com' })`** — Reference records from other applications
 
-See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/references/API-REFERENCE.md) for comprehensive documentation.
+See [servicenow-fluent-development: Fluent Language Constructs](../../servicenow-fluent-development/API-REFERENCE.md) for comprehensive documentation.
 
 ### File Structure
 
@@ -409,7 +409,7 @@ export default ScriptInclude({
 - All property values from `gs.getProperty()` are returned as **strings** — convert explicitly for other types
 - Properties are **cached** — changes take effect after cache flush
 - Use property names prefixed with your app scope (e.g., `x_my_app.property_name`)
-- For comprehensive Property API documentation, see [PROPERTY-API.md](../../servicenow-fluent-development/references/PROPERTY-API.md) in the servicenow-fluent-development skill
+- For comprehensive Property API documentation, see [PROPERTY-API.md](../../servicenow-fluent-development/PROPERTY-API.md) in the servicenow-fluent-development skill
 
 ---
 

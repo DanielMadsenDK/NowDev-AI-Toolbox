@@ -2,7 +2,8 @@
 name: servicenow-client-scripts
 context: fork
 user-invocable: false
-description: Implement browser-side client scripts using GlideAjax for async server communication. Covers two approaches: (1) Classic client scripts in existing instances, and (2) Fluent SDK TypeScript scripts in .now.ts files. Use for OnChange/OnLoad/OnSubmit scripts that make async server calls or event-driven logic requiring data from the server. For pure g_form field state operations with no server calls, use the servicenow-ui-forms skill. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns. Trigger this skill whenever the user mentions client scripts, GlideAjax, OnChange/OnLoad/OnSubmit handlers, or needs browser-side logic that communicates with the server.
+description: >-
+    Implement browser-side client scripts using GlideAjax for async server communication. Covers two approaches: (1) Classic client scripts in existing instances, and (2) Fluent SDK TypeScript scripts in .now.ts files. Use for OnChange/OnLoad/OnSubmit scripts that make async server calls or event-driven logic requiring data from the server. For pure g_form field state operations with no server calls, use the servicenow-ui-forms skill. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns. Trigger this skill whenever the user mentions client scripts, GlideAjax, OnChange/OnLoad/OnSubmit handlers, or needs browser-side logic that communicates with the server.
 last_verified: "2026-05-18"
 ---
 

@@ -82,12 +82,10 @@ jobs:
 
       - name: Deploy scope ${{ matrix.scope }}
         env:
-          NOW_INSTANCE_URL: ${{ secrets[format('{0}_NOW_INSTANCE_URL', upper(env.TARGET_ENV))] }}
-          NOW_USERNAME:     ${{ secrets[format('{0}_NOW_USERNAME',     upper(env.TARGET_ENV))] }}
-          NOW_PASSWORD:     ${{ secrets[format('{0}_NOW_PASSWORD',     upper(env.TARGET_ENV))] }}
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: basic
+          SN_SDK_INSTANCE_URL: ${{ secrets[format('{0}_SN_SDK_INSTANCE_URL', upper(env.TARGET_ENV))] }}
+          SN_SDK_USER:         ${{ secrets[format('{0}_SN_SDK_USER',         upper(env.TARGET_ENV))] }}
+          SN_SDK_USER_PWD:     ${{ secrets[format('{0}_SN_SDK_USER_PWD',     upper(env.TARGET_ENV))] }}
         run: |
-          npx @servicenow/sdk install \
-            --url "$NOW_INSTANCE_URL" \
-            --username "$NOW_USERNAME" \
-            --password "$NOW_PASSWORD" \
-            --scope "${{ matrix.scope }}"
+          npx @servicenow/sdk install --scope "${{ matrix.scope }}"
