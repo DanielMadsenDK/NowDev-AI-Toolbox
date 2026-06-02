@@ -8,6 +8,81 @@ export interface McpServer {
     type?: string;
 }
 
+export interface McpStdioConfig {
+    kind: 'stdio';
+    command: string;
+    args: string[];
+    env: Record<string, string>;
+    cwd?: string;
+}
+
+export interface McpHttpConfig {
+    kind: 'http';
+    url: string;
+    headers: Record<string, string>;
+}
+
+export type McpServerConfig = McpStdioConfig | McpHttpConfig;
+
+/** Parses a raw server record into a typed config, or undefined if unrecognisable. */
+function parseServerEntry(entry: Record<string, unknown>): McpServerConfig | undefined {
+    // HTTP / SSE — presence of `url` field
+    if (typeof entry['url'] === 'string') {
+        return {
+            kind: 'http',
+            url: entry['url'],
+            headers: (entry['headers'] ?? {}) as Record<string, string>,
+        };
+    }
+    // Stdio — presence of `command` field
+    if (typeof entry['command'] === 'string') {
+        return {
+            kind: 'stdio',
+            command: entry['command'],
+            args: Array.isArray(entry['args']) ? (entry['args'] as string[]) : [],
+            env: (entry['env'] ?? {}) as Record<string, string>,
+            cwd: typeof entry['cwd'] === 'string' ? entry['cwd'] : undefined,
+        };
+    }
+    return undefined;
+}
+
+/**
+ * Returns the connection configuration for a named MCP server, or undefined
+ * if the server is not found or its config cannot be parsed.
+ */
+export function getMcpServerConfig(serverName: string): McpServerConfig | undefined {
+    // 1. VS Code mcp.servers setting
+    const mcpCfg = vscode.workspace.getConfiguration('mcp');
+    const settingsServers = mcpCfg.get<Record<string, Record<string, unknown>>>('servers', {});
+    if (settingsServers[serverName]) {
+        const cfg = parseServerEntry(settingsServers[serverName]);
+        if (cfg) { return cfg; }
+    }
+
+    // 2. Workspace MCP files (.mcp.json and legacy .vscode/mcp.json)
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders) {
+        for (const folder of workspaceFolders) {
+            for (const mcpFile of [
+                path.join(folder.uri.fsPath, '.mcp.json'),
+                path.join(folder.uri.fsPath, '.vscode', 'mcp.json'),
+            ]) {
+                try {
+                    if (!fs.existsSync(mcpFile)) { continue; }
+                    const data = JSON.parse(fs.readFileSync(mcpFile, 'utf-8')) as Record<string, unknown>;
+                    const servers = (data['servers'] ?? {}) as Record<string, Record<string, unknown>>;
+                    if (servers[serverName]) {
+                        const cfg = parseServerEntry(servers[serverName]);
+                        if (cfg) { return cfg; }
+                    }
+                } catch { /* ignore */ }
+            }
+        }
+    }
+    return undefined;
+}
+
 /**
  * Scans for installed MCP servers from VS Code settings and workspace MCP files.
  *

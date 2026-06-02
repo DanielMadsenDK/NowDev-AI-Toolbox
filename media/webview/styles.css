@@ -67,6 +67,8 @@
    UTILITY CLASSES
    ════════════════════════════════════════════════════════════════ */
 .nd-hidden  { display: none !important; }
+.nd-mt-1    { margin-top:    var(--nd-sp-1); }
+.nd-mb-1    { margin-bottom: var(--nd-sp-1); }
 .nd-mt-2    { margin-top:    var(--nd-sp-2); }
 .nd-mb-2    { margin-bottom: var(--nd-sp-2); }
 .nd-mt-3    { margin-top:    var(--nd-sp-3); }
@@ -77,6 +79,42 @@
 
 /* Inline-flex button group used in section-title action slots */
 .nd-btn-group { display: flex; gap: var(--nd-sp-2); }
+
+/* Profile select row — select + gear button side by side */
+.profile-select-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+}
+.profile-select {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 9px;
+    font-size: 12px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+    cursor: pointer;
+}
+.profile-select:focus { border-color: var(--nd-accent); }
+/* Profile tone textarea — matches app font/color conventions */
+.profile-tone-textarea {
+    width: 100%;
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    padding: 6px 8px;
+    outline: none;
+}
 
 /* Sub-label within a section (used above MCP doc sources list) */
 .nd-section-sublabel {
@@ -1608,6 +1646,7 @@ a:hover {
     cursor: not-allowed;
 }
 
+/* ════════════════════════════════════════════════════════════════
 /* ════════════════════════════════════════════════════════════════
    DOCS TAB — radio mode selector
    ════════════════════════════════════════════════════════════════ */

@@ -298,6 +298,7 @@
                 updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
                 updateDevopsSection(msg.devopsConfig, msg.mcpServers);
                 updateDocsTab(msg.productDocsConfig, msg.docsReleases, msg.docsDownloadStatus, msg.docsGlobalPath, msg.docsLastSynced);
+                updateProfile(msg.profiles, msg.activeProfileId, msg.profileInstructions, msg.profileHasCustomInstructions);
                 refreshWorkspaceStatus();
                 break;
             case 'updateAgents':
@@ -386,6 +387,72 @@
         _wsState.prereqsOk = okCount;
         _wsState.prereqsTotal = total;
         renderOnboardingSummary();
+    }
+
+    // ── Profile selector (Home tab) ────────────────────────────────
+    var _profileDebounceTimer = null;
+    var _profileEventsWired = false;
+
+    function updateProfile(profiles, activeProfileId, profileInstructions, hasCustomInstructions) {
+        var sel = document.getElementById('activeProfile');
+        var desc = document.getElementById('profileDescription');
+        var textarea = document.getElementById('profileInstructionsInput');
+        var resetBtn = document.getElementById('resetProfileInstructions');
+
+        if (!sel || !profiles || profiles.length === 0) { return; }
+
+        // Rebuild options only if the profile list has changed (avoid losing focus)
+        var existingIds = Array.from(sel.options).map(function (o) { return o.value; });
+        var newIds = profiles.map(function (p) { return p.id; });
+        if (existingIds.join(',') !== newIds.join(',')) {
+            sel.innerHTML = profiles.map(function (p) {
+                return '<option value="' + esc(p.id) + '"' + (p.id === activeProfileId ? ' selected' : '') + '>' + esc(p.label) + '</option>';
+            }).join('');
+        } else {
+            sel.value = activeProfileId;
+        }
+
+        var active = profiles.find(function (p) { return p.id === activeProfileId; });
+        if (desc) { desc.textContent = active ? active.description : ''; }
+
+        if (textarea) { textarea.value = profileInstructions || ''; }
+        if (resetBtn) { resetBtn.classList.toggle('nd-hidden', !hasCustomInstructions); }
+
+        // Wire all events once
+        if (!_profileEventsWired) {
+            _profileEventsWired = true;
+
+            sel.addEventListener('change', function () {
+                vscode.postMessage({ command: 'setActiveProfile', profileId: sel.value });
+            });
+
+            if (textarea) {
+                textarea.addEventListener('input', function () {
+                    clearTimeout(_profileDebounceTimer);
+                    _profileDebounceTimer = setTimeout(function () {
+                        vscode.postMessage({ command: 'saveProfileInstructions', instructions: textarea.value });
+                    }, 600);
+                });
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function () {
+                    vscode.postMessage({ command: 'resetProfileInstructions' });
+                });
+            }
+
+            var gearBtn = document.getElementById('profileToneGear');
+            var panel = document.getElementById('profileTonePanel');
+            if (gearBtn && panel) {
+                gearBtn.addEventListener('click', function () {
+                    var isOpen = panel.classList.contains('open');
+                    panel.classList.toggle('open', !isOpen);
+                    gearBtn.classList.toggle('open', !isOpen);
+                    gearBtn.innerHTML = isOpen ? '&#9881;' : '&#10005;';
+                    gearBtn.title = isOpen ? 'Customize tone instructions' : 'Close';
+                });
+            }
+        }
     }
 
     // ── Workspace status strip (Home tab) ──────────────────────────
@@ -583,12 +650,15 @@
             return;
         }
 
+        // Filter out agents suppressed by the active profile — they are not active
+        var visible = manifests.filter(function (m) { return !m.profileSuppressed; });
+
         // Partition into locked, bundles, and standalone optional
-        var locked = manifests.filter(function (m) { return m.locked; })
+        var locked = visible.filter(function (m) { return m.locked; })
             .sort(function (a, b) { return a.name.localeCompare(b.name); });
 
         var bundleMap = {};
-        manifests.forEach(function (m) {
+        visible.forEach(function (m) {
             if (!m.locked && m.bundle) {
                 if (!bundleMap[m.bundle]) { bundleMap[m.bundle] = []; }
                 bundleMap[m.bundle].push(m);
@@ -596,7 +666,7 @@
         });
 
         // DevOps agent is managed via dedicated DevOps config UI — exclude from here
-        var standalone = manifests.filter(function (m) {
+        var standalone = visible.filter(function (m) {
             return !m.locked && !m.bundle && m.name !== 'NowDev-AI-DevOps';
         }).sort(function (a, b) { return a.name.localeCompare(b.name); });
 
@@ -908,6 +978,8 @@
 
     // ── MCP Integrations rendering ─────────────────────────────────
 
+    var _mcpConfigDebounce = {};
+
     function updateMcpServers(servers, selectedMcp) {
         var list = document.getElementById('mcpServersList');
         if (!list) { return; }
@@ -925,8 +997,10 @@
         }
 
         var selected = selectedMcp || [];
+
         var html = servers.map(function (s) {
-            var checked = selected.indexOf(s.name) >= 0 ? 'checked' : '';
+            var isChecked = selected.indexOf(s.name) >= 0;
+            var checked = isChecked ? 'checked' : '';
             var sourceLabel = s.source === 'file' ? 'mcp.json' : 'settings';
             var sourceBadge = '<span class="auth-alias-default-badge">' + esc(sourceLabel) + '</span>';
             var typeHint = s.type ? ' <span class="tool-version">' + esc(s.type) + '</span>' : '';
@@ -943,11 +1017,12 @@
 
         list.innerHTML = html;
 
-        list.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+        list.querySelectorAll('input[type="checkbox"][data-mcp]').forEach(function (cb) {
             cb.addEventListener('change', function () {
                 vscode.postMessage({ command: 'toggleMcp', name: cb.dataset.mcp, enabled: cb.checked });
             });
         });
+
         renderOnboardingSummary();
     }
 

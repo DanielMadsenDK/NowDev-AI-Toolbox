@@ -3,13 +3,14 @@ name: NowDev-AI-Classic-Release
 user-invocable: false
 description: specialized agent for Classic ServiceNow release management — generates XML Update Set files from .js artifacts and plans classic deployment procedures
 argument-hint: "List of .js artifact files to package, desired Update Set name, target ServiceNow table for each artifact (e.g. sys_script_include, sys_script, sys_script_client), and whether to create a new Update Set or add to an existing one"
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/runInTerminal']
 handoffs:
   - label: Back to Release Expert
     agent: NowDev-AI-Release-Expert
     prompt: Classic release packaging completed. Returning results for next steps.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

@@ -11,6 +11,7 @@ handoffs:
     prompt: Release preparation completed. Returning results for next steps.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
@@ -53,24 +54,32 @@ You are a **routing agent**. Your only job is to determine which specialized rel
 
 ## Routing Decision
 
+{{#agent:NowDev-AI-Fluent-Release}}
 ### → Fluent Project
 Invoke `@NowDev-AI-Fluent-Release` with:
 - The project root path
 - The target auth alias (from `now-sdk auth --list`)
 - Whether a `--reinstall` clean deploy is needed
+{{/agent:NowDev-AI-Fluent-Release}}
 
+{{#agent:NowDev-AI-Classic-Release}}
 ### → Classic Project
 Invoke `@NowDev-AI-Classic-Release` with:
 - The complete list of `.js` artifact files
 - The desired Update Set name
 - Any known artifact-to-table mappings
+{{/agent:NowDev-AI-Classic-Release}}
 
 ## Mixed Projects
 
 If the file list contains both `.now.ts` Fluent files and standalone Classic `.js` artifacts:
 
+{{#agent:NowDev-AI-Fluent-Release}}
 1. Invoke `@NowDev-AI-Fluent-Release` for all Fluent artifacts
+{{/agent:NowDev-AI-Fluent-Release}}
+{{#agent:NowDev-AI-Classic-Release}}
 2. After it returns, invoke `@NowDev-AI-Classic-Release` for the Classic artifacts
+{{/agent:NowDev-AI-Classic-Release}}
 3. Consolidate both results before returning to the orchestrator
 
 ## Output

@@ -3,13 +3,14 @@ name: NowDev-AI-AI-Agent-Developer
 user-invocable: false
 description: Fluent SDK specialist for AI Agent Studio artifacts — AiAgent definitions with tools, version management, trigger configuration, and AiAgenticWorkflow team orchestration
 argument-hint: "The AI Agent requirements — describe the agent's role, what tools it should have (crud, script, subflow, web search, etc.), whether it needs automatic triggers, execution mode (copilot vs autopilot), and any team/workflow orchestration needs."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 handoffs:
   - label: Back to AI Studio Developer
     agent: NowDev-AI-AI-Studio-Developer
     prompt: AI Agent/Workflow implementation completed. Returning created files.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

@@ -2,13 +2,14 @@
 name: NowDev-AI-Fluent-Reviewer
 user-invocable: false
 description: specialized agent for reviewing ServiceNow Fluent SDK artifacts (.now.ts metadata, TypeScript modules, React components) against best practices sourced from the servicenow-fluent-development skill
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory']
 handoffs:
   - label: Back to Reviewer
     agent: NowDev-AI-Reviewer
     prompt: Fluent code review completed. Returning results for next steps.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

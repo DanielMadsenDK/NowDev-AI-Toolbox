@@ -3,13 +3,14 @@ name: NowDev-AI-NowAssist-Developer
 user-invocable: false
 description: Fluent SDK specialist for NowAssist Skill configurations — NowAssistSkillConfig with tool graph (Script, InlineScript, FlowAction, Subflow, WebSearch, Decision), LLM provider and prompt versioning, security controls, and deployment settings
 argument-hint: "The NowAssist skill requirements — describe what the skill should do, what inputs it receives, what data it needs to fetch (via Script Include, Subflow, or web search), what the LLM should generate, and where the skill should be available (Now Assist Panel, UI Action on a table, Flow Action)."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 handoffs:
   - label: Back to AI Studio Developer
     agent: NowDev-AI-AI-Studio-Developer
     prompt: NowAssist skill implementation completed. Returning created files.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

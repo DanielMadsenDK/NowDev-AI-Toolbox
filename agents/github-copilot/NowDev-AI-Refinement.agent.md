@@ -2,13 +2,14 @@
 name: NowDev-AI-Refinement
 user-invocable: false
 description: always-invoked first step for all full-project requests — performs gap analysis to identify missing information, asks targeted questions when needed, validates ServiceNow feasibility via docs MCP or built-in knowledge, and produces a complete unambiguous implementation brief. Fast-paths immediately to the brief when the request is already complete and specific.
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'search', 'web', 'todo', 'vscode/memory', 'io.github.upstash/context7/*']
+tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'search', 'web', 'todo', 'vscode/memory']
 handoffs:
   - label: Handoff to Architect
     agent: NowDev AI Agent
     prompt: Refinement complete. The following is a fully refined implementation brief ready for development orchestration.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

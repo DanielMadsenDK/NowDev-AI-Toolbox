@@ -10,21 +10,26 @@ handoffs:
     agent: NowDev AI Agent
     prompt: Code review routing completed. Returning results for next steps.
     send: true
+{{#agent:NowDev-AI-Classic-Developer}}
   - label: Fix Issues — Classic Developer
     agent: NowDev-AI-Classic-Developer
     prompt: "Apply the fixes described in the Structured Findings Block produced by the last Classic code review. Address every finding in priority order (Critical first). The Structured Findings Block from the review is included above in the conversation — read it to obtain the exact file paths, line numbers, categories, and recommended fixes before writing any code."
     send: true
+{{/agent:NowDev-AI-Classic-Developer}}
+{{#agent:NowDev-AI-Fluent-Developer}}
   - label: Fix Issues — Fluent Developer
     agent: NowDev-AI-Fluent-Developer
     prompt: "Apply the fixes described in the Structured Findings Block produced by the last Fluent code review. Address every finding in priority order (Critical first). The Structured Findings Block from the review is included above in the conversation — read it to obtain the exact file paths, line numbers, categories, and recommended fixes before writing any code."
     send: true
+{{/agent:NowDev-AI-Fluent-Developer}}
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Inspect the file list provided by the orchestrator
 2. Determine project style: Fluent, Classic, or Mixed (see detection rules below)
-3. Delegate to the appropriate specialized reviewer agent (NowDev-AI-Fluent-Reviewer or NowDev-AI-Classic-Reviewer)
+3. Delegate to the appropriate specialized reviewer agent
 4. For Mixed projects: after the first specialist returns via handoff, invoke the second specialist with its portion of the file list
 5. Once all specialist reviews are complete, present the findings in full without summarizing or altering them
 6. **Fix Delegation Offer**: After presenting findings, check the Structured Findings Block(s) returned by the specialist(s). If `review_status` is `REQUEST CHANGES` or `CRITICAL ISSUES`, present a fix delegation summary and instruct the user to click the matching "Fix Issues" handoff button to delegate fixes to the appropriate developer specialist. If status is PASS, confirm no action is needed.
@@ -63,22 +68,30 @@ Inspect the file extensions and paths in the provided file list:
 
 ## Routing Decision
 
+{{#agent:NowDev-AI-Fluent-Reviewer}}
 ### → Fluent Project
 Invoke `@NowDev-AI-Fluent-Reviewer` with:
 - The complete file list
 - Any context provided by the orchestrator (task description, artifact types, known issues)
+{{/agent:NowDev-AI-Fluent-Reviewer}}
 
+{{#agent:NowDev-AI-Classic-Reviewer}}
 ### → Classic Project
 Invoke `@NowDev-AI-Classic-Reviewer` with:
 - The complete file list
 - Any context provided by the orchestrator (task description, artifact types, known issues)
+{{/agent:NowDev-AI-Classic-Reviewer}}
 
 ## Mixed Projects
 
 If the file list contains **both** `.now.ts` Fluent files **and** Classic `.js` scripts that are **not** linked via `Now.include` (i.e., standalone classic artifacts developed alongside a Fluent project):
 
+{{#agent:NowDev-AI-Fluent-Reviewer}}
 1. Invoke `@NowDev-AI-Fluent-Reviewer` for all `.now.ts`, `.tsx`, `.ts` files and `.js` files under `src/fluent/`
+{{/agent:NowDev-AI-Fluent-Reviewer}}
+{{#agent:NowDev-AI-Classic-Reviewer}}
 2. Invoke `@NowDev-AI-Classic-Reviewer` for any standalone `.js` Classic artifacts
+{{/agent:NowDev-AI-Classic-Reviewer}}
 3. Consolidate both results before returning to the orchestrator
 
 ## Output
@@ -93,10 +106,13 @@ After presenting the complete review findings, read the Structured Findings Bloc
 
 1. Summarize the findings requiring fixes — total count by priority (Critical / High / Medium / Low)
 2. State which developer specialist will handle the fixes:
+{{#agent:NowDev-AI-Classic-Developer}}
    - Classic artifacts → `NowDev-AI-Classic-Developer`
+{{/agent:NowDev-AI-Classic-Developer}}
+{{#agent:NowDev-AI-Fluent-Developer}}
    - Fluent artifacts → `NowDev-AI-Fluent-Developer`
-   - Mixed → both, Classic first
-3. Tell the user: _"Click **Fix Issues — [Classic/Fluent] Developer** below to delegate all fixes. The developer will receive the full Structured Findings Block as context and apply corrections in priority order."_
+{{/agent:NowDev-AI-Fluent-Developer}}
+3. Tell the user: _"Click the **Fix Issues** handoff button below to delegate all fixes. The developer will receive the full Structured Findings Block as context and apply corrections in priority order."_
 4. The appropriate "Fix Issues" handoff button is ready for the user to click
 
 **If `review_status` is `PASS`:**

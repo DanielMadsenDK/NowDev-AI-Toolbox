@@ -3,7 +3,7 @@ name: NowDev-AI-AI-Studio-Developer
 user-invocable: false
 description: AI Studio coordinator — analyzes whether a request calls for an autonomous AI Agent/Agentic Workflow or a NowAssist Skill configuration, then delegates to the right specialist
 argument-hint: "The AI Studio requirements from the implementation brief — describe what the user wants the AI to do: autonomous background task vs. user-triggered prompt-based skill. Include any tool integrations (Script Includes, Subflows, web search) and channel requirements (Now Assist Panel, Virtual Agent)."
-tools: ['read/readFile', 'search', 'web', 'todo', 'vscode/memory', 'agent', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'search', 'web', 'todo', 'vscode/memory', 'agent']
 agents: ['NowDev-AI-AI-Agent-Developer', 'NowDev-AI-NowAssist-Developer']
 handoffs:
   - label: Back to Fluent Developer
@@ -11,6 +11,7 @@ handoffs:
     prompt: AI Studio implementation completed. Returning created files for next steps.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

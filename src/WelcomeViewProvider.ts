@@ -5,7 +5,8 @@ import * as https from 'https';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, AgentOverride, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, ProductDocsConfig, DEFAULT_PRODUCT_DOCS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName } from './WorkspaceAgentManager';
+import { syncAllAgents, AgentOverride, McpIntegrationConfig, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, ProductDocsConfig, DEFAULT_PRODUCT_DOCS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName } from './WorkspaceAgentManager';
+import { BUILT_IN_PROFILES, DEFAULT_PROFILE_ID, getProfileById, getEffectiveAgentConfig } from './ProfileManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
@@ -41,6 +42,15 @@ interface CheckChangesState {
     timestamp: string;
 }
 
+/**
+ * MCP servers matching any of these patterns are automatically added to the
+ * active integration list the first time they are detected — unless the user
+ * has explicitly dismissed them via the toggle.
+ */
+const AUTO_ENABLE_MCP_PATTERNS: RegExp[] = [
+    /context7/i,   // io.github.upstash/context7, context7, github.com/upstash/context7, …
+];
+
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
     private _view?: vscode.WebviewView;
@@ -54,11 +64,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _checkChangesResult: CheckChangesState | null = null;
     private _mcpServers: McpServer[] = [];
     private _selectedMcp: string[] = [];
+    private _mcpUserDismissed: string[] = [];   // servers the user explicitly toggled off — never auto-re-enabled
+    private _mcpIntegrationConfigs: Record<string, McpIntegrationConfig> = {};
     private _mcpDocSources: McpDocSources = { ...DEFAULT_MCP_DOC_SOURCES };
     private _agentManifests: AgentManifest[] = [];
     private _agentOverrides: Record<string, AgentOverride> = {};
     private _devopsConfig: DevOpsConfig = { ...DEFAULT_DEVOPS_CONFIG };
     private _productDocsConfig: ProductDocsConfig = { ...DEFAULT_PRODUCT_DOCS_CONFIG };
+    private _activeProfileId: string = DEFAULT_PROFILE_ID;
+    private _profileInstructionsOverrides: Record<string, string> = {};
     private _docsReleases: string[] = [...SERVICENOW_RELEASES];
     private _docsDownloadStatus: { loading: boolean; downloaded?: number; total?: number; error?: string; cancelled?: boolean } = { loading: false };
     private _abortDownload = false;
@@ -119,8 +133,29 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     /** Scans for available MCP servers and triggers an agent override sync. */
     public scanMcp(): void {
         this._mcpServers = scanMcpServers();
+        this._applyAutoEnableMcp();
         this._syncWorkspaceAgents();
         if (this._view) { this._updateStatus(); }
+    }
+
+    /**
+     * Auto-enables any detected MCP server that matches AUTO_ENABLE_MCP_PATTERNS
+     * and has not been explicitly dismissed by the user.
+     * Returns true if the selection changed (caller should re-sync agents).
+     */
+    private _applyAutoEnableMcp(): boolean {
+        let changed = false;
+        for (const server of this._mcpServers) {
+            if (
+                AUTO_ENABLE_MCP_PATTERNS.some(p => p.test(server.name)) &&
+                !this._selectedMcp.includes(server.name) &&
+                !this._mcpUserDismissed.includes(server.name)
+            ) {
+                this._selectedMcp = [...this._selectedMcp, server.name];
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     /**
@@ -206,9 +241,27 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         if (!this._selectedMcp.includes(mcpName)) {
                             this._selectedMcp = [...this._selectedMcp, mcpName];
                         }
+                        // Re-enabling: remove from dismissed list so auto-enable keeps it on next scan
+                        this._mcpUserDismissed = this._mcpUserDismissed.filter(n => n !== mcpName);
                     } else {
                         this._selectedMcp = this._selectedMcp.filter(n => n !== mcpName);
+                        // Record explicit dismissal so auto-enable never re-adds it without user consent
+                        if (!this._mcpUserDismissed.includes(mcpName)) {
+                            this._mcpUserDismissed = [...this._mcpUserDismissed, mcpName];
+                        }
                     }
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'updateMcpConfig': {
+                    const serverName = message.server as string;
+                    const mode       = message.mode as 'all' | 'custom';
+                    const methods    = message.methods as string[] | undefined;
+                    this._mcpIntegrationConfigs = {
+                        ...this._mcpIntegrationConfigs,
+                        [serverName]: { mode, allowedMethods: methods ?? [] },
+                    };
                     this._syncWorkspaceAgents();
                     this._updateStatus();
                     break;
@@ -231,6 +284,30 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._mcpServers = scanMcpServers();
                     this._updateStatus();
                     break;
+                case 'setActiveProfile': {
+                    this._activeProfileId = message.profileId as string;
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._sendAgentData();
+                    break;
+                }
+                case 'saveProfileInstructions': {
+                    this._profileInstructionsOverrides = {
+                        ...this._profileInstructionsOverrides,
+                        [this._activeProfileId]: message.instructions as string,
+                    };
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
+                case 'resetProfileInstructions': {
+                    const updated = { ...this._profileInstructionsOverrides };
+                    delete updated[this._activeProfileId];
+                    this._profileInstructionsOverrides = updated;
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    break;
+                }
                 case 'updateDevopsEnabled': {
                     this._devopsConfig = { ...this._devopsConfig, enabled: message.enabled as boolean };
                     this._syncWorkspaceAgents();
@@ -488,7 +565,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             vscode.workspace.createFileSystemWatcher('**/.mcp.json'),
             vscode.workspace.createFileSystemWatcher('**/.vscode/mcp.json'),
         ];
-        const refreshMcpServers = () => { this._mcpServers = scanMcpServers(); this._updateStatus(); };
+        const refreshMcpServers = () => {
+            this._mcpServers = scanMcpServers();
+            if (this._applyAutoEnableMcp()) { this._syncWorkspaceAgents(); }
+            this._updateStatus();
+        };
         for (const watcher of mcpJsonWatchers) {
             watcher.onDidChange(refreshMcpServers);
             watcher.onDidCreate(refreshMcpServers);
@@ -555,16 +636,24 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         const fluentApp = this._readNowConfig();
 
         const docsRelease = this._productDocsConfig.release;
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpDocSources: this._mcpDocSources, devopsConfig: this._devopsConfig, productDocsConfig: this._productDocsConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease) });
+        const activeProfile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
+        const hasCustomInstructions = Object.prototype.hasOwnProperty.call(this._profileInstructionsOverrides, this._activeProfileId);
+        const currentInstructions = hasCustomInstructions
+            ? this._profileInstructionsOverrides[this._activeProfileId]
+            : activeProfile.profileInstructions;
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, mcpDocSources: this._mcpDocSources, devopsConfig: this._devopsConfig, productDocsConfig: this._productDocsConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: BUILT_IN_PROFILES.map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
     private _sendAgentData() {
         if (!this._view) { return; }
+        const profile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
+        const suppressedAgents = new Set(profile.suppressedAgents ?? []);
         const enrichedManifests = this._agentManifests.map(m => ({
             ...m,
             locked: LOCKED_AGENT_NAMES.has(m.name),
             bundle: getAgentBundleName(m.name),
+            profileSuppressed: suppressedAgents.has(m.name),
         }));
         this._view.webview.postMessage({ command: 'updateAgents', manifests: enrichedManifests, overrides: this._agentOverrides });
     }
@@ -611,9 +700,22 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             const raw = fs.readFileSync(configPath, 'utf-8');
             const config = JSON.parse(raw);
 
-            // Load persisted MCP selection and sync the workspace agents
+            // Load persisted MCP selection
             if (Array.isArray(config.mcpIntegrations)) {
                 this._selectedMcp = config.mcpIntegrations as string[];
+            }
+
+            // Load list of servers the user has explicitly disabled (so auto-enable doesn't fight them)
+            if (Array.isArray(config.mcpUserDismissed)) {
+                this._mcpUserDismissed = config.mcpUserDismissed as string[];
+            }
+
+            // Auto-enable any newly detected servers that match the pattern (e.g. context7)
+            this._applyAutoEnableMcp();
+
+            // Load per-MCP-server access configs
+            if (config.mcpIntegrationConfigs && typeof config.mcpIntegrationConfigs === 'object') {
+                this._mcpIntegrationConfigs = config.mcpIntegrationConfigs as Record<string, McpIntegrationConfig>;
             }
 
             // Load persisted doc-MCP sources
@@ -634,6 +736,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             // Load DevOps integration config
             if (config.devopsConfig && typeof config.devopsConfig === 'object') {
                 this._devopsConfig = { ...DEFAULT_DEVOPS_CONFIG, ...(config.devopsConfig as Partial<DevOpsConfig>) };
+            }
+
+            // Load active profile
+            if (typeof config.activeProfile === 'string' && getProfileById(config.activeProfile)) {
+                this._activeProfileId = config.activeProfile;
+            }
+
+            // Load profile instructions overrides (user customizations that survive upgrades)
+            if (config.profileInstructionsOverrides && typeof config.profileInstructionsOverrides === 'object') {
+                this._profileInstructionsOverrides = config.profileInstructionsOverrides as Record<string, string>;
             }
 
             // Load product documentation config — localPath and lastSynced are global, not restored from file
@@ -676,11 +788,34 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             localPath: this._getResolvedDocsPath(release),
             lastSynced: this._getDocsSyncTime(release),
         };
+
+        const profile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
+        const effective = getEffectiveAgentConfig(profile, this._mcpIntegrationConfigs, this._profileInstructionsOverrides);
+
+        // If the profile requests DevOps when configured, force-enable it whenever a server is set.
+        // This lets the PO profile include the DevOps agent without requiring the user to manually
+        // toggle the separate devopsConfig.enabled switch.
+        const effectiveDevopsConfig =
+            profile.devopsEnabledWhenConfigured && this._devopsConfig.mcpServer
+                ? { ...this._devopsConfig, enabled: true }
+                : this._devopsConfig;
+
         syncAllAgents(
             this._extensionUri.fsPath,
             workspaceFolders[0].uri.fsPath,
             this._agentManifests,
-            { mcpIntegrations: this._selectedMcp, agentOverrides: this._agentOverrides, mcpDocSources: this._mcpDocSources, autoUpdate, devopsConfig: this._devopsConfig, productDocsConfig: resolvedProductDocsConfig }
+            {
+                mcpIntegrations: this._selectedMcp,
+                mcpIntegrationConfigs: effective.mcpIntegrationConfigs,
+                agentOverrides: this._agentOverrides,
+                mcpDocSources: this._mcpDocSources,
+                autoUpdate,
+                devopsConfig: effectiveDevopsConfig,
+                productDocsConfig: resolvedProductDocsConfig,
+                profileSuppressedAgents: effective.suppressedAgents,
+                profileInstructions: effective.profileInstructions,
+                activeProfileId: profile.id,
+            }
         );
     }
 
@@ -979,6 +1114,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         // MCP server selection
         configData.mcpIntegrations = this._selectedMcp;
 
+        // Servers the user explicitly disabled — preserved so auto-enable doesn't re-add them
+        if (this._mcpUserDismissed.length > 0) {
+            configData.mcpUserDismissed = this._mcpUserDismissed;
+        }
+
+        // Per-MCP-server access configs
+        if (Object.keys(this._mcpIntegrationConfigs).length > 0) {
+            configData.mcpIntegrationConfigs = this._mcpIntegrationConfigs;
+        }
+
         // MCP documentation sources
         configData.mcpDocSources = this._mcpDocSources;
 
@@ -998,6 +1143,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         if (Object.keys(this._agentOverrides).length > 0) {
             configData.agentOverrides = this._agentOverrides;
         }
+
+        // Active user profile
+        configData.activeProfile = this._activeProfileId;
+
+        // Profile instruction overrides — only written when the user has customized at least one profile.
+        // Built-in defaults are never written here so user customizations survive extension upgrades.
+        if (Object.keys(this._profileInstructionsOverrides).length > 0) {
+            configData.profileInstructionsOverrides = this._profileInstructionsOverrides;
+        }
+
+        // Reserved for future user-defined custom profiles
+        configData.customProfiles = [];
 
         // Preserve agent-written fields (e.g. memoryLocation) that should not be overwritten
         try {
@@ -1137,6 +1294,23 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         <div id="workspaceStatus" class="workspace-status"></div>
 
         <div id="onboardingSummary" class="onboarding-summary"></div>
+
+        <!-- User Profile -->
+        <div class="section">
+            <div class="section-title">User Profile</div>
+            <div class="profile-select-row">
+                <select id="activeProfile" class="profile-select"></select>
+                <button class="mcp-doc-source-gear" id="profileToneGear" title="Customize tone instructions">&#9881;</button>
+            </div>
+            <div class="field-desc nd-mt-1" id="profileDescription"></div>
+            <div class="mcp-doc-source-panel" id="profileTonePanel">
+                <div class="field-label nd-mb-1">Tone &amp; style instructions</div>
+                <div class="field-desc" style="margin-bottom:8px;">Injected into all agents for this profile. Customizations survive extension upgrades.</div>
+                <textarea id="profileInstructionsInput" rows="8" class="profile-tone-textarea" placeholder="Instructions injected into all agents for this profile…"></textarea>
+                <button class="fix-btn nd-mt-1 nd-hidden" id="resetProfileInstructions">Reset to default</button>
+            </div>
+        </div>
+        <hr>
 
         <!-- Quick Action -->
         <div class="section">

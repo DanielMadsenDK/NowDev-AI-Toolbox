@@ -2,13 +2,14 @@
 name: NowDev-AI-Classic-Reviewer
 user-invocable: false
 description: specialized agent for reviewing Classic ServiceNow scripting artifacts (Script Includes, Business Rules, Client Scripts, etc.) against best practices sourced from the servicenow-* skills
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory']
 handoffs:
   - label: Back to Reviewer
     agent: NowDev-AI-Reviewer
     prompt: Classic code review completed. Returning results for next steps.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

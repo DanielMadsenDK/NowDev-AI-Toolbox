@@ -3,13 +3,14 @@ name: NowDev-AI-Client-Developer
 user-invocable: false
 description: specialized agent for creating and optimizing ServiceNow Client Scripts
 argument-hint: "The business requirement for the browser-side form behavior to implement — describe which form or table is involved, what the user interaction or field change should trigger, and what the visible outcome should be. The agent will determine the script type and implementation details itself."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/readPage', 'browser/screenshotPage', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/readPage', 'browser/screenshotPage']
 handoffs:
   - label: Back to Classic Developer
     agent: NowDev-AI-Classic-Developer
     prompt: Client Script implementation completed. Returning results and created files.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

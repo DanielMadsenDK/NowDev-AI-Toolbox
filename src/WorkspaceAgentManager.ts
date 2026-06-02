@@ -8,6 +8,12 @@ export interface AgentOverride {
     disabledTools: string[]; // tools to strip from the base list
 }
 
+export interface McpIntegrationConfig {
+    /** 'all' injects servername/*, 'custom' injects only the listed methods */
+    mode: 'all' | 'custom';
+    allowedMethods?: string[];
+}
+
 /**
  * Configures which MCP server + library/topic hint to use for each category
  * of ServiceNow documentation.  When a server is set, the corresponding
@@ -76,11 +82,18 @@ export const SERVICENOW_RELEASES: string[] = [
 
 export interface WorkspaceAgentSyncConfig {
     mcpIntegrations: string[];
+    mcpIntegrationConfigs?: Record<string, McpIntegrationConfig>;
     agentOverrides: Record<string, AgentOverride>;
     mcpDocSources: McpDocSources;
     autoUpdate: boolean;
     devopsConfig?: DevOpsConfig;
     productDocsConfig?: ProductDocsConfig;
+    /** Agent names suppressed by the active profile — not written and hidden from the Agents tab. */
+    profileSuppressedAgents?: ReadonlySet<string>;
+    /** Text injected at {{PROFILE_INSTRUCTIONS}} in agent bodies. Empty string removes the token. */
+    profileInstructions?: string;
+    /** Stored in the state hash so profile switches trigger file regeneration. */
+    activeProfileId?: string;
 }
 
 const AGENTS_SRC       = path.join('agents', 'github-copilot');
@@ -156,6 +169,15 @@ export function getAgentBundleName(agentName: string): string | undefined {
  * Each written file is stamped with a hash of the inputs so that stale files
  * are silently regenerated after an extension update or config change.
  */
+
+function getMcpToolEntries(serverName: string, config?: McpIntegrationConfig): string[] {
+    const lower = serverName.toLowerCase();
+    if (!config || config.mode === 'all' || !config.allowedMethods?.length) {
+        return [`${lower}/*`];
+    }
+    return config.allowedMethods.map(m => `${lower}/${m.trim()}`).filter(Boolean);
+}
+
 export function syncAllAgents(
     extensionPath: string,
     workspaceRoot: string,
@@ -165,12 +187,16 @@ export function syncAllAgents(
     const outDir = path.join(workspaceRoot, AGENTS_OUT);
     const devops = cfg.devopsConfig ?? DEFAULT_DEVOPS_CONFIG;
 
+    const profileSuppressed = cfg.profileSuppressedAgents ?? new Set<string>();
+
     // Build the set of disabled agent names up-front so every written file
     // can have them removed from its own agents: list.
+    // Profile suppression takes absolute priority; locked agents can be suppressed by a profile.
     // The DevOps agent is treated as disabled unless devopsConfig.enabled === true.
     const disabledAgentNames = new Set<string>(
         manifests
             .filter(m => {
+                if (profileSuppressed.has(m.name)) { return true; }
                 if (LOCKED_AGENT_NAMES.has(m.name)) { return false; }
                 if (m.name === DEVOPS_AGENT_NAME) { return !devops.enabled; }
                 return cfg.agentOverrides[m.name]?.enabled === false;
@@ -186,8 +212,10 @@ export function syncAllAgents(
 
         const isDevOpsAgent = manifest.name === DEVOPS_AGENT_NAME;
         const override      = cfg.agentOverrides[manifest.name];
-        const enabled       = LOCKED_AGENT_NAMES.has(manifest.name) ||
-                              (isDevOpsAgent ? devops.enabled : (override?.enabled ?? true));
+        // Profile suppression overrides the locked-agent guarantee.
+        const enabled       = !profileSuppressed.has(manifest.name) && (
+                              LOCKED_AGENT_NAMES.has(manifest.name) ||
+                              (isDevOpsAgent ? devops.enabled : (override?.enabled ?? true)));
         const disabledTools = new Set(override?.disabledTools ?? []);
 
         // Disabled agents: remove any existing file, do not write a new one
@@ -196,17 +224,16 @@ export function syncAllAgents(
             continue;
         }
 
-        // MCP wildcards only for top-level (user-invocable) agents — sub-agents
+        // MCP tool entries only for top-level (user-invocable) agents — sub-agents
         // receive context from the orchestrator, they don't need direct MCP access.
-        // Exception: DevOps agent gets its own dedicated MCP server wildcard.
+        // Exception: DevOps agent gets its own dedicated MCP server entry.
         let mcpTools: string[] = manifest.userInvocable
-            ? cfg.mcpIntegrations.map(s => `${s.toLowerCase()}/*`)
+            ? cfg.mcpIntegrations.flatMap(s => getMcpToolEntries(s, cfg.mcpIntegrationConfigs?.[s]))
             : [];
 
         if (isDevOpsAgent && devops.mcpServer) {
-            const devopsWildcard = `${devops.mcpServer.toLowerCase()}/*`;
-            if (!mcpTools.includes(devopsWildcard)) {
-                mcpTools = [...mcpTools, devopsWildcard];
+            for (const entry of getMcpToolEntries(devops.mcpServer, cfg.mcpIntegrationConfigs?.[devops.mcpServer])) {
+                if (!mcpTools.includes(entry)) { mcpTools = [...mcpTools, entry]; }
             }
         }
 
@@ -250,8 +277,11 @@ export function syncAllAgents(
             disabledTools: [...disabledTools].sort(),
             disabledAgents: [...disabledAgentNames].sort(),
             mcpDocSources: cfg.mcpDocSources,
+            mcpIntegrationConfigs: cfg.mcpIntegrationConfigs,
             devopsConfig:  isDevOpsAgent ? devops : undefined,
             productDocsConfig: cfg.productDocsConfig,
+            activeProfileId: cfg.activeProfileId ?? '',
+            profileInstructions: cfg.profileInstructions ?? '',
         });
         const combinedHash = crypto.createHash('sha256').update(stateKey).digest('hex');
 
@@ -272,7 +302,8 @@ export function syncAllAgents(
             cfg.mcpDocSources,
             isDevOpsAgent ? devops : undefined,
             devops,
-            cfg.productDocsConfig
+            cfg.productDocsConfig,
+            cfg.profileInstructions
         );
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
@@ -290,7 +321,8 @@ function buildContent(
     docSources: McpDocSources,
     devopsAgentConfig?: DevOpsConfig,
     orchestratorDevopsConfig?: DevOpsConfig,
-    productDocsConfig?: ProductDocsConfig
+    productDocsConfig?: ProductDocsConfig,
+    profileInstructions?: string
 ): string {
     // Rewrite the tools: [...] line (always single-line in these files)
     const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
@@ -340,6 +372,12 @@ If the user does not provide a task reference, ask them for one before proceedin
 
     // Substitute product documentation context token
     content = applyProductDocsToken(content, productDocsConfig);
+
+    // Substitute profile instructions token
+    content = applyProfileInstructionsToken(content, profileInstructions);
+
+    // Remove content that belongs to disabled agents
+    content = applyAgentConditionals(content, disabledAgents);
 
     // Remove any stale stamp, then insert a fresh one after the opening ---
     content = content.replace(/\n# nowdev-managed: true\n# nowdev-hash: [^\n]+\n/g, '\n');
@@ -424,6 +462,29 @@ function applyProductDocsToken(content: string, cfg: ProductDocsConfig | undefin
     }
 
     return content.replace(/\{\{PRODUCT_DOCS_CONTEXT\}\}\n/g, value ? value + '\n\n' : '');
+}
+
+/**
+ * Replaces the {{PROFILE_INSTRUCTIONS}} token with the active profile's
+ * instructions text. Empty/absent instructions remove the token silently,
+ * making this a no-op for the default developer profile.
+ */
+function applyProfileInstructionsToken(content: string, instructions: string | undefined): string {
+    if (!content.includes('{{PROFILE_INSTRUCTIONS}}')) { return content; }
+    const value = instructions?.trim() ? instructions.trim() + '\n\n' : '';
+    return content.replace(/\{\{PROFILE_INSTRUCTIONS\}\}\n?/g, value);
+}
+
+/**
+ * Processes {{#agent:NAME}}...{{/agent:NAME}} conditional blocks.
+ * Blocks whose NAME matches a disabled agent are removed (markers + content).
+ * Blocks whose NAME is enabled: content is kept, markers are stripped.
+ */
+function applyAgentConditionals(content: string, disabledAgents: Set<string>): string {
+    return content.replace(
+        /\{\{#agent:([^\}]+)\}\}\n?([\s\S]*?)\{\{\/agent:[^\}]+\}\}\n?/g,
+        (_, name, inner) => disabledAgents.has(name.trim()) ? '' : inner
+    );
 }
 
 function readTag(content: string, tag: string): string {

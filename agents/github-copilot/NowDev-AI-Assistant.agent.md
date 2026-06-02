@@ -3,13 +3,14 @@ name: NowDev-AI-Assistant
 user-invocable: false
 description: lightweight assistant for single questions, brainstorming, quick browser exploration, and early discovery before full project orchestration
 argument-hint: "The user's original question, brainstorming topic, or exploration task — pass verbatim without restructuring"
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'execute/runInTerminal', 'execute/getTerminalOutput', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'io.github.upstash/context7/*', 'web/githubTextSearch', 'web/githubRepo']
+tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'execute/runInTerminal', 'execute/getTerminalOutput', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'web/githubTextSearch', 'web/githubRepo']
 handoffs:
   - label: Escalate to Architect
     agent: NowDev AI Agent
     prompt: Request has grown beyond lightweight scope. Please continue in full-project orchestration mode.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

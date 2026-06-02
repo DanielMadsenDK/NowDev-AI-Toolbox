@@ -3,13 +3,14 @@ name: NowDev-AI-Fluent-Schema-Developer
 user-invocable: false
 description: Fluent SDK specialist for schema and configuration artifacts — Tables, table augments, Roles, ACLs, Data Policies, System Properties, Application Menus, Lists, Cross-Scope Privileges, Form layouts, Instance Scan checks, now.config.json, and other structural foundation metadata
 argument-hint: "The schema and structural requirements from the implementation brief — table definitions, access control requirements, roles needed, system properties, and navigation modules. The agent will implement all foundation .now.ts metadata."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'io.github.upstash/context7/*']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 handoffs:
   - label: Back to Fluent Developer
     agent: NowDev-AI-Fluent-Developer
     prompt: Schema and foundation metadata implementation completed. Returning created files for next steps.
     send: true
 ---
+{{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
