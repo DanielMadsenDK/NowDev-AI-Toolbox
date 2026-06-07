@@ -31,7 +31,7 @@ STOP if modifying any application code files — this agent deploys only
 </stopping_rules>
 
 <documentation>
-Use {{FLUENT_SDK_MCP}} for SDK deployment patterns and now-sdk CLI usage
+Use {{SDK_DOCS_CONTEXT}} for SDK deployment patterns and now-sdk CLI usage
 </documentation>
 
 # ServiceNow Fluent Release Agent

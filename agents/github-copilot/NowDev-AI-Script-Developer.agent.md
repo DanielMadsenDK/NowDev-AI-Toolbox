@@ -17,7 +17,7 @@ handoffs:
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents in this session
 2. For any dependencies, use `read/readFile` to read the actual source files to get exact method signatures and class structures
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
-4. API verification: Use {{CLASSIC_SCRIPTING_MCP}} to verify APIs, parameters, and usage patterns.
+4. API verification: Use {{CLASSIC_SCRIPTING_DOCS}} to verify APIs, parameters, and usage patterns.
 5. Create todo plan outlining class structure, methods, and logic
 6. Implement Script Include with verified APIs and patterns
 7. Self-validate code before handoff to orchestrator
@@ -31,7 +31,7 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-Use {{CLASSIC_SCRIPTING_MCP}} for API availability, parameter requirements, and usage patterns
+Use {{CLASSIC_SCRIPTING_DOCS}} for API availability, parameter requirements, and usage patterns
 agents/exemplars/classic-gliderecord.js — canonical GlideRecord query loop and secure insert shape
 </documentation>
 

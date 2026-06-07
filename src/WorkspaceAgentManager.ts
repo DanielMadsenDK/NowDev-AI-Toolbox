@@ -14,33 +14,33 @@ export interface McpIntegrationConfig {
     allowedMethods?: string[];
 }
 
-/**
- * Configures which MCP server + library/topic hint to use for each category
- * of ServiceNow documentation.  When a server is set, the corresponding
- * {{TOKEN}} placeholders in agent files are replaced with live instructions
- * telling the agent to use that server.  When unset the agents fall back to
- * their built-in skill-based knowledge.
- */
-export interface McpDocSource {
-    /** MCP server name as reported by scanMcpServers(), e.g. "io.github.upstash/context7" */
-    server: string;
-    /** Free-text hint appended to the generated instruction, e.g. "/websites/servicenow" */
-    libraryHint: string;
+/** Unified documentation source configuration for a single documentation category. */
+export interface DocSource {
+    /** How this category's docs are accessed. */
+    sourceType: 'llms-txt' | 'mcp' | 'none';
+    // llms-txt fields
+    llmsUrl?: string;
+    llmsMode?: 'remote' | 'local'; // meaningful only for productDocs
+    localPath?: string;            // resolved at runtime from global VS Code setting + release
+    lastSynced?: string;           // ISO timestamp
+    // mcp fields
+    mcpServer?: string;
+    mcpLibraryHint?: string;
 }
 
-export interface McpDocSources {
-    /** Classic scripting docs (GlideRecord, gs.*, Business Rules, Client Scripts, …) */
-    classicScripting: McpDocSource;
-    /** Fluent SDK / now-sdk docs */
-    fluentSdk: McpDocSource;
-    /** General ServiceNow docs (feasibility checks, general reference) */
-    general: McpDocSource;
+export interface AllDocSources {
+    /** ServiceNow platform docs (release-specific). Also used for general reference by orchestration agents. */
+    productDocs: DocSource & { release?: string };
+    /** ServiceNow SDK / Fluent SDK docs. */
+    sdkDocs: DocSource;
+    /** Classic scripting API docs (GlideRecord, Business Rules, Client Scripts, …). */
+    classicScripting: DocSource;
 }
 
-export const DEFAULT_MCP_DOC_SOURCES: McpDocSources = {
-    classicScripting: { server: '', libraryHint: '/websites/servicenow' },
-    fluentSdk:        { server: '', libraryHint: '/servicenow/sdk-examples' },
-    general:          { server: '', libraryHint: '/websites/servicenow' },
+export const DEFAULT_ALL_DOC_SOURCES: AllDocSources = {
+    productDocs:      { sourceType: 'llms-txt', llmsMode: 'remote', llmsUrl: 'https://www.servicenow.com/llms.txt', release: '', mcpLibraryHint: '' },
+    sdkDocs:          { sourceType: 'none',     llmsUrl: 'https://servicenow.github.io/sdk/llms.txt',              mcpLibraryHint: '' },
+    classicScripting: { sourceType: 'none',     llmsUrl: 'https://www.servicenow.com/llms.txt',                    mcpLibraryHint: '' },
 };
 
 export interface DevOpsConfig {
@@ -58,22 +58,6 @@ export const DEFAULT_DEVOPS_CONFIG: DevOpsConfig = {
     customInstructions: '',
 };
 
-export interface ProductDocsConfig {
-    mode: 'remote' | 'local';
-    release: string;
-    remoteUrl: string;
-    localPath: string;
-    lastSynced: string;
-}
-
-export const DEFAULT_PRODUCT_DOCS_CONFIG: ProductDocsConfig = {
-    mode: 'remote',
-    release: '',
-    remoteUrl: 'https://www.servicenow.com/llms.txt',
-    localPath: '',
-    lastSynced: '',
-};
-
 // Newest first; supplemented at runtime by GitHub API fetch
 export const SERVICENOW_RELEASES: string[] = [
     'Yokohama', 'Xanadu', 'Washington DC', 'Vancouver', 'Utah',
@@ -84,10 +68,9 @@ export interface WorkspaceAgentSyncConfig {
     mcpIntegrations: string[];
     mcpIntegrationConfigs?: Record<string, McpIntegrationConfig>;
     agentOverrides: Record<string, AgentOverride>;
-    mcpDocSources: McpDocSources;
+    allDocSources: AllDocSources;
     autoUpdate: boolean;
     devopsConfig?: DevOpsConfig;
-    productDocsConfig?: ProductDocsConfig;
     /** Agent names suppressed by the active profile — not written and hidden from the Agents tab. */
     profileSuppressedAgents?: ReadonlySet<string>;
     /** Text injected at {{PROFILE_INSTRUCTIONS}} in agent bodies. Empty string removes the token. */
@@ -240,7 +223,7 @@ export function syncAllAgents(
         // Effective tools: MCP first, then base minus disabled.
         // Replace any hardcoded 'io.github.upstash/context7/*' in the base tools
         // with the user-configured doc-source server wildcards (or keep as-is if none set).
-        const docServerWildcards = buildDocServerWildcards(cfg.mcpDocSources);
+        const docServerWildcards = buildDocServerWildcards(cfg.allDocSources);
         const baseToolsReplaced = manifest.baseTools.map(t => {
             if (t === 'io.github.upstash/context7/*') {
                 return docServerWildcards.length > 0 ? null : t; // null = expand below
@@ -276,10 +259,9 @@ export function syncAllAgents(
             mcpTools:      [...mcpTools].sort(),
             disabledTools: [...disabledTools].sort(),
             disabledAgents: [...disabledAgentNames].sort(),
-            mcpDocSources: cfg.mcpDocSources,
+            allDocSources: cfg.allDocSources,
             mcpIntegrationConfigs: cfg.mcpIntegrationConfigs,
             devopsConfig:  isDevOpsAgent ? devops : undefined,
-            productDocsConfig: cfg.productDocsConfig,
             activeProfileId: cfg.activeProfileId ?? '',
             profileInstructions: cfg.profileInstructions ?? '',
         });
@@ -299,10 +281,9 @@ export function syncAllAgents(
             effectiveTools,
             disabledAgentNames,
             combinedHash,
-            cfg.mcpDocSources,
+            cfg.allDocSources,
             isDevOpsAgent ? devops : undefined,
             devops,
-            cfg.productDocsConfig,
             cfg.profileInstructions
         );
         fs.mkdirSync(outDir, { recursive: true });
@@ -318,10 +299,9 @@ function buildContent(
     effectiveTools: string[],
     disabledAgents: Set<string>,
     hash: string,
-    docSources: McpDocSources,
+    allDocSources: AllDocSources,
     devopsAgentConfig?: DevOpsConfig,
     orchestratorDevopsConfig?: DevOpsConfig,
-    productDocsConfig?: ProductDocsConfig,
     profileInstructions?: string
 ): string {
     // Rewrite the tools: [...] line (always single-line in these files)
@@ -367,11 +347,8 @@ If the user does not provide a task reference, ask them for one before proceedin
         content = content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n/g, '');
     }
 
-    // Substitute documentation MCP tokens
-    content = applyDocSourceTokens(content, docSources);
-
-    // Substitute product documentation context token
-    content = applyProductDocsToken(content, productDocsConfig);
+    // Substitute all documentation source tokens
+    content = applyAllDocSourceTokens(content, allDocSources);
 
     // Substitute profile instructions token
     content = applyProfileInstructionsToken(content, profileInstructions);
@@ -387,15 +364,15 @@ If the user does not provide a task reference, ask them for one before proceedin
 }
 
 /**
- * Collects the unique MCP server wildcards from all three doc sources.
- * Returns an empty array when no servers are configured (caller keeps
+ * Collects the unique MCP server wildcards from all doc source categories.
+ * Returns an empty array when no MCP servers are configured (caller keeps
  * the original Context7 tool entry in that case).
  */
-function buildDocServerWildcards(sources: McpDocSources): string[] {
+function buildDocServerWildcards(sources: AllDocSources): string[] {
     const wildcards: string[] = [];
-    for (const src of [sources.classicScripting, sources.fluentSdk, sources.general]) {
-        if (src.server) {
-            const w = `${src.server.toLowerCase()}/*`;
+    for (const src of [sources.productDocs, sources.sdkDocs, sources.classicScripting]) {
+        if (src.sourceType === 'mcp' && src.mcpServer) {
+            const w = `${src.mcpServer.toLowerCase()}/*`;
             if (!wildcards.includes(w)) { wildcards.push(w); }
         }
     }
@@ -403,61 +380,79 @@ function buildDocServerWildcards(sources: McpDocSources): string[] {
 }
 
 /**
- * Replaces {{CLASSIC_SCRIPTING_MCP}}, {{FLUENT_SDK_MCP}}, and {{GENERAL_MCP}}
- * tokens in agent body text with the appropriate tool reference.
- *
- * - Server + hint: "<hint> (fall back to <skill> if unavailable)"
- * - Server only:   "the <server> MCP server (fall back to <skill> if unavailable)"
- * - Nothing set:   "<skill>" — agents rely entirely on built-in knowledge
+ * Replaces a single inline doc-source token with the appropriate reference text.
+ * - mcp + hint:    "<hint> (fall back to <skill> if unavailable)"
+ * - mcp only:      "the <server> MCP server (fall back to <skill> if unavailable)"
+ * - llms-txt:      "<url> (fall back to <skill> if unavailable)"
+ * - none / unset:  "<skill>" — agents rely entirely on built-in knowledge
  */
-function applyDocSourceTokens(content: string, sources: McpDocSources): string {
-    const replacements: Array<[RegExp, McpDocSource, string]> = [
-        [/\{\{CLASSIC_SCRIPTING_MCP\}\}/g, sources.classicScripting, 'the servicenow-* skill'],
-        [/\{\{FLUENT_SDK_MCP\}\}/g,        sources.fluentSdk,        'the servicenow-fluent-development skill'],
-        [/\{\{GENERAL_MCP\}\}/g,           sources.general,          'built-in skills'],
-    ];
-
-    for (const [pattern, src, fallback] of replacements) {
-        let value: string;
-        if (src.server) {
-            const ref = src.libraryHint ? src.libraryHint : `the ${src.server} MCP server`;
-            value = `${ref} (fall back to ${fallback} if unavailable)`;
-        } else {
-            value = fallback;
-        }
-        content = content.replace(pattern, value);
+function applyInlineDocToken(content: string, token: string, src: DocSource, fallback: string): string {
+    if (!content.includes(token)) { return content; }
+    const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(escaped, 'g');
+    let value: string;
+    if (src.sourceType === 'mcp' && src.mcpServer) {
+        const ref = src.mcpLibraryHint ? src.mcpLibraryHint : `the ${src.mcpServer} MCP server`;
+        value = `${ref} (fall back to ${fallback} if unavailable)`;
+    } else if (src.sourceType === 'llms-txt' && src.llmsUrl) {
+        value = `${src.llmsUrl} (fall back to ${fallback} if unavailable)`;
+    } else {
+        value = fallback;
     }
-    return content;
+    return content.replace(pattern, value);
 }
 
 /**
- * Replaces the {{PRODUCT_DOCS_CONTEXT}} token in agent body text with
- * instructions telling the agent where to find ServiceNow product docs.
- * Resolves to an empty string when no release is configured.
+ * Replaces all documentation source tokens in agent body text.
+ *
+ * Inline tokens (replaced with a short reference phrase):
+ *   {{SDK_DOCS_CONTEXT}}         — Fluent SDK / now-sdk docs
+ *   {{CLASSIC_SCRIPTING_DOCS}}   — Classic scripting API docs
+ *   {{GENERAL_DOCS}}             — Delegates to productDocs (same source, used by orchestration agents)
+ *
+ * Block token (replaced with a multi-line instructions block or empty string):
+ *   {{PRODUCT_DOCS_CONTEXT}}     — ServiceNow platform / release docs
  */
-function applyProductDocsToken(content: string, cfg: ProductDocsConfig | undefined): string {
+function applyAllDocSourceTokens(content: string, sources: AllDocSources): string {
+    // Inline tokens
+    content = applyInlineDocToken(content, '{{SDK_DOCS_CONTEXT}}',       sources.sdkDocs,          'the servicenow-fluent-development skill');
+    content = applyInlineDocToken(content, '{{CLASSIC_SCRIPTING_DOCS}}', sources.classicScripting,  'the servicenow-* skill');
+    content = applyInlineDocToken(content, '{{GENERAL_DOCS}}',           sources.productDocs,       'built-in skills');
+
+    // Block token — product docs context
     if (!content.includes('{{PRODUCT_DOCS_CONTEXT}}')) { return content; }
 
+    const pd = sources.productDocs;
     let value = '';
-    if (cfg && cfg.release) {
-        if (cfg.mode === 'remote') {
+    if (pd.release) {
+        if (pd.sourceType === 'mcp' && pd.mcpServer) {
+            const ref = pd.mcpLibraryHint || `the ${pd.mcpServer} MCP server`;
             value =
                 `## Product Documentation Context\n\n` +
-                `**ServiceNow Release:** ${cfg.release}\n\n` +
-                `Product documentation is indexed at: ${cfg.remoteUrl}\n\n` +
-                `When verifying platform behavior or release-specific APIs for **${cfg.release}**:\n` +
-                `1. Use the \`web\` tool to fetch \`${cfg.remoteUrl}\` to get the doc index.\n` +
-                `2. Follow individual links from that index as needed.\n` +
-                `3. Prefer this index over generic web search for ServiceNow platform questions.`;
-        } else if (cfg.localPath) {
-            value =
-                `## Product Documentation Context\n\n` +
-                `**ServiceNow Release:** ${cfg.release}\n` +
-                `**Local docs path:** ${cfg.localPath}\n\n` +
-                `When verifying platform behavior or release-specific APIs for **${cfg.release}**:\n` +
-                `1. Use \`read/readFile\` on \`${cfg.localPath}/llms.txt\` to discover available files.\n` +
-                `2. Read individual .md files from \`${cfg.localPath}/\` for specific questions.\n` +
-                `3. These docs are authoritative for the ${cfg.release} release.`;
+                `**ServiceNow Release:** ${pd.release}\n\n` +
+                `Product documentation is available via the ${pd.mcpServer} MCP server.\n\n` +
+                `When verifying platform behavior or release-specific APIs for **${pd.release}**:\n` +
+                `Use ${ref} to look up documentation. Prefer this over generic web search for ServiceNow platform questions.`;
+        } else if (pd.sourceType === 'llms-txt') {
+            if (pd.llmsMode === 'local' && pd.localPath) {
+                value =
+                    `## Product Documentation Context\n\n` +
+                    `**ServiceNow Release:** ${pd.release}\n` +
+                    `**Local docs path:** ${pd.localPath}\n\n` +
+                    `When verifying platform behavior or release-specific APIs for **${pd.release}**:\n` +
+                    `1. Use \`read/readFile\` on \`${pd.localPath}/llms.txt\` to discover available files.\n` +
+                    `2. Read individual .md files from \`${pd.localPath}/\` for specific questions.\n` +
+                    `3. These docs are authoritative for the ${pd.release} release.`;
+            } else if (pd.llmsUrl) {
+                value =
+                    `## Product Documentation Context\n\n` +
+                    `**ServiceNow Release:** ${pd.release}\n\n` +
+                    `Product documentation is indexed at: ${pd.llmsUrl}\n\n` +
+                    `When verifying platform behavior or release-specific APIs for **${pd.release}**:\n` +
+                    `1. Use the \`web\` tool to fetch \`${pd.llmsUrl}\` to get the doc index.\n` +
+                    `2. Follow individual links from that index as needed.\n` +
+                    `3. Prefer this index over generic web search for ServiceNow platform questions.`;
+            }
         }
     }
 

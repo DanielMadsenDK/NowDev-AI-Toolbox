@@ -17,7 +17,7 @@ handoffs:
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names for GlideAjax calls
 2. For any dependencies (e.g., Script Includes to call via GlideAjax), use `read/readFile` to read the actual source files to get exact method names, parameters, and return values
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
-4. API verification: Use {{CLASSIC_SCRIPTING_MCP}} to verify Client Script best practices, GlideAjax usage, and UI API patterns.
+4. API verification: Use {{CLASSIC_SCRIPTING_DOCS}} to verify Client Script best practices, GlideAjax usage, and UI API patterns.
 5. Create todo plan outlining user interaction and server data requirements
 6. Implement Client Script with verified patterns
 7. Self-validate code before handoff to orchestrator
@@ -32,7 +32,7 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-Use {{CLASSIC_SCRIPTING_MCP}} for Client Script best practices, GlideAjax usage, and UI API patterns
+Use {{CLASSIC_SCRIPTING_DOCS}} for Client Script best practices, GlideAjax usage, and UI API patterns
 </documentation>
 
 # ServiceNow Client Script Developer

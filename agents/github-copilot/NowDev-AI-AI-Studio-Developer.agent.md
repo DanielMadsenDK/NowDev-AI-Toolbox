@@ -31,7 +31,7 @@ STOP if the request requires non-AI-Studio Fluent artifacts — route those back
 
 <documentation>
 Always consult the servicenow-ai-agent-studio skill for AiAgent/AiAgenticWorkflow patterns and the servicenow-now-assist skill for NowAssistSkillConfig patterns.
-Use {{FLUENT_SDK_MCP}} to verify AI Studio artifact types
+Use {{SDK_DOCS_CONTEXT}} to verify AI Studio artifact types
 </documentation>
 
 # AI Studio Developer Coordinator

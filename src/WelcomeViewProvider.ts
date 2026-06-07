@@ -5,7 +5,7 @@ import * as https from 'https';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, AgentOverride, McpIntegrationConfig, McpDocSources, McpDocSource, DEFAULT_MCP_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, ProductDocsConfig, DEFAULT_PRODUCT_DOCS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName } from './WorkspaceAgentManager';
+import { syncAllAgents, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName } from './WorkspaceAgentManager';
 import { BUILT_IN_PROFILES, DEFAULT_PROFILE_ID, getProfileById, getEffectiveAgentConfig } from './ProfileManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
@@ -66,11 +66,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _selectedMcp: string[] = [];
     private _mcpUserDismissed: string[] = [];   // servers the user explicitly toggled off — never auto-re-enabled
     private _mcpIntegrationConfigs: Record<string, McpIntegrationConfig> = {};
-    private _mcpDocSources: McpDocSources = { ...DEFAULT_MCP_DOC_SOURCES };
+    private _allDocSources: AllDocSources = { ...DEFAULT_ALL_DOC_SOURCES, productDocs: { ...DEFAULT_ALL_DOC_SOURCES.productDocs }, sdkDocs: { ...DEFAULT_ALL_DOC_SOURCES.sdkDocs }, classicScripting: { ...DEFAULT_ALL_DOC_SOURCES.classicScripting } };
     private _agentManifests: AgentManifest[] = [];
     private _agentOverrides: Record<string, AgentOverride> = {};
     private _devopsConfig: DevOpsConfig = { ...DEFAULT_DEVOPS_CONFIG };
-    private _productDocsConfig: ProductDocsConfig = { ...DEFAULT_PRODUCT_DOCS_CONFIG };
     private _activeProfileId: string = DEFAULT_PROFILE_ID;
     private _profileInstructionsOverrides: Record<string, string> = {};
     private _docsReleases: string[] = [...SERVICENOW_RELEASES];
@@ -266,14 +265,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 }
-                case 'updateMcpDocSource': {
-                    const slot = message.slot as keyof McpDocSources;
-                    const field = message.field as keyof McpDocSource;
-                    const value = message.value as string;
-                    if (slot in this._mcpDocSources) {
-                        this._mcpDocSources = {
-                            ...this._mcpDocSources,
-                            [slot]: { ...this._mcpDocSources[slot], [field]: value },
+                case 'updateDocSource': {
+                    const category = message.category as keyof AllDocSources;
+                    const patch = message.patch as Partial<DocSource & { release?: string }>;
+                    if (category in this._allDocSources) {
+                        this._allDocSources = {
+                            ...this._allDocSources,
+                            [category]: { ...this._allDocSources[category], ...patch },
                         };
                         this._syncWorkspaceAgents();
                         this._updateStatus();
@@ -497,24 +495,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     }
                     break;
                 }
-                case 'updateProductDocsRelease': {
-                    this._productDocsConfig = { ...this._productDocsConfig, release: message.release as string };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    break;
-                }
-                case 'updateProductDocsMode': {
-                    this._productDocsConfig = { ...this._productDocsConfig, mode: message.mode as 'remote' | 'local' };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    break;
-                }
-                case 'updateProductDocsRemoteUrl': {
-                    this._productDocsConfig = { ...this._productDocsConfig, remoteUrl: message.url as string };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    break;
-                }
                 case 'browseDocsLocalPath': {
                     const folderUris = await vscode.window.showOpenDialog({
                         canSelectFiles: false,
@@ -635,13 +615,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const fluentApp = this._readNowConfig();
 
-        const docsRelease = this._productDocsConfig.release;
+        const docsRelease = this._allDocSources.productDocs.release ?? '';
         const activeProfile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
         const hasCustomInstructions = Object.prototype.hasOwnProperty.call(this._profileInstructionsOverrides, this._activeProfileId);
         const currentInstructions = hasCustomInstructions
             ? this._profileInstructionsOverrides[this._activeProfileId]
             : activeProfile.profileInstructions;
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, mcpDocSources: this._mcpDocSources, devopsConfig: this._devopsConfig, productDocsConfig: this._productDocsConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: BUILT_IN_PROFILES.map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, allDocSources: this._allDocSources, devopsConfig: this._devopsConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: BUILT_IN_PROFILES.map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
@@ -718,13 +698,38 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 this._mcpIntegrationConfigs = config.mcpIntegrationConfigs as Record<string, McpIntegrationConfig>;
             }
 
-            // Load persisted doc-MCP sources
-            if (config.mcpDocSources && typeof config.mcpDocSources === 'object') {
-                const saved = config.mcpDocSources as Partial<McpDocSources>;
-                this._mcpDocSources = {
-                    classicScripting: { ...DEFAULT_MCP_DOC_SOURCES.classicScripting, ...saved.classicScripting },
-                    fluentSdk:        { ...DEFAULT_MCP_DOC_SOURCES.fluentSdk,        ...saved.fluentSdk },
-                    general:          { ...DEFAULT_MCP_DOC_SOURCES.general,          ...saved.general },
+            // Load unified doc sources (new format)
+            if (config.allDocSources && typeof config.allDocSources === 'object') {
+                const saved = config.allDocSources as Partial<AllDocSources>;
+                this._allDocSources = {
+                    productDocs:      { ...DEFAULT_ALL_DOC_SOURCES.productDocs,      ...saved.productDocs },
+                    sdkDocs:          { ...DEFAULT_ALL_DOC_SOURCES.sdkDocs,          ...saved.sdkDocs },
+                    classicScripting: { ...DEFAULT_ALL_DOC_SOURCES.classicScripting, ...saved.classicScripting },
+                };
+            } else {
+                // Migrate from legacy separate keys
+                const legacyMcp = config.mcpDocSources as { classicScripting?: { server?: string; libraryHint?: string }; fluentSdk?: { server?: string } } | undefined;
+                const legacyPd  = config.productDocumentation as { mode?: string; release?: string; remoteUrl?: string } | undefined;
+                this._allDocSources = {
+                    productDocs: {
+                        ...DEFAULT_ALL_DOC_SOURCES.productDocs,
+                        sourceType: 'llms-txt' as const,
+                        llmsMode:   (legacyPd?.mode ?? 'remote') as 'remote' | 'local',
+                        llmsUrl:    legacyPd?.remoteUrl ?? DEFAULT_ALL_DOC_SOURCES.productDocs.llmsUrl,
+                        release:    legacyPd?.release ?? '',
+                    },
+                    sdkDocs: {
+                        ...DEFAULT_ALL_DOC_SOURCES.sdkDocs,
+                        sourceType: (legacyMcp?.fluentSdk?.server ? 'mcp' : 'none') as 'mcp' | 'none',
+                        mcpServer:  legacyMcp?.fluentSdk?.server ?? '',
+                        mcpLibraryHint: '',
+                    },
+                    classicScripting: {
+                        ...DEFAULT_ALL_DOC_SOURCES.classicScripting,
+                        sourceType: (legacyMcp?.classicScripting?.server ? 'mcp' : 'none') as 'mcp' | 'none',
+                        mcpServer:  legacyMcp?.classicScripting?.server ?? '',
+                        mcpLibraryHint: '',
+                    },
                 };
             }
 
@@ -746,17 +751,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             // Load profile instructions overrides (user customizations that survive upgrades)
             if (config.profileInstructionsOverrides && typeof config.profileInstructionsOverrides === 'object') {
                 this._profileInstructionsOverrides = config.profileInstructionsOverrides as Record<string, string>;
-            }
-
-            // Load product documentation config — localPath and lastSynced are global, not restored from file
-            if (config.productDocumentation && typeof config.productDocumentation === 'object') {
-                const saved = config.productDocumentation as Partial<ProductDocsConfig>;
-                this._productDocsConfig = {
-                    ...DEFAULT_PRODUCT_DOCS_CONFIG,
-                    mode:      saved.mode      ?? DEFAULT_PRODUCT_DOCS_CONFIG.mode,
-                    release:   saved.release   ?? DEFAULT_PRODUCT_DOCS_CONFIG.release,
-                    remoteUrl: saved.remoteUrl ?? DEFAULT_PRODUCT_DOCS_CONFIG.remoteUrl,
-                };
             }
 
             // Sync agents whenever config changes
@@ -782,11 +776,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
         const cfg = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
         const autoUpdate = cfg.get<boolean>('autoUpdateAgentOverrides', true);
-        const { release } = this._productDocsConfig;
-        const resolvedProductDocsConfig = {
-            ...this._productDocsConfig,
-            localPath: this._getResolvedDocsPath(release),
-            lastSynced: this._getDocsSyncTime(release),
+
+        const release = this._allDocSources.productDocs.release ?? '';
+        const resolvedAllDocSources: AllDocSources = {
+            ...this._allDocSources,
+            productDocs: {
+                ...this._allDocSources.productDocs,
+                localPath: this._getResolvedDocsPath(release),
+                lastSynced: this._getDocsSyncTime(release),
+            },
         };
 
         const profile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
@@ -808,10 +806,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 mcpIntegrations: this._selectedMcp,
                 mcpIntegrationConfigs: effective.mcpIntegrationConfigs,
                 agentOverrides: this._agentOverrides,
-                mcpDocSources: this._mcpDocSources,
+                allDocSources: resolvedAllDocSources,
                 autoUpdate,
                 devopsConfig: effectiveDevopsConfig,
-                productDocsConfig: resolvedProductDocsConfig,
                 profileSuppressedAgents: effective.suppressedAgents,
                 profileInstructions: effective.profileInstructions,
                 activeProfileId: profile.id,
@@ -854,7 +851,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _downloadServiceNowDocs(): Promise<void> {
-        const { release } = this._productDocsConfig;
+        const release = this._allDocSources.productDocs.release ?? '';
         if (!release) {
             vscode.window.showErrorMessage('Select a ServiceNow release before downloading.');
             return;
@@ -1124,20 +1121,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             configData.mcpIntegrationConfigs = this._mcpIntegrationConfigs;
         }
 
-        // MCP documentation sources
-        configData.mcpDocSources = this._mcpDocSources;
+        // Unified documentation sources (localPath and lastSynced are derived at runtime, not persisted)
+        configData.allDocSources = {
+            ...this._allDocSources,
+            productDocs: {
+                ...this._allDocSources.productDocs,
+                localPath: undefined,
+                lastSynced: undefined,
+            },
+        };
 
         // DevOps integration config
         configData.devopsConfig = this._devopsConfig;
-
-        // Product documentation config — localPath and lastSynced are derived from the global
-        // setting and the central sync file, not stored per-workspace
-        const docRelease = this._productDocsConfig.release;
-        configData.productDocumentation = {
-            ...this._productDocsConfig,
-            localPath: this._getResolvedDocsPath(docRelease),
-            lastSynced: this._getDocsSyncTime(docRelease),
-        };
 
         // Per-agent overrides
         if (Object.keys(this._agentOverrides).length > 0) {
@@ -1434,6 +1429,55 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <div class="file-path nd-hidden" id="filePath"></div>
             </div>
         </div>
+
+        <!-- MCP Integrations -->
+        <div class="section">
+            <div class="section-title">
+                <span>MCP Integrations</span>
+                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
+            </div>
+            <div class="field-desc nd-mb-2">
+                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.
+            </div>
+            <div id="mcpServersList">
+                <div class="field-desc nd-placeholder">Scanning&hellip;</div>
+            </div>
+        </div>
+
+        <!-- DevOps Integration -->
+        <div class="section">
+            <div class="section-title">
+                <span>DevOps Integration</span>
+                <label class="tool-toggle" title="Enable/disable DevOps agent">
+                    <input type="checkbox" id="devopsEnabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="field-desc nd-mb-2">
+                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
+            </div>
+            <div id="devopsConfig" class="nd-hidden">
+                <div class="field">
+                    <label for="devopsMcpServer">MCP Server</label>
+                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
+                    <select id="devopsMcpServer">
+                        <option value="">(select a server)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Custom Instructions</label>
+                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
+                    <div class="file-picker">
+                        <div class="file-picker-row">
+                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
+                            <button class="btn-clear nd-hidden" id="clearDevopsFile" aria-label="Remove DevOps instructions file" title="Remove instructions file">&#10005;</button>
+                        </div>
+                        <div class="file-path nd-hidden" id="devopsFilePath"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>`;
     }
 
@@ -1542,6 +1586,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             </div>
         </div>
 
+
     </div>`;
     }
 
@@ -1562,66 +1607,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             </div>
             <div class="agents-actions">
                 <button class="fix-btn" id="showCopilotChatLogs" title="Open the Copilot chat log view">Chat Logs</button>
-                <button class="fix-btn" id="collectCopilotDiagnostics" title="Collect diagnostics for Copilot support and troubleshooting">Diagnostics</button>
             </div>
             <div id="agentCards"></div>
         </div>
 
-        <!-- MCP Integrations -->
-        <div class="section">
-            <div class="section-title">
-                <span>MCP Integrations</span>
-                <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
-            </div>
-            <div class="field-desc nd-mb-2">
-                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.
-            </div>
-            <div id="mcpServersList">
-                <div class="field-desc nd-placeholder">Scanning&hellip;</div>
-            </div>
-
-            <div class="field-label nd-section-sublabel">ServiceNow Documentation Sources</div>
-            <div class="field-desc nd-mb-2">
-                Choose which MCP server agents use to look up ServiceNow API docs. Click the gear to configure each source. When set to <em>none</em>, agents fall back to built-in skill knowledge.
-            </div>
-            <div id="mcpDocSourcesList">
-                <!-- rendered by main.js updateMcpDocSources() -->
-            </div>
-        </div>
-
-        <!-- DevOps Integration -->
-        <div class="section">
-            <div class="section-title">
-                <span>DevOps Integration</span>
-                <label class="tool-toggle" title="Enable/disable DevOps agent">
-                    <input type="checkbox" id="devopsEnabled">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="field-desc nd-mb-2">
-                Connect a project management MCP server (e.g. Azure DevOps, Jira) so agents can read tasks, update status, and post progress comments automatically.
-            </div>
-            <div id="devopsConfig" class="nd-hidden">
-                <div class="field">
-                    <label for="devopsMcpServer">MCP Server</label>
-                    <div class="field-desc">Choose the MCP server that provides access to your project management tool.</div>
-                    <select id="devopsMcpServer">
-                        <option value="">(select a server)</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Custom Instructions</label>
-                    <div class="field-desc">Browse to a .md or .txt file describing your workflow: task structure, naming conventions, status values, etc.</div>
-                    <div class="file-picker">
-                        <div class="file-picker-row">
-                            <button class="btn-secondary" id="browseDevopsFile">Browse file&hellip;</button>
-                            <button class="btn-clear nd-hidden" id="clearDevopsFile" aria-label="Remove DevOps instructions file" title="Remove instructions file">&#10005;</button>
-                        </div>
-                        <div class="file-path nd-hidden" id="devopsFilePath"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>`;
     }
 
@@ -1645,70 +1634,62 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     <!-- ═══════════ TAB: Docs ═══════════ -->
     <div id="tab-docs" class="tab-content">
 
+        <!-- ── Product Docs ────────────────────────────────────────── -->
         <div class="section">
             <div class="section-title">
-                <span>ServiceNow Release</span>
+                <span>ServiceNow Product Docs</span>
                 <button class="fix-btn" id="fetchDocsReleases" title="Fetch latest branches from GitHub">Refresh</button>
             </div>
-            <div class="field-desc nd-mb-2">Select the release you are targeting in this project.</div>
+            <div class="field-desc nd-mb-2">Platform and release-specific documentation for the ServiceNow release you are targeting.</div>
             <div class="field">
+                <label for="docsRelease">Release</label>
                 <select id="docsRelease">
                     <option value="">(select a release)</option>
                 </select>
             </div>
-        </div>
+            <!-- Source type + config rendered by main.js into #productDocsSourceConfig -->
+            <div id="productDocsSourceConfig"></div>
 
-        <div class="section">
-            <div class="section-title">Documentation Source</div>
-            <div class="field docs-mode-field">
-                <label class="docs-mode-label">
-                    <input type="radio" name="docsMode" value="remote" id="docsModeRemote" class="docs-mode-radio">
-                    <span>Remote (llms.txt URL)</span>
-                </label>
-                <div class="field-desc docs-mode-hint">Agents fetch documentation live from the configured URL.</div>
-                <label class="docs-mode-label">
-                    <input type="radio" name="docsMode" value="local" id="docsModeLocal" class="docs-mode-radio">
-                    <span>Local (downloaded copy)</span>
-                </label>
-                <div class="field-desc docs-mode-hint">Download docs from GitHub for the selected release. Agents read from the local folder.</div>
-            </div>
-        </div>
-
-        <div id="docsRemoteSection">
-            <div class="section">
-                <div class="section-title">llms.txt URL</div>
-                <div class="field-desc nd-mb-2">The URL agents will use to discover documentation. Defaults to the official ServiceNow endpoint.</div>
+            <!-- Local download UI — always present, shown/hidden by JS -->
+            <div id="docsLocalSection" class="nd-hidden">
                 <div class="field">
-                    <input type="text" id="docsRemoteUrl"
-                           placeholder="https://www.servicenow.com/llms.txt"
-                           spellcheck="false" autocomplete="off">
+                    <label>Central Docs Folder</label>
+                    <div class="field-desc nd-mb-2">
+                        A single shared location for all releases, used across every workspace.
+                        Set it once in Settings (<code>nowdev-ai-toolbox.docsLocalPath</code>) or browse below.
+                    </div>
+                    <div class="file-picker">
+                        <div class="file-picker-row">
+                            <button class="btn-secondary" id="browseDocsPath">Browse&hellip;</button>
+                        </div>
+                        <div class="file-path nd-hidden" id="docsGlobalPath"></div>
+                    </div>
+                    <div class="field-desc docs-subfolder-hint nd-hidden" id="docsSubfolder"></div>
+                </div>
+                <div class="field">
+                    <div class="section-title" style="margin-bottom:4px;">
+                        <span>Sync Documentation</span>
+                        <button class="fix-btn" id="syncProductDocs">Download / Update</button>
+                    </div>
+                    <div id="docsDownloadStatus" class="field-desc"></div>
                 </div>
             </div>
         </div>
 
-        <div id="docsLocalSection" class="nd-hidden">
-            <div class="section">
-                <div class="section-title">Central Docs Folder</div>
-                <div class="field-desc nd-mb-2">
-                    A single shared location for all releases, used across every workspace.
-                    Set it once in Settings (<code>nowdev-ai-toolbox.docsLocalPath</code>) or browse below.
-                </div>
-                <div class="file-picker">
-                    <div class="file-picker-row">
-                        <button class="btn-secondary" id="browseDocsPath">Browse&hellip;</button>
-                    </div>
-                    <div class="file-path nd-hidden" id="docsGlobalPath"></div>
-                </div>
-                <div class="field-desc docs-subfolder-hint nd-hidden" id="docsSubfolder"></div>
-            </div>
-            <div class="section">
-                <div class="section-title">
-                    <span>Sync Documentation</span>
-                    <button class="fix-btn" id="syncProductDocs">Download / Update</button>
-                </div>
-                <div id="docsDownloadStatus" class="field-desc"></div>
-            </div>
+        <!-- ── SDK Docs ────────────────────────────────────────────── -->
+        <div class="section">
+            <div class="section-title">ServiceNow SDK Docs</div>
+            <div class="field-desc nd-mb-2">Fluent SDK documentation used by SDK development and ATF agents.</div>
+            <div id="sdkDocsSourceConfig"></div>
         </div>
+
+        <!-- ── Classic Scripting Docs ──────────────────────────────── -->
+        <div class="section">
+            <div class="section-title">Classic Scripting API Docs</div>
+            <div class="field-desc nd-mb-2">GlideRecord, Business Rules, Script Includes, Client Scripts, and Classic Review agents.</div>
+            <div id="classicScriptingSourceConfig"></div>
+        </div>
+
 
     </div>`;
     }

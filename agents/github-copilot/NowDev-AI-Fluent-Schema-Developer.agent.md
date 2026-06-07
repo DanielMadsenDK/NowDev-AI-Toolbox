@@ -18,7 +18,7 @@ handoffs:
 2. Analyze the requirements and identify all schema and configuration artifacts needed
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Build a todo list of artifacts with their dependencies (e.g. Roles before ACLs that reference them)
-5. Verify APIs using {{FLUENT_SDK_MCP}}
+5. Verify APIs using {{SDK_DOCS_CONTEXT}}
 6. Implement all .now.ts metadata files and linked .js scripts in dependency order
 7. Self-validate: check $id uniqueness, field name accuracy against @types/servicenow/schema/, correct Now.include usage
 8. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (table names, field names, role names)
@@ -57,8 +57,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for flows and Script Actions → registering-events-guide.md
   - now.config.json (scope, directories, dependencies, runtime policies, transform/build customization) → NOW-CONFIG-REFERENCE.md
 
-  - {{FLUENT_SDK_MCP}} for SDK object patterns
-  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in script content
+  - {{SDK_DOCS_CONTEXT}} for SDK object patterns
+  - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
   - agents/exemplars/fluent-table.now.ts — canonical table + role + ACL shape
 </documentation>
 

@@ -17,7 +17,7 @@ handoffs:
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names and method signatures
 2. For any dependencies (e.g., Script Includes this rule will call), use `read/readFile` to read the actual source files to get exact method signatures
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
-4. API verification: Use {{CLASSIC_SCRIPTING_MCP}} to verify Business Rule best practices, trigger conditions, and API patterns.
+4. API verification: Use {{CLASSIC_SCRIPTING_DOCS}} to verify Business Rule best practices, trigger conditions, and API patterns.
 5. Create todo plan defining trigger conditions and logic flow
 6. Implement Business Rule with verified patterns
 7. Self-validate code before handoff to orchestrator
@@ -31,7 +31,7 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-Use {{CLASSIC_SCRIPTING_MCP}} for Business Rule best practices, trigger conditions, and API usage
+Use {{CLASSIC_SCRIPTING_DOCS}} for Business Rule best practices, trigger conditions, and API usage
 agents/exemplars/classic-gliderecord.js — canonical GlideRecord query and insert pattern
 </documentation>
 

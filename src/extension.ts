@@ -15,6 +15,11 @@ import { getShell } from './shellConfig';
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
 
+function quotePath(p: string): string {
+    if (p.startsWith('"') && p.endsWith('"')) { return p; }
+    return `"${p.replace(/"/g, '\\"')}"`;
+}
+
 function captureSpawnOutput(
     cmd: string,
     args: string[],
@@ -437,10 +442,10 @@ export function activate(context: vscode.ExtensionContext) {
 
             const cmdArgs = ['transform'];
             if (fromPath) {
-                cmdArgs.push('--from', fromPath);
+                cmdArgs.push('--from', quotePath(fromPath));
             } else {
                 const metaFolder = args.metadataFolder?.trim() || 'metadata';
-                cmdArgs.push('--from', path.join(cwd, metaFolder));
+                cmdArgs.push('--from', quotePath(path.join(cwd, metaFolder)));
             }
             if (args.preview) { cmdArgs.push('--preview'); }
 
@@ -497,7 +502,7 @@ export function activate(context: vscode.ExtensionContext) {
             const cwd = getWorkspaceFolder();
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
             const downloadDir = path.join(cwd, 'metadata');
-            const cmdArgs = ['download', downloadDir];
+            const cmdArgs = ['download', quotePath(downloadDir)];
             if (args.incremental !== false) { cmdArgs.push('--incremental'); }
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
             spawnSdkCmd('Download', cmdArgs, cwd, 'download');
@@ -627,7 +632,7 @@ export function activate(context: vscode.ExtensionContext) {
                 welcomeProvider.setCheckChangesResult({ checking: false, ok: false, count: 0, error: err.message, timestamp: new Date().toISOString() });
                 return;
             }
-            const cmdArgs = ['download', tmpDir, '--incremental'];
+            const cmdArgs = ['download', quotePath(tmpDir), '--incremental'];
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
             const result = await captureSpawnOutput('now-sdk', cmdArgs, cwd);
             const files = listFilesRecursive(tmpDir);
@@ -707,7 +712,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
             welcomeProvider.setSdkCommandStatus('sync', true, 'Downloading…');
             const downloadDir = path.join(cwd, 'metadata');
-            const downloadArgs = ['download', downloadDir, '--incremental'];
+            const downloadArgs = ['download', quotePath(downloadDir), '--incremental'];
             if (args.auth) { downloadArgs.push('--auth', args.auth); }
             const downloadOk = await spawnSdkCmd('Download', downloadArgs, cwd, 'download');
             if (!downloadOk) {
@@ -715,7 +720,7 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
             welcomeProvider.setSdkCommandStatus('sync', true, 'Download succeeded · Transforming…');
-            const transformArgs = ['transform', '--from', downloadDir];
+            const transformArgs = ['transform', '--from', quotePath(downloadDir)];
             const transformOk = await spawnSdkCmd('Transform', transformArgs, cwd, 'transform');
             welcomeProvider.setSdkCommandStatus('sync', transformOk, transformOk ? 'Sync completed' : 'Sync stopped: transform failed');
         })

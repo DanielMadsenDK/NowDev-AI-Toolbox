@@ -31,7 +31,7 @@ STOP if about to use or recommend a tool/runtime/scripting language not listed i
 </stopping_rules>
 
 <documentation>
-Use {{GENERAL_MCP}} to validate uncertain API usage.
+Use {{GENERAL_DOCS}} to validate uncertain API usage.
 Prefer concise answers and lightweight discovery unless user explicitly asks for full implementation workflow.
 When creating or editing agent files, read `agents/github-copilot/AGENT-PATTERNS.md` for canonical shared patterns.
 </documentation>

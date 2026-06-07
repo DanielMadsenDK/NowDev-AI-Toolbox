@@ -43,7 +43,7 @@ STOP and surface a scope-check to the user if you have invoked 4 or more special
 </stopping_rules>
 
 <documentation>
-Use {{FLUENT_SDK_MCP}} to verify which Fluent SDK artifact type best fits each requirement
+Use {{SDK_DOCS_CONTEXT}} to verify which Fluent SDK artifact type best fits each requirement
 </documentation>
 
 # Fluent Developer Coordinator

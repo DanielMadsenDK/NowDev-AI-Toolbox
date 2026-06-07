@@ -132,9 +132,7 @@
     document.getElementById('showCopilotChatLogs').addEventListener('click', () => {
         vscode.postMessage({ command: 'showCopilotChatLogs' });
     });
-    document.getElementById('collectCopilotDiagnostics').addEventListener('click', () => {
-        vscode.postMessage({ command: 'collectCopilotDiagnostics' });
-    });
+
 
     // ── SDK tab ───────────────────────────────────────────────────
 
@@ -247,33 +245,13 @@
         vscode.postMessage({ command: 'rescanTools' });
     });
 
-    // ── Docs tab controls ──────────────────────────────────────────
+    // ── Docs tab controls (static elements) ───────────────────────
     document.getElementById('fetchDocsReleases').addEventListener('click', function () {
         vscode.postMessage({ command: 'fetchDocsReleases' });
     });
 
     document.getElementById('docsRelease').addEventListener('change', function () {
-        vscode.postMessage({ command: 'updateProductDocsRelease', release: this.value });
-    });
-
-    document.querySelectorAll('input[name="docsMode"]').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-            var isLocal = this.value === 'local';
-            var remoteSection = document.getElementById('docsRemoteSection');
-            var localSection  = document.getElementById('docsLocalSection');
-            if (remoteSection) { remoteSection.classList.toggle('nd-hidden', isLocal); }
-            if (localSection)  { localSection.classList.toggle('nd-hidden', !isLocal); }
-            vscode.postMessage({ command: 'updateProductDocsMode', mode: this.value });
-        });
-    });
-
-    var _docsUrlDebounce;
-    document.getElementById('docsRemoteUrl').addEventListener('input', function () {
-        clearTimeout(_docsUrlDebounce);
-        var val = this.value.trim();
-        _docsUrlDebounce = setTimeout(function () {
-            vscode.postMessage({ command: 'updateProductDocsRemoteUrl', url: val });
-        }, 600);
+        vscode.postMessage({ command: 'updateDocSource', category: 'productDocs', patch: { release: this.value } });
     });
 
     document.getElementById('browseDocsPath').addEventListener('click', function () {
@@ -295,9 +273,8 @@
                 updateEnvironment(msg.environment);
                 if (msg.sdkStatus) { updateSdkStatus(msg.sdkStatus); }
                 updateMcpServers(msg.mcpServers, msg.selectedMcp);
-                updateMcpDocSources(msg.mcpDocSources, msg.mcpServers);
                 updateDevopsSection(msg.devopsConfig, msg.mcpServers);
-                updateDocsTab(msg.productDocsConfig, msg.docsReleases, msg.docsDownloadStatus, msg.docsGlobalPath, msg.docsLastSynced);
+                updateDocsTab(msg.allDocSources, msg.docsReleases, msg.docsDownloadStatus, msg.docsGlobalPath, msg.docsLastSynced, msg.mcpServers);
                 updateProfile(msg.profiles, msg.activeProfileId, msg.profileInstructions, msg.profileHasCustomInstructions);
                 refreshWorkspaceStatus();
                 break;
@@ -900,45 +877,44 @@
 
     // ── Docs tab rendering ─────────────────────────────────────────
 
-    function updateDocsTab(productDocsConfig, docsReleases, docsDownloadStatus, docsGlobalPath, docsLastSynced) {
-        var cfg = productDocsConfig || { mode: 'remote', release: '', remoteUrl: 'https://www.servicenow.com/llms.txt' };
+    var _docsDebounce = {};
+
+    function updateDocsTab(allDocSources, docsReleases, docsDownloadStatus, docsGlobalPath, docsLastSynced, mcpServers) {
+        var sources  = allDocSources || {};
+        var pd       = sources.productDocs || { sourceType: 'llms-txt', llmsMode: 'remote', llmsUrl: 'https://www.servicenow.com/llms.txt', release: '' };
         var globalPath = docsGlobalPath || '';
-        _wsState.productDocsConfigured = !!(cfg.release && (cfg.mode === 'remote' || globalPath));
         var releases = docsReleases || [];
+        var servers  = mcpServers || [];
+
+        _wsState.productDocsConfigured = !!(pd.release && (pd.sourceType === 'mcp' || pd.llmsMode === 'remote' || globalPath));
 
         // Populate release dropdown
         var relSel = document.getElementById('docsRelease');
         if (relSel) {
             var relOpts = '<option value="">(select a release)</option>';
             releases.forEach(function (r) {
-                var sel = r === cfg.release ? ' selected' : '';
-                relOpts += '<option value="' + esc(r) + '"' + sel + '>' + esc(r) + '</option>';
+                relOpts += '<option value="' + esc(r) + '"' + (r === pd.release ? ' selected' : '') + '>' + esc(r) + '</option>';
             });
-            // If configured release is not in list yet, still show it as selected
-            if (cfg.release && releases.indexOf(cfg.release) < 0) {
-                relOpts += '<option value="' + esc(cfg.release) + '" selected>' + esc(cfg.release) + '</option>';
+            if (pd.release && releases.indexOf(pd.release) < 0) {
+                relOpts += '<option value="' + esc(pd.release) + '" selected>' + esc(pd.release) + '</option>';
             }
             relSel.innerHTML = relOpts;
         }
 
-        // Mode radios
-        var modeRemote = document.getElementById('docsModeRemote');
-        var modeLocal  = document.getElementById('docsModeLocal');
-        var isLocal    = cfg.mode === 'local';
-        if (modeRemote) { modeRemote.checked = !isLocal; }
-        if (modeLocal)  { modeLocal.checked  = isLocal;  }
+        // Render product docs source config
+        _renderDocSourcePanel(
+            document.getElementById('productDocsSourceConfig'),
+            'productDocs',
+            pd,
+            servers,
+            /* allowNone */ false,
+            /* showLlmsLocal */ true
+        );
 
-        // Show/hide sections
-        var remoteSection = document.getElementById('docsRemoteSection');
-        var localSection  = document.getElementById('docsLocalSection');
-        if (remoteSection) { remoteSection.classList.toggle('nd-hidden', isLocal); }
-        if (localSection)  { localSection.classList.toggle('nd-hidden', !isLocal); }
-
-        // Remote URL input
-        var urlInput = document.getElementById('docsRemoteUrl');
-        if (urlInput && document.activeElement !== urlInput) {
-            urlInput.value = cfg.remoteUrl || 'https://www.servicenow.com/llms.txt';
-        }
+        // Show/hide local download section (within the static always-present block below productDocsSourceConfig)
+        var localSection = document.getElementById('docsLocalSection');
+        var isLocal = pd.sourceType === 'llms-txt' && pd.llmsMode === 'local';
+        if (localSection) { localSection.classList.toggle('nd-hidden', !isLocal); }
 
         // Central folder display
         var globalPathEl = document.getElementById('docsGlobalPath');
@@ -950,7 +926,7 @@
         // Derived release subfolder
         var subfolderEl = document.getElementById('docsSubfolder');
         if (subfolderEl) {
-            var resolved = globalPath && cfg.release ? globalPath + '/' + cfg.release : '';
+            var resolved = globalPath && pd.release ? globalPath + '/' + pd.release : '';
             subfolderEl.textContent = resolved ? 'Path: ' + resolved : '';
             subfolderEl.classList.toggle('nd-hidden', !resolved);
         }
@@ -973,7 +949,152 @@
             }
         }
 
+        // SDK, Classic Scripting, General panels
+        _renderDocSourcePanel(document.getElementById('sdkDocsSourceConfig'),          'sdkDocs',          sources.sdkDocs          || { sourceType: 'none', llmsUrl: 'https://servicenow.github.io/sdk/llms.txt' }, servers, true, false);
+        _renderDocSourcePanel(document.getElementById('classicScriptingSourceConfig'), 'classicScripting', sources.classicScripting  || { sourceType: 'none', llmsUrl: 'https://www.servicenow.com/llms.txt' }, servers, true, false);
+
         renderOnboardingSummary();
+    }
+
+    /**
+     * Renders a source-type selector + config fields into `container` for a given doc category.
+     *
+     * @param {HTMLElement} container
+     * @param {string}      category       - key in AllDocSources (e.g. 'productDocs')
+     * @param {object}      src            - current DocSource value
+     * @param {Array}       servers        - available MCP servers
+     * @param {boolean}     allowNone      - show the "None" option
+     * @param {boolean}     showLlmsLocal  - show remote/local sub-toggle for llms-txt (product docs only)
+     */
+    function _renderDocSourcePanel(container, category, src, servers, allowNone, showLlmsLocal) {
+        if (!container) { return; }
+
+        var sourceType = src.sourceType || 'none';
+        var llmsMode   = src.llmsMode   || 'remote';
+        var llmsUrl    = src.llmsUrl    || '';
+        var mcpServer  = src.mcpServer  || '';
+        var mcpHint    = src.mcpLibraryHint || '';
+
+        var serverOptions = '<option value="">(select a server)</option>';
+        servers.forEach(function (s) {
+            serverOptions += '<option value="' + esc(s.name) + '"' + (s.name === mcpServer ? ' selected' : '') + '>' + esc(s.name) + '</option>';
+        });
+
+        var radioName = category + 'SourceType';
+
+        // URL field — hide when local mode is selected (local download section is the static block)
+        var urlHidden = (showLlmsLocal && llmsMode === 'local') ? ' nd-hidden' : '';
+        var urlPlaceholder = category === 'productDocs' ? 'https://www.servicenow.com/llms.txt' :
+                             category === 'sdkDocs'     ? 'https://servicenow.github.io/sdk/llms.txt' : '';
+
+        // llms-txt sub-content (indented, shown only when llms-txt is selected)
+        var llmsHidden = sourceType !== 'llms-txt' ? ' nd-hidden' : '';
+        var llmsModeRadios = '';
+        if (showLlmsLocal) {
+            llmsModeRadios =
+                '<div class="docs-mode-suboptions" style="margin-bottom:6px;">' +
+                '  <label class="docs-mode-label"><input type="radio" name="' + category + 'LlmsMode" value="remote"' + (llmsMode !== 'local' ? ' checked' : '') + '> Remote URL</label>' +
+                '  <label class="docs-mode-label"><input type="radio" name="' + category + 'LlmsMode" value="local"' + (llmsMode === 'local' ? ' checked' : '') + '> Local (downloaded)</label>' +
+                '</div>';
+        }
+        var llmsSection =
+            '<div class="doc-source-llms docs-mode-suboptions' + llmsHidden + '">' +
+            llmsModeRadios +
+            '<div class="field' + urlHidden + '" id="' + category + 'LlmsUrlField">' +
+            '  <input type="text" id="' + category + 'LlmsUrl" value="' + esc(llmsUrl) + '" placeholder="' + esc(urlPlaceholder) + '" spellcheck="false" autocomplete="off">' +
+            '</div>' +
+            '</div>';
+
+        // MCP sub-content (indented, shown only when mcp is selected)
+        var mcpHidden = sourceType !== 'mcp' ? ' nd-hidden' : '';
+        var mcpSection =
+            '<div class="doc-source-mcp docs-mode-suboptions' + mcpHidden + '">' +
+            '<div class="field">' +
+            '  <label>MCP Server</label>' +
+            '  <select id="' + category + 'McpServer">' + serverOptions + '</select>' +
+            '</div>' +
+            '<div class="field">' +
+            '  <label>Library hint</label>' +
+            '  <input type="text" id="' + category + 'McpHint" value="' + esc(mcpHint) + '" placeholder="(optional)" spellcheck="false"' + (mcpServer ? '' : ' disabled') + '>' +
+            '</div>' +
+            '</div>';
+
+        // Interleave each top-level option with its sub-content so hierarchy is visible
+        var llmsTxtRow = '<label class="docs-mode-label"><input type="radio" name="' + radioName + '" value="llms-txt"' + (sourceType === 'llms-txt' ? ' checked' : '') + '> llms.txt URL</label>';
+        var mcpRow     = '<label class="docs-mode-label"><input type="radio" name="' + radioName + '" value="mcp"'     + (sourceType === 'mcp'      ? ' checked' : '') + '> MCP Server</label>';
+        var noneRow    = allowNone ? '<label class="docs-mode-label"><input type="radio" name="' + radioName + '" value="none"' + (sourceType === 'none' ? ' checked' : '') + '> Built-in skills</label>' : '';
+
+        container.innerHTML =
+            '<div class="docs-mode-field nd-mb-2">' +
+            llmsTxtRow + llmsSection +
+            mcpRow     + mcpSection +
+            noneRow +
+            '</div>';
+
+        // Source type radio — toggle visible subsection
+        container.querySelectorAll('input[name="' + radioName + '"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                var val = this.value;
+                var llmsDiv = container.querySelector('.doc-source-llms');
+                var mcpDiv  = container.querySelector('.doc-source-mcp');
+                if (llmsDiv) { llmsDiv.classList.toggle('nd-hidden', val !== 'llms-txt'); }
+                if (mcpDiv)  { mcpDiv.classList.toggle('nd-hidden',  val !== 'mcp');      }
+                // Also hide local download section if product docs switches away from llms-txt/local
+                if (category === 'productDocs') {
+                    var localSec = document.getElementById('docsLocalSection');
+                    if (localSec) { localSec.classList.add('nd-hidden'); }
+                }
+                vscode.postMessage({ command: 'updateDocSource', category: category, patch: { sourceType: val } });
+            });
+        });
+
+        // llms mode sub-toggle (product docs only)
+        container.querySelectorAll('input[name="' + category + 'LlmsMode"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                var isLocal = this.value === 'local';
+                var urlField = document.getElementById(category + 'LlmsUrlField');
+                if (urlField) { urlField.classList.toggle('nd-hidden', isLocal); }
+                if (category === 'productDocs') {
+                    var localSec = document.getElementById('docsLocalSection');
+                    if (localSec) { localSec.classList.toggle('nd-hidden', !isLocal); }
+                }
+                vscode.postMessage({ command: 'updateDocSource', category: category, patch: { llmsMode: this.value } });
+            });
+        });
+
+        // llms URL input — debounced
+        var urlInput = container.querySelector('#' + category + 'LlmsUrl');
+        if (urlInput) {
+            urlInput.addEventListener('input', function () {
+                clearTimeout(_docsDebounce[category + '_url']);
+                var val = this.value.trim();
+                _docsDebounce[category + '_url'] = setTimeout(function () {
+                    vscode.postMessage({ command: 'updateDocSource', category: category, patch: { llmsUrl: val } });
+                }, 600);
+            });
+        }
+
+        // MCP server dropdown
+        var mcpSel = container.querySelector('#' + category + 'McpServer');
+        if (mcpSel) {
+            mcpSel.addEventListener('change', function () {
+                var hintInput = container.querySelector('#' + category + 'McpHint');
+                if (hintInput) { hintInput.disabled = !this.value; }
+                vscode.postMessage({ command: 'updateDocSource', category: category, patch: { mcpServer: this.value } });
+            });
+        }
+
+        // MCP hint input — debounced
+        var hintInput = container.querySelector('#' + category + 'McpHint');
+        if (hintInput) {
+            hintInput.addEventListener('input', function () {
+                clearTimeout(_docsDebounce[category + '_hint']);
+                var val = this.value.trim();
+                _docsDebounce[category + '_hint'] = setTimeout(function () {
+                    vscode.postMessage({ command: 'updateDocSource', category: category, patch: { mcpLibraryHint: val } });
+                }, 600);
+            });
+        }
     }
 
     // ── MCP Integrations rendering ─────────────────────────────────
@@ -1024,120 +1145,6 @@
         });
 
         renderOnboardingSummary();
-    }
-
-    // ── MCP Documentation Sources rendering ────────────────────────
-
-    var docSourceDebounce = {};
-    function updateMcpDocSources(docSources, servers) {
-        var container = document.getElementById('mcpDocSourcesList');
-        if (!container) { return; }
-        if (!docSources) { container.innerHTML = ''; return; }
-
-        var serverOptions = '<option value="">(none \u2014 use built-in skills)</option>';
-        if (servers && servers.length > 0) {
-            serverOptions += servers.map(function (s) {
-                return '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>';
-            }).join('');
-        }
-
-        var slots = [
-            { key: 'classicScripting', label: 'Classic Scripting', desc: 'Business Rule, Script Include, Client Script, Classic Reviewer' },
-            { key: 'fluentSdk',        label: 'Fluent SDK',         desc: 'All Fluent specialists, AI Studio, NowAssist, ATF, Pipeline' },
-            { key: 'general',          label: 'General docs',       desc: 'Refinement, Orchestrator, Debugger, Assistant' },
-        ];
-
-        var html = slots.map(function (slot) {
-            var src = docSources[slot.key] || {};
-            var server = src.server || '';
-            var hint = src.libraryHint || '';
-            var hasServer = server !== '';
-            var serverLabel = hasServer
-                ? esc(server)
-                : '<span style="color:var(--vscode-descriptionForeground);font-style:italic;">built-in skills</span>';
-            var hintPart = (hasServer && hint)
-                ? ' \u00b7 <code style="font-size:10px;">' + esc(hint) + '</code>'
-                : '';
-            var opts = serverOptions.replace(
-                'value="' + esc(server) + '"',
-                'value="' + esc(server) + '" selected'
-            );
-            var panelId = 'mcp-doc-panel-' + slot.key;
-            var gearId  = 'mcp-doc-gear-'  + slot.key;
-            return (
-                '<div class="mcp-doc-source-row" data-slot="' + slot.key + '">' +
-                '  <div class="mcp-doc-source-info">' +
-                '    <div class="mcp-doc-source-label">' + esc(slot.label) + '</div>' +
-                '    <div class="mcp-doc-source-server" id="mcp-doc-summary-' + slot.key + '">' + serverLabel + hintPart + '</div>' +
-                '  </div>' +
-                '  <button class="mcp-doc-source-gear" id="' + gearId + '" title="Configure">\u2699</button>' +
-                '</div>' +
-                '<div class="mcp-doc-source-panel" id="' + panelId + '">' +
-                '  <div class="field-desc" style="margin-bottom:6px;">' + esc(slot.desc) + '</div>' +
-                '  <div class="field-row">' +
-                '    <label>Server</label>' +
-                '    <select class="mcp-doc-server-select" data-slot="' + slot.key + '">' + opts + '</select>' +
-                '  </div>' +
-                '  <div class="field-row">' +
-                '    <label>Hint</label>' +
-                '    <input type="text" class="mcp-doc-hint-input" data-slot="' + slot.key + '"' +
-                '      value="' + esc(hint) + '" placeholder="e.g. /websites/servicenow"' +
-                (hasServer ? '' : ' disabled') + '>' +
-                '  </div>' +
-                '</div>'
-            );
-        }).join('');
-
-        container.innerHTML = html;
-
-        // Gear toggle — opens/closes the config panel
-        container.querySelectorAll('.mcp-doc-source-gear').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var slot = btn.id.replace('mcp-doc-gear-', '');
-                var panel = document.getElementById('mcp-doc-panel-' + slot);
-                if (!panel) { return; }
-                var isOpen = panel.classList.contains('open');
-                panel.classList.toggle('open', !isOpen);
-                btn.classList.toggle('open', !isOpen);
-                btn.textContent = isOpen ? '\u2699' : '\u2715';
-                btn.title = isOpen ? 'Configure' : 'Close';
-            });
-        });
-
-        // Server dropdown — update summary and enable/disable hint field
-        container.querySelectorAll('.mcp-doc-server-select').forEach(function (sel) {
-            sel.addEventListener('change', function () {
-                var slot = sel.dataset.slot;
-                var hintInput = container.querySelector('.mcp-doc-hint-input[data-slot="' + slot + '"]');
-                if (hintInput) { hintInput.disabled = sel.value === ''; }
-                _refreshDocSummary(slot, sel.value, hintInput ? hintInput.value : '');
-                vscode.postMessage({ command: 'updateMcpDocSource', slot: slot, field: 'server', value: sel.value });
-            });
-        });
-
-        // Hint input — debounced save
-        container.querySelectorAll('.mcp-doc-hint-input').forEach(function (inp) {
-            inp.addEventListener('input', function () {
-                var slot = inp.dataset.slot;
-                var sel = container.querySelector('.mcp-doc-server-select[data-slot="' + slot + '"]');
-                _refreshDocSummary(slot, sel ? sel.value : '', inp.value);
-                clearTimeout(docSourceDebounce[slot]);
-                docSourceDebounce[slot] = setTimeout(function () {
-                    vscode.postMessage({ command: 'updateMcpDocSource', slot: slot, field: 'libraryHint', value: inp.value.trim() });
-                }, 600);
-            });
-        });
-    }
-
-    function _refreshDocSummary(slot, server, hint) {
-        var el = document.getElementById('mcp-doc-summary-' + slot);
-        if (!el) { return; }
-        if (!server) {
-            el.innerHTML = '<span style="color:var(--vscode-descriptionForeground);font-style:italic;">built-in skills</span>';
-        } else {
-            var hintPart = hint ? ' \u00b7 <code style="font-size:10px;">' + esc(hint) + '</code>' : '';
-            el.innerHTML = esc(server) + hintPart;
-        }
     }
 
     // ── Auth Aliases rendering ─────────────────────────────────────

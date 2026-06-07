@@ -19,7 +19,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the NowAssist skill requirements: inputs, tools needed, expected outputs, deployment targets
 5. Plan the tool graph — map which tools are needed and their dependency order
-6. Verify APIs using {{FLUENT_SDK_MCP}}
+6. Verify APIs using {{SDK_DOCS_CONTEXT}}
 7. Implement the NowAssistSkillConfig .now.ts file with all two arguments (definition + promptConfig)
 8. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (skill names)
@@ -45,8 +45,8 @@ Always consult the servicenow-now-assist skill for each aspect:
   - Deployment settings (uiAction.table, nowAssistPanel, flowAction, skillFamily)
   - Skill settings (preprocessor, postprocessor scripts)
 
-  - {{FLUENT_SDK_MCP}} for SDK object patterns
-  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in script content
+  - {{SDK_DOCS_CONTEXT}} for SDK object patterns
+  - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
 </documentation>
 
 # NowAssist Developer

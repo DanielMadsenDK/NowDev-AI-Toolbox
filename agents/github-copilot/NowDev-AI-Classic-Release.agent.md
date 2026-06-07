@@ -30,7 +30,7 @@ STOP if using Update Set workflow for a Fluent SDK project — that goes to NowD
 </stopping_rules>
 
 <documentation>
-Use {{CLASSIC_SCRIPTING_MCP}} for Update Set best practices, XML table field requirements, and migration procedures
+Use {{CLASSIC_SCRIPTING_DOCS}} for Update Set best practices, XML table field requirements, and migration procedures
 </documentation>
 
 # ServiceNow Classic Release Agent

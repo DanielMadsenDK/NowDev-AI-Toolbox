@@ -19,7 +19,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the requirements and identify all server-side logic artifacts needed
 5. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
-6. Verify APIs using {{FLUENT_SDK_MCP}}
+6. Verify APIs using {{SDK_DOCS_CONTEXT}}
 7. Implement .now.ts metadata files and linked .js server scripts in dependency order
 8. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (class/method names, REST paths)
@@ -56,8 +56,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for Script Actions → registering-events-guide.md
   - Data helpers for Record() fields (Duration(), Time(), TemplateValue(), FieldList()) → data-helpers-guide.md
 
-  - {{FLUENT_SDK_MCP}} for SDK object patterns
-  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in script content (GlideRecord, gs.*, etc.)
+  - {{SDK_DOCS_CONTEXT}} for SDK object patterns
+  - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content (GlideRecord, gs.*, etc.)
 </documentation>
 
 # Fluent Logic Developer

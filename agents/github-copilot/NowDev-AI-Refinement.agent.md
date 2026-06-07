@@ -19,7 +19,7 @@ handoffs:
 4. For each gap identified, determine if it can be resolved via configured docs MCP documentation, or whether the user must provide the information.
 5. Ask the user all outstanding questions in a single `askQuestions` call (batch all gaps into one structured prompt — do not ask one at a time).
 6. Incorporate user responses and mark gaps resolved on the todo list. If new gaps emerge from user responses, repeat steps 5-6 until all gaps are resolved.
-7. Validate ServiceNow feasibility for the requested implementation using {{GENERAL_MCP}} — look up APIs, capabilities, and platform constraints.
+7. Validate ServiceNow feasibility for the requested implementation using {{GENERAL_DOCS}} — look up APIs, capabilities, and platform constraints.
 8. Perform a final feasibility validation pass based on the complete picture.
 9. Produce the Refined Implementation Brief (see template below).
 10. Present the brief, ask for user approval (use `askQuestions`), incorporate corrections.
@@ -36,7 +36,7 @@ STOP if the refined brief uses vague language like "the relevant group" or "the 
 </stopping_rules>
 
 <documentation>
-MANDATORY: Validate ServiceNow feasibility using {{GENERAL_MCP}} before including any approach in the refined brief.
+MANDATORY: Validate ServiceNow feasibility using {{GENERAL_DOCS}} before including any approach in the refined brief.
 
 Key feasibility checks to perform:
 - Does the requested feature exist as a native ServiceNow capability?

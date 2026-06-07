@@ -19,7 +19,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze artifacts to identify what is testable: REST API endpoints → REST step tests; Script Includes with clientCallable → server-side step tests; Tables with forms → form step tests; Catalog Items → service catalog step tests; Navigation paths → navigation step tests
 5. Build a todo list of ATF test files, one test per major artifact or user-facing workflow
-6. Verify ATF API patterns using {{FLUENT_SDK_MCP}}
+6. Verify ATF API patterns using {{SDK_DOCS_CONTEXT}}
 7. Implement `.now.ts` Test files using the `Test()` constructor and `configurationFunction` patterns from ATF-API.md — place test files in `src/tests/` or alongside their source artifact
 8. Self-validate: every Test has a unique `$id: Now.ID['...']`, every step references real table names and field names from the artifact registry, no hardcoded `sys_id` strings
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in `Exports` (test names and what they cover)
@@ -47,7 +47,7 @@ Always consult the servicenow-fluent-development skill for ATF test patterns:
   - agents/exemplars/atf-test-step.now.ts — canonical ATF Test + TestSuite shape
   - ATF strategy, all 11 namespace API surfaces, email/reporting/dashboard steps, Service Portal variants → atf-guide.md
 
-  - {{FLUENT_SDK_MCP}} for Test() SDK object patterns and full Fluent SDK ATF reference
+  - {{SDK_DOCS_CONTEXT}} for Test() SDK object patterns and full Fluent SDK ATF reference
 </documentation>
 
 # ATF Developer

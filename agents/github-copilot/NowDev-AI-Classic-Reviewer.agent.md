@@ -44,7 +44,7 @@ Reference the correct skill for each artifact type:
   - Outbound REST/SOAP integrations → servicenow-http-integrations skill
   - Flow Designer scripts → servicenow-flow-designer skill
 
-Also use {{CLASSIC_SCRIPTING_MCP}} to verify API signatures and parameters
+Also use {{CLASSIC_SCRIPTING_DOCS}} to verify API signatures and parameters
 </documentation>
 
 # ServiceNow Classic Code Reviewer

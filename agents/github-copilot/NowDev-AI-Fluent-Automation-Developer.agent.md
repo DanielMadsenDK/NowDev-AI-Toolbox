@@ -19,7 +19,7 @@ handoffs:
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the requirements and identify all flow and automation artifacts needed
 5. Build a todo list: triggers → flows/subflows → custom actions/triggers if needed
-6. Verify wfa API, trigger types, built-in actions, and FDTransform usage via {{FLUENT_SDK_MCP}}
+6. Verify wfa API, trigger types, built-in actions, and FDTransform usage via {{SDK_DOCS_CONTEXT}}
 7. Implement .now.ts flow files and any linked inline scripts
 8. Self-validate: unique $id for every wfa.trigger/action/flowLogic call, TemplateValue() on field values, assignSubflowOutputs called when outputs declared
 9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (subflow/action names)
@@ -51,8 +51,8 @@ It covers:
   - SubflowDefinition for reusable subflow logic
   - Complete production examples
 
-  - {{FLUENT_SDK_MCP}} for Flow and Subflow patterns
-  - {{CLASSIC_SCRIPTING_MCP}} for any Classic API references used in inlineScripts
+  - {{SDK_DOCS_CONTEXT}} for Flow and Subflow patterns
+  - {{CLASSIC_SCRIPTING_DOCS}} for any Classic API references used in inlineScripts
 </documentation>
 
 # Fluent Automation Developer

@@ -20,7 +20,7 @@ handoffs:
 4. Analyze the requirements and identify all UI artifacts needed
 5. Build a todo list by UI layer: metadata (.now.ts) → client scripts → React components
 6. For React UI Pages: verify patterns via UI-PAGE-API.md and CLIENT-SERVER-PATTERNS.md, then scaffold index.html → main.tsx → app.tsx → services → components
-7. Verify all APIs via {{FLUENT_SDK_MCP}}
+7. Verify all APIs via {{SDK_DOCS_CONTEXT}}
 8. Implement all artifacts
 9. Self-validate: <sdk:now-ux-globals> in index.html, HDS components used, no GlideRecord in client-side code, CSRF token in REST calls
 10. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`
@@ -58,8 +58,8 @@ Always consult the servicenow-fluent-development skill for each artifact type:
   - UI Page patterns (dirty state, field extraction, CSS constraints, build system) → servicenow-react-ui-components skill: ui-page-patterns-guide.md
   - Horizon Design System theming (tokens, color roles, dark mode) → servicenow-react-ui-components skill: ui-page-theming-guide.md
 
-  - {{FLUENT_SDK_MCP}} for Fluent SDK patterns
-  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity in client scripts
+  - {{SDK_DOCS_CONTEXT}} for Fluent SDK patterns
+  - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in client scripts
 </documentation>
 
 # Fluent UI Developer

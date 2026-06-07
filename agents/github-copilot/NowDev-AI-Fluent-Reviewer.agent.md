@@ -67,8 +67,8 @@ Reference the correct sub-document for each artifact type:
   - now.config.json → NOW-CONFIG-REFERENCE.md
   - $override usage → OVERRIDE-GUIDE.md
 
-  - {{FLUENT_SDK_MCP}} for Fluent SDK object patterns
-  - {{CLASSIC_SCRIPTING_MCP}} for Classic API validity inside script content
+  - {{SDK_DOCS_CONTEXT}} for Fluent SDK object patterns
+  - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity inside script content
 </documentation>
 
 # ServiceNow Fluent Code Reviewer

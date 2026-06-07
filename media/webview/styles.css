@@ -1657,11 +1657,17 @@ a:hover {
 }
 .docs-mode-label {
     display: flex;
-    align-items: flex-start;
-    gap: var(--nd-sp-2);
+    align-items: center;
+    gap: 6px;
     cursor: pointer;
+    line-height: 1.4;
 }
-.docs-mode-radio { margin-top: 3px; }
+.docs-mode-suboptions {
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--nd-sp-2);
+}
 .docs-mode-hint {
     font-size: 11px;
     color: var(--nd-fg-mute);

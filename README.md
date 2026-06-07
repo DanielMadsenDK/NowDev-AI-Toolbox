@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.5.9-blue)
+  ![Version](https://img.shields.io/badge/version-0.6.0-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.120+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -36,7 +36,7 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 ## Installation & Usage
 
 ### Prerequisites
-- Visual Studio Code 1.120.0 or later
+- Visual Studio Code 1.122.0 or later
 - GitHub Copilot Chat extension
 - **Enable nested sub-agents** — add `"chat.subagents.allowInvocationsFromSubagents": true` to your VS Code `settings.json`. Without this setting, the multi-level agent hierarchy will not function (coordinators cannot invoke their specialists).
 

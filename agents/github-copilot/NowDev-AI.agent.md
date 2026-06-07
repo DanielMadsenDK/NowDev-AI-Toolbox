@@ -52,7 +52,7 @@ user-invocable: true
 {{/agent:NowDev-AI-Pipeline-Expert}}
 3. **Load project configuration.** Read `.vscode/nowdev-ai-config.json` (if it exists) to obtain the user's ServiceNow instance URL, preferred development style, Fluent app scope context, and **environment capabilities**. If the file contains a `customInstructions` field, these are **user-provided directives that MUST be followed with the highest priority**. They override default behavior where applicable. If the file contains a `fluentApp` object (auto-detected from `now.config.json`), extract: `scope` (e.g. `x_1118332_userpuls`), `scopeId`, `name`, `scopePrefix` (e.g. `x`), and `numericScopeId` (e.g. `1118332`). If the file contains an `environment` object, extract: `os`, `shell`, and `availableTools`. The `availableTools` map lists **only** the tools the user has installed and enabled — you and all sub-agents MUST NOT use any scripting language, CLI tool, or runtime that is not present in `availableTools`. For example: if `python` is not listed, do NOT generate or execute Python scripts; if `now-sdk` is not listed, Fluent build/deploy is not possible — inform the user. Pass the instance URL, preferred style, custom instructions, **fluentApp context**, and **environment capabilities** to ALL sub-agents throughout the entire session. The scope is critical — it prefixes table names, roles, properties, and other metadata. The `numericScopeId` is needed for scoped workspace URLs: `{instanceUrl}/x/{numericScopeId}/{path}`.
 4. **For ALL `full-project` requests, invoke `NowDev-AI-Refinement` unconditionally.** Pass the user's complete request as context. The Refinement agent performs gap analysis and either asks clarifying questions or fast-paths directly to the brief when the request is already complete. Never pre-judge completeness yourself — always delegate this judgment to the Refinement agent. Wait for the Refined Implementation Brief before continuing.
-5. Run requirements analysis using the refined brief (or original request if no refinement was needed). Verify feasibility using {{GENERAL_MCP}}.
+5. Run requirements analysis using the refined brief (or original request if no refinement was needed). Verify feasibility using {{GENERAL_DOCS}}.
 6. Determine which artifact types are needed and which sub-agents to invoke — ALL implementation is delegated, no exceptions.
 7. Visualize proposed solution using `renderMermaidDiagram` (do not output diagram code in chat).
 8. Present plan summary and diagram to user. PAUSE for approval before proceeding.
@@ -92,7 +92,7 @@ MANDATORY USER APPROVAL GATES — stop and wait for explicit confirmation at:
 </stopping_rules>
 
 <documentation>
-Use {{GENERAL_MCP}} for library resolution and general ServiceNow reference
+Use {{GENERAL_DOCS}} for library resolution and general ServiceNow reference
 MANDATORY: Verify plans, clarify requirements, validate architecture, answer user questions
 When creating or editing agent files, read `agents/github-copilot/AGENT-PATTERNS.md` for canonical shared patterns (tool sets, Login Verification Checkpoint, File Output Guidelines).
 </documentation>
