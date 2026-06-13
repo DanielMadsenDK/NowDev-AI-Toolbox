@@ -40,44 +40,18 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 - GitHub Copilot Chat extension
 - **Enable nested sub-agents** — add `"chat.subagents.allowInvocationsFromSubagents": true` to your VS Code `settings.json`. Without this setting, the multi-level agent hierarchy will not function (coordinators cannot invoke their specialists).
 
-The Context7 MCP Server must be installed manually in VS Code to enable the AI agents to reference official ServiceNow documentation and verified best practices during development. The extension's knowledge base is built from ServiceNow SDK official documentation, ensuring all recommendations align with the latest platform standards.
+### Documentation Sources
 
-[<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/Install%20in%20VS%20Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white">](https://insiders.vscode.dev/redirect?url=vscode:mcp/by-name/io.github.upstash/context7)
+Agents use three knowledge channels, all configurable from the NowDev AI Toolbox sidebar:
 
-Click the button above to install the Context7 MCP server plugin in VS Code.
+| Source | What it covers | Default |
+|--------|----------------|---------|
+| **`now-sdk explain`** (always-on) | Fluent SDK API reference and guides — local CLI, works offline | Always enabled |
+| **SDK llms.txt** | ServiceNow SDK documentation index | `https://servicenow.github.io/sdk/llms.txt` |
+| **Product llms.txt** | General ServiceNow platform docs | `https://www.servicenow.com/llms.txt` |
+| **MCP server** | Your own indexed sources (optional) | None |
 
-#### Manual Context7 Setup (If Plugin Installation is Blocked)
-
-If you cannot install the Context7 MCP plugin due to group policy restrictions or other installation issues, you can manually configure the remote Context7 server:
-
-1. Open your VS Code MCP config file:
-   - **Windows**: `%APPDATA%\Code\User\mcp.json`
-   - **macOS**: `~/Library/Application Support/Code/User/mcp.json`
-   - **Linux**: `~/.config/Code/User/mcp.json`
-
-2. Add the following configuration to the `servers` section:
-```json
-"io.github.upstash/context7": {
-  "type": "http",
-  "url": "https://mcp.context7.com/mcp"
-}
-```
-
-3. Your `mcp.json` should look like this:
-```json
-{
-  "servers": {
-    "io.github.upstash/context7": {
-      "type": "http",
-      "url": "https://mcp.context7.com/mcp"
-    }
-  }
-}
-```
-
-4. Restart VS Code for the changes to take effect.
-
-**Note**: If Context7 is unavailable, the agents will automatically fall back to using built-in skills for development guidance and best practices.
+To configure, open the NowDev AI Toolbox sidebar and expand **Documentation Sources**. You can point each channel at an llms.txt URL, an MCP server, or leave it as none.
 
 ### Quick Start
 

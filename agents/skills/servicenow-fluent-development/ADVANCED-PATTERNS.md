@@ -96,7 +96,7 @@ while (gr.next()) {
 
 ## Common Script APIs Reference
 
-These are the APIs most commonly used inside script fields. Verify with Context7 for exact signatures.
+These are the APIs most commonly used inside script fields. Verify with `now-sdk explain` or the configured docs source for exact signatures.
 
 **Client-side (g_form, g_user):**
 ```js

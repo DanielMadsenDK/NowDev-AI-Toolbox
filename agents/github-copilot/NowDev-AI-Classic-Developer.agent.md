@@ -38,8 +38,8 @@ STOP and surface a scope-check to the user if you have invoked 4 or more sub-age
 </stopping_rules>
 
 <documentation>
-If Context7 is available: query-docs('/websites/servicenow') to verify which Classic artifact type best fits each requirement
-If Context7 is unavailable: use built-in knowledge to determine the correct artifact type
+Use {{PRODUCT_DOCS_CONTEXT}} to verify which Classic artifact type best fits each requirement
+Use {{CLASSIC_SCRIPTING_DOCS}} for Classic API signatures, patterns, and best practices
 </documentation>
 
 # NowDev Classic Developer Coordinator

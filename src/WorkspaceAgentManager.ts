@@ -222,11 +222,11 @@ export function syncAllAgents(
 
         // Effective tools: MCP first, then base minus disabled.
         // Replace any hardcoded 'io.github.upstash/context7/*' in the base tools
-        // with the user-configured doc-source server wildcards (or keep as-is if none set).
+        // with the user-configured doc-source server wildcards (remove if none configured).
         const docServerWildcards = buildDocServerWildcards(cfg.allDocSources);
         const baseToolsReplaced = manifest.baseTools.map(t => {
             if (t === 'io.github.upstash/context7/*') {
-                return docServerWildcards.length > 0 ? null : t; // null = expand below
+                return null; // expand to configured MCP wildcards, or remove if none configured
             }
             return t;
         });
@@ -368,8 +368,7 @@ If the user does not provide a task reference, ask them for one before proceedin
 
 /**
  * Collects the unique MCP server wildcards from all doc source categories.
- * Returns an empty array when no MCP servers are configured (caller keeps
- * the original Context7 tool entry in that case).
+ * Returns an empty array when no MCP servers are configured.
  */
 function buildDocServerWildcards(sources: AllDocSources): string[] {
     const wildcards: string[] = [];

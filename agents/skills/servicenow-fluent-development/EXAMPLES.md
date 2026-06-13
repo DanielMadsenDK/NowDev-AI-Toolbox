@@ -1642,7 +1642,7 @@ data: { application: Now.ID['menu'] } // Never do this
 |-------|----------|
 | Duplicate records on install | ✓ Use constant properties for references |
 | Script validation errors | ✓ Remember: script content is JavaScript, not TypeScript |
-| API not found | ✓ Use Context7 to verify method signatures |
+| API not found | ✓ Use `now-sdk explain <topic> --format raw` to verify method signatures |
 | Field name mismatches | ✓ Match @types/servicenow schemas exactly |
 
 See [BEST_PRACTICES.md](BEST_PRACTICES.md) for complete execution matrix, API reference, and advanced patterns.

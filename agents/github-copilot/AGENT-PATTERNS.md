@@ -20,7 +20,7 @@ Use these as templates when creating or modifying agents:
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
 - **Agent Control:** `agent` (to invoke sub-agents)
-- **Knowledge:** `io.github.upstash/context7/*` (verify feasibility, docs)
+- **Knowledge:** Use `{{PRODUCT_DOCS_CONTEXT}}` / `{{SDK_DOCS_CONTEXT}}` tokens in the `<documentation>` block for doc access
 - **Search & Web:** `search`, `web`
 - **Tracking:** `todo`
 - **Visualization:** `vscode.mermaid-chat-features/renderMermaidDiagram` (for architecture)
@@ -32,7 +32,7 @@ Use these as templates when creating or modifying agents:
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
 - **Search:** `search`, `web`
-- **Knowledge:** `io.github.upstash/context7/*` (mandatory: verify APIs before writing code)
+- **Knowledge:** Use doc tokens in `<documentation>` block (`{{CLASSIC_SCRIPTING_DOCS}}`, `{{SDK_DOCS_CONTEXT}}`, `{{PRODUCT_DOCS_CONTEXT}}`, `{{FLUENT_SDK_EXPLAIN}}` as applicable)
 - **Tracking:** `todo`
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
 - **Handoff:** Include `handoffs` with "Back to Architect" label pointing to `NowDev AI Agent`
@@ -49,7 +49,7 @@ Use these as templates when creating or modifying agents:
 ### Reviewer Specialists (NowDev-AI-Fluent-Reviewer, NowDev-AI-Classic-Reviewer)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Search:** `search`, `web`
-- **Knowledge:** `io.github.upstash/context7/*`
+- **Knowledge:** Use doc tokens in `<documentation>` block
 - **Tracking:** `todo`
 - **Memory:** `vscode/memory` — used for the Dependency Validation pattern (cross-referencing `/memories/session/artifacts.md`)
 - **NO write tools** (reviewers only analyze, never modify)
@@ -60,7 +60,6 @@ Use these as templates when creating or modifying agents:
 - **User Interaction:** `vscode/askQuestions` (for Login Verification Checkpoint and clarifying questions)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Search:** `search`, `web`
-- **Knowledge:** `io.github.upstash/context7/*`
 - **Tracking:** `todo`
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
 - **NO write tools** (debuggers only analyze, never implement fixes)
@@ -71,7 +70,6 @@ Use these as templates when creating or modifying agents:
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles` (for XML files)
 - **Search:** `search`, `web`
-- **Knowledge:** `io.github.upstash/context7/*`
 - **Tracking:** `todo`
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
 - **Handoff:** Include handoff back to NowDev AI Agent
@@ -80,7 +78,7 @@ Use these as templates when creating or modifying agents:
 - **Read:** `read/readFile`, `read/problems`
 - **User Interaction:** `vscode/askQuestions` (core tool — single batched prompt per round)
 - **Search:** `search`, `web`
-- **Knowledge:** `io.github.upstash/context7/*` (mandatory: validate ServiceNow feasibility before finalizing brief)
+- **Knowledge:** Use `{{PRODUCT_DOCS_CONTEXT}}` in `<documentation>` block to validate feasibility
 - **Tracking:** `todo`
 - **NO write tools** (refinement agents analyze and interview only — they produce a brief, not code)
 - **NO browser tools** (no instance interaction)
@@ -92,7 +90,7 @@ Use these as templates when creating or modifying agents:
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
 - **Search:** `search`, `web`
-- **Knowledge:** `io.github.upstash/context7/*` (mandatory: verify ATF step APIs before writing tests)
+- **Knowledge:** Use `{{FLUENT_SDK_EXPLAIN}}` and `{{SDK_DOCS_CONTEXT}}` in `<documentation>` block to verify ATF step APIs
 - **Tracking:** `todo`
 - **Memory:** `vscode/memory` — used for Context Sync Protocol (reads and writes `/memories/session/artifacts.md`)
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask` (for `now-sdk build` validation)
@@ -302,24 +300,25 @@ Scanned by the extension on startup. Only tools that are both installed and user
 
 ---
 
-## Canonical: Context7 Verification Pattern
+## Canonical: API Verification Pattern
 
-All development agents MUST verify APIs before writing code. Include this in your stopping rules:
+All development agents MUST verify APIs before writing code. Include doc tokens in the `<documentation>` block and a stopping rule:
 
 ```markdown
 <stopping_rules>
-STOP IMMEDIATELY if implementing without Context7 verification
-STOP IMMEDIATELY if using training data for ServiceNow APIs
+STOP IMMEDIATELY if using training data for ServiceNow APIs — verify with the configured docs source
 STOP if todo plan not documented
-STOP if proceeding before Context7 confirms API validity
 </stopping_rules>
 
 <documentation>
-query-docs('/websites/servicenow') for classic ServiceNow API availability, parameter requirements, usage patterns
-query-docs('/servicenow/sdk-examples') for official ServiceNow SDK Fluent API examples (if applicable)
-MANDATORY FIRST STEP: Verify every API and pattern before writing code
+{{FLUENT_SDK_EXPLAIN}}           <!-- always-on for Fluent SDK topics -->
+{{SDK_DOCS_CONTEXT}}             <!-- user-configured SDK docs (llms-txt or MCP) -->
+{{CLASSIC_SCRIPTING_DOCS}}       <!-- user-configured Classic API docs -->
+{{PRODUCT_DOCS_CONTEXT}}         <!-- user-configured general platform docs -->
 </documentation>
 ```
+
+Use only the tokens relevant to the agent's artifact types. Agents are free to omit tokens that don't apply.
 
 ---
 
@@ -336,7 +335,7 @@ When creating a new agent (human or AI):
 5. **Include canonical patterns** where applicable:
    - If your agent interacts with instances: include **Login Verification Checkpoint**
    - If your agent creates/modifies files: include **File Output Guidelines** specific to its role
-   - If your agent writes code: include **Context7 Verification Pattern** in stopping rules
+   - If your agent writes code: include **API Verification Pattern** in stopping rules and `<documentation>` block
 6. **Include a handoff** back to the orchestrator (except for the orchestrator itself)
 7. **Keep the description concise** — it's the primary trigger for Copilot to select your agent
 8. **Test the agent** by invoking it from the orchestrator and verifying:
