@@ -31,6 +31,7 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 *   **Guided Copilot Setup**: The sidebar now highlights the Project tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
 *   **Dynamic Agent Management**: Enable or disable individual agents and their tools directly from the sidebar. Hit Resync to instantly update your workspace agent configuration. MCP server detection is automatic.
 *   **Agent Topology Viewer**: Visual panel that renders the full agent hierarchy as a colour-coded tree — see which agents are active and how they relate at a glance.
+*   **User Profiles**: Switch between Developer, Junior Developer, and Product Owner profiles. Each profile controls which agents are visible, adjusts communication tone, and (for Junior Developer) adds step-by-step educational commentary to every response — all without changing any configuration files.
 *   **Instance Integration**: Connect to your ServiceNow instance (credentials stored securely) to browse and import dependencies via the **Dependency Picker**, or scan existing scripts and knowledge articles with the **Context Scanner** to give agents richer context.
 
 ## Installation & Usage
@@ -139,6 +140,16 @@ The [template](agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md) covers the
 | `## Excluded Patterns` | Hard-forbidden APIs and practices |
 | `## Always Use / Never Use` | Unconditional short-form directives |
 
+## User Profiles
+
+Switch profiles from the NowDev AI Toolbox sidebar to instantly reshape how every agent behaves — no config files needed.
+
+| Profile | Who it's for | What changes |
+|---------|-------------|--------------|
+| **Developer** | Experienced ServiceNow developers | Full agent set, no restrictions |
+| **Junior Developer** | Developers learning ServiceNow | Same full agent set, but every response adds step-by-step explanations, term definitions, pitfall callouts, and follow-up learning suggestions |
+| **Product Owner** | Business stakeholders managing requirements | Development agents hidden; only discovery, refinement, and DevOps work-item agents visible; plain-language communication, no code |
+
 ## Specialized Agents
 
 The extension provides a hierarchical system of AI agents spanning three tiers. **Tier 1** agents are invoked directly by the orchestrator. **Tier 2** agents are coordinators and routers that delegate to **Tier 3** specialists. All tiers are wired automatically — you only ever interact with the Tier 1 agents.
@@ -162,6 +173,7 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-Release-Expert | Release router — detects Classic vs Fluent and delegates to the right release agent | Classic Release, Fluent Release |
 | NowDev-AI-Pipeline-Expert | CI/CD pipeline generator — creates GitHub Actions, Azure DevOps, and Jenkins pipeline YAML for Fluent SDK deployments; covers credential management, branch strategies, and multi-scope deployments | — |
 | NowDev-AI-DevOps | DevOps integration — CI/CD pipeline authoring, automated release coordination, and multi-environment deployment strategies | — |
+| NowDev-AI-Debugger | Debugging specialist — gathers symptoms, isolates root causes in server-side and client-side scripts, and produces a structured Diagnostic Results report before handing off to the relevant developer | Classic-Developer, Fluent-Developer |
 
 ### Tier 3 — Specialists (internal, invoked by coordinators only)
 
@@ -201,6 +213,7 @@ graph TD
     ORC --> REL["NowDev-AI-Release-Expert\n(Release Router)"]
     ORC --> PIP["NowDev-AI-Pipeline-Expert\n(CI/CD Pipeline Generator)"]
     ORC --> DEV["NowDev-AI-DevOps\n(DevOps Integration)"]
+    ORC --> DBG["NowDev-AI-Debugger\n(Debugging Specialist)"]
 
     CLA --> SCR["NowDev-AI-Script-Developer\n(Script Includes)"]
     CLA --> BRD["NowDev-AI-BusinessRule-Developer\n(Business Rules)"]
@@ -221,6 +234,9 @@ graph TD
 
     REL --> CRR["NowDev-AI-Classic-Release\n(XML Update Sets)"]
     REL --> FRR["NowDev-AI-Fluent-Release\n(now-sdk build/install)"]
+
+    DBG --> CLA
+    DBG --> FLU
 ```
 
 ### Agent Capabilities
