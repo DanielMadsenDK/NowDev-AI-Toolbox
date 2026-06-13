@@ -54,16 +54,6 @@ Agents use three knowledge channels, all configurable from the NowDev AI Toolbox
 
 To configure, open the NowDev AI Toolbox sidebar and expand **Documentation Sources**. You can point each channel at an llms.txt URL, an MCP server, or leave it as none.
 
-### Quick Start
-
-1. **Download the VSIX** from the [Releases](https://github.com/DanielMadsenDK/NowDev-AI-Toolbox/releases) section
-2. **Install the extension** in VS Code: `Extensions → Install from VSIX...`
-3. **Open GitHub Copilot Chat** in VS Code
-4. **Select "NowDev AI Agent"** from the dropdown menu
-5. **Start chatting** to plan and coordinate your ServiceNow development tasks
-
-All agents are automatically available in every workspace once the extension is installed.
-
 ### Connecting to Your ServiceNow Instance
 
 The extension can connect directly to a ServiceNow instance for the Dependency Picker and Context Scanner features. Credentials are stored securely using VS Code's built-in secret storage.
@@ -198,47 +188,6 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 
 The extension integrates specialized AI agents directly into VS Code through GitHub Copilot Chat's agent system. Each agent is a declarative Copilot Agent with defined capabilities and expertise areas.
 
-### Agent Architecture Diagram
-
-```mermaid
-graph TD
-    ORC["NowDev AI Agent\n(Orchestrator)"]
-
-    ORC --> ASS["NowDev-AI-Assistant\n(Q&A & Discovery)"]
-    ORC --> REF["NowDev-AI-Refinement\n(Story Refinement)"]
-    ORC --> CLA["NowDev-AI-Classic-Developer\n(Classic Coordinator)"]
-    ORC --> FLU["NowDev-AI-Fluent-Developer\n(Fluent Coordinator)"]
-    ORC --> AIS["NowDev-AI-AI-Studio-Developer\n(AI Studio Coordinator)"]
-    ORC --> REV["NowDev-AI-Reviewer\n(Review Router)"]
-    ORC --> REL["NowDev-AI-Release-Expert\n(Release Router)"]
-    ORC --> PIP["NowDev-AI-Pipeline-Expert\n(CI/CD Pipeline Generator)"]
-    ORC --> DEV["NowDev-AI-DevOps\n(DevOps Integration)"]
-    ORC --> DBG["NowDev-AI-Debugger\n(Debugging Specialist)"]
-
-    CLA --> SCR["NowDev-AI-Script-Developer\n(Script Includes)"]
-    CLA --> BRD["NowDev-AI-BusinessRule-Developer\n(Business Rules)"]
-    CLA --> CLI["NowDev-AI-Client-Developer\n(Client Scripts)"]
-
-    FLU --> SCH["NowDev-AI-Fluent-Schema-Developer\n(Tables · Roles · ACLs · Forms)"]
-    FLU --> LOG["NowDev-AI-Fluent-Logic-Developer\n(Business Rules · Script Includes · REST APIs)"]
-    FLU --> AUT["NowDev-AI-Fluent-Automation-Developer\n(Flows · Subflows · Actions)"]
-    FLU --> UI["NowDev-AI-Fluent-UI-Developer\n(React UI · Catalog · Workspaces)"]
-    FLU --> ATF["NowDev-AI-ATF-Developer\n(ATF Tests)"]
-    FLU --> AIS
-
-    AIS --> AAD["NowDev-AI-AI-Agent-Developer\n(AiAgent · AiAgenticWorkflow)"]
-    AIS --> NAD["NowDev-AI-NowAssist-Developer\n(NowAssistSkillConfig)"]
-
-    REV --> CR["NowDev-AI-Classic-Reviewer"]
-    REV --> FR["NowDev-AI-Fluent-Reviewer"]
-
-    REL --> CRR["NowDev-AI-Classic-Release\n(XML Update Sets)"]
-    REL --> FRR["NowDev-AI-Fluent-Release\n(now-sdk build/install)"]
-
-    DBG --> CLA
-    DBG --> FLU
-```
-
 ### Agent Capabilities
 - **Specialized Knowledge**: Deep expertise in specialized ServiceNow domains.
 - **Native Skills**: "Mounts" verified Best Practice documentation directly into the agent's context window.
@@ -256,18 +205,6 @@ graph TD
 | Fluent SDK | Table + Role + ACL, ScriptInclude, BusinessRule, ATF Test |
 | Classic scripting | GlideRecord, Script Include, GlideAjax, Business Rule, Client Script |
 | CI/CD pipelines | GitHub Actions (4 strategies), Azure DevOps, branching strategy docs |
-
-### Skill Examples
-
-The project includes comprehensive code examples from the official [ServiceNow SDK Examples Repository](https://github.com/servicenow/sdk-examples) integrated directly into the skills. Each skill in the `agents/skills/` directory includes an `EXAMPLES.md` file with code examples:
-
-- **[servicenow-fluent-development/EXAMPLES.md](agents/skills/servicenow-fluent-development/EXAMPLES.md)** — Tables, business rules, REST APIs, ACLs, UI actions, service catalog
-- **[servicenow-business-rules/EXAMPLES.md](agents/skills/servicenow-business-rules/EXAMPLES.md)** — Before/after/async rules, validation, recursion prevention
-- **[servicenow-http-integrations/EXAMPLES.md](agents/skills/servicenow-http-integrations/EXAMPLES.md)** — REST APIs, OAuth, error handling, SOAP
-- **[servicenow-client-scripts/EXAMPLES.md](agents/skills/servicenow-client-scripts/EXAMPLES.md)** — Form initialization, GlideAjax, validation
-- **[servicenow-script-server-logic/EXAMPLES.md](agents/skills/servicenow-script-server-logic/EXAMPLES.md)** — Script includes, utilities, database queries
-- **[servicenow-flow-designer/EXAMPLES.md](agents/skills/servicenow-flow-designer/EXAMPLES.md)** — Workflow automation, escalation, approval workflows
-- **[servicenow-ui-forms/EXAMPLES.md](agents/skills/servicenow-ui-forms/EXAMPLES.md)** — Form field manipulation, UI actions, dynamic behavior
 
 ## Included Skills
 
