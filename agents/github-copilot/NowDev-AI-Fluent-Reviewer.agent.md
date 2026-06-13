@@ -32,42 +32,11 @@ STOP if applying checks for artifact types not present in the reviewed files
 </stopping_rules>
 
 <documentation>
-Always consult the servicenow-fluent-development skill to source best practices for each artifact type found.
-Reference the correct sub-document for each artifact type:
-  - Tables → TABLE-API.md
-  - Table augments → TABLE-AUGMENTS-GUIDE.md
-  - Flows/Subflows → FLOW-API.md
-  - Script Includes → SCRIPT-INCLUDE-API.md
-  - Business Rules → API-REFERENCE.md + ADVANCED-PATTERNS.md
-  - Client Scripts → CLIENT-SCRIPTS-API.md
-  - UI Pages / React → UI-PAGE-API.md + CLIENT-SERVER-PATTERNS.md
-  - Service Catalog → SERVICE-CATALOG.md
-  - Workspaces → WORKSPACE-API.md
-  - Dashboards → DASHBOARD-API.md
-  - SLAs → SLA-API.md
-  - REST APIs → REST-API.md
-  - UI Actions → UI-ACTION-API.md
-  - UI Policies → UI-POLICY-API.md
-  - Data Policies → DATA-POLICY-GUIDE.md
-  - ACLs → ACL-API.md
-  - Roles → ROLE-API.md
-  - Email Notifications → EMAIL-NOTIFICATION-API.md
-  - System Properties → PROPERTY-API.md
-  - Script Actions → SCRIPT-ACTION-API.md
-  - Service Portal → SERVICE-PORTAL-API.md + SERVICE-PORTAL-EXTENDED.md (menu types, OOTB widgets, Coral SCSS, Angular provider rules)
-  - Import Sets → IMPORT-SETS-API.md
-  - Assignment Rules → ASSIGNMENT-RULES-GUIDE.md
-  - Advanced patterns (Now.ref, AnnotationType, Record(), helpers) → ADVANCED-PATTERNS.md
-  - Fluent language constructs (Now.ID, Now.include, Now.attach, Now.ref) → API-REFERENCE.md
-  - ATF Tests → ATF-API.md + atf-guide.md (11 namespaces, strategy, email/reporting/dashboard/SP steps)
-  - Security Attributes & Data Filters (sys_security_attribute, sys_security_data_filter) → security-guide.md
-  - UI Formatters (activity, process flow, checklist) → platform-view-guide.md
-  - Views, View Rules, List Controls, Relationships → platform-view-lists-guide.md
-  - Event registration (sysevent_register, scoped vs global, custom queues) → registering-events-guide.md
-  - now.config.json → NOW-CONFIG-REFERENCE.md
-  - $override usage → OVERRIDE-GUIDE.md
+{{FLUENT_SDK_EXPLAIN}}
 
-  - {{SDK_DOCS_CONTEXT}} for Fluent SDK object patterns
+For any artifact type under review, use `now-sdk explain --list <keyword>` to find the relevant topic, then `now-sdk explain <topic> --format raw` to fetch the current API definition and verify correctness.
+
+  - {{SDK_DOCS_CONTEXT}} for supplementary Fluent SDK object patterns
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity inside script content
 </documentation>
 

@@ -43,6 +43,7 @@ STOP if about to execute or recommend a tool/runtime not listed in `environment.
 <documentation>
 Use {{GENERAL_DOCS}} for expected vs actual behavior, logging mechanisms, and diagnostic procedures
 Verify expected behavior before proposing solutions
+Consult the servicenow-debugging skill for Playwright diagnostic code patterns (field state, GlideAjax timing, hidden fields, console errors)
 </documentation>
 
 # ServiceNow Debugger
@@ -234,89 +235,12 @@ Use for deep client-side issue investigation requiring inspection of browser sta
 
 *ServiceNow Debugging Scenarios:*
 
-**Example 1: Diagnose Field Not Updating**
-```javascript
-// Problem: User changes "Category" field, "Priority" should update via onChange, but doesn't
-// Investigation:
-const formData = await page.evaluate(() => ({
-  categoryValue: g_form.getValue('u_category'),
-  categoryName: g_form.getDisplayValue('u_category'),
-  priorityValue: g_form.getValue('u_priority'),
-  isReadonly: g_form.isReadOnly('u_priority'),
-  isVisible: !g_form.getControl('u_priority').classList.contains('hidden')
-}));
-console.log('Form State:', JSON.stringify(formData, null, 2));
-// Check browser console for errors
-const consoleErrors = await page.evaluate(() => {
-  return window.__consoleErrors || [];  // Assumes a global error catcher
-});
-```
-Report: "Priority field shows category='Software' but priority is still empty. Priority field visible=true, readonly=false. Check that onChange client script is registered and triggers on category changes."
+- **Diagnose Field Not Updating** — inspect `g_form.getValue()` state, field visibility, and console errors after triggering the field change
+- **Diagnose Slow GlideAjax Calls** — use `performance.getEntriesByType('resource')` filtered by `glideajax` to find calls over 1000ms
+- **Diagnose Hidden Field Issues** — inspect computed styles (`display`, `visibility`) and `data-fieldname` parent element state
+- **Monitor Browser Console** — attach a `page.on('console')` listener before triggering the problematic interaction, then filter for errors
 
-**Example 2: Diagnose Slow GlideAjax Calls**
-```javascript
-// Problem: Form is slow to respond when changing "Assigned To" lookup field
-// Investigation:
-const metrics = await page.evaluate(() => {
-  const resources = performance.getEntriesByType('resource')
-    .filter(r => r.name.includes('glideajax'))
-    .map(r => ({
-      url: new URL(r.name).search,  // Get query params
-      duration: Math.round(r.duration),
-      time: new Date(r.startTime).toLocaleTimeString()
-    }));
-  return resources;
-});
-console.log('GlideAjax Calls:', JSON.stringify(metrics, null, 2));
-// Find slow calls (>1000ms)
-const slowCalls = metrics.filter(m => m.duration > 1000);
-```
-Report: "GlideAjax call to fetch assigned_to records took 2340ms. Recommend adding debounce to onChange handler or optimizing Script Include query."
-
-**Example 3: Diagnose Hidden Field Issues**
-```javascript
-// Problem: A required field appears missing from the form
-// Investigation:
-const fieldInspection = await page.evaluate(() => {
-  const field = document.querySelector('[name="u_critical_field"]');
-  if (!field) return { exists: false };
-
-  const styles = window.getComputedStyle(field);
-  const parent = document.querySelector('[data-fieldname="u_critical_field"]');
-
-  return {
-    exists: true,
-    visible: styles.display !== 'none' && styles.visibility !== 'hidden',
-    parentVisible: parent ? window.getComputedStyle(parent).display !== 'none' : null,
-    display: styles.display,
-    visibility: styles.visibility,
-    readonly: field.readOnly,
-    required: field.hasAttribute('aria-required')
-  };
-});
-console.log('Field State:', JSON.stringify(fieldInspection, null, 2));
-```
-Report: "u_critical_field exists in DOM but display:none. Check UI Policy or Client Script that may be hiding it — verify business rule conditions."
-
-**Example 4: Monitor Browser Console During Interaction**
-```javascript
-// Problem: Form produces JavaScript errors that block client script execution
-// Investigation:
-let consoleMessages = [];
-page.on('console', msg => consoleMessages.push({
-  type: msg.type(),
-  text: msg.text(),
-  location: msg.location()
-}));
-
-// Now trigger the problematic action
-await page.click('[name="category"]');
-await page.waitForTimeout(1000);
-
-const errors = consoleMessages.filter(m => m.type === 'error');
-console.log('JavaScript Errors:', JSON.stringify(errors, null, 2));
-```
-Report with exact error messages and line numbers for the development agent to fix.
+For complete code patterns for each scenario, see the `servicenow-debugging` skill.
 
 *Read-Only Guardrails for Debugging:*
 - **IMPORTANT:** Never use `clickElement` or `typeInPage` to fix issues — you diagnose, not remediate

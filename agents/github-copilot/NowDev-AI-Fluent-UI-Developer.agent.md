@@ -40,25 +40,20 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-Always consult the servicenow-fluent-development skill for each artifact type:
-  - UI Pages / React full-stack (UiPage, index.html, main.tsx, endpoint, direct) → UI-PAGE-API.md
-  - GlideAjax & REST client-server patterns (service layer, g_ck, callbacks) → CLIENT-SERVER-PATTERNS.md
-  - Client Scripts (onLoad/onChange/onSubmit/onCellEdit, isolateScript, messages) → CLIENT-SCRIPTS-API.md
-  - UI Policies (conditions, field actions, reverseIfFalse, relatedListActions) → UI-POLICY-API.md
-  - UI Actions (form/list/client/workspace objects, conditions, roles) → UI-ACTION-API.md
-  - Service Catalog (CatalogItem, 22 variable types, CatalogUiPolicy, CatalogClientScript) → SERVICE-CATALOG.md
-  - Service Portal (SPWidget, SPAngularProvider, SPWidgetDependency, CssInclude) → SERVICE-PORTAL-API.md
-  - Service Portal extended (11 menu types, 19 OOTB widgets, Coral SCSS vars, Angular provider rules, CSS anti-patterns) → SERVICE-PORTAL-EXTENDED.md
-  - Workspaces (Workspace, UxListMenuConfig, categories, lists, Applicability) → WORKSPACE-API.md
-  - Dashboards (Dashboard, tabs, widgets, dataSources, metrics, trendBy) → DASHBOARD-API.md
-  - UI Formatters, view/view-rule/list-control decision table → platform-view-guide.md
-  - Views (sys_ui_view), View Rules (sysrule_view), List Controls (sys_ui_list_control), Relationships (sys_relationship) → platform-view-lists-guide.md
-  - Third-party npm libraries in React (Rollup, CSS, context providers) → THIRD-PARTY-LIBRARIES.md
-  - React UI components → use the servicenow-react-ui-components skill for @servicenow/react-components
-  - UI Page patterns (dirty state, field extraction, CSS constraints, build system) → servicenow-react-ui-components skill: ui-page-patterns-guide.md
-  - Horizon Design System theming (tokens, color roles, dark mode) → servicenow-react-ui-components skill: ui-page-theming-guide.md
+{{FLUENT_SDK_EXPLAIN}}
 
-  - {{SDK_DOCS_CONTEXT}} for Fluent SDK patterns
+Key topics for UI artifacts (use `now-sdk explain <topic> --format raw`):
+  - UI Pages / React: `uipage-api`, `ui-page-guide`, `ui-page-patterns-guide`, `ui-page-theming-guide`
+  - Client Scripts: `clientscript-api`, `client-script-guide`
+  - UI Policies: `uipolicy-api`
+  - UI Actions: `uiaction-api`
+  - Service Catalog: `catalogitem-api`, `catalogitemrecordproducer-api`, `service-catalog-guide`, `service-catalog-variables-guide`
+  - Service Portal: `spwidget-api`, `serviceportal-api`, `service-portal-guide`, `service-portal-reference-guide`
+  - Workspaces: `workspace-api`, `creating-workspaces-guide`, `uxlistmenuconfig-api`, `applicability-api`
+  - Dashboards: `dashboard-api`
+  - React UI components: use the servicenow-react-ui-components skill for @servicenow/react-components
+
+  - {{SDK_DOCS_CONTEXT}} for supplementary Fluent SDK patterns
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in client scripts
 </documentation>
 

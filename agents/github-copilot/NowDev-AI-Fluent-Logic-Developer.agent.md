@@ -39,24 +39,21 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-Always consult the servicenow-fluent-development skill for each artifact type:
-  - Business Rules (trigger, when, script patterns, recursion prevention) → API-REFERENCE.md + ADVANCED-PATTERNS.md
-  - Script Includes (class patterns, clientCallable, GlideAjax integration, access control) → SCRIPT-INCLUDE-API.md
-  - Script Actions (event-driven automation, conditionScript, order) → SCRIPT-ACTION-API.md
-  - Assignment Rules (task-table routing via Record on sysrule_assignment, group/user validation, ^EQ conditions) → ASSIGNMENT-RULES-GUIDE.md
-  - REST APIs (routes, parameters, versioning, ACL enforcement) → REST-API.md
-  - Email Notifications (triggerConditions, recipients, digest, content) → EMAIL-NOTIFICATION-API.md
-  - SLAs (duration, schedule, conditions, retroactive, timezone) → SLA-API.md
-  - Scheduled Scripts (frequency, conditional execution, run-as, timezone) → SCHEDULED-SCRIPT-API.md
-  - Advanced patterns (Record() seed data, Now.ref, server-side logging, helpers) → ADVANCED-PATTERNS.md
-  - Module pattern for script linking (preferred for function-accepting APIs) → MODULE-GUIDE.md
-  - agents/exemplars/fluent-script-include.now.ts — canonical ScriptInclude with Now.include() bridge shape
-  - agents/exemplars/fluent-business-rule.now.ts — canonical BusinessRule with ES module import shape
-  - Client-server communication patterns (GlideAjax setup, server methods) → CLIENT-SERVER-PATTERNS.md
-  - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for Script Actions → registering-events-guide.md
-  - Data helpers for Record() fields (Duration(), Time(), TemplateValue(), FieldList()) → data-helpers-guide.md
+{{FLUENT_SDK_EXPLAIN}}
 
-  - {{SDK_DOCS_CONTEXT}} for SDK object patterns
+Key topics for logic artifacts (use `now-sdk explain <topic> --format raw`):
+  - Business Rules: `businessrule-api`, `business-rule-guide`
+  - Script Includes: `scriptinclude-api`, `script-include-guide`
+  - Script Actions: `scriptaction-api`, `registering-events-guide`
+  - Assignment Rules: `assignment-rule-guide`
+  - REST APIs: `restapi-api`, `scripted-rest-api-guide`
+  - SLAs: `sla-api`
+  - Scheduled Scripts: `scheduledscript-api`, `scheduled-script-guide`
+  - Data helpers: `data-helpers-guide`
+  - agents/exemplars/fluent-script-include.now.ts — canonical ScriptInclude shape
+  - agents/exemplars/fluent-business-rule.now.ts — canonical BusinessRule shape
+
+  - {{SDK_DOCS_CONTEXT}} for supplementary SDK patterns
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content (GlideRecord, gs.*, etc.)
 </documentation>
 
@@ -68,14 +65,14 @@ You are a specialist in **ServiceNow Fluent SDK server-side logic artifacts**. Y
 
 | Artifact | SDK Object | Key Reference |
 |----------|-----------|---------------|
-| Database triggers & validation | `BusinessRule()` | API-REFERENCE.md |
-| Reusable server libraries | `ScriptInclude()` + `.server.js` | SCRIPT-INCLUDE-API.md |
-| Event-driven scripts | `ScriptAction()` | SCRIPT-ACTION-API.md |
-| Task assignment routing | `Record()` on `sysrule_assignment` | ASSIGNMENT-RULES-GUIDE.md |
-| Scripted REST APIs | `RestApi()` | REST-API.md |
-| Email notifications | `EmailNotification()` | EMAIL-NOTIFICATION-API.md |
-| Service Level Agreements | `Sla()` | SLA-API.md |
-| Timed background jobs | `ScheduledScript()` | SCHEDULED-SCRIPT-API.md |
+| Database triggers & validation | `BusinessRule()` | `now-sdk explain businessrule-api` |
+| Reusable server libraries | `ScriptInclude()` + `.server.js` | `now-sdk explain scriptinclude-api` |
+| Event-driven scripts | `ScriptAction()` | `now-sdk explain scriptaction-api` |
+| Task assignment routing | `Record()` on `sysrule_assignment` | `now-sdk explain assignment-rule-guide` |
+| Scripted REST APIs | `RestApi()` | `now-sdk explain restapi-api` |
+| Email notifications | `EmailNotification()` | `now-sdk explain emailnotification-api` |
+| Service Level Agreements | `Sla()` | `now-sdk explain sla-api` |
+| Timed background jobs | `ScheduledScript()` | `now-sdk explain scheduledscript-api` |
 
 ## Dependency Order Within Logic
 
@@ -87,41 +84,6 @@ When multiple artifacts are needed:
 5. **REST APIs** — reference tables and Script Includes
 6. **SLAs and Email Notifications** — reference tables and conditions; largely independent
 7. **Scheduled Scripts** — independent; reference only tables and Script Includes
-
-## Script Content Rules
-
-**Module pattern (preferred for function-accepting APIs):** `BusinessRule`, `ScriptAction`, `RestApi`, `ScheduledScript`, and `UiAction` all accept function references. Write logic as a TypeScript module in `src/server/` and import it directly in the `.now.ts` definition file:
-
-```typescript
-import '@servicenow/sdk/global'
-import { BusinessRule } from '@servicenow/sdk/core'
-import { validateRequest } from '../server/business-rules/validate-request'
-
-BusinessRule({
-  $id: Now.ID['validate-request'],
-  name: 'Validate Request',
-  table: 'x_myapp_request',
-  when: 'before',
-  action: ['insert', 'update'],
-  script: validateRequest, // function reference, NOT a string
-})
-```
-
-Module files (`src/server/**/*.ts`) must import every Glide API explicitly from `@servicenow/glide` — they are NOT globally available in module context. See MODULE-GUIDE.md for the full pattern.
-
-**`Now.include()` pattern (for string-only APIs):** `ScriptInclude`, Assignment Rule scripts (`Record({ table: 'sysrule_assignment' })`), `ClientScript`, `CatalogClientScript`, `UiPolicy`, `CatalogUiPolicy`, and SPWidget script fields require string content; use `Now.include('./file.js')` where supported. For Script Includes, the `.js` file is the bridge wrapper and the actual logic can live in a `.ts` module that the wrapper loads via `require()`.
-
-- Business Rules: `current.update()` and `current.insert()` are **forbidden** in scripts
-- Script Includes: `Class.create()` pattern required for client-callable (GlideAjax) includes
-- Always wrap logic in try-catch
-- Use `gs.hasRole()` for security checks — never broad admin-only access
-
-## Universal Fluent Rules (Always Apply)
-
-- Every exported object must have a unique `$id: Now.ID['...']`
-- Own metadata references use `constant.$id` — never `Now.ID['...']` in data fields
-- Field names must exactly match `@types/servicenow/schema/`
-- Use `Now.ref()` for metadata defined in other applications
 
 ## Session Artifact Registry
 

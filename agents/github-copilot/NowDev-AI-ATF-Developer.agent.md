@@ -37,17 +37,14 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-Always consult the servicenow-fluent-development skill for ATF test patterns:
-  - Form tests (openNewForm, openExistingRecord, setField, submit, assert) → ATF-API.md
-  - REST API tests (sendRequest, assertResponseCode, assertResponseBody) → ATF-API.md
-  - Server-side tests (executeScript, assertRecord) → ATF-API.md
-  - Service Catalog tests (orderItem, assertOrderCreated) → ATF-API.md
-  - Navigation tests (navigateTo) → ATF-API.md
-  - Output variable chaining between steps → ATF-API.md
-  - agents/exemplars/atf-test-step.now.ts — canonical ATF Test + TestSuite shape
-  - ATF strategy, all 11 namespace API surfaces, email/reporting/dashboard steps, Service Portal variants → atf-guide.md
+{{FLUENT_SDK_EXPLAIN}}
 
-  - {{SDK_DOCS_CONTEXT}} for Test() SDK object patterns and full Fluent SDK ATF reference
+Key topics for ATF artifacts (use `now-sdk explain <topic> --format raw`):
+  - ATF guide (all 12 test step categories, strategy, email/reporting/dashboard/portal steps): `atf-guide`
+  - Test SDK object (Test, TestSuite, step methods, output variable chaining): `test-api`
+  - agents/exemplars/atf-test-step.now.ts — canonical ATF Test + TestSuite shape
+
+  - {{SDK_DOCS_CONTEXT}} for supplementary Test() SDK object patterns
 </documentation>
 
 # ATF Developer

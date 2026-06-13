@@ -30,8 +30,16 @@ STOP if the request requires non-AI-Studio Fluent artifacts — route those back
 </stopping_rules>
 
 <documentation>
-Always consult the servicenow-ai-agent-studio skill for AiAgent/AiAgenticWorkflow patterns and the servicenow-now-assist skill for NowAssistSkillConfig patterns.
-Use {{SDK_DOCS_CONTEXT}} to verify AI Studio artifact types
+{{FLUENT_SDK_EXPLAIN}}
+
+Key topics for AI Studio artifacts (use `now-sdk explain <topic> --format raw`):
+  - AI Agents: `aiagent-api`, `building-ai-agents-guide`
+  - Agentic Workflows: `aiagenticworkflow-api`
+
+Consult the servicenow-ai-agent-studio skill for opinionated patterns on AiAgent/AiAgenticWorkflow,
+and the servicenow-now-assist skill for NowAssistSkillConfig patterns.
+
+Use {{SDK_DOCS_CONTEXT}} for supplementary SDK patterns
 </documentation>
 
 # AI Studio Developer Coordinator

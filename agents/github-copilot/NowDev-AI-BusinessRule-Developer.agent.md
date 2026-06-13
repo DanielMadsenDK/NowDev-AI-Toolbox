@@ -75,23 +75,7 @@ You are a specialized expert in ServiceNow Database Triggers (Business Rules). Y
 
 ## Fluent Module Pattern (Preferred for Fluent Projects)
 
-In Fluent SDK projects, **BusinessRule `script` accepts functions** — use ES module imports directly instead of inline strings:
-
-```typescript
-import { BusinessRule } from '@servicenow/sdk/core'
-import { validateRequest } from '../../server/business-rules/validate-request'
-
-BusinessRule({
-    $id: Now.ID['validate-request'],
-    name: 'Validate Request',
-    table: 'x_myapp_request',
-    when: 'before',
-    action: ['insert', 'update'],
-    script: validateRequest, // function reference, NOT a string
-})
-```
-
-The module file uses `import { gs } from '@servicenow/glide'` (Glide APIs are NOT auto-available in module context). See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` for the full pattern.
+In Fluent SDK projects, **BusinessRule `script` accepts function references** — use ES module `import`/`export` directly instead of inline strings. See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` for the full pattern.
 
 **Classic projects** continue to use the IIFE wrapper pattern below.
 

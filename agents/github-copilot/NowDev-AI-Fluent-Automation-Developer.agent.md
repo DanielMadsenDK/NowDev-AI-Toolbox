@@ -27,7 +27,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with configured docs MCP or FLOW-API.md
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with `now-sdk explain <topic> --format raw` or the configured docs source
 STOP if any wfa.trigger, wfa.action, or wfa.flowLogic call is missing a unique $id
 STOP if using raw strings instead of TemplateValue() for createRecord/updateRecord field values
 STOP if referencing own metadata with Now.ID[...] in data fields — use constant.$id
@@ -36,22 +36,18 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-The primary reference for all automation work is FLOW-API.md in the servicenow-fluent-development skill.
-The official WFA guides from the ServiceNow SDK documentation are authoritative — always prefer them over inferred patterns.
-It covers:
-  - Flow triggers: record-based, scheduled, application-event
-  - wfa.trigger, wfa.action (30+ built-in actions with full signatures)
-  - wfa.dataPill, wfa.inlineScript, wfa.approvalRules, wfa.approvalDueDate
-  - wfa.flowLogic: if/elseIf/else, forEach, waitForADuration, setFlowVariables
-  - assignSubflowOutputs, exitLoop, endFlow, skipIteration
-  - FDTransform: string/math/dateTime/utilities/sanitize/complexData operations
-  - FlowObject and FlowArray complex type definitions
-  - ActionDefinition and ActionStep for custom reusable actions
-  - TriggerDefinition for custom trigger types
-  - SubflowDefinition for reusable subflow logic
-  - Complete production examples
+{{FLUENT_SDK_EXPLAIN}}
 
-  - {{SDK_DOCS_CONTEXT}} for Flow and Subflow patterns
+Key topics for automation artifacts (use `now-sdk explain <topic> --format raw`):
+  - Flows: `wfa-flow-guide`, `wfa-api`
+  - Flow triggers: `trigger-api`, `wfa-trigger-guide`
+  - Flow logic (if/else, forEach, parallel, try/catch): `wfa-flow-logic-guide`, `wfa-flow-logic-api`
+  - Built-in flow actions: `action-api`, `wfa-flow-actions-guide`
+  - Subflows: `subflow-api`, `wfa-subflow-guide`
+  - Custom action definitions: `custom-action-api`, `wfa-custom-action-guide`
+  - Flow stages: `wfa-flow-stages-guide`
+
+  - {{SDK_DOCS_CONTEXT}} for supplementary Flow and Subflow patterns
   - {{CLASSIC_SCRIPTING_DOCS}} for any Classic API references used in inlineScripts
 </documentation>
 
@@ -63,60 +59,16 @@ You are a specialist in **ServiceNow Fluent SDK workflow automation**. You imple
 
 | Artifact | SDK Import | Key Reference |
 |----------|-----------|---------------|
-| Flows (record/scheduled/event triggers) | `Flow` from `@servicenow/sdk/automation` | FLOW-API.md |
-| Reusable subflows | `SubflowDefinition` as `Subflow` | FLOW-API.md |
-| Custom reusable actions | `ActionDefinition`, `ActionStepDefinition`, `ActionStep` | FLOW-API.md |
-| Custom trigger types | `TriggerDefinition` | FLOW-API.md |
-
-## Critical Flow Rules
-
-**Every `wfa` call must have a unique `$id`:**
-```ts
-wfa.trigger(trigger.record.created, { $id: Now.ID['trigger_incident_created'] }, ...)
-wfa.action(action.core.createRecord, { $id: Now.ID['create_task'] }, ...)
-wfa.flowLogic.if({ $id: Now.ID['check_priority'] }, condition, ...)
-```
-
-**`TemplateValue()` required for record field values:**
-```ts
-// Correct
-wfa.action(action.core.createRecord, { $id: Now.ID['act'] }, {
-  table_name: 'incident',
-  values: TemplateValue({ short_description: wfa.dataPill(...) })
-})
-
-// Wrong — raw object without TemplateValue
-values: { short_description: 'Auto-created' }
-```
-
-**Approvals:**
-```ts
-// Correct
-wfa.approvalRules([...])
-wfa.approvalDueDate(...)
-
-// Wrong — raw string conditions for askForApproval
-```
-
-**Subflow outputs:**
-```ts
-// If a Subflow declares outputs, call assignSubflowOutputs before the body ends
-wfa.flowLogic.assignSubflowOutputs({ $id: Now.ID['assign_out'] }, { result: dataPill })
-```
+| Flows (record/scheduled/event triggers) | `Flow` from `@servicenow/sdk/automation` | `now-sdk explain wfa-flow-guide` |
+| Reusable subflows | `SubflowDefinition` as `Subflow` | `now-sdk explain subflow-api` |
+| Custom reusable actions | `ActionDefinition`, `ActionStepDefinition`, `ActionStep` | `now-sdk explain custom-action-api` |
+| Custom trigger types | `TriggerDefinition` | `now-sdk explain trigger-api` |
 
 ## Build Sequence
 
 1. **`ActionDefinition`** and **`TriggerDefinition`** — custom reusable components, built first
 2. **`SubflowDefinition`** — reusable subflows that Flows may call
 3. **`Flow`** — top-level orchestration flows, built last
-
-## Universal Fluent Rules (Always Apply)
-
-- Every exported object must have a unique `$id: Now.ID['...']`
-- Own metadata references use `constant.$id` — never `Now.ID['...']` in data fields
-- Field names must exactly match `@types/servicenow/schema/`
-- Import from `@servicenow/sdk/automation` for all flow objects
-- Import `@servicenow/sdk/global` at the top of each `.now.ts` file where `Now.ID`, `TemplateValue`, etc. are used
 
 ## Session Artifact Registry
 

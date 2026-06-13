@@ -35,31 +35,24 @@ STOP if you have created or edited any files without explicitly listing all crea
 </stopping_rules>
 
 <documentation>
-Always consult the servicenow-fluent-development skill for each artifact type:
-  - Tables (typed column APIs, choices, autoNumber, indexes, labels) → TABLE-API.md
-  - Table augments (adding scoped columns to platform/cross-scope tables with `augments`) → TABLE-AUGMENTS-GUIDE.md
-  - Roles (containsRoles, canDelegate, assignableBy, elevated privileges) → ROLE-API.md
-  - ACLs (operations, conditions, script-based access, field-level security) → ACL-API.md
-  - Cross-Scope Privileges (runtime tracking, operations, target types) → CROSS-SCOPE-PRIVILEGE-API.md
-  - System Properties (types, role access, cache control) → PROPERTY-API.md
-  - Data Policies (server-side mandatory/read-only enforcement across forms, imports, APIs) → DATA-POLICY-GUIDE.md
-  - Application Menus & Navigation (ApplicationMenu, sys_app_module, link types) → APPLICATION-MENU-API.md
-  - List Views (sys_ui_list, columns, views, ordering) → LIST-API.md
-  - User Preferences (per-user defaults, types, runtime retrieval) → USER-PREFERENCE-API.md
-  - Sys Attachments (static file deployment as record attachments) → SYS-ATTACHMENT-API.md
-  - Import Sets (staging tables, transform maps, field mappings) → IMPORT-SETS-API.md
-  - Form layouts (views, sections, one/two-column, element types) → FORM-API.md
-  - Instance Scan checks (ColumnTypeCheck, LinterCheck, ScriptOnlyCheck, TableCheck) → servicenow-instance-scan skill
-  - Fluent language constructs (Now.ID, Now.ref, Now.include, Now.attach) → API-REFERENCE.md
-  - Security Attributes (sys_security_attribute, compound/true|false/string types) and Data Filters (sys_security_data_filter, row-level filtering) → security-guide.md
-  - Views, View Rules (sysrule_view), List Controls (sys_ui_list_control), Relationships (sys_relationship) → platform-view-lists-guide.md
-  - UI Formatters (sys_ui_formatter), decision table for approach selection → platform-view-guide.md
-  - Event registration (sysevent_register, scoped vs global, 40-char limit, custom queues) — prerequisite for flows and Script Actions → registering-events-guide.md
-  - now.config.json (scope, directories, dependencies, runtime policies, transform/build customization) → NOW-CONFIG-REFERENCE.md
+{{FLUENT_SDK_EXPLAIN}}
 
-  - {{SDK_DOCS_CONTEXT}} for SDK object patterns
-  - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
+Key topics for schema artifacts (use `now-sdk explain <topic> --format raw`):
+  - Tables: `table-api`, `table-guide`
+  - Table augments: `table-augments-guide`
+  - Roles: `role-api`
+  - ACLs: `acl-api`, `security-guide`
+  - Cross-Scope Privileges: `cross-scope-privilege-guide`, `crossscopeprivilege-api`
+  - Data Policies: `datapolicy-api`, `data-policy-guide`
+  - Application Menus: `applicationmenu-api`, `application-menu-guide`
+  - User Preferences: `userpreference-api`
+  - Instance Scan checks: `columntypecheck-api`, `tablecheck-api`, `scriptonlycheck-api`
+  - Event registration: `registering-events-guide`
+  - App configuration: `developing-apps-guide`
   - agents/exemplars/fluent-table.now.ts — canonical table + role + ACL shape
+
+  - {{SDK_DOCS_CONTEXT}} for supplementary SDK patterns
+  - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
 </documentation>
 
 # Fluent Schema Developer

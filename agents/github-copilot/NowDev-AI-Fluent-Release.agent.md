@@ -31,7 +31,13 @@ STOP if modifying any application code files — this agent deploys only
 </stopping_rules>
 
 <documentation>
-Use {{SDK_DOCS_CONTEXT}} for SDK deployment patterns and now-sdk CLI usage
+{{FLUENT_SDK_EXPLAIN}}
+
+Key topics for release/deployment (use `now-sdk explain <topic> --format raw`):
+  - CI/CD integration and auth: `ci-integration`
+  - App development workflow and CLI: `developing-apps-guide`
+
+Use {{SDK_DOCS_CONTEXT}} for supplementary SDK deployment patterns
 </documentation>
 
 # ServiceNow Fluent Release Agent

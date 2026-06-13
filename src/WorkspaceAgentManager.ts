@@ -39,7 +39,7 @@ export interface AllDocSources {
 
 export const DEFAULT_ALL_DOC_SOURCES: AllDocSources = {
     productDocs:      { sourceType: 'llms-txt', llmsMode: 'remote', llmsUrl: 'https://www.servicenow.com/llms.txt', release: '', mcpLibraryHint: '' },
-    sdkDocs:          { sourceType: 'none',     llmsUrl: 'https://servicenow.github.io/sdk/llms.txt',              mcpLibraryHint: '' },
+    sdkDocs:          { sourceType: 'llms-txt', llmsUrl: 'https://servicenow.github.io/sdk/llms.txt',              mcpLibraryHint: '' },
     classicScripting: { sourceType: 'none',     llmsUrl: 'https://www.servicenow.com/llms.txt',                    mcpLibraryHint: '' },
 };
 
@@ -347,6 +347,9 @@ If the user does not provide a task reference, ask them for one before proceedin
         content = content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n/g, '');
     }
 
+    // Substitute always-present Fluent SDK explain instructions
+    content = applyFluentSdkExplainToken(content);
+
     // Substitute all documentation source tokens
     content = applyAllDocSourceTokens(content, allDocSources);
 
@@ -380,6 +383,31 @@ function buildDocServerWildcards(sources: AllDocSources): string[] {
 }
 
 /**
+ * Always-present block injected into Fluent SDK agent files via {{FLUENT_SDK_EXPLAIN}}.
+ * Not configurable — now-sdk is always installed in a ServiceNow development environment.
+ * Covers both API reference (e.g. businessrule-api) and guides (e.g. wfa-flow-guide).
+ */
+const FLUENT_SDK_EXPLAIN_BLOCK =
+`## Fluent SDK Documentation
+
+\`now-sdk explain\` is always available as the first choice for any Fluent SDK question — API signatures, guides, patterns, and architecture. It is local, offline, and always in sync with the installed SDK version.
+
+\`\`\`
+now-sdk explain <topic> --format raw    # Full documentation for a specific topic
+now-sdk explain --list <keyword>        # Discover available topics by keyword
+now-sdk explain <topic> --peek          # One-line summary
+\`\`\`
+
+Use \`now-sdk explain --list <keyword>\` first to discover relevant topics, then fetch full docs with \`--format raw\`. This covers both API reference (e.g. \`businessrule-api\`, \`table-api\`, \`wfa-api\`) and guides (e.g. \`wfa-flow-guide\`, \`atf-guide\`, \`service-catalog-guide\`, \`business-rule-guide\`).
+
+For general ServiceNow platform knowledge that is not Fluent-specific (admin/config, best practices across the platform), use the configured product docs source.`;
+
+function applyFluentSdkExplainToken(content: string): string {
+    if (!content.includes('{{FLUENT_SDK_EXPLAIN}}')) { return content; }
+    return content.replace(/\{\{FLUENT_SDK_EXPLAIN\}\}\n?/g, FLUENT_SDK_EXPLAIN_BLOCK + '\n\n');
+}
+
+/**
  * Replaces a single inline doc-source token with the appropriate reference text.
  * - mcp + hint:    "<hint> (fall back to <skill> if unavailable)"
  * - mcp only:      "the <server> MCP server (fall back to <skill> if unavailable)"
@@ -393,9 +421,9 @@ function applyInlineDocToken(content: string, token: string, src: DocSource, fal
     let value: string;
     if (src.sourceType === 'mcp' && src.mcpServer) {
         const ref = src.mcpLibraryHint ? src.mcpLibraryHint : `the ${src.mcpServer} MCP server`;
-        value = `${ref} (fall back to ${fallback} if unavailable)`;
+        value = `${ref} — prefer this for current, authoritative content; fall back to ${fallback} only if unavailable (bundled docs may not reflect the latest SDK or platform changes)`;
     } else if (src.sourceType === 'llms-txt' && src.llmsUrl) {
-        value = `${src.llmsUrl} (fall back to ${fallback} if unavailable)`;
+        value = `${src.llmsUrl} — prefer this for current, authoritative content; fall back to ${fallback} only if unavailable (bundled docs may not reflect the latest SDK or platform changes)`;
     } else {
         value = fallback;
     }

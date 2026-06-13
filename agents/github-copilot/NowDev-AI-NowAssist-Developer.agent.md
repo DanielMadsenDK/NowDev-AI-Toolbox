@@ -34,7 +34,12 @@ STOP if implementing AiAgent or AiAgenticWorkflow — those belong to NowDev-AI-
 </stopping_rules>
 
 <documentation>
-Always consult the servicenow-now-assist skill for each aspect:
+{{FLUENT_SDK_EXPLAIN}}
+
+Key topics for NowAssist artifacts (use `now-sdk explain <topic> --format raw`):
+  - NowAssist Skill Config: `now-sdk explain --list nowassist` to discover available topics
+
+Always consult the servicenow-now-assist skill for opinionated patterns:
   - Two-argument signature pattern (definition + promptConfig separation)
   - Input data types (string, boolean, glide_record, json_object, json_array, simple_array)
   - Tool graph builder (t.Script, t.InlineScript, t.FlowAction, t.Subflow, t.WebSearch, t.Decision, t.Skill)
@@ -43,9 +48,8 @@ Always consult the servicenow-now-assist skill for each aspect:
   - LLM provider configuration (model IDs, temperature, maxTokens, promptState)
   - Security controls (userAccess type, roleRestrictions — MANDATORY)
   - Deployment settings (uiAction.table, nowAssistPanel, flowAction, skillFamily)
-  - Skill settings (preprocessor, postprocessor scripts)
 
-  - {{SDK_DOCS_CONTEXT}} for SDK object patterns
+  - {{SDK_DOCS_CONTEXT}} for supplementary SDK patterns
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
 </documentation>
 
@@ -58,53 +62,6 @@ You are a specialist in **ServiceNow NowAssist Skill configurations**. You imple
 | Artifact | SDK Object | Key Reference |
 |----------|-----------|---------------|
 | LLM-powered skill with tool graph and prompts | `NowAssistSkillConfig()` | servicenow-now-assist skill |
-
-## Two-Argument Pattern (Always Required)
-
-```typescript
-NowAssistSkillConfig(
-    { /* Arg 1: definition — $id, name, inputs, outputs, securityControls, tools, deploymentSettings */ },
-    { /* Arg 2: promptConfig — providers with prompt arrow functions */ }
-)
-```
-
-Never merge both arguments into one object.
-
-## Tool Graph Builder Types
-
-| Builder Method | What It Does | Access Pattern in Prompts |
-|---------------|-------------|---------------------------|
-| `t.Script(name, config)` | Calls a Script Include method | `${p.tool.Name.output}` |
-| `t.InlineScript(name, config)` | Runs an inline JavaScript function | `${p.tool.Name.output}` |
-| `t.FlowAction(name, config)` | Executes a Flow Action | `${p.tool.Name.outputName}` |
-| `t.Subflow(name, config)` | Runs a Subflow | `${p.tool.Name.outputName}` |
-| `t.WebSearch(name, config)` | Web search and scraping | `${p.tool.Name.response}` |
-| `t.Decision(name, config)` | Conditional branching (routes execution to named targets) | N/A |
-| `t.Skill(name, config)` | Uses another published NowAssist skill as a tool | `${p.tool.Name.response}` |
-
-### Provider Configuration
-
-Known providers: `'Now LLM Service'`, `'Azure OpenAI'`, `'Open AI'`, `'Google Gemini'`, `'AWS Claude'`, `'IBM Watson'`, `'Perplexity'`, `'Aleph Alpha'`, `'Custom LLM Provider'`.
-
-Optionally specify a Provider API with `providerAPI: { type, id }`. Valid types: `'sys_hub_flow'`, `'sys_hub_action_type_definition'`, `'sys_script_include'`, `'one_api_system_executor'`.
-
-## Key Implementation Rules
-
-| Rule | Why |
-|------|-----|
-| `securityControls` is **always required** | Hard platform validation — skill will fail without it |
-| Every tool, input, and output needs `$id: Now.ID['...']` | Stable metadata identity |
-| Return tool handles from `tools()` function | Enables type-safe `p.tool.*` access in prompt functions |
-| Use `depends` to order tools that must run sequentially | Without it, tools may run in parallel |
-| **Always set `promptState: 'draft'`** | Publish versions from the Skill Builder UI. Other values may cause validation errors in code |
-| Use `$capabilityId: Now.ID['...']` on Script, Subflow, FlowAction tools | Required for capability registration |
-
-## Universal Fluent Rules (Always Apply)
-
-- Every exported object must have a unique `$id: Now.ID['...']`
-- Own metadata references use `constant.$id` — never `Now.ID['...']` in data fields
-- Field names must exactly match `@types/servicenow/schema/`
-- Use `Now.ref()` for metadata defined in other applications
 
 ## Session Artifact Registry
 
