@@ -467,6 +467,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'sdkExplain':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.sdkExplain', message.api);
                     break;
+                case 'sdkQuery':
+                    vscode.commands.executeCommand(
+                        'nowdev-ai-toolbox.sdkQuery',
+                        message.table, message.query, message.fields,
+                        message.limit, message.displayValue, 0, 1
+                    );
+                    break;
                 case 'sdkCommandHelp':
                     showSdkCommandHelpPanel(message.cmd);
                     break;
@@ -1583,6 +1590,36 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div class="sdk-explain-row">
                 <input type="text" id="explainApiInput" placeholder="e.g. UiPage, Table, Acl" spellcheck="false">
                 <button class="fix-btn" id="runExplain">Explain</button>
+            </div>
+        </div>
+
+        <!-- Query Instance -->
+        <div class="section">
+            <div class="section-title">Query Instance</div>
+            <div class="field-desc nd-mb-2">Query your ServiceNow instance directly</div>
+            <div class="field-row">
+                <label class="field-label">Table</label>
+                <input type="text" id="queryTable" placeholder="e.g. incident, sys_user" spellcheck="false">
+            </div>
+            <div class="field-row">
+                <label class="field-label">Query</label>
+                <input type="text" id="queryFilter" placeholder="e.g. active=true^priority=1" spellcheck="false">
+            </div>
+            <div class="field-row">
+                <label class="field-label">Fields</label>
+                <input type="text" id="queryFields" placeholder="e.g. sys_id,name (optional)" spellcheck="false">
+            </div>
+            <div class="field-row">
+                <label class="field-label">Display value</label>
+                <select id="queryDisplayValue" class="field-select">
+                    <option value="true">Human-readable (true)</option>
+                    <option value="false">Raw sys values (false)</option>
+                    <option value="all">Both (all)</option>
+                </select>
+            </div>
+            <div class="sdk-explain-row">
+                <input type="number" id="queryLimit" placeholder="Limit (default 100)" min="1" max="10000" style="width:160px">
+                <button class="fix-btn" id="runQuery">Query</button>
             </div>
         </div>
 

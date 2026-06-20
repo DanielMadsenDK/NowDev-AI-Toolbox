@@ -7,6 +7,7 @@ import * as https from 'https';
 import { URL } from 'url';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
+import { showSdkQueryPanel } from './SdkQueryPanel';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
 import { showDependencyPickerPanel } from './DependencyPickerPanel';
 import { showContextScannerPanel } from './ContextScannerPanel';
@@ -513,6 +514,14 @@ export function activate(context: vscode.ExtensionContext) {
             if (!api?.trim()) { return; }
             showSdkExplainPanel(api.trim());
         }),
+
+        // Query — opens a webview panel showing live instance query results
+        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkQuery',
+            (table: string, query: string, fields: string, limit: string, displayValue: string, offset: number = 0, page: number = 1) => {
+                if (!table?.trim()) { return; }
+                showSdkQueryPanel(table.trim(), query ?? '', fields ?? '', limit ?? '', displayValue ?? 'true', offset, page);
+            }
+        ),
 
         // Auth — Add
         vscode.commands.registerCommand('nowdev-ai-toolbox.sdkAuthAdd', async () => {

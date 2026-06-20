@@ -51,6 +51,13 @@ Key topics for schema artifacts (use `now-sdk explain <topic> --format raw`):
   - App configuration: `developing-apps-guide`
   - agents/exemplars/fluent-table.now.ts — canonical table + role + ACL shape
 
+  Integration & connection artifacts:
+  - REST outbound integrations: `restmessage-api`
+  - Connection & Credential aliases: `alias-api`, `aliastemplate-api`
+  - Retry policies: `retrypolicy-api`
+  - Data lookup definitions: `datalookup-api`
+  - Record deletion: `now.del`
+
   - {{SDK_DOCS_CONTEXT}} for supplementary SDK patterns
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
 </documentation>

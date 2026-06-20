@@ -46,6 +46,7 @@ Key topics for automation artifacts (use `now-sdk explain <topic> --format raw`)
   - Subflows: `subflow-api`, `wfa-subflow-guide`
   - Custom action definitions: `custom-action-api`, `wfa-custom-action-guide`
   - Flow stages: `wfa-flow-stages-guide`
+  - Playbooks (triggers, lanes, activities, decisions): `playbookdefinition-api`, `wfa-playbook-guide`
 
   - {{SDK_DOCS_CONTEXT}} for supplementary Flow and Subflow patterns
   - {{CLASSIC_SCRIPTING_DOCS}} for any Classic API references used in inlineScripts

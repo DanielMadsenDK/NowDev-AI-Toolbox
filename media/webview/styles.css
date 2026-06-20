@@ -1348,6 +1348,38 @@ a:hover {
 }
 .sdk-explain-row input:focus { border-color: var(--nd-accent); }
 
+/* Query Instance section — field rows + styled select */
+.field-row {
+    margin-bottom: var(--nd-sp-2);
+}
+.field-row input[type="text"],
+.field-row input[type="number"],
+.field-select {
+    width: 100%;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+}
+.field-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    padding-right: 26px;
+    cursor: pointer;
+}
+.field-row input[type="text"]:focus,
+.field-row input[type="number"]:focus,
+.field-select:focus { border-color: var(--nd-accent); }
+
 /* ════════════════════════════════════════════════════════════════
    AUTH ALIASES
    ════════════════════════════════════════════════════════════════ */

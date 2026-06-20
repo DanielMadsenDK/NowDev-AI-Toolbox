@@ -359,6 +359,11 @@ If the user does not provide a task reference, ask them for one before proceedin
     // Remove content that belongs to disabled agents
     content = applyAgentConditionals(content, disabledAgents);
 
+    // Append SDK query block to every agent (useful at all stages: design, planning, refinement)
+    if (!content.includes('now-sdk query')) {
+        content = content.trimEnd() + '\n\n' + SDK_QUERY_BLOCK + '\n';
+    }
+
     // Remove any stale stamp, then insert a fresh one after the opening ---
     content = content.replace(/\n# nowdev-managed: true\n# nowdev-hash: [^\n]+\n/g, '\n');
     content = content.replace(/^---\n/, `---\n${MANAGED_TAG}\n${HASH_TAG} ${hash}\n`);
@@ -380,6 +385,40 @@ function buildDocServerWildcards(sources: AllDocSources): string[] {
     }
     return wildcards;
 }
+
+/**
+ * Always-present block appended to every agent file.
+ * Agents at all stages — design, planning, implementation, refinement — can query
+ * the live instance for context (sys_ids, schema, property values, existing records)
+ * without having to ask the user.
+ */
+const SDK_QUERY_BLOCK =
+`## Querying the Live Instance
+
+Use \`now-sdk query\` to resolve instance-specific data without asking the user:
+
+\`\`\`
+# Resolve a record's sys_id
+now-sdk query sys_user_role --query 'name=admin' --fields 'sys_id,name' -o json
+
+# Inspect table schema / available columns
+now-sdk query sys_dictionary --query 'name=incident^elementISNOTEMPTY' \\
+  --fields 'element,column_label,internal_type,reference' -o json
+
+# Check whether a record already exists
+now-sdk query sys_script --query 'name=My Rule^collection=incident' \\
+  --fields 'sys_id,name' -o json
+
+# Read a sys_property value
+now-sdk query sys_properties --query 'name=glide.email.smtp.server' \\
+  --fields 'name,value' -o json
+
+# Paginate large result sets (use nextOffset from previous response)
+now-sdk query incident --query 'active=true' --limit 20 --offset 40 -o json
+\`\`\`
+
+Response envelope: \`{ ok, records[], hasMore, nextOffset }\`
+Use \`--fields\` to narrow output to only what you need. Use \`hasMore\` and \`nextOffset\` to paginate.`;
 
 /**
  * Always-present block injected into Fluent SDK agent files via {{FLUENT_SDK_EXPLAIN}}.

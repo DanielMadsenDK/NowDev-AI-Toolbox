@@ -240,6 +240,26 @@
         }
     });
 
+    function postQuery() {
+        var table = document.getElementById('queryTable').value.trim();
+        if (!table) { return; }
+        vscode.postMessage({
+            command: 'sdkQuery',
+            table: table,
+            query: document.getElementById('queryFilter').value.trim(),
+            fields: document.getElementById('queryFields').value.trim(),
+            limit: document.getElementById('queryLimit').value.trim(),
+            displayValue: document.getElementById('queryDisplayValue').value,
+        });
+    }
+    document.getElementById('runQuery').addEventListener('click', postQuery);
+    document.getElementById('queryTable').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { postQuery(); }
+    });
+    document.getElementById('queryFilter').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { postQuery(); }
+    });
+
     // ── Tools tab: rescan ──────────────────────────────────────────
     document.getElementById('rescanTools').addEventListener('click', () => {
         vscode.postMessage({ command: 'rescanTools' });

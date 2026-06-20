@@ -23,7 +23,7 @@ handoffs:
 5. After Schema completes, pass table names, field names, and role names to Logic-Developer along with: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
 6. Delegate to NowDev-AI-Fluent-Logic-Developer for Business Rules, Script Includes, REST APIs, notifications, SLAs, and Scheduled Scripts
 7. After Logic completes, pass Script Include class names, method signatures, and REST API paths to the next specialists along with: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
-8. Delegate to NowDev-AI-Fluent-Automation-Developer for Flows, Subflows, and custom automation components
+8. Delegate to NowDev-AI-Fluent-Automation-Developer for Flows, Subflows, custom automation components, and Playbooks (triggers, lanes, activities, decisions)
 9. Delegate to NowDev-AI-Fluent-UI-Developer for React UI Pages, Client Scripts, UI Policies, Catalog Items, Workspaces, and Dashboards
 {{#agent:NowDev-AI-AI-Studio-Developer}}
 10. Delegate to NowDev-AI-AI-Studio-Developer for AI Agent definitions, Agentic Workflows, and NowAssist Skill configurations
@@ -45,6 +45,10 @@ STOP and surface a scope-check to the user if you have invoked 4 or more special
 <documentation>
 {{FLUENT_SDK_EXPLAIN}}
 Use {{SDK_DOCS_CONTEXT}} to supplement with broader SDK guides and patterns
+
+Route notes for new artifacts:
+- Record deletion via `Now.del()` is supported — delegate to Fluent-Schema-Developer (use `now-sdk explain now.del` for details)
+- Playbook authoring (triggers, lanes, activities, decisions) — delegate to Fluent-Automation-Developer
 </documentation>
 
 # Fluent Developer Coordinator
