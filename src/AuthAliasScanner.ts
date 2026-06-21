@@ -1,5 +1,4 @@
-import { execSync } from 'child_process';
-import { getShell } from './shellConfig';
+import { execFileSync } from 'child_process';
 
 export interface AuthAlias {
     alias: string;
@@ -22,11 +21,10 @@ export interface AuthAlias {
  */
 export function scanAuthAliases(): AuthAlias[] {
     try {
-        const raw = execSync('now-sdk auth --list', {
+        const raw = execFileSync('now-sdk', ['auth', '--list'], {
             timeout: 8000,
             encoding: 'utf-8',
             stdio: ['pipe', 'pipe', 'pipe'],
-            shell: getShell(),
         });
         return parseAuthListOutput(String(raw));
     } catch (err: any) {

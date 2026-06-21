@@ -10,6 +10,8 @@ last_verified: "2026-06-13"
 
 Diagnostic code patterns for use with the `browser/runPlaywrightCode` tool when investigating client-side issues.
 
+For broader debugging workflow, logging, server/client triage, performance checks, and developer handoff format, see [BEST_PRACTICES.md](./BEST_PRACTICES.md).
+
 ## Diagnose Field Not Updating (onChange Not Firing)
 
 Problem: User changes one field, a dependent field should update via onChange client script, but doesn't.

@@ -5,7 +5,7 @@ import * as https from 'https';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName } from './WorkspaceAgentManager';
+import { syncAllAgents, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
 import { BUILT_IN_PROFILES, DEFAULT_PROFILE_ID, getProfileById, getEffectiveAgentConfig } from './ProfileManager';
 import { parseArtifactsMarkdown } from './ArtifactParser';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
@@ -42,6 +42,18 @@ interface CheckChangesState {
     timestamp: string;
 }
 
+function resolveInside(root: string, child: string): string | undefined {
+    if (!isSafeRelativePath(child)) {
+        return undefined;
+    }
+    const relative = child.split('/').filter(segment => segment && segment !== '.').join(path.sep);
+    return `${root.endsWith(path.sep) ? root : `${root}${path.sep}`}${relative}`;
+}
+
+function isSafeRelativePath(value: string): boolean {
+    return !!value && !value.includes('..') && !path.isAbsolute(value) && /^[\w .\-/]+$/.test(value);
+}
+
 /**
  * MCP servers matching any of these patterns are automatically added to the
  * active integration list the first time they are detected — unless the user
@@ -70,11 +82,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _agentManifests: AgentManifest[] = [];
     private _agentOverrides: Record<string, AgentOverride> = {};
     private _devopsConfig: DevOpsConfig = { ...DEFAULT_DEVOPS_CONFIG };
+    private _guidelinesConfig: GuidelinesConfig = { enabled: false, selectedArticles: [] };
     private _activeProfileId: string = DEFAULT_PROFILE_ID;
     private _profileInstructionsOverrides: Record<string, string> = {};
     private _docsReleases: string[] = [...SERVICENOW_RELEASES];
     private _docsDownloadStatus: { loading: boolean; downloaded?: number; total?: number; error?: string; cancelled?: boolean } = { loading: false };
     private _abortDownload = false;
+    private _statusUpdateTimer: NodeJS.Timeout | undefined;
+    private _agentSyncTimer: NodeJS.Timeout | undefined;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -116,7 +131,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     /** Loads the agent registry from bundled files and writes all agents to workspace. */
     public loadAgentRegistry(): void {
         this._agentManifests = loadAgentRegistry(this._extensionUri.fsPath);
-        this._syncWorkspaceAgents();
+        this._syncWorkspaceAgents(true);
     }
 
     /** Returns the currently loaded agent manifests (for topology panel). */
@@ -233,6 +248,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._updateStatus();
                     break;
                 }
+                case 'openGuidelinesBrowser':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openInstanceBrowser', 'guidelines');
+                    break;
                 case 'toggleMcp': {
                     const mcpName = message.name as string;
                     const nowEnabled = message.enabled as boolean;
@@ -385,14 +403,17 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 case 'resyncAgents':
-                    this._syncWorkspaceAgents();
+                    this._syncWorkspaceAgents(true);
                     this._sendAgentData();
                     break;
                 case 'openAgentFile': {
                     const agentFileName = message.filename as string;
                     const folders = vscode.workspace.workspaceFolders;
                     if (!folders || folders.length === 0) { break; }
-                    const agentFilePath = path.join(folders[0].uri.fsPath, '.github', 'agents', agentFileName);
+                    if (!/^[\w.-]+\.agent\.md$/.test(agentFileName)) { break; }
+                    const agentsDir = path.join(folders[0].uri.fsPath, '.github', 'agents');
+                    const agentFilePath = resolveInside(agentsDir, agentFileName);
+                    if (!agentFilePath) { break; }
                     if (!fs.existsSync(agentFilePath)) {
                         vscode.window.showInformationMessage(`Agent file not found. Run Resync to generate agent files.`);
                     } else {
@@ -454,6 +475,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'openContextScanner':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.openContextScanner');
+                    break;
+                case 'openInstanceBrowser':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openInstanceBrowser');
                     break;
                 case 'sdkAuthAdd':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.sdkAuthAdd');
@@ -595,6 +619,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     // ── Data senders ───────────────────────────────────────────────
 
     private _updateStatus() {
+        if (this._statusUpdateTimer) { clearTimeout(this._statusUpdateTimer); }
+        this._statusUpdateTimer = setTimeout(() => {
+            this._statusUpdateTimer = undefined;
+            this._sendStatusNow();
+        }, 120);
+    }
+
+    private _sendStatusNow() {
         if (!this._view) { return; }
 
         const checks: Record<string, boolean> = {
@@ -628,7 +660,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         const currentInstructions = hasCustomInstructions
             ? this._profileInstructionsOverrides[this._activeProfileId]
             : activeProfile.profileInstructions;
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, allDocSources: this._allDocSources, devopsConfig: this._devopsConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: BUILT_IN_PROFILES.map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, allDocSources: this._allDocSources, devopsConfig: this._devopsConfig, guidelinesConfig: this._guidelinesConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: BUILT_IN_PROFILES.map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
@@ -750,6 +782,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 this._devopsConfig = { ...DEFAULT_DEVOPS_CONFIG, ...(config.devopsConfig as Partial<DevOpsConfig>) };
             }
 
+            // Load instance-backed guideline references
+            if (config.guidelines && typeof config.guidelines === 'object') {
+                this._guidelinesConfig = {
+                    enabled: false,
+                    selectedArticles: [],
+                    ...(config.guidelines as Partial<GuidelinesConfig>),
+                };
+            }
+
             // Load active profile
             if (typeof config.activeProfile === 'string' && getProfileById(config.activeProfile)) {
                 this._activeProfileId = config.activeProfile;
@@ -778,7 +819,23 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _syncWorkspaceAgents(): void {
+    private _syncWorkspaceAgents(immediate = false): void {
+        if (!immediate) {
+            if (this._agentSyncTimer) { clearTimeout(this._agentSyncTimer); }
+            this._agentSyncTimer = setTimeout(() => {
+                this._agentSyncTimer = undefined;
+                this._syncWorkspaceAgentsNow();
+            }, 150);
+            return;
+        }
+        if (this._agentSyncTimer) {
+            clearTimeout(this._agentSyncTimer);
+            this._agentSyncTimer = undefined;
+        }
+        this._syncWorkspaceAgentsNow();
+    }
+
+    private _syncWorkspaceAgentsNow(): void {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
         const cfg = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
@@ -796,6 +853,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         const profile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
         const effective = getEffectiveAgentConfig(profile, this._mcpIntegrationConfigs, this._profileInstructionsOverrides);
+        const customInstructions = this._readCustomInstructionsFile();
+        const agentGuidelines = this._formatAgentGuidelines();
 
         // If the profile requests DevOps when configured, force-enable it whenever a server is set.
         // This lets the PO profile include the DevOps agent without requiring the user to manually
@@ -818,9 +877,35 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 devopsConfig: effectiveDevopsConfig,
                 profileSuppressedAgents: effective.suppressedAgents,
                 profileInstructions: effective.profileInstructions,
+                customInstructions,
+                agentGuidelines,
                 activeProfileId: profile.id,
             }
         );
+    }
+
+    private _formatAgentGuidelines(): string {
+        const cfg = this._guidelinesConfig;
+        if (!cfg.enabled || !cfg.selectedArticles.length) { return ''; }
+        const ids = cfg.selectedArticles.map(a => a.sysId).filter(Boolean);
+        const refs = cfg.selectedArticles
+            .map(a => `- ${a.number ? `${a.number}: ` : ''}${a.title}${a.state ? ` (${a.state})` : ''}${a.updatedOn ? ` — updated ${a.updatedOn}` : ''}`)
+            .join('\n');
+        const query = ids.length > 0
+            ? `now-sdk query kb_knowledge -q 'sys_idIN${ids.join(',')}' -f 'sys_id,number,short_description,text,workflow_state,sys_updated_on' -o json`
+            : '';
+        return `The workspace has selected ServiceNow Knowledge Base articles as agent guidelines. Treat them as project guidance and fetch live article content when details are needed.\n\nSelected articles:\n${refs}\n\n${query ? `Use this live lookup when guideline details are needed:\n\`${query}\`` : ''}`;
+    }
+
+    private _readCustomInstructionsFile(): string {
+        const customInstructionsFile = vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('customInstructionsFile', '');
+        if (!customInstructionsFile) { return ''; }
+        try {
+            return fs.readFileSync(customInstructionsFile, 'utf-8');
+        } catch (err) {
+            console.error('Failed to read custom instructions file:', err);
+            return '';
+        }
     }
 
     private async _fetchDocsReleasesFromGitHub(): Promise<void> {
@@ -880,7 +965,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             );
 
             const mdFiles = (tree.tree ?? []).filter(
-                (item) => item.type === 'blob' && item.path.endsWith('.md')
+                (item) => item.type === 'blob' && item.path.endsWith('.md') && isSafeRelativePath(item.path)
             );
             const total = mdFiles.length;
 
@@ -894,7 +979,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     const raw = await this._rawGithubGet(
                         `/ServiceNow/ServiceNowDocs/${encodeURIComponent(release)}/${item.path}`
                     );
-                    const dest = path.join(destPath, item.path);
+                    const dest = resolveInside(destPath, item.path);
+                    if (!dest) { return; }
                     fs.mkdirSync(path.dirname(dest), { recursive: true });
                     fs.writeFileSync(dest, raw, 'utf-8');
                 }));
@@ -974,7 +1060,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     private _getResolvedDocsPath(release: string): string {
         const base = this._getDocsGlobalPath();
-        return base && release ? path.join(base, release) : '';
+        if (!base || !release || !/^[\w .-]+$/.test(release)) { return ''; }
+        return resolveInside(base, release) ?? '';
     }
 
     private _getDocsSyncTime(release: string): string {
@@ -1141,6 +1228,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         // DevOps integration config
         configData.devopsConfig = this._devopsConfig;
 
+        // Instance-backed agent guidelines
+        if (this._guidelinesConfig.enabled || this._guidelinesConfig.selectedArticles.length > 0) {
+            configData.guidelines = this._guidelinesConfig;
+        }
+
         // Per-agent overrides
         if (Object.keys(this._agentOverrides).length > 0) {
             configData.agentOverrides = this._agentOverrides;
@@ -1164,6 +1256,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
                 if (existing.memoryLocation) {
                     configData.memoryLocation = existing.memoryLocation;
+                }
+                if (existing.guidelines && !configData.guidelines) {
+                    configData.guidelines = existing.guidelines;
                 }
             }
         } catch { /* ignore parse errors */ }
@@ -1297,28 +1392,36 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         <div id="onboardingSummary" class="onboarding-summary"></div>
 
-        <!-- User Profile -->
-        <div class="section">
-            <div class="section-title">User Profile</div>
-            <div class="profile-select-row">
-                <select id="activeProfile" class="profile-select"></select>
-                <button class="mcp-doc-source-gear" id="profileToneGear" title="Customize tone instructions">&#9881;</button>
+        <section class="home-command-center">
+            <div class="home-profile-card">
+                <div class="section-title">Agent Profile</div>
+                <div class="profile-select-row">
+                    <select id="activeProfile" class="profile-select"></select>
+                    <button class="mcp-doc-source-gear" id="profileToneGear" title="Customize tone instructions">&#9881;</button>
+                </div>
+                <div class="field-desc nd-mt-1" id="profileDescription"></div>
+                <div class="mcp-doc-source-panel" id="profileTonePanel">
+                    <div class="field-label nd-mb-1">Tone &amp; style instructions</div>
+                    <div class="field-desc" style="margin-bottom:8px;">Injected into all agents for this profile. Customizations survive extension upgrades.</div>
+                    <textarea id="profileInstructionsInput" rows="8" class="profile-tone-textarea" placeholder="Instructions injected into all agents for this profile…"></textarea>
+                    <button class="fix-btn nd-mt-1 nd-hidden" id="resetProfileInstructions">Reset to default</button>
+                </div>
             </div>
-            <div class="field-desc nd-mt-1" id="profileDescription"></div>
-            <div class="mcp-doc-source-panel" id="profileTonePanel">
-                <div class="field-label nd-mb-1">Tone &amp; style instructions</div>
-                <div class="field-desc" style="margin-bottom:8px;">Injected into all agents for this profile. Customizations survive extension upgrades.</div>
-                <textarea id="profileInstructionsInput" rows="8" class="profile-tone-textarea" placeholder="Instructions injected into all agents for this profile…"></textarea>
-                <button class="fix-btn nd-mt-1 nd-hidden" id="resetProfileInstructions">Reset to default</button>
+            <div class="home-launch-grid">
+                <button class="launch-card launch-primary" id="openChat" title="Open Copilot Chat (Ctrl+Shift+I)">
+                    <span class="launch-title">Start Agent Chat</span>
+                    <span class="launch-desc">Use NowDev AI Agent for orchestration</span>
+                </button>
+                <button class="launch-card" id="openInstanceBrowserHome" title="Browse dependencies and live instance context">
+                    <span class="launch-title">Instance Browser</span>
+                    <span class="launch-desc">Browse records and discover context</span>
+                </button>
+                <button class="launch-card" id="openGuidelinesBrowserHome" title="Select KB articles as agent guidelines">
+                    <span class="launch-title">Agent Guidelines</span>
+                    <span class="launch-desc">Attach KB articles as live guidance</span>
+                </button>
             </div>
-        </div>
-        <hr>
-
-        <!-- Quick Action -->
-        <div class="section">
-            <button class="btn-primary" id="openChat" title="Open Copilot Chat (Ctrl+Shift+I)">Open Copilot Chat</button>
-            <div class="chat-picker-hint">Pick <strong>NowDev AI Agent</strong> from the agent picker.</div>
-        </div>
+        </section>
 
         <!-- Prerequisites Status -->
         <div class="section">
@@ -1426,14 +1529,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 <span>Custom Instructions</span>
             </div>
             <div class="field-desc nd-mb-2">
-                Select a .md or .txt file with instructions for the AI agents. These are treated as high-priority directives.
+                Select a .md or .txt file with instructions, or save Knowledge articles from the instance as live agent guidelines.
             </div>
             <div class="file-picker">
                 <div class="file-picker-row">
                     <button class="btn-secondary" id="browseFile">Browse…</button>
+                    <button class="btn-secondary" id="openGuidelinesBrowserBtn" title="Find Knowledge articles to use as agent guidelines">KB Guidelines…</button>
                     <button class="btn-clear nd-hidden" id="clearFile" aria-label="Remove instructions file" title="Remove instructions file">✕</button>
                 </div>
                 <div class="file-path nd-hidden" id="filePath"></div>
+                <div class="file-path nd-hidden" id="guidelinesSummary"></div>
             </div>
         </div>
 
@@ -1512,7 +1617,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         <!-- SDK Commands -->
         <div class="section">
-            <div class="section-title">SDK Commands</div>
+            <div class="section-title">Build &amp; Instance Commands</div>
             <div class="sdk-auth-row">
                 <label for="sdkCmdAuth" class="sdk-auth-label">Auth alias</label>
                 <select id="sdkCmdAuth">
@@ -1562,8 +1667,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         <option value="fluent">Fluent only</option>
                     </select></div>`,
                 extraBtns: [
-                    '<button class="fix-btn" id="openDepPickerBtn" title="Browse instance and add dependencies">Browse&hellip;</button>',
-                    '<button class="fix-btn" id="openContextScannerBtn" title="Scan instance for relevant scripts and knowledge articles">Scan for Context&hellip;</button>',
+                    '<button class="fix-btn" id="openDepPickerBtn" title="Open Instance Browser in dependency browsing mode">Instance Browser&hellip;</button>',
+                    '<button class="fix-btn" id="openContextScannerBtn" title="Open Instance Browser in task discovery mode">Discover Context&hellip;</button>',
                 ],
             })}
             ${this._sdkCard({
@@ -1583,20 +1688,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             ])}
         </div>
 
-        <!-- Explain API -->
+        <!-- SDK Documentation -->
         <div class="section">
-            <div class="section-title">Explain API</div>
-            <div class="field-desc nd-mb-2">Open documentation for a ServiceNow Fluent API</div>
+            <div class="section-title">SDK Documentation</div>
+            <div class="field-desc nd-mb-2">Open current Fluent SDK documentation with <code>now-sdk explain</code></div>
             <div class="sdk-explain-row">
                 <input type="text" id="explainApiInput" placeholder="e.g. UiPage, Table, Acl" spellcheck="false">
                 <button class="fix-btn" id="runExplain">Explain</button>
             </div>
         </div>
 
-        <!-- Query Instance -->
+        <!-- Instance Query -->
         <div class="section">
-            <div class="section-title">Query Instance</div>
-            <div class="field-desc nd-mb-2">Query your ServiceNow instance directly</div>
+            <div class="section-title">Instance Query</div>
+            <div class="field-desc nd-mb-2">Query live instance data with <code>now-sdk query</code></div>
             <div class="field-row">
                 <label class="field-label">Table</label>
                 <input type="text" id="queryTable" placeholder="e.g. incident, sys_user" spellcheck="false">
@@ -1757,6 +1862,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     <link rel="stylesheet" href="${cssUri}">
 </head>
 <body>
+<div class="nowdev-shell">
 
     <!-- Header (always visible) -->
     <div class="header">
@@ -1771,11 +1877,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     <!-- Tab Bar -->
     <div class="tab-bar">
         <button class="tab-btn active" data-tab="home">Home</button>
-        <button class="tab-btn" data-tab="project">Project</button>
-        <button class="tab-btn" data-tab="sdk">SDK</button>
+        <button class="tab-btn" data-tab="project">Setup</button>
+        <button class="tab-btn" data-tab="sdk">SDK &amp; Instance</button>
         <button class="tab-btn" data-tab="agents">Agents</button>
-        <button class="tab-btn" data-tab="tools">Tools</button>
-        <button class="tab-btn" data-tab="docs">Docs</button>
+        <button class="tab-btn" data-tab="tools">Environment</button>
+        <button class="tab-btn" data-tab="docs">References</button>
     </div>
 
     ${this._renderHomeTab()}
@@ -1784,6 +1890,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     ${this._renderAgentsTab()}
     ${this._renderToolsTab()}
     ${this._renderDocsTab()}
+
+</div>
 
     <script nonce="${nonce}" src="${jsUri}"></script>
 </body>

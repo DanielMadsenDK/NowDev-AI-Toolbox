@@ -16,10 +16,11 @@ handoffs:
 
 <workflow>
 1. Inspect the file list provided by the orchestrator
-2. Determine release type: Fluent, Classic, or Mixed (see detection rules below)
-3. Delegate to the appropriate specialized release agent
-4. For Mixed projects: after the first release agent returns, invoke the second for its portion
-5. Once all release work is complete, present the results in full and use the "Back to Architect" handoff to return to NowDev AI Agent
+2. Clarify from tools first: read workspace config, use `now-sdk auth --list` or available SDK context for Fluent auth aliases, and inspect file paths before asking the user for release facts
+3. Determine release type: Fluent, Classic, or Mixed (see detection rules below)
+4. Delegate to the appropriate specialized release agent
+5. For Mixed projects: invoke Classic and Fluent release agents as independent streams when they package/deploy separate artifact sets and do not depend on each other
+6. Once all release work is complete, present the results in full and use the "Back to Architect" handoff to return to NowDev AI Agent
 </workflow>
 
 <stopping_rules>
@@ -78,9 +79,9 @@ If the file list contains both `.now.ts` Fluent files and standalone Classic `.j
 1. Invoke `@NowDev-AI-Fluent-Release` for all Fluent artifacts
 {{/agent:NowDev-AI-Fluent-Release}}
 {{#agent:NowDev-AI-Classic-Release}}
-2. After it returns, invoke `@NowDev-AI-Classic-Release` for the Classic artifacts
+2. Invoke `@NowDev-AI-Classic-Release` for the Classic artifacts
 {{/agent:NowDev-AI-Classic-Release}}
-3. Consolidate both results before returning to the orchestrator
+3. Run both release streams in parallel when they are independent, then consolidate both results before returning to the orchestrator
 
 ## Output
 

@@ -30,6 +30,14 @@
     document.getElementById('openChat').addEventListener('click', openChat);
     var chatHeaderBtn = document.getElementById('openChatHeader');
     if (chatHeaderBtn) { chatHeaderBtn.addEventListener('click', openChat); }
+    var openInstanceBrowserHome = document.getElementById('openInstanceBrowserHome');
+    if (openInstanceBrowserHome) {
+        openInstanceBrowserHome.addEventListener('click', () => vscode.postMessage({ command: 'openInstanceBrowser' }));
+    }
+    var openGuidelinesBrowserHome = document.getElementById('openGuidelinesBrowserHome');
+    if (openGuidelinesBrowserHome) {
+        openGuidelinesBrowserHome.addEventListener('click', () => vscode.postMessage({ command: 'openGuidelinesBrowser' }));
+    }
     document.getElementById('openSettings').addEventListener('click', () => {
         vscode.postMessage({ command: 'openSettings' });
     });
@@ -95,6 +103,12 @@
     document.getElementById('clearFile').addEventListener('click', () => {
         vscode.postMessage({ command: 'clearInstructionsFile' });
     });
+    var openGuidelinesBrowserBtn = document.getElementById('openGuidelinesBrowserBtn');
+    if (openGuidelinesBrowserBtn) {
+        openGuidelinesBrowserBtn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openGuidelinesBrowser' });
+        });
+    }
 
     document.getElementById('initFluentProject').addEventListener('click', () => {
         vscode.postMessage({ command: 'initFluentProject' });
@@ -158,7 +172,7 @@
         vscode.postMessage({ command: 'sdkAuthAdd' });
     });
 
-    // Open Dependency Picker (browse instance + manage now.config.json)
+    // Open Instance Browser in dependency browsing mode.
     var openDepPickerBtn = document.getElementById('openDepPickerBtn');
     if (openDepPickerBtn) {
         openDepPickerBtn.addEventListener('click', () => {
@@ -166,7 +180,7 @@
         });
     }
 
-    // Open Context Scanner (scan instance for relevant scripts + knowledge)
+    // Open Instance Browser in task discovery mode.
     var openContextScannerBtn = document.getElementById('openContextScannerBtn');
     if (openContextScannerBtn) {
         openContextScannerBtn.addEventListener('click', () => {
@@ -288,7 +302,7 @@
         switch (msg.command) {
             case 'updateStatus':
                 updateChecks(msg.checks);
-                updateSettings(msg.settings);
+                updateSettings(msg.settings, msg.guidelinesConfig);
                 updateFluentApp(msg.fluentApp);
                 updateEnvironment(msg.environment);
                 if (msg.sdkStatus) { updateSdkStatus(msg.sdkStatus); }
@@ -351,6 +365,7 @@
         fluentScope: null,
         hasInstanceUrl: false,
         hasCustomInstructionsFile: false,
+        guidelinesCount: 0,
         mcpServerCount: 0,
         selectedMcpCount: 0,
         authAliasCount: null,
@@ -485,10 +500,14 @@
             parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>' + esc(_wsState.fluentScope) + '</span>');
         }
 
+        if (_wsState.guidelinesCount > 0) {
+            parts.push('<span class="ws-stat ok"><span class="ws-dot"></span>' + _wsState.guidelinesCount + ' guideline KB' + (_wsState.guidelinesCount !== 1 ? 's' : '') + '</span>');
+        }
+
         el.innerHTML = parts.length > 0 ? parts.join('<span class="ws-sep"></span>') : '';
     }
 
-    function updateSettings(settings) {
+    function updateSettings(settings, guidelinesConfig) {
         const urlInput = document.getElementById('instanceUrl');
         const styleSelect = document.getElementById('devStyle');
         _wsState.hasInstanceUrl = !!(settings && settings.instanceUrl);
@@ -508,6 +527,13 @@
         } else {
             filePathEl.classList.add('nd-hidden');
             clearBtn.classList.add('nd-hidden');
+        }
+        var guidelinesSummary = document.getElementById('guidelinesSummary');
+        var articleCount = guidelinesConfig && guidelinesConfig.selectedArticles ? guidelinesConfig.selectedArticles.length : 0;
+        _wsState.guidelinesCount = articleCount;
+        if (guidelinesSummary) {
+            guidelinesSummary.classList.toggle('nd-hidden', articleCount === 0);
+            guidelinesSummary.textContent = articleCount > 0 ? articleCount + ' Knowledge article' + (articleCount !== 1 ? 's' : '') + ' selected as agent guidelines' : '';
         }
         renderOnboardingSummary();
     }
@@ -1239,7 +1265,7 @@
                 return;
             }
             var timeAgo = formatTimeAgo(new Date(s.timestamp));
-            el.textContent = (s.ok ? '\u2713 ' : '\u2717 ') + s.message + ' \u2014 ' + timeAgo;
+            el.innerHTML = '<span class="sdk-status-badge">' + (s.ok ? '\u2713' : '\u2717') + '</span><span>' + esc(s.message) + '</span><span class="sdk-status-time">' + esc(timeAgo) + '</span>';
             el.className = 'sdk-cmd-status ' + (s.ok ? 'ok' : 'fail');
         });
     }

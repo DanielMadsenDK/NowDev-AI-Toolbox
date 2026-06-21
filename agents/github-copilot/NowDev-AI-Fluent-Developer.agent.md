@@ -16,21 +16,23 @@ handoffs:
 
 <workflow>
 1. Use the `memory` tool to read `/memories/session/plan.md` to load the approved implementation plan — halt if it does not exist
-2. Analyze the implementation brief and identify all Fluent artifacts needed across all layers
-2. Plan the delegation sequence: Schema → Logic → Automation → UI (each layer may depend on the previous)
-3. Use the `memory` tool to check if `/memories/session/artifacts.md` exists — if not, use the `memory` tool to create it with the registry header
-4. Delegate to NowDev-AI-Fluent-Schema-Developer for all table, role, ACL, menu, form layouts, instance scan checks, and structural foundation work. Include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
-5. After Schema completes, pass table names, field names, and role names to Logic-Developer along with: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
-6. Delegate to NowDev-AI-Fluent-Logic-Developer for Business Rules, Script Includes, REST APIs, notifications, SLAs, and Scheduled Scripts
-7. After Logic completes, pass Script Include class names, method signatures, and REST API paths to the next specialists along with: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
-8. Delegate to NowDev-AI-Fluent-Automation-Developer for Flows, Subflows, custom automation components, and Playbooks (triggers, lanes, activities, decisions)
-9. Delegate to NowDev-AI-Fluent-UI-Developer for React UI Pages, Client Scripts, UI Policies, Catalog Items, Workspaces, and Dashboards
+2. Clarify from tools before asking the user: read workspace config/memory, use `now-sdk explain` for SDK API questions, and use `now-sdk query` for live instance facts such as scopes, roles, table columns, existing records, choices, and ACLs.
+3. Analyze the implementation brief and identify all Fluent artifacts needed across all layers
+4. Build a dependency graph: Schema normally gates Logic/UI/Automation, but independent Schema items can run in parallel; Automation, UI, AI Studio, and ATF may run in parallel after their required Schema/Logic exports exist.
+5. Use the `memory` tool to check if `/memories/session/artifacts.md` exists — if not, use the `memory` tool to create it with the registry header
+6. Delegate to NowDev-AI-Fluent-Schema-Developer for all table, role, ACL, menu, form layouts, instance scan checks, and structural foundation work. Include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
+7. After Schema completes, pass table names, field names, and role names to Logic-Developer along with: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
+8. Delegate to NowDev-AI-Fluent-Logic-Developer for Business Rules, Script Includes, REST APIs, notifications, SLAs, and Scheduled Scripts
+9. After Logic completes, pass Script Include class names, method signatures, and REST API paths to dependent specialists along with: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
+10. Delegate independent downstream work in parallel when dependencies are satisfied: Automation, UI, AI Studio, and ATF can run as the same batch if they only read shared exports and own separate file groups.
+11. Delegate to NowDev-AI-Fluent-Automation-Developer for Flows, Subflows, custom automation components, and Playbooks (triggers, lanes, activities, decisions)
+12. Delegate to NowDev-AI-Fluent-UI-Developer for React UI Pages, Client Scripts, UI Policies, Catalog Items, Workspaces, and Dashboards
 {{#agent:NowDev-AI-AI-Studio-Developer}}
-10. Delegate to NowDev-AI-AI-Studio-Developer for AI Agent definitions, Agentic Workflows, and NowAssist Skill configurations
+13. Delegate to NowDev-AI-AI-Studio-Developer for AI Agent definitions, Agentic Workflows, and NowAssist Skill configurations
 {{/agent:NowDev-AI-AI-Studio-Developer}}
-11. After Logic and Schema specialists complete, delegate to NowDev-AI-ATF-Developer to generate `.now.ts` Test files for all testable artifacts (REST APIs, Script Includes, Business Rules, Tables with forms, Catalog Items). Pass table names, Script Include class names with clientCallable methods, REST API paths, and Catalog Item names from the artifact registry. Delegation message: "Use the `memory` tool to view `/memories/session/artifacts.md` for all completed artifacts, then generate ATF tests covering the major workflows."
-12. Collect the file lists returned by each specialist
-13. Return the complete file list to the orchestrator
+14. After Logic and Schema specialists complete, delegate to NowDev-AI-ATF-Developer to generate `.now.ts` Test files for all testable artifacts (REST APIs, Script Includes, Business Rules, Tables with forms, Catalog Items). Pass table names, Script Include class names with clientCallable methods, REST API paths, and Catalog Item names from the artifact registry. Delegation message: "Use the `memory` tool to view `/memories/session/artifacts.md` for all completed artifacts, then generate ATF tests covering the major workflows."
+15. Collect the file lists returned by each specialist
+16. Return the complete file list to the orchestrator
 </workflow>
 
 <stopping_rules>

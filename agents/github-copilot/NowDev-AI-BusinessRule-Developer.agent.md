@@ -15,6 +15,7 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names and method signatures
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk query` for live table/field/role/choice facts, and use configured docs or skills for API behavior before asking the user
 2. For any dependencies (e.g., Script Includes this rule will call), use `read/readFile` to read the actual source files to get exact method signatures
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. API verification: Use {{CLASSIC_SCRIPTING_DOCS}} to verify Business Rule best practices, trigger conditions, and API patterns.

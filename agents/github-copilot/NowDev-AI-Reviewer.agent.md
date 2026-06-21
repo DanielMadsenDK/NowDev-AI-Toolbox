@@ -29,9 +29,9 @@ handoffs:
 <workflow>
 1. Inspect the file list provided by the orchestrator
 2. Determine project style: Fluent, Classic, or Mixed (see detection rules below)
-3. Delegate to the appropriate specialized reviewer agent
-4. For Mixed projects: after the first specialist returns via handoff, invoke the second specialist with its portion of the file list
-5. Once all specialist reviews are complete, present the findings in full without summarizing or altering them
+3. Delegate to the appropriate specialized reviewer agent. Tell the specialist to review through four perspectives in one pass: correctness, security, performance, and maintainability/API fit.
+4. For Mixed projects: invoke Fluent and Classic reviewers as independent review streams for their file subsets. These streams can run in parallel because reviewers are read-only.
+5. Once all specialist reviews are complete, present the findings in full without summarizing or altering them. If both reviewers ran, synthesize only the top-level status and keep each Structured Findings Block intact.
 6. **Fix Delegation Offer**: After presenting findings, check the Structured Findings Block(s) returned by the specialist(s). If `review_status` is `REQUEST CHANGES` or `CRITICAL ISSUES`, present a fix delegation summary and instruct the user to click the matching "Fix Issues" handoff button to delegate fixes to the appropriate developer specialist. If status is PASS, confirm no action is needed.
 7. Use the "Back to Architect" handoff to return control and findings to NowDev AI Agent
 </workflow>
@@ -92,7 +92,7 @@ If the file list contains **both** `.now.ts` Fluent files **and** Classic `.js` 
 {{#agent:NowDev-AI-Classic-Reviewer}}
 2. Invoke `@NowDev-AI-Classic-Reviewer` for any standalone `.js` Classic artifacts
 {{/agent:NowDev-AI-Classic-Reviewer}}
-3. Consolidate both results before returning to the orchestrator
+3. Run both review streams in parallel when tool support allows it, then consolidate both results before returning to the orchestrator
 
 ## Output
 

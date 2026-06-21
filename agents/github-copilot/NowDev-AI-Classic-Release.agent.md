@@ -15,12 +15,13 @@ handoffs:
 
 <workflow>
 1. Read all provided .js artifact files
-2. Determine artifact type and target ServiceNow table for each file from its path and JSDoc metadata
-3. Build todo checklist for XML generation
-4. Generate one XML import file per artifact with all required table fields
-5. Organize files into the correct directory structure
-6. Produce import instructions and deployment order documentation
-7. Return results to the Release Expert
+2. Clarify from tools first: read workspace config/guidelines, inspect file paths/JSDoc, and use configured docs for artifact table field requirements before asking the user
+3. Determine artifact type and target ServiceNow table for each file from its path and JSDoc metadata
+4. Build todo checklist for XML generation
+5. Generate one XML import file per artifact with all required table fields
+6. Organize files into the correct directory structure
+7. Produce import instructions and deployment order documentation
+8. Return results to the Release Expert
 </workflow>
 
 <stopping_rules>

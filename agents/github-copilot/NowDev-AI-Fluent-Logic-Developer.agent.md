@@ -15,6 +15,7 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for Fluent APIs, and use `now-sdk query` for live table/field/role/sys_id facts before asking the user
 2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact table structures and field types
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the requirements and identify all server-side logic artifacts needed

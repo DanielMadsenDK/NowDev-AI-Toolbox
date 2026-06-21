@@ -15,13 +15,14 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. Analyze the AI Studio requirements and determine the right implementation pattern
-2. Apply the decision framework (see below) to choose between AI Agent, Agentic Workflow, NowAssist Skill, or a combination
-3. Delegate AiAgent/AiAgenticWorkflow work to NowDev-AI-AI-Agent-Developer
-4. Delegate NowAssistSkillConfig work to NowDev-AI-NowAssist-Developer
-5. If both are needed (e.g., an agent that calls a NowAssist skill as a tool), coordinate the build order: Skill first, then Agent
-6. Collect the file lists returned by each specialist
-7. Return the combined file list to the coordinator
+1. Clarify from tools first: read workspace config/guidelines, use `now-sdk explain` for AI Agent Studio and NowAssist APIs, and use `now-sdk query` for live roles, tables, existing agents, existing skills, subflows, and Script Includes before asking the user
+2. Analyze the AI Studio requirements and determine the right implementation pattern
+3. Apply the decision framework (see below) to choose between AI Agent, Agentic Workflow, NowAssist Skill, or a combination
+4. Delegate AiAgent/AiAgenticWorkflow work to NowDev-AI-AI-Agent-Developer
+5. Delegate NowAssistSkillConfig work to NowDev-AI-NowAssist-Developer
+6. If both are needed (e.g., an agent that calls a NowAssist skill as a tool), coordinate the build order: Skill first, then Agent
+7. Collect the file lists returned by each specialist
+8. Return the combined file list to the coordinator
 </workflow>
 
 <stopping_rules>

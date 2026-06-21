@@ -15,15 +15,16 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include names and Subflow names that agent tools may reference
-2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
-3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
-4. Analyze the requirements and identify all AiAgent and AiAgenticWorkflow artifacts needed
-5. Build a todo list in dependency order (Script Includes before Agents that call them; Agents before Workflows that include them)
-6. Verify APIs using {{SDK_DOCS_CONTEXT}}
-7. Implement .now.ts metadata files and linked .js server scripts in dependency order
-8. Self-validate: check $id uniqueness, securityAcl present (mandatory on both AiAgent and AiAgenticWorkflow), tool types, versionDetails vs versions used correctly
-9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (agent/workflow names)
-10. Return created file list to the coordinator
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for AiAgent/AiAgenticWorkflow APIs, and use `now-sdk query` for live roles, existing agents/workflows, subflows, Script Includes, and table facts before asking the user
+3. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
+4. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+5. Analyze the requirements and identify all AiAgent and AiAgenticWorkflow artifacts needed
+6. Build a todo list in dependency order (Script Includes before Agents that call them; Agents before Workflows that include them)
+7. Verify APIs using {{SDK_DOCS_CONTEXT}}
+8. Implement .now.ts metadata files and linked .js server scripts in dependency order
+9. Self-validate: check $id uniqueness, securityAcl present (mandatory on both AiAgent and AiAgenticWorkflow), tool types, versionDetails vs versions used correctly
+10. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (agent/workflow names)
+11. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>

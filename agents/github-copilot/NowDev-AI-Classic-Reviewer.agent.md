@@ -18,7 +18,7 @@ handoffs:
 3. Build a todo checklist of artifact types found (e.g. Script Include, Business Rule, Client Script, UI Policy)
 4. For each artifact type found, load the relevant servicenow-* skill and identify the best practices that apply
 5. Apply universal Classic scripting rules (always applicable regardless of artifact type)
-6. Review each file against the best practices sourced from the relevant skill references
+6. Review each file against the best practices sourced from the relevant skill references, covering correctness, security, performance, maintainability, and API fit as separate perspectives
 7. **Dependency Validation**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) and cross-reference — verify that method signatures called by dependent artifacts match the actual exports of their dependencies
 8. Generate structured feedback
 9. Emit the **Structured Findings Block** (Section 9) as a JSON code fence — this block is required regardless of status so the reviewer router can offer fix delegation to the user

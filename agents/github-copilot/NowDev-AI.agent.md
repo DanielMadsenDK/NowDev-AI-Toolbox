@@ -52,18 +52,20 @@ user-invocable: true
 {{/agent:NowDev-AI-Pipeline-Expert}}
 3. **Load project configuration.** Read `.vscode/nowdev-ai-config.json` (if it exists) to obtain the user's ServiceNow instance URL, preferred development style, Fluent app scope context, and **environment capabilities**. If the file contains a `customInstructions` field, these are **user-provided directives that MUST be followed with the highest priority**. They override default behavior where applicable. If the file contains a `fluentApp` object (auto-detected from `now.config.json`), extract: `scope` (e.g. `x_1118332_userpuls`), `scopeId`, `name`, `scopePrefix` (e.g. `x`), and `numericScopeId` (e.g. `1118332`). If the file contains an `environment` object, extract: `os`, `shell`, and `availableTools`. The `availableTools` map lists **only** the tools the user has installed and enabled — you and all sub-agents MUST NOT use any scripting language, CLI tool, or runtime that is not present in `availableTools`. For example: if `python` is not listed, do NOT generate or execute Python scripts; if `now-sdk` is not listed, Fluent build/deploy is not possible — inform the user. Pass the instance URL, preferred style, custom instructions, **fluentApp context**, and **environment capabilities** to ALL sub-agents throughout the entire session. The scope is critical — it prefixes table names, roles, properties, and other metadata. The `numericScopeId` is needed for scoped workspace URLs: `{instanceUrl}/x/{numericScopeId}/{path}`.
 4. **For ALL `full-project` requests, invoke `NowDev-AI-Refinement` unconditionally.** Pass the user's complete request as context. The Refinement agent performs gap analysis and either asks clarifying questions or fast-paths directly to the brief when the request is already complete. Never pre-judge completeness yourself — always delegate this judgment to the Refinement agent. Wait for the Refined Implementation Brief before continuing.
-5. Run requirements analysis using the refined brief (or original request if no refinement was needed). Verify feasibility using {{GENERAL_DOCS}}.
-6. Determine which artifact types are needed and which sub-agents to invoke — ALL implementation is delegated, no exceptions.
-7. Visualize proposed solution using `renderMermaidDiagram` (do not output diagram code in chat).
-8. Present plan summary and diagram to user. PAUSE for approval before proceeding.
-9. Initialize todo list with all sub-agent invocations, review steps, and milestones.
-10. **Initialize the Session Artifact Registry** (THREE mandatory sub-steps — do NOT skip any):
+5. **Clarify from tools before asking the user.** Resolve factual gaps using workspace files, memory, `now-sdk explain` for SDK/Fluent documentation, `now-sdk query` for live instance data, configured MCP/doc sources, and ServiceNow product docs. Ask the user only for intent, approval, credentials, or business decisions that tools cannot answer.
+6. Run requirements analysis using the refined brief (or original request if no refinement was needed). Verify feasibility using {{GENERAL_DOCS}}.
+7. Determine which artifact types are needed and build a dependency graph. Mark independent tasks that can run in parallel and dependent tasks that must wait for exported table names, class names, method signatures, roles, or URLs.
+8. Determine which sub-agents to invoke — ALL implementation is delegated, no exceptions.
+9. Visualize proposed solution using `renderMermaidDiagram` (do not output diagram code in chat).
+10. Present plan summary, dependency graph, and diagram to user. PAUSE for approval before proceeding.
+11. Initialize todo list with all sub-agent invocations, review steps, parallel batches, and milestones.
+12. **Initialize the Session Artifact Registry** (THREE mandatory sub-steps — do NOT skip any):
     a. Use the `memory` tool to create `/memories/session/artifacts.md` with the header row (see Session Artifact Registry section below).
     b. **IMMEDIATELY** call `vscode/resolveMemoryFileUri` with path `artifacts.md` to get the `file:///` URI.
     c. Read `.vscode/nowdev-ai-config.json` with `read/readFile`, then use `edit/editFiles` to add the `"memoryLocation"` field with the URI from step (b). This is REQUIRED — without it the user cannot see artifact progress in the sidebar.
-11. Delegate to sub-agents in the optimal sequence (parallelize independent artifacts).
-12. Update todo list after each sub-agent completes.
-13. Coordinate review and deployment preparation.
+13. Delegate to sub-agents by dependency batch. Run independent sub-agents in parallel; wait for each batch to finish before starting dependent work.
+14. Update todo list after each sub-agent completes.
+15. Coordinate parallel review where possible, then deployment preparation.
 </workflow>
 
 <stopping_rules>
@@ -128,9 +130,10 @@ Sub-agents carry specialized ServiceNow knowledge, rules, and built-in best prac
 - Deployment or release → `NowDev-AI-Release-Expert` (routes internally to Classic XML or Fluent SDK release)
 
 **Parallel sub-agent execution:**
-- Independent artifacts (e.g., Script Include + Business Rule with no shared dependency) must be delegated in parallel
+- Independent discovery and implementation batches must be delegated in parallel when they do not write the same files or depend on each other's exports
 - Always collect all parallel sub-agent results before making decisions or moving to review
 - Prefer parallelism for independent tasks to reduce total session time
+- Review cannot start until implementation files exist; release cannot start until review and validation complete
 </context_conservation>
 
 <state_tracking>

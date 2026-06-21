@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
-import { getShell } from './shellConfig';
+import { spawnSdk } from './SdkProcess';
 import { getSharedPanelStyles } from './SharedPanelStyles';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
@@ -37,7 +36,7 @@ export function showSdkCommandHelpPanel(command: string): void {
     panel.onDidDispose(() => _panels.delete(key));
     panel.webview.html = loadingHtml(label);
 
-    const proc = cp.spawn('now-sdk', [command, '--help'], { timeout: 10000, shell: getShell() });
+    const proc = spawnSdk([command, '--help'], { timeout: 10000 });
     let stdout = '';
     let stderr = '';
     proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });

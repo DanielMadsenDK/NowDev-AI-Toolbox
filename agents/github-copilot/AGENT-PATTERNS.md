@@ -28,6 +28,53 @@ Use these as templates when creating or modifying agents:
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal` (for SDK discovery only)
 - **Browser (Instance Preview):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/clickElement`, `browser/typeInPage`, `browser/hoverElement`, `browser/dragElement`, `browser/navigatePage`, `browser/handleDialog`, `browser/runPlaywrightCode`
 
+## Canonical: Tool-First Clarification
+
+Agents should answer their own factual questions before asking the user. Ask the user for intent, priorities, credentials, destructive-action approval, or business judgment; use tools for discoverable facts.
+
+**Clarification order:**
+1. Workspace facts: read `.vscode/nowdev-ai-config.json`, `now.config.json`, package files, source files, and session memory.
+2. SDK/Fluent API facts: use `now-sdk explain` first (`--list`, `--peek`, or raw topic output when useful), then SDK llms.txt/docs only if explain does not cover the topic.
+3. Live instance facts: use `now-sdk query` for table metadata, sys_ids, roles, scopes, choices, ACLs, existing artifact collisions, and selected Knowledge Base guideline articles.
+4. Product docs: use configured MCP/doc sources or ServiceNow product llms.txt for platform/product behavior not covered by SDK CLI.
+5. User questions: ask only when tool results are missing, conflicting, risky, or require human intent.
+
+When invoking sub-agents, include the same clarification instruction and pass any discovered facts rather than asking downstream agents to rediscover them unnecessarily.
+
+## Canonical: Parallel Sub-Agent Execution
+
+The orchestrator and coordinator agents should build a dependency graph before delegation:
+
+- Run independent discovery tasks in parallel (repo scan, SDK docs lookup, live instance lookup, UX/context review).
+- Run independent implementation streams in parallel when they do not write the same files and do not depend on each other's exports.
+- Gate dependent tasks explicitly: Schema before Logic; shared Script Include before Business Rule/Client Script; implementation before review; review before release.
+- Use multi-perspective reviews in parallel where possible (correctness, security, performance, UX), then synthesize results.
+- Prevent write conflicts by assigning each sub-agent an explicit file/artifact ownership boundary.
+
+Sub-agent prompts must specify: task scope, owned files/artifacts, dependencies already complete, expected output, validation command, and what memory/session artifact entries to update.
+
+## Canonical: Specialist Prompt Contract
+
+Specialist `.agent.md` files should stay lean. Put reusable examples, long API notes, pipeline templates, debugging playbooks, and release recipes in `agents/skills/`, `agents/exemplars/`, or external docs queried through MCP/llms.txt. The agent prompt itself should contain only:
+
+- A role boundary: what the agent owns and what it must not do.
+- A short workflow: discovery, tool-first clarification, implementation or analysis, validation, and handoff.
+- Stopping rules: destructive actions, missing credentials, missing environment tools, or work outside the role.
+- Documentation pointers: `now-sdk explain`, `now-sdk query`, configured docs, relevant skills, and exemplar file paths.
+- Output contract: what the caller receives, including changed files, validation results, warnings, and next handoff.
+
+Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. Prefer references such as `agents/skills/servicenow-debugging/BEST_PRACTICES.md`, `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md`, and `agents/exemplars/` over duplicating the content in every specialist.
+
+## Canonical: Agent Consolidation Policy
+
+Keep specialist agents available as implementation boundaries, but expose them through a smaller user-facing surface:
+
+- The primary user entry point is `NowDev AI Agent`.
+- Router/coordinator agents decide between bundles and specialists.
+- Optional specialist bundles are enabled as units in the extension UI.
+- Do not delete specialist agents just to reduce visible complexity if they still encode useful ownership boundaries or handoff targets.
+- When a specialist mostly repeats shared rules, simplify the prompt and point to this file plus the relevant skill docs.
+
 ### Development Agents (Script, BusinessRule, Client, Fluent)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`

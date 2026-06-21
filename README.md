@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.6.2-blue)
+  ![Version](https://img.shields.io/badge/version-0.6.3-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.120+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -32,7 +32,7 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 *   **Dynamic Agent Management**: Enable or disable individual agents and their tools directly from the sidebar. Hit Resync to instantly update your workspace agent configuration. MCP server detection is automatic.
 *   **Agent Topology Viewer**: Visual panel that renders the full agent hierarchy as a colour-coded tree — see which agents are active and how they relate at a glance.
 *   **User Profiles**: Switch between Developer, Junior Developer, and Product Owner profiles. Each profile controls which agents are visible, adjusts communication tone, and (for Junior Developer) adds step-by-step educational commentary to every response — all without changing any configuration files.
-*   **Instance Integration**: Connect to your ServiceNow instance (credentials stored securely) to browse and import dependencies via the **Dependency Picker**, or scan existing scripts and knowledge articles with the **Context Scanner** to give agents richer context.
+*   **Instance Browser**: Connect to your ServiceNow instance (credentials stored securely) to browse dependencies, discover related scripts and Knowledge articles, and prepare KB-backed agent guidelines from one unified panel.
 
 ## Installation & Usage
 
@@ -56,11 +56,11 @@ To configure, open the NowDev AI Toolbox sidebar and expand **Documentation Sour
 
 ### Connecting to Your ServiceNow Instance
 
-The extension can connect directly to a ServiceNow instance for the Dependency Picker and Context Scanner features. Credentials are stored securely using VS Code's built-in secret storage.
+The extension can connect directly to a ServiceNow instance for the Instance Browser. Credentials are stored securely using VS Code's built-in secret storage.
 
 1. Open the **NowDev AI Toolbox** sidebar.
 2. In the **Instance** row, enter your instance URL and click **Connect**.
-3. Once connected, use **Open Dependency Picker** to browse records and add them to `now.config.json`, or **Scan Instance** to pull in existing scripts and knowledge articles as AI context.
+3. Once connected, use **Instance Browser** to browse records and add them to `now.config.json`, use **Discover** mode to find related scripts and Knowledge articles, or use **Guidelines** mode to locate KB articles that should inform agent behavior.
 
 To clear stored credentials at any time: Command Palette → **NowDev AI: Clear Stored Credentials**.
 
@@ -114,7 +114,11 @@ This is the primary mechanism for enforcing org-specific standards:
 
    **Option B — VS Code Settings:** Open Settings (`Ctrl+,`), search for `NowDev AI Toolbox`, and paste the absolute path into the **Custom Instructions File** field.
 
-The extension reads the file on every save and writes its content into `.vscode/nowdev-ai-config.json` under the `customInstructions` key. All agents then receive these instructions automatically.
+The extension reads the file on every save, writes its content into `.vscode/nowdev-ai-config.json` under the `customInstructions` key, and injects the same content into generated workspace agents as **Workspace Guidelines** so changes reliably affect agent behavior.
+
+### Instance-Backed Guidelines
+
+Teams can keep coding standards, review rules, and release policies in ServiceNow Knowledge Base articles. Use **Project → KB Guidelines…** or **Instance Browser → Guidelines** to find relevant `kb_knowledge` articles from the authenticated instance. Selected articles are saved in `.vscode/nowdev-ai-config.json` as guideline references and generated agents receive those references plus a `now-sdk query kb_knowledge` lookup command so they can fetch live article content when details are needed.
 
 > **Note**: `.vscode/nowdev-ai-config.json` is auto-generated and is automatically added to `.gitignore`. It should not be committed to source control.
 

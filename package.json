@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -41,6 +41,7 @@
         {
           "id": "nowdev-ai-toolbox.welcome",
           "name": "NowDev AI Toolbox",
+          "icon": "media/activitybar-icon.svg",
           "type": "webview"
         }
       ]
@@ -113,7 +114,7 @@
       },
       {
         "command": "nowdev-ai-toolbox.sdkExplain",
-        "title": "SDK: Explain API",
+        "title": "SDK: Open Documentation",
         "category": "NowDev AI"
       },
       {
@@ -148,12 +149,22 @@
       },
       {
         "command": "nowdev-ai-toolbox.openDependencyPicker",
-        "title": "SDK: Open Dependency Picker",
+        "title": "ServiceNow: Browse Instance Dependencies",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.openInstanceBrowser",
+        "title": "ServiceNow: Open Instance Browser",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.openAgentGuidelines",
+        "title": "ServiceNow: Open Agent Guidelines",
         "category": "NowDev AI"
       },
       {
         "command": "nowdev-ai-toolbox.openContextScanner",
-        "title": "SDK: Scan Instance for Context",
+        "title": "ServiceNow: Discover Instance Context",
         "category": "NowDev AI"
       },
       {
@@ -230,41 +241,17 @@
           "description": "List of tool keys that are manually force-enabled, even when auto-detection did not find them. Auto-detection is skipped for these tools at startup.",
           "order": 5
         },
-        "nowdev-ai-toolbox.terminalShell": {
-          "type": "string",
-          "default": "auto",
-          "enum": [
-            "auto",
-            "powershell",
-            "pwsh",
-            "cmd",
-            "bash",
-            "sh",
-            "zsh"
-          ],
-          "enumDescriptions": [
-            "Auto: uses PowerShell on Windows, /bin/sh on Unix/macOS (recommended)",
-            "Windows PowerShell (powershell.exe)",
-            "PowerShell 7+ cross-platform (pwsh)",
-            "Windows Command Prompt (cmd.exe)",
-            "Bash",
-            "Bourne Shell",
-            "Z Shell"
-          ],
-          "description": "Shell used when running SDK CLI commands (explain, help, build, install, etc.) from the plugin UI.",
-          "order": 6
-        },
         "nowdev-ai-toolbox.autoUpdateAgentOverrides": {
           "type": "boolean",
           "default": true,
           "description": "Automatically regenerate the workspace agent override file (.github/agents/NowDev-AI.agent.md) when the extension updates or the MCP integration selection changes. When enabled, the file is always kept in sync with both the bundled agent template and the user's chosen MCP servers. Disable to manage the file manually.",
-          "order": 7
+          "order": 6
         },
         "nowdev-ai-toolbox.docsLocalPath": {
           "type": "string",
           "default": "",
           "description": "Central folder for downloaded ServiceNow product documentation. Each release is stored in its own subfolder and the location is shared across all workspaces. Example: /home/user/servicenow-docs",
-          "order": 8
+          "order": 7
         }
       }
     },
@@ -280,6 +267,9 @@
       },
       {
         "path": "./agents/skills/servicenow-deployment/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/servicenow-debugging/SKILL.md"
       },
       {
         "path": "./agents/skills/servicenow-flow-designer/SKILL.md"
@@ -318,6 +308,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
+    "build": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./"
   },

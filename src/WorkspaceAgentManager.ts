@@ -52,6 +52,21 @@ export interface DevOpsConfig {
     customInstructions: string;
 }
 
+export interface GuidelineArticleRef {
+    sysId: string;
+    number?: string;
+    title: string;
+    state?: string;
+    updatedOn?: string;
+}
+
+export interface GuidelinesConfig {
+    enabled: boolean;
+    instanceAlias?: string;
+    selectedArticles: GuidelineArticleRef[];
+    lastSynced?: string;
+}
+
 export const DEFAULT_DEVOPS_CONFIG: DevOpsConfig = {
     enabled: false,
     mcpServer: '',
@@ -75,6 +90,10 @@ export interface WorkspaceAgentSyncConfig {
     profileSuppressedAgents?: ReadonlySet<string>;
     /** Text injected at {{PROFILE_INSTRUCTIONS}} in agent bodies. Empty string removes the token. */
     profileInstructions?: string;
+    /** Workspace/user guideline text loaded from the configured custom instructions file. */
+    customInstructions?: string;
+    /** Instance-backed guideline references resolved from .vscode/nowdev-ai-config.json. */
+    agentGuidelines?: string;
     /** Stored in the state hash so profile switches trigger file regeneration. */
     activeProfileId?: string;
 }
@@ -188,8 +207,10 @@ export function syncAllAgents(
     );
 
     for (const manifest of manifests) {
+        if (!/^[\w.-]+\.agent\.md$/.test(manifest.filename)) { continue; }
         const srcPath = path.join(extensionPath, AGENTS_SRC, manifest.filename);
         const outPath = path.join(outDir, manifest.filename);
+        if (!isPathInside(path.join(extensionPath, AGENTS_SRC), srcPath) || !isPathInside(outDir, outPath)) { continue; }
 
         if (!fs.existsSync(srcPath)) { continue; }
 
@@ -264,6 +285,8 @@ export function syncAllAgents(
             devopsConfig:  isDevOpsAgent ? devops : undefined,
             activeProfileId: cfg.activeProfileId ?? '',
             profileInstructions: cfg.profileInstructions ?? '',
+            customInstructions: cfg.customInstructions ?? '',
+            agentGuidelines: cfg.agentGuidelines ?? '',
         });
         const combinedHash = crypto.createHash('sha256').update(stateKey).digest('hex');
 
@@ -284,12 +307,19 @@ export function syncAllAgents(
             cfg.allDocSources,
             isDevOpsAgent ? devops : undefined,
             devops,
-            cfg.profileInstructions
+            cfg.profileInstructions,
+            cfg.customInstructions,
+            cfg.agentGuidelines
         );
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
         addToGitignore(workspaceRoot, `.github/agents/${manifest.filename}`);
     }
+}
+
+function isPathInside(root: string, candidate: string): boolean {
+    const relative = path.relative(root, candidate);
+    return !!relative && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -302,7 +332,9 @@ function buildContent(
     allDocSources: AllDocSources,
     devopsAgentConfig?: DevOpsConfig,
     orchestratorDevopsConfig?: DevOpsConfig,
-    profileInstructions?: string
+    profileInstructions?: string,
+    customInstructions?: string,
+    agentGuidelines?: string
 ): string {
     // Rewrite the tools: [...] line (always single-line in these files)
     const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
@@ -354,7 +386,7 @@ If the user does not provide a task reference, ask them for one before proceedin
     content = applyAllDocSourceTokens(content, allDocSources);
 
     // Substitute profile instructions token
-    content = applyProfileInstructionsToken(content, profileInstructions);
+    content = applyProfileInstructionsToken(content, profileInstructions, customInstructions, agentGuidelines);
 
     // Remove content that belongs to disabled agents
     content = applyAgentConditionals(content, disabledAgents);
@@ -530,9 +562,19 @@ function applyAllDocSourceTokens(content: string, sources: AllDocSources): strin
  * instructions text. Empty/absent instructions remove the token silently,
  * making this a no-op for the default developer profile.
  */
-function applyProfileInstructionsToken(content: string, instructions: string | undefined): string {
+function applyProfileInstructionsToken(content: string, instructions: string | undefined, customInstructions: string | undefined, agentGuidelines: string | undefined): string {
     if (!content.includes('{{PROFILE_INSTRUCTIONS}}')) { return content; }
-    const value = instructions?.trim() ? instructions.trim() + '\n\n' : '';
+    const blocks: string[] = [];
+    if (customInstructions?.trim()) {
+        blocks.push(`## Workspace Guidelines\n\n${customInstructions.trim()}`);
+    }
+    if (agentGuidelines?.trim()) {
+        blocks.push(`## Instance-Backed Guidelines\n\n${agentGuidelines.trim()}`);
+    }
+    if (instructions?.trim()) {
+        blocks.push(instructions.trim());
+    }
+    const value = blocks.length > 0 ? blocks.join('\n\n') + '\n\n' : '';
     return content.replace(/\{\{PROFILE_INSTRUCTIONS\}\}\n?/g, value);
 }
 

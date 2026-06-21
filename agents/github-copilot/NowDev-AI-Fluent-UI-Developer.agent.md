@@ -15,6 +15,7 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names (for GlideAjax), REST API paths, table/field names
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for UI/catalog/workspace APIs, and use `now-sdk query` for live table, field, role, catalog, and KB context before asking the user
 2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and API paths
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze the requirements and identify all UI artifacts needed

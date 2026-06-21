@@ -48,15 +48,32 @@ export const BUILT_IN_PROFILES: ProfileDefinition[] = [
     {
         id: 'developer',
         label: 'Developer',
-        description: 'Full development workflow with all agent bundles enabled.',
+        description: 'Core ServiceNow development with advanced AI Studio and CI/CD specialists hidden until needed.',
+        suppressedAgents: [
+            'NowDev-AI-AI-Studio-Developer',
+            'NowDev-AI-AI-Agent-Developer',
+            'NowDev-AI-NowAssist-Developer',
+            'NowDev-AI-Pipeline-Expert',
+        ],
+        profileInstructions: '',
+    },
+    {
+        id: 'advanced-developer',
+        label: 'Advanced Developer',
+        description: 'All specialist bundles enabled, including AI Studio and CI/CD pipeline generation.',
         suppressedAgents: [],
         profileInstructions: '',
     },
     {
         id: 'junior-developer',
         label: 'Junior Developer',
-        description: 'Full development workflow with step-by-step educational explanations in every response.',
-        suppressedAgents: [],
+        description: 'Core development with step-by-step educational explanations. Advanced AI Studio and CI/CD specialists are hidden.',
+        suppressedAgents: [
+            'NowDev-AI-AI-Studio-Developer',
+            'NowDev-AI-AI-Agent-Developer',
+            'NowDev-AI-NowAssist-Developer',
+            'NowDev-AI-Pipeline-Expert',
+        ],
         profileInstructions: `## Junior Developer Mode
 
 You are assisting a **junior developer** who is actively learning ServiceNow development. Every response must follow these additional requirements:

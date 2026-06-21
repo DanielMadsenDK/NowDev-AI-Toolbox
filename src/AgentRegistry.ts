@@ -8,7 +8,13 @@ export interface AgentManifest {
     description: string;
     baseTools: string[];    // tools as listed in the bundled file
     userInvocable: boolean; // true = visible in the agent picker
+    disableModelInvocation: boolean;
+    argumentHint: string;
+    model: string;
+    target: string;
     subAgentNames: string[];
+    handoffAgentNames: string[];
+    mcpServers: string[];
 }
 
 const AGENTS_REL = path.join('agents', 'github-copilot');
@@ -25,12 +31,14 @@ export function loadAgentRegistry(extensionPath: string): AgentManifest[] {
 
     try {
         const files = fs.readdirSync(agentsDir)
-            .filter(f => f.endsWith('.agent.md'))
+            .filter(f => /^[\w.-]+\.agent\.md$/.test(f))
             .sort();
 
         for (const file of files) {
             try {
-                const content = fs.readFileSync(path.join(agentsDir, file), 'utf-8');
+                const agentPath = resolveInside(agentsDir, file);
+                if (!agentPath) { continue; }
+                const content = fs.readFileSync(agentPath, 'utf-8');
                 const manifest = parseFrontmatter(file, content);
                 if (manifest) { manifests.push(manifest); }
             } catch { /* skip unreadable files */ }
@@ -38,6 +46,12 @@ export function loadAgentRegistry(extensionPath: string): AgentManifest[] {
     } catch { /* agents dir not found */ }
 
     return manifests;
+}
+
+function resolveInside(root: string, child: string): string | undefined {
+    const resolved = path.resolve(root, child);
+    const relative = path.relative(root, resolved);
+    return relative.startsWith('..') || path.isAbsolute(relative) ? undefined : resolved;
 }
 
 function parseFrontmatter(filename: string, content: string): AgentManifest | null {
@@ -49,11 +63,17 @@ function parseFrontmatter(filename: string, content: string): AgentManifest | nu
     const description = extractScalar(fm, 'description') ?? '';
     const userInvocableStr = extractScalar(fm, 'user-invocable');
     const userInvocable = userInvocableStr !== 'false';
+    const disableModelInvocation = extractScalar(fm, 'disable-model-invocation') === 'true';
+    const argumentHint = extractScalar(fm, 'argument-hint') ?? '';
+    const model = extractScalar(fm, 'model') ?? '';
+    const target = extractScalar(fm, 'target') ?? '';
     const baseTools = extractArray(fm, 'tools');
     const subAgentNames = extractArray(fm, 'agents');
+    const handoffAgentNames = extractNestedScalars(fm, 'handoffs', 'agent');
+    const mcpServers = extractArray(fm, 'mcp-servers');
     const shortName = name.replace(/^NowDev-AI-?/, '') || name;
 
-    return { filename, name, shortName, description, baseTools, userInvocable, subAgentNames };
+    return { filename, name, shortName, description, baseTools, userInvocable, disableModelInvocation, argumentHint, model, target, subAgentNames, handoffAgentNames, mcpServers };
 }
 
 function extractScalar(fm: string, key: string): string | undefined {
@@ -70,4 +90,20 @@ function extractArray(fm: string, key: string): string[] {
         .split(',')
         .map(s => s.trim().replace(/^['"`]|['"`]$/g, ''))
         .filter(Boolean);
+}
+
+function extractNestedScalars(fm: string, blockKey: string, nestedKey: string): string[] {
+    const lines = fm.split(/\r?\n/);
+    const start = lines.findIndex(line => line.trim() === `${blockKey}:`);
+    if (start < 0) { return []; }
+    const values: string[] = [];
+    for (let index = start + 1; index < lines.length; index++) {
+        const line = lines[index];
+        if (/^\S/.test(line)) { break; }
+        const match = line.match(new RegExp(`^\s+${nestedKey}:\s*(.+)$`));
+        if (match) {
+            values.push(match[1].trim().replace(/^['"](.*)['"]$/, '$1'));
+        }
+    }
+    return values;
 }

@@ -15,11 +15,12 @@ handoffs:
 
 <workflow>
 1. Verify the project has now.config.json and a valid scope/version
-2. Run now-sdk build and check for TypeScript or schema errors
-3. If build succeeds, confirm the target auth alias with the user
-4. Run now-sdk install --auth <alias> (or --reinstall if a clean deploy is needed)
-5. Verify deployment output — confirm metadata was pushed successfully
-6. Report results back to the Release Expert
+2. Clarify from tools first: read `.vscode/nowdev-ai-config.json`, run/inspect `now-sdk auth --list` context for aliases, and use `now-sdk explain ci-integration` or `developing-apps-guide` for deployment details before asking the user
+3. Run now-sdk build and check for TypeScript or schema errors
+4. If build succeeds, confirm the target auth alias with the user only when no alias was provided or multiple aliases are plausible
+5. Run now-sdk install --auth <alias> (or --reinstall if a clean deploy is needed)
+6. Verify deployment output — confirm metadata was pushed successfully
+7. Report results back to the Release Expert
 </workflow>
 
 <stopping_rules>

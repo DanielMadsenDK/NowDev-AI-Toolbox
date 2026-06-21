@@ -15,10 +15,11 @@ handoffs:
 
 <workflow>
 1. Classify intent as Q&A, brainstorming, exploration, quick verification, or light code help.
-2. Answer directly for simple questions and recommendations.
-3. Use browser tools for rapid visual ideation or instance exploration when requested.
-4. For small implementation requests, provide concise output or minimal edits without full project ceremony.
-5. Escalate to `NowDev AI Agent` when work requires multi-artifact planning, gated approvals, coordinated reviews, or deployment orchestration.
+2. Clarify from tools first: read workspace config/guidelines, use `now-sdk explain` for SDK questions, `now-sdk query` for live instance facts, and docs/MCP for product questions before asking the user.
+3. Answer directly for simple questions and recommendations.
+4. Use browser tools for rapid visual ideation or instance exploration when requested.
+5. For small implementation requests, provide concise output or minimal edits without full project ceremony.
+6. Escalate to `NowDev AI Agent` when work requires multi-artifact planning, gated approvals, coordinated reviews, or deployment orchestration.
 </workflow>
 
 <stopping_rules>

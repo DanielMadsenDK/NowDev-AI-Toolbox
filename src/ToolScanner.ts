@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 export interface ToolInfo {
     /** Whether the tool binary was found on the system */
@@ -199,7 +199,8 @@ function tryExec(command: string, timeoutMs = 10000): string | null {
     // execSync throws in that case but attaches the output to the error object.
     function execAndCapture(cmd: string): string | null {
         try {
-            return execSync(cmd, opts).trim();
+            const [executable, ...args] = splitCommand(cmd);
+            return execFileSync(executable, args, opts).trim();
         } catch (err: any) {
             // Only capture stdout — Windows shell error messages (e.g. "not recognized")
             // go to stderr, so ignoring stderr avoids false positives for missing tools.
@@ -218,13 +219,13 @@ function tryExec(command: string, timeoutMs = 10000): string | null {
     // Try progressively broader shell invocations as fallbacks.
     if (process.platform === 'win32') {
         // Attempt 1: explicit cmd /c — resolves .cmd/.bat extensions and uses system PATH
-        const cmdResult = execAndCapture(`cmd /c ${command}`);
+        const cmdResult = execFileAndCapture('cmd', ['/c', ...splitCommand(command)]);
         if (cmdResult !== null) {
             return cmdResult;
         }
 
         // Attempt 2: PowerShell so npm-global PATH entries from user profile are loaded
-        const psResult = execAndCapture(`powershell -Command "& { ${command} }"`);
+        const psResult = execFileAndCapture('powershell', ['-Command', `& { ${command} }`]);
         if (psResult !== null) {
             return psResult;
         }
@@ -240,6 +241,22 @@ function tryExec(command: string, timeoutMs = 10000): string | null {
     }
 
     return null;
+}
+
+function execFileAndCapture(executable: string, args: string[], timeoutMs = 10000): string | null {
+    try {
+        return execFileSync(executable, args, {
+            timeout: timeoutMs,
+            encoding: 'utf-8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+        }).trim();
+    } catch (err: any) {
+        return (((err?.stdout as string | undefined) || '').trim()) || null;
+    }
+}
+
+function splitCommand(command: string): string[] {
+    return command.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(part => part.replace(/^"(.*)"$/, '$1')) ?? [command];
 }
 
 function extractVersion(raw: string): string {

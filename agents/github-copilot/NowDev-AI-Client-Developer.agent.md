@@ -15,6 +15,7 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names for GlideAjax calls
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk query` for live table/field/client-script context, and use configured docs or skills for API behavior before asking the user
 2. For any dependencies (e.g., Script Includes to call via GlideAjax), use `read/readFile` to read the actual source files to get exact method names, parameters, and return values
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. API verification: Use {{CLASSIC_SCRIPTING_DOCS}} to verify Client Script best practices, GlideAjax usage, and UI API patterns.

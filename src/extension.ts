@@ -9,25 +9,15 @@ import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showSdkExplainPanel } from './SdkExplainPanel';
 import { showSdkQueryPanel } from './SdkQueryPanel';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
-import { showDependencyPickerPanel } from './DependencyPickerPanel';
-import { showContextScannerPanel } from './ContextScannerPanel';
+import { showInstanceBrowserPanel } from './InstanceBrowserPanel';
 import { InstanceClient } from './InstanceClient';
-import { getShell } from './shellConfig';
+import { spawnNpm, spawnSdk } from './SdkProcess';
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
 
-function quotePath(p: string): string {
-    if (p.startsWith('"') && p.endsWith('"')) { return p; }
-    return `"${p.replace(/"/g, '\\"')}"`;
-}
-
-function captureSpawnOutput(
-    cmd: string,
-    args: string[],
-    cwd: string
-): Promise<{ stdout: string; stderr: string; code: number | null }> {
+function captureSdkOutput(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number | null }> {
     return new Promise((resolve) => {
-        const proc = cp.spawn(cmd, args, { cwd, shell: getShell() });
+        const proc = spawnSdk(args, { cwd });
         let stdout = '';
         let stderr = '';
         proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
@@ -35,6 +25,30 @@ function captureSpawnOutput(
         proc.on('close', (code: number | null) => resolve({ stdout, stderr, code }));
         proc.on('error', () => resolve({ stdout, stderr, code: -1 }));
     });
+}
+
+function resolveWorkspaceChildPath(workspaceRoot: string, relativeOrAbsolute: string): string | undefined {
+    if (!/^[\w .\-/\\]+$/.test(relativeOrAbsolute) || relativeOrAbsolute.includes('..')) { return undefined; }
+    const resolved = path.resolve(workspaceRoot, relativeOrAbsolute);
+    const relative = path.relative(workspaceRoot, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) { return undefined; }
+    return resolved;
+}
+
+function validateSdkCliValue(value: string, label: string): string | undefined {
+    if (!value.trim()) { return `${label} is required`; }
+    if (/[\s;&|`$<>]/.test(value)) {
+        return `${label} cannot contain whitespace or shell metacharacters.`;
+    }
+    return undefined;
+}
+
+function validateOptionalSdkAlias(value: string): string | undefined {
+    if (!value.trim()) { return undefined; }
+    if (!/^[A-Za-z0-9_.-]{1,80}$/.test(value.trim())) {
+        return 'Alias may only contain letters, numbers, dots, underscores, and hyphens.';
+    }
+    return undefined;
 }
 
 function checkInstanceReachability(
@@ -70,12 +84,14 @@ function checkInstanceReachability(
     });
 }
 
-function listFilesRecursive(dir: string): string[] {
+function listFilesRecursive(dir: string, root: string = dir): string[] {
     const results: string[] = [];
     try {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const fullPath = path.join(dir, entry.name);
-            if (entry.isDirectory()) { results.push(...listFilesRecursive(fullPath)); }
+            const relative = path.relative(root, fullPath);
+            if (relative.startsWith('..') || path.isAbsolute(relative)) { continue; }
+            if (entry.isDirectory()) { results.push(...listFilesRecursive(fullPath, root)); }
             else { results.push(fullPath); }
         }
     } catch { /* ignore */ }
@@ -251,19 +267,19 @@ export function activate(context: vscode.ExtensionContext) {
             });
             if (!targetDir) { return; }
 
-            // Build the now-sdk init command
+            // Build the now-sdk init command as argv, not a shell string.
             const args = [
-                `--appName "${appName.trim()}"`,
-                `--packageName "${packageName.trim()}"`,
-                `--scopeName "${scopeName.trim()}"`,
-                `--template ${templatePick.label}`,
+                'init',
+                '--appName', appName.trim(),
+                '--packageName', packageName.trim(),
+                '--scopeName', scopeName.trim(),
+                '--template', templatePick.label,
             ];
             if (fromValue) {
-                // Use double quotes for paths/sys_ids that may contain spaces
-                args.push(`--from "${fromValue.replace(/"/g, '\\"')}"`);
+                args.push('--from', fromValue);
             }
             if (authAlias?.trim()) {
-                args.push(`--auth ${authAlias.trim()}`);
+                args.push('--auth', authAlias.trim());
             }
 
             const resolvedTargetDir = targetDir.trim();
@@ -273,14 +289,11 @@ export function activate(context: vscode.ExtensionContext) {
             const outputChannel = vscode.window.createOutputChannel('NowDev: Init Fluent Project');
             outputChannel.show(true);
             outputChannel.appendLine(`Initialising project in ${resolvedTargetDir}...`);
-            outputChannel.appendLine(`> now-sdk init ${args.join(' ')}\n`);
+            outputChannel.appendLine(`> now-sdk ${args.join(' ')}\n`);
 
             fs.mkdirSync(resolvedTargetDir, { recursive: true });
 
-            const proc = cp.spawn('now-sdk', ['init', ...args.flatMap(a => a.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [a])], {
-                cwd: resolvedTargetDir,
-                shell: getShell(),
-            });
+            const proc = spawnSdk(args, { cwd: resolvedTargetDir });
 
             proc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
             proc.stderr.on('data', (data: Buffer) => outputChannel.append(data.toString()));
@@ -290,10 +303,7 @@ export function activate(context: vscode.ExtensionContext) {
                     outputChannel.appendLine('\n✓ Project initialised successfully.');
                     outputChannel.appendLine('\nRunning npm install...\n');
 
-                    const npmProc = cp.spawn('npm', ['install'], {
-                        cwd: resolvedTargetDir,
-                        shell: getShell(),
-                    });
+                    const npmProc = spawnNpm(['install'], { cwd: resolvedTargetDir });
 
                     npmProc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
                     npmProc.stderr.on('data', (data: Buffer) => outputChannel.append(data.toString()));
@@ -352,7 +362,7 @@ export function activate(context: vscode.ExtensionContext) {
                 cancellable: true,
             },
             (_progress, token) => new Promise<boolean>((resolve) => {
-                const proc = cp.spawn('now-sdk', cmdArgs, { cwd, shell: getShell() });
+                const proc = spawnSdk(cmdArgs, { cwd });
                 let cancelled = false;
                 token.onCancellationRequested(() => {
                     cancelled = true;
@@ -443,10 +453,15 @@ export function activate(context: vscode.ExtensionContext) {
 
             const cmdArgs = ['transform'];
             if (fromPath) {
-                cmdArgs.push('--from', quotePath(fromPath));
+                cmdArgs.push('--from', fromPath);
             } else {
                 const metaFolder = args.metadataFolder?.trim() || 'metadata';
-                cmdArgs.push('--from', quotePath(path.join(cwd, metaFolder)));
+                const resolvedMetaFolder = resolveWorkspaceChildPath(cwd, metaFolder);
+                if (!resolvedMetaFolder) {
+                    vscode.window.showErrorMessage('Metadata folder must stay inside the workspace.');
+                    return;
+                }
+                cmdArgs.push('--from', resolvedMetaFolder);
             }
             if (args.preview) { cmdArgs.push('--preview'); }
 
@@ -454,7 +469,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const chan = vscode.window.createOutputChannel('NowDev: Transform Preview');
                 chan.show(true);
                 chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
-                const result = await captureSpawnOutput('now-sdk', cmdArgs, cwd);
+                const result = await captureSdkOutput(cmdArgs, cwd);
                 const output = (result.stdout + result.stderr).trim();
                 chan.appendLine(output);
                 const ok = result.code === 0;
@@ -503,7 +518,7 @@ export function activate(context: vscode.ExtensionContext) {
             const cwd = getWorkspaceFolder();
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
             const downloadDir = path.join(cwd, 'metadata');
-            const cmdArgs = ['download', quotePath(downloadDir)];
+            const cmdArgs = ['download', downloadDir];
             if (args.incremental !== false) { cmdArgs.push('--incremental'); }
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
             spawnSdkCmd('Download', cmdArgs, cwd, 'download');
@@ -528,13 +543,14 @@ export function activate(context: vscode.ExtensionContext) {
             const instance = await vscode.window.showInputBox({
                 prompt: 'Instance URL or name to authenticate with',
                 placeHolder: 'https://dev12345.service-now.com',
-                validateInput: (v) => v.trim() ? undefined : 'Instance is required',
+                validateInput: (v) => validateSdkCliValue(v, 'Instance'),
             });
             if (!instance) { return; }
 
             const alias = await vscode.window.showInputBox({
                 prompt: 'Alias name for this credential (optional — leave blank to use instance name)',
                 placeHolder: 'my-dev-instance',
+                validateInput: validateOptionalSdkAlias,
             });
 
             const typePick = await vscode.window.showQuickPick(
@@ -567,7 +583,7 @@ export function activate(context: vscode.ExtensionContext) {
                 chan.show(true);
                 chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
 
-                const proc = cp.spawn('now-sdk', cmdArgs, { shell: getShell() });
+                const proc = spawnSdk(cmdArgs);
                 proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
                 proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
                 proc.on('close', (code: number | null) => {
@@ -593,7 +609,7 @@ export function activate(context: vscode.ExtensionContext) {
             const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Remove');
             chan.show(true);
             chan.appendLine(`> now-sdk auth --delete ${alias}\n`);
-            const proc = cp.spawn('now-sdk', ['auth', '--delete', alias], { shell: getShell() });
+            const proc = spawnSdk(['auth', '--delete', alias]);
             proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.on('close', (code: number | null) => {
@@ -613,7 +629,7 @@ export function activate(context: vscode.ExtensionContext) {
             welcomeProvider.setInstallInfo({ loading: true, ok: false, output: '', timestamp: new Date().toISOString() });
             const cmdArgs = ['install', '--info'];
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
-            const result = await captureSpawnOutput('now-sdk', cmdArgs, cwd);
+            const result = await captureSdkOutput(cmdArgs, cwd);
             const output = (result.stdout + result.stderr).trim();
             welcomeProvider.setInstallInfo({ loading: false, ok: result.code === 0, output, timestamp: new Date().toISOString() });
         }),
@@ -641,9 +657,9 @@ export function activate(context: vscode.ExtensionContext) {
                 welcomeProvider.setCheckChangesResult({ checking: false, ok: false, count: 0, error: err.message, timestamp: new Date().toISOString() });
                 return;
             }
-            const cmdArgs = ['download', quotePath(tmpDir), '--incremental'];
+            const cmdArgs = ['download', tmpDir, '--incremental'];
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
-            const result = await captureSpawnOutput('now-sdk', cmdArgs, cwd);
+            const result = await captureSdkOutput(cmdArgs, cwd);
             const files = listFilesRecursive(tmpDir);
             const count = files.length;
             try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
@@ -656,7 +672,7 @@ export function activate(context: vscode.ExtensionContext) {
             const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Default');
             chan.show(true);
             chan.appendLine(`> now-sdk auth --use ${alias}\n`);
-            const proc = cp.spawn('now-sdk', ['auth', '--use', alias], { shell: getShell() });
+            const proc = spawnSdk(['auth', '--use', alias]);
             proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
             proc.on('close', (code: number | null) => {
@@ -669,14 +685,22 @@ export function activate(context: vscode.ExtensionContext) {
             });
         }),
 
-        // Open the dedicated Dependency Picker panel
-        vscode.commands.registerCommand('nowdev-ai-toolbox.openDependencyPicker', () => {
-            showDependencyPickerPanel(context);
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openInstanceBrowser', (mode?: 'browse' | 'discover' | 'guidelines') => {
+            showInstanceBrowserPanel(context, mode ?? 'browse');
         }),
 
-        // Open the Instance Context Scanner panel
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openAgentGuidelines', () => {
+            showInstanceBrowserPanel(context, 'guidelines');
+        }),
+
+        // Open Instance Browser in dependency browsing mode
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openDependencyPicker', () => {
+            showInstanceBrowserPanel(context, 'browse');
+        }),
+
+        // Open Instance Browser in task discovery mode
         vscode.commands.registerCommand('nowdev-ai-toolbox.openContextScanner', () => {
-            showContextScannerPanel(context);
+            showInstanceBrowserPanel(context, 'discover');
         }),
 
         // Clear stored REST credentials for an auth alias
@@ -721,7 +745,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
             welcomeProvider.setSdkCommandStatus('sync', true, 'Downloading…');
             const downloadDir = path.join(cwd, 'metadata');
-            const downloadArgs = ['download', quotePath(downloadDir), '--incremental'];
+            const downloadArgs = ['download', downloadDir, '--incremental'];
             if (args.auth) { downloadArgs.push('--auth', args.auth); }
             const downloadOk = await spawnSdkCmd('Download', downloadArgs, cwd, 'download');
             if (!downloadOk) {
@@ -729,7 +753,7 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
             welcomeProvider.setSdkCommandStatus('sync', true, 'Download succeeded · Transforming…');
-            const transformArgs = ['transform', '--from', quotePath(downloadDir)];
+            const transformArgs = ['transform', '--from', downloadDir];
             const transformOk = await spawnSdkCmd('Transform', transformArgs, cwd, 'transform');
             welcomeProvider.setSdkCommandStatus('sync', transformOk, transformOk ? 'Sync completed' : 'Sync stopped: transform failed');
         })

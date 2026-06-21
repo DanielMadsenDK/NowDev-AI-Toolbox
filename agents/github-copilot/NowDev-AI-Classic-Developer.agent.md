@@ -16,14 +16,15 @@ handoffs:
 
 <workflow>
 1. Use the `memory` tool to read `/memories/session/plan.md` to load the approved implementation plan — halt if it does not exist
-2. Analyze the business requirements and identify all Classic ServiceNow artifacts needed
-2. Build a todo plan listing every artifact, its type, and its dependencies on other artifacts
-3. Use the `memory` tool to check if `/memories/session/artifacts.md` exists — if not, use the `memory` tool to create it with the registry header
-4. Determine the correct implementation sequence — artifacts that other artifacts depend on must be built first (e.g. a Script Include before the Business Rule that calls it)
-5. Delegate each artifact to the appropriate sub-agent; parallelize independent artifacts, sequence dependent ones. Always include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
-6. After each sub-agent completes, verify it appended to the registry. Collect file paths and key exports (class names, method signatures)
-7. When delegating to the next sub-agent, pass the previous sub-agent's full artifact details: file paths, class names, method names, parameters, table names
-8. Report the complete list of created files and implementation summary back to the orchestrator
+2. Clarify from tools before asking the user: read workspace config/memory, use `now-sdk query` for live table/role/choice/sys_id facts when available, and use configured product/classic scripting docs for API behavior.
+3. Analyze the business requirements and identify all Classic ServiceNow artifacts needed
+4. Build a todo plan listing every artifact, its type, file ownership, and dependencies on other artifacts
+5. Use the `memory` tool to check if `/memories/session/artifacts.md` exists — if not, use the `memory` tool to create it with the registry header
+6. Determine the correct implementation batches — artifacts that other artifacts depend on must be built first (e.g. a Script Include before the Business Rule that calls it); independent artifacts can run in parallel.
+7. Delegate each artifact to the appropriate sub-agent; parallelize independent artifacts, sequence dependent ones. Always include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
+8. After each sub-agent completes, verify it appended to the registry. Collect file paths and key exports (class names, method signatures)
+9. When delegating to the next sub-agent, pass the previous sub-agent's full artifact details: file paths, class names, method names, parameters, table names
+10. Report the complete list of created files and implementation summary back to the orchestrator
 </workflow>
 
 <stopping_rules>

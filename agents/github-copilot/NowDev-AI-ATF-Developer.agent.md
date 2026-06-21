@@ -15,6 +15,7 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover all completed artifacts (tables, Script Includes, REST APIs, Catalog Items) from sibling agents
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for ATF APIs, and use `now-sdk query` for live table, catalog, role, and existing test facts before asking the user
 2. For each dependency with Done status, use `read/readFile` to read the actual source files and get exact table names, field names, method signatures, and REST paths
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Analyze artifacts to identify what is testable: REST API endpoints → REST step tests; Script Includes with clientCallable → server-side step tests; Tables with forms → form step tests; Catalog Items → service catalog step tests; Navigation paths → navigation step tests

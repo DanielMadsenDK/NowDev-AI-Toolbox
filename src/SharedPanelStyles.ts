@@ -21,6 +21,7 @@ export function getSharedPanelStyles(): string {
     --nd-bg:            var(--vscode-editor-background, #1e1e1e);
     --nd-bg-soft:       var(--vscode-editorWidget-background, rgba(255,255,255,0.03));
     --nd-bg-card:       var(--vscode-sideBar-background, rgba(255,255,255,0.025));
+    --nd-bg-elevated:   color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 86%, var(--nd-accent) 14%);
     --nd-bg-code:       var(--vscode-textCodeBlock-background, rgba(255,255,255,0.04));
     --nd-bg-input:      var(--vscode-input-background, rgba(255,255,255,0.04));
 
@@ -68,15 +69,37 @@ export function getSharedPanelStyles(): string {
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+    min-height: 100%;
+    background: var(--nd-bg);
+}
+
 body {
     font-family: var(--nd-font);
     font-size: 13px;
     line-height: 1.6;
     color: var(--nd-fg);
-    background: var(--nd-bg);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--nd-bg) 92%, var(--nd-accent) 8%) 0, var(--nd-bg) 180px);
     padding: var(--nd-sp-8) clamp(20px, 6vw, 56px) var(--nd-sp-8);
     max-width: 1080px;
     margin: 0 auto;
+}
+
+body.nd-transient-panel {
+    min-height: 100vh;
+    max-width: none;
+    margin: 0;
+    background: var(--nd-bg);
+    padding: var(--nd-sp-8) clamp(20px, 7vw, 64px);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--nd-accent) 72%, transparent);
+    outline-offset: 2px;
 }
 
 /* ── Headings ─────────────────────────────────────────────────── */
@@ -94,21 +117,21 @@ h2.sec-h, h2.nd-sec-h {
 
 /* ── Cards & surfaces ─────────────────────────────────────────── */
 .nd-card {
-    background: var(--nd-bg-card);
+    background: color-mix(in srgb, var(--nd-bg-card) 92%, var(--nd-accent) 8%);
     border: 1px solid var(--nd-border);
     border-radius: var(--nd-r-md);
     padding: var(--nd-sp-3) var(--nd-sp-4);
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 .nd-card:hover {
-    border-color: var(--nd-border-soft);
+    border-color: var(--nd-border-strong);
     box-shadow: var(--nd-shadow-1);
 }
 
 .nd-callout {
     padding: var(--nd-sp-3) var(--nd-sp-4);
     border-left: 3px solid var(--nd-accent);
-    background: var(--nd-bg-soft);
+    background: var(--nd-bg-elevated);
     border-radius: 0 var(--nd-r-sm) var(--nd-r-sm) 0;
     margin-bottom: var(--nd-sp-5);
 }

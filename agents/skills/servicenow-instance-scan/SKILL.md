@@ -22,6 +22,8 @@ Four check types are available, all imported from `@servicenow/sdk/core`:
 | `ScriptOnlyCheck` | `scan_script_only_check` | Arbitrary logic — no table binding required |
 | `TableCheck` | `scan_table_check` | Records in a specific table, filtered by condition or advanced script |
 
+For scenario-focused starting points, see [EXAMPLES.md](./EXAMPLES.md). Always verify current API details with `now-sdk explain instance-scan-guide --format raw` and the artifact-specific API topic before finalizing code.
+
 ---
 
 ## Shared Properties

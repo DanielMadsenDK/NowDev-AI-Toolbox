@@ -15,15 +15,16 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference
-2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
-3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
-4. Analyze the NowAssist skill requirements: inputs, tools needed, expected outputs, deployment targets
-5. Plan the tool graph — map which tools are needed and their dependency order
-6. Verify APIs using {{SDK_DOCS_CONTEXT}}
-7. Implement the NowAssistSkillConfig .now.ts file with all two arguments (definition + promptConfig)
-8. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version
-9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (skill names)
-10. Return created file list to the coordinator
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for NowAssistSkillConfig APIs, and use `now-sdk query` for live roles, existing skills, subflows, Script Includes, and target table facts before asking the user
+3. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
+4. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+5. Analyze the NowAssist skill requirements: inputs, tools needed, expected outputs, deployment targets
+6. Plan the tool graph — map which tools are needed and their dependency order
+7. Verify APIs using {{SDK_DOCS_CONTEXT}}
+8. Implement the NowAssistSkillConfig .now.ts file with all two arguments (definition + promptConfig)
+9. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version
+10. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (skill names)
+11. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
-import { getShell } from './shellConfig';
+import { spawnSdk } from './SdkProcess';
 import { getSharedPanelStyles } from './SharedPanelStyles';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
@@ -38,7 +37,7 @@ export function showSdkExplainPanel(apiName: string): void {
 
     panel.webview.html = loadingHtml(apiName);
 
-    const proc = cp.spawn('now-sdk', ['explain', apiName], { timeout: 15000, shell: getShell() });
+    const proc = spawnSdk(['explain', apiName], { timeout: 15000 });
     let stdout = '';
     let stderr = '';
     proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });

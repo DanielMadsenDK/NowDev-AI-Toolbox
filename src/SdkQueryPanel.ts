@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
 import * as crypto from 'crypto';
-import { getShell } from './shellConfig';
+import { spawnSdk } from './SdkProcess';
 import { getSharedPanelStyles } from './SharedPanelStyles';
 
 interface QueryParams {
@@ -77,7 +76,7 @@ export function showSdkQueryPanel(
     if (offset > 0)   { args.push('--offset', String(offset)); }
     if (displayValue) { args.push('--display-value', displayValue); }
 
-    const proc = cp.spawn('now-sdk', args, { timeout: 30000, shell: getShell() });
+    const proc = spawnSdk(args, { timeout: 30000 });
     let stdout = '';
     let stderr = '';
     proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
@@ -115,13 +114,13 @@ export function showSdkQueryPanel(
 // ── HTML templates ─────────────────────────────────────────────────────────────
 
 function loadingHtml(table: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${getSharedPanelStyles()}</style></head><body>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
 <div class="loading">Querying <strong>${esc(table)}</strong>&hellip;</div>
 </body></html>`;
 }
 
 function errorHtml(msg: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${getSharedPanelStyles()}</style></head><body>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
 <div class="error-msg">${esc(msg)}</div>
 </body></html>`;
 }

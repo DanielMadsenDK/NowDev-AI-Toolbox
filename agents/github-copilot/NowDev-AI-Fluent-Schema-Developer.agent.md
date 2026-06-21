@@ -15,6 +15,7 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents in this session
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for Fluent APIs, and use `now-sdk query` for live schema, scope, role, ACL, and choice facts before asking the user
 2. Analyze the requirements and identify all schema and configuration artifacts needed
 3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
 4. Build a todo list of artifacts with their dependencies (e.g. Roles before ACLs that reference them)
