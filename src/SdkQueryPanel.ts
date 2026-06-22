@@ -81,10 +81,16 @@ export function showSdkQueryPanel(
     let stderr = '';
     proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
     proc.stderr.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
-    proc.on('close', () => {
+    proc.on('close', (code: number | null) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const p = panel!;
         const raw = stdout.trim();
+        const combinedOutput = [stderr.trim(), raw].filter(Boolean).join('\n');
+        const sdkError = formatSdkQueryError(combinedOutput);
+        if (sdkError) {
+            p.webview.html = errorHtml(sdkError);
+            return;
+        }
         if (!raw) {
             p.webview.html = errorHtml(stderr.trim() || 'No output from now-sdk. Make sure it is installed and you are authenticated.');
             return;
@@ -96,7 +102,8 @@ export function showSdkQueryPanel(
         try {
             envelope = JSON.parse(jsonStart > 0 ? raw.slice(jsonStart) : raw) as QueryEnvelope;
         } catch {
-            p.webview.html = errorHtml(`Could not parse response. Raw output: ${esc(raw.slice(0, 300))}`);
+            const prefix = code === 0 ? 'Could not parse response.' : `now-sdk query failed with exit ${code}.`;
+            p.webview.html = errorHtml(`${prefix} Raw output: ${raw.slice(0, 300)}`);
             return;
         }
         if (!envelope.ok) {
@@ -109,6 +116,13 @@ export function showSdkQueryPanel(
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         panel!.webview.html = errorHtml('Failed to run now-sdk. Make sure it is installed and accessible.');
     });
+}
+
+function formatSdkQueryError(output: string): string | undefined {
+    if (/Unknown commands?:\s*query\b/i.test(output) || /Unknown commands?:.*\bquery\b/i.test(output)) {
+        return 'The now-sdk query command requires ServiceNow SDK 4.8.0 or newer. Update the now-sdk available to the VS Code/PowerShell environment, then reload VS Code. Verify with: now-sdk --version and now-sdk query --help.';
+    }
+    return undefined;
 }
 
 // ── HTML templates ─────────────────────────────────────────────────────────────

@@ -5,11 +5,14 @@ export interface SdkProcessOptions {
     timeout?: number;
 }
 
+export const sdkExecutable = 'now-sdk';
+export const sdkShell = process.platform === 'win32' ? 'powershell' : false;
+
 export function spawnSdk(args: string[], options: SdkProcessOptions = {}): cp.ChildProcessWithoutNullStreams {
-    return cp.spawn('now-sdk', args, {
+    return cp.spawn(sdkExecutable, args, {
         cwd: options.cwd,
         timeout: options.timeout,
-        shell: false,
+        shell: sdkShell,
     });
 }
 
