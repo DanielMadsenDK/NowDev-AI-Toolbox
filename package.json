@@ -341,6 +341,7 @@
     "vscode:prepublish": "npm run compile",
     "build": "npm run compile",
     "compile": "tsc -p ./",
+    "validate:agents": "npm run compile && node out/AgentValidationCli.js",
     "watch": "tsc -watch -p ./"
   },
   "devDependencies": {

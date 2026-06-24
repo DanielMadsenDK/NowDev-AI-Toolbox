@@ -53,6 +53,31 @@ The orchestrator and coordinator agents should build a dependency graph before d
 
 Sub-agent prompts must specify: task scope, owned files/artifacts, dependencies already complete, expected output, validation command, and what memory/session artifact entries to update.
 
+## Canonical: Copilot Sub-Agent Controls
+
+Use VS Code Copilot sub-agents when context isolation improves the result: isolated research before implementation, independent parallel analysis, multiple solution exploration, specialized review, or coordinator-to-worker delegation. Do not use sub-agents just to split a small linear task.
+
+Frontmatter must make invocation boundaries explicit:
+
+- `NowDev AI Agent` is the only user-invocable entry point.
+- Internal agents must set `user-invocable: false` and `disable-model-invocation: true`.
+- Coordinators and routers must define an explicit `agents: [...]` allow-list and include the `agent` tool.
+- Leaf agents must define `agents: []` and must not include the `agent` tool.
+- Explicit parent allow-lists are the only intended way to invoke protected internal agents as sub-agents.
+- Avoid source-level `model` defaults unless there is a documented cost or quality policy for that specific agent role; use sidebar model overrides for normal customization.
+
+Delegation prompts should be narrow and complete. The parent agent passes discovered facts, project style, scope/app context, environment capabilities, owned files/artifacts, dependency outputs, validation expectations, and the exact expected return format. Downstream agents should not redo broad discovery already performed by the parent.
+
+For review work, prefer independent perspectives where useful: correctness, security, performance, architecture/maintainability, and ServiceNow API compliance. Run Classic and Fluent review streams in parallel for mixed artifact sets, then preserve each specialist's Structured Findings Block when synthesizing.
+
+Validate bundled agent changes before publishing:
+
+```bash
+npm run validate:agents
+```
+
+This command checks frontmatter shape, invocation boundaries, sub-agent and handoff references, topology coverage, write-tool restrictions for read-only roles, and maximum nested sub-agent depth.
+
 ## Canonical: Context Engineering
 
 Agents should spend context only on information that changes the next decision or implementation step. Prefer narrow discovery, explicit handoffs, and reusable shared references over repeatedly loading broad docs or embedding large examples in agent prompts.

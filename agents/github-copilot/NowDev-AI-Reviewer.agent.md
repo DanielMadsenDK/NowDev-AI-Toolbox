@@ -1,6 +1,7 @@
 ---
 name: NowDev-AI-Reviewer
 user-invocable: false
+disable-model-invocation: true
 description: router agent that detects whether a review request is for Classic scripting or Fluent SDK artifacts, then delegates to the appropriate specialized reviewer; after review completes, offers structured fix delegation to the appropriate developer specialist when the user approves
 argument-hint: "List of files to review (e.g. src/script-includes/MyInclude.js, src/fluent/tables/MyTable.now.ts) plus any relevant context such as artifact types developed or known issues to focus on"
 tools: ['read/readFile', 'search', 'todo', 'agent']
@@ -28,7 +29,7 @@ handoffs:
 <workflow>
 1. Inspect the file list provided by the orchestrator
 2. Determine project style: Fluent, Classic, or Mixed (see detection rules below)
-3. Delegate to the appropriate specialized reviewer agent. Tell the specialist to review through four perspectives in one pass: correctness, security, performance, and maintainability/API fit.
+3. Delegate to the appropriate specialized reviewer agent. Tell the specialist to review through five perspectives in one pass: correctness, security, performance, architecture/maintainability, and ServiceNow API compliance.
 4. For Mixed projects: invoke Fluent and Classic reviewers as independent review streams for their file subsets. These streams can run in parallel because reviewers are read-only.
 5. Once all specialist reviews are complete, present the findings in full without summarizing or altering them. If both reviewers ran, synthesize only the top-level status and keep each Structured Findings Block intact.
 6. **Fix Delegation Offer**: After presenting findings, check the Structured Findings Block(s) returned by the specialist(s). If `review_status` is `REQUEST CHANGES` or `CRITICAL ISSUES`, present a fix delegation summary and instruct the user to click the matching "Fix Issues" handoff button to delegate fixes to the appropriate developer specialist. If status is PASS, confirm no action is needed.

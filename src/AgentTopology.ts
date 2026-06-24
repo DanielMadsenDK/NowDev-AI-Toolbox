@@ -132,6 +132,20 @@ export const AGENT_TREE: AgentNode = {
             children: [],
         },
         {
+            id: 'NowDev-AI-Pipeline-Expert',
+            shortName: 'Pipeline Expert',
+            role: 'release',
+            description: 'CI/CD pipeline generation and release workflow automation',
+            children: [],
+        },
+        {
+            id: 'NowDev-AI-DevOps',
+            shortName: 'DevOps',
+            role: 'support',
+            description: 'Project management integration and task status coordination',
+            children: [],
+        },
+        {
             id: 'NowDev-AI-Reviewer',
             shortName: 'Reviewer',
             role: 'reviewer',

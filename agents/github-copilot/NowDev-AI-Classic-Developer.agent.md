@@ -1,6 +1,7 @@
 ---
 name: NowDev-AI-Classic-Developer
 user-invocable: false
+disable-model-invocation: true
 description: coordinator agent for Classic ServiceNow development — analyzes business requirements, determines which Classic artifacts are needed, plans the implementation sequence, and delegates to specialized sub-agents (Script-Developer, BusinessRule-Developer, Client-Developer)
 argument-hint: "The business requirement or refined implementation brief describing what needs to be built using Classic ServiceNow scripting. The agent will determine which artifacts are needed and coordinate the implementation."
 tools: ['read/readFile', 'search', 'web', 'todo', 'vscode/memory', 'agent']

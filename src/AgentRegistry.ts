@@ -15,6 +15,7 @@ export interface AgentManifest {
     subAgentNames: string[];
     handoffAgentNames: string[];
     mcpServers: string[];
+    declaredFields: string[];
 }
 
 const AGENTS_REL = path.join('agents', 'github-copilot');
@@ -72,8 +73,15 @@ function parseFrontmatter(filename: string, content: string): AgentManifest | nu
     const handoffAgentNames = extractNestedScalars(fm, 'handoffs', 'agent');
     const mcpServers = extractArray(fm, 'mcp-servers');
     const shortName = name.replace(/^NowDev-AI-?/, '') || name;
+    const declaredFields = extractDeclaredFields(fm);
 
-    return { filename, name, shortName, description, baseTools, userInvocable, disableModelInvocation, argumentHint, model, target, subAgentNames, handoffAgentNames, mcpServers };
+    return { filename, name, shortName, description, baseTools, userInvocable, disableModelInvocation, argumentHint, model, target, subAgentNames, handoffAgentNames, mcpServers, declaredFields };
+}
+
+function extractDeclaredFields(fm: string): string[] {
+    return fm.split(/\r?\n/)
+        .map(line => line.match(/^([A-Za-z0-9_-]+):/)?.[1])
+        .filter((field): field is string => Boolean(field));
 }
 
 function extractScalar(fm: string, key: string): string | undefined {
@@ -100,7 +108,7 @@ function extractNestedScalars(fm: string, blockKey: string, nestedKey: string): 
     for (let index = start + 1; index < lines.length; index++) {
         const line = lines[index];
         if (/^\S/.test(line)) { break; }
-        const match = line.match(new RegExp(`^\s+${nestedKey}:\s*(.+)$`));
+        const match = line.match(new RegExp(`^\\s+${nestedKey}:\\s*(.+)$`));
         if (match) {
             values.push(match[1].trim().replace(/^['"](.*)['"]$/, '$1'));
         }

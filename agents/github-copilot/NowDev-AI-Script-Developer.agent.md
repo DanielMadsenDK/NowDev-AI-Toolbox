@@ -1,9 +1,11 @@
 ---
 name: NowDev-AI-Script-Developer
 user-invocable: false
+disable-model-invocation: true
 description: specialized agent for creating and optimizing ServiceNow Script Includes and GlideAjax
 argument-hint: "The business requirement for the server-side logic to implement — describe what data needs to be accessed, what the logic should do, and how it will be called (server-only or from a client script). The agent will determine the class structure and method design itself."
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+agents: []
 handoffs:
   - label: Back to Classic Developer
     agent: NowDev-AI-Classic-Developer

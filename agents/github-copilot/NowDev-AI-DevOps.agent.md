@@ -1,9 +1,11 @@
 ---
 name: NowDev-AI-DevOps
 user-invocable: false
+disable-model-invocation: true
 description: specialized agent for project management integration — reads tasks and work items from the configured project management MCP, reports full task context to the orchestrator, and updates task status as sub-agents complete work
 argument-hint: "Action to perform: 'read' (fetch task details, pass task ID or description), or 'update' (update task status/comment, pass task ID, new status, and summary of completed work)"
 tools: ['vscode/askQuestions', 'read/readFile', 'todo']
+agents: []
 ---
 {{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}

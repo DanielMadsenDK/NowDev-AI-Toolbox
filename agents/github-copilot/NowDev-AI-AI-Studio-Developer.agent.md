@@ -1,6 +1,7 @@
 ---
 name: NowDev-AI-AI-Studio-Developer
 user-invocable: false
+disable-model-invocation: true
 description: AI Studio coordinator — analyzes whether a request calls for an autonomous AI Agent/Agentic Workflow or a NowAssist Skill configuration, then delegates to the right specialist
 argument-hint: "The AI Studio requirements from the implementation brief — describe what the user wants the AI to do: autonomous background task vs. user-triggered prompt-based skill. Include any tool integrations (Script Includes, Subflows, web search) and channel requirements (Now Assist Panel, Virtual Agent)."
 tools: ['read/readFile', 'search', 'web', 'todo', 'vscode/memory', 'agent']
