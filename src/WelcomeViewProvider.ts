@@ -42,6 +42,11 @@ interface CheckChangesState {
     timestamp: string;
 }
 
+interface AvailableAgentModel {
+    label: string;
+    value: string;
+}
+
 function resolveInside(root: string, child: string): string | undefined {
     if (!isSafeRelativePath(child)) {
         return undefined;
@@ -90,6 +95,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _abortDownload = false;
     private _statusUpdateTimer: NodeJS.Timeout | undefined;
     private _agentSyncTimer: NodeJS.Timeout | undefined;
+    private _chatModelListener?: vscode.Disposable;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -402,6 +408,26 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     this._sendAgentData();
                     break;
                 }
+                case 'updateAgentModel': {
+                    const agentName = message.agentName as string;
+                    const model = typeof message.model === 'string' ? message.model.trim() : '';
+                    const cur: AgentOverride = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
+                    if (model) {
+                        this._agentOverrides[agentName] = { ...cur, model };
+                    } else {
+                        const next: AgentOverride = { ...cur };
+                        delete next.model;
+                        if (next.enabled === true && next.disabledTools.length === 0) {
+                            delete this._agentOverrides[agentName];
+                        } else {
+                            this._agentOverrides[agentName] = next;
+                        }
+                    }
+                    this._syncWorkspaceAgents();
+                    this._updateStatus();
+                    this._sendAgentData();
+                    break;
+                }
                 case 'resyncAgents':
                     this._syncWorkspaceAgents(true);
                     this._sendAgentData();
@@ -594,7 +620,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.onDidDispose(() => {
             this._teardownArtifactWatcher();
+            this._chatModelListener?.dispose();
+            this._chatModelListener = undefined;
         });
+
+        if (!this._chatModelListener) {
+            this._chatModelListener = vscode.lm.onDidChangeChatModels(() => {
+                void this._sendAgentData();
+            });
+        }
 
         webviewView.onDidChangeVisibility(() => {
             if (webviewView.visible) {
@@ -673,8 +707,25 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             locked: LOCKED_AGENT_NAMES.has(m.name),
             bundle: getAgentBundleName(m.name),
             profileSuppressed: suppressedAgents.has(m.name),
+            model: this._agentOverrides[m.name]?.model ?? m.model ?? '',
         }));
-        this._view.webview.postMessage({ command: 'updateAgents', manifests: enrichedManifests, overrides: this._agentOverrides });
+        void this._getAvailableAgentModels().then(modelOptions => {
+            this._view?.webview.postMessage({ command: 'updateAgents', manifests: enrichedManifests, overrides: this._agentOverrides, modelOptions });
+        });
+    }
+
+    private async _getAvailableAgentModels(): Promise<AvailableAgentModel[]> {
+        try {
+            const chatModels = await vscode.lm.selectChatModels();
+            return chatModels
+                .map(model => ({
+                    label: `${model.name} (${model.vendor})`,
+                    value: `${model.name} (${model.vendor})`,
+                }))
+                .sort((left, right) => left.label.localeCompare(right.label));
+        } catch {
+            return [];
+        }
     }
 
     private _sendSdkData(): void {

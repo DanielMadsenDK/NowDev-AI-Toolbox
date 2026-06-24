@@ -1,0 +1,6 @@
+{
+  "search.exclude": {
+    ".github/agents/**": true,
+    "out/**": true
+  }
+}

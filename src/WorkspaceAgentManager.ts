@@ -6,6 +6,7 @@ import { AgentManifest } from './AgentRegistry';
 export interface AgentOverride {
     enabled: boolean;        // false → file not written to workspace
     disabledTools: string[]; // tools to strip from the base list
+    model?: string;          // qualified model name for the generated agent file
 }
 
 export interface McpIntegrationConfig {
@@ -279,6 +280,7 @@ export function syncAllAgents(
             srcHash:       crypto.createHash('sha256').update(bundledContent).digest('hex'),
             mcpTools:      [...mcpTools].sort(),
             disabledTools: [...disabledTools].sort(),
+            model:         override?.model ?? '',
             disabledAgents: [...disabledAgentNames].sort(),
             allDocSources: cfg.allDocSources,
             mcpIntegrationConfigs: cfg.mcpIntegrationConfigs,
@@ -304,6 +306,7 @@ export function syncAllAgents(
             effectiveTools,
             disabledAgentNames,
             combinedHash,
+            override?.model,
             cfg.allDocSources,
             isDevOpsAgent ? devops : undefined,
             devops,
@@ -329,6 +332,7 @@ function buildContent(
     effectiveTools: string[],
     disabledAgents: Set<string>,
     hash: string,
+    model: string | undefined,
     allDocSources: AllDocSources,
     devopsAgentConfig?: DevOpsConfig,
     orchestratorDevopsConfig?: DevOpsConfig,
@@ -339,6 +343,8 @@ function buildContent(
     // Rewrite the tools: [...] line (always single-line in these files)
     const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
     let content = bundled.replace(/^tools:\s*\[.*?\]$/m, toolsLine);
+
+    content = applyFrontmatterModel(content, model);
 
     // Filter disabled agent names from the agents: [...] list so the
     // orchestrator never tries to delegate to a non-existent file.
@@ -401,6 +407,30 @@ If the user does not provide a task reference, ask them for one before proceedin
     content = content.replace(/^---\n/, `---\n${MANAGED_TAG}\n${HASH_TAG} ${hash}\n`);
 
     return content;
+}
+
+function applyFrontmatterModel(content: string, model: string | undefined): string {
+    const trimmedModel = model?.trim();
+    if (!trimmedModel) { return content; }
+
+    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    if (!frontmatterMatch) { return content; }
+
+    const escapedModel = trimmedModel.replace(/'/g, "\\'");
+    const modelLine = `model: '${escapedModel}'`;
+    const frontmatter = frontmatterMatch[1];
+
+    if (/^model:\s*.*$/m.test(frontmatter)) {
+        return content.replace(/^model:\s*.*$/m, modelLine);
+    }
+
+    if (/^description:\s*.*$/m.test(frontmatter)) {
+        return content.replace(/^description:\s*.*$/m, match => `${match}\n${modelLine}`);
+    }
+    if (/^name:\s*.*$/m.test(frontmatter)) {
+        return content.replace(/^name:\s*.*$/m, match => `${match}\n${modelLine}`);
+    }
+    return content.replace(/^---\n/, `---\n${modelLine}\n`);
 }
 
 /**

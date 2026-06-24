@@ -313,7 +313,7 @@
                 refreshWorkspaceStatus();
                 break;
             case 'updateAgents':
-                renderAgentCards(msg.manifests, msg.overrides);
+                renderAgentCards(msg.manifests, msg.overrides, msg.modelOptions || []);
                 break;
             case 'updateArtifacts':
                 renderArtifacts(msg.artifacts, msg.sessionActive);
@@ -638,12 +638,15 @@
         return html;
     }
 
-    function buildAgentCardHtml(m, overrides, extraClass, showToggle, bundleName) {
+    function buildAgentCardHtml(m, overrides, modelOptions, extraClass, showToggle, bundleName) {
         var override = (overrides && overrides[m.name]) || { enabled: true, disabledTools: [] };
         var agentEnabled = override.enabled !== false;
         var disabledSet = {};
         if (override.disabledTools) { override.disabledTools.forEach(function (t) { disabledSet[t] = true; }); }
         var enabledCount = m.baseTools.filter(function (t) { return !disabledSet[t]; }).length;
+        var currentModel = m.model || '';
+        var currentOverrideModel = override.model || '';
+        var selectedModel = currentOverrideModel || currentModel;
 
         var cardClass = 'agent-card' + (extraClass ? ' ' + extraClass : '') + (agentEnabled ? '' : ' agent-disabled');
         var html = '<div class="' + cardClass + '" data-agent-name="' + esc(m.name) + '">';
@@ -658,6 +661,7 @@
         }
         html += '<button class="agent-file-btn" data-filename="' + esc(m.filename) + '" title="Open .agent.md file">&#8599;</button>';
         html += '</div>';
+        html += buildAgentModelHtml(m, selectedModel, currentOverrideModel, modelOptions || []);
         html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
         html += '</div>';
         html += buildAgentToolsHtml(m, disabledSet);
@@ -665,7 +669,39 @@
         return html;
     }
 
-    function renderAgentCards(manifests, overrides) {
+    function buildAgentModelHtml(m, selectedModel, overrideModel, modelOptions) {
+        var html = '<div class="agent-card-model-row">';
+        html += '<label class="agent-model-label" for="model-' + esc(m.name) + '">Model</label>';
+        html += '<select class="agent-model-select" id="model-' + esc(m.name) + '" data-agent="' + esc(m.name) + '">';
+        html += '<option value=""' + (!selectedModel ? ' selected' : '') + '>Default</option>';
+
+        var hasSelected = false;
+        if (selectedModel) {
+            for (var i = 0; i < modelOptions.length; i++) {
+                if (modelOptions[i].value === selectedModel) {
+                    hasSelected = true;
+                    break;
+                }
+            }
+            if (!hasSelected) {
+                html += '<option value="' + esc(selectedModel) + '" selected disabled>Current: ' + esc(selectedModel) + '</option>';
+            }
+        }
+
+        for (var j = 0; j < modelOptions.length; j++) {
+            var option = modelOptions[j];
+            html += '<option value="' + esc(option.value) + '"' + (option.value === selectedModel ? ' selected' : '') + '>' + esc(option.label) + '</option>';
+        }
+
+        html += '</select>';
+        if (overrideModel) {
+            html += '<button class="agent-model-reset-btn" data-agent="' + esc(m.name) + '" title="Reset to bundled agent model" aria-label="Reset to bundled agent model">&#8634;</button>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function renderAgentCards(manifests, overrides, modelOptions) {
         var container = document.getElementById('agentCards');
         if (!container) { return; }
         if (!manifests || manifests.length === 0) {
@@ -699,7 +735,7 @@
         if (locked.length > 0) {
             html += '<div class="agent-group-label">Locked Core <span title="These agents are always active and cannot be disabled">&#128274;</span></div>';
             locked.forEach(function (m) {
-                html += buildAgentCardHtml(m, overrides, 'agent-locked', 'lock', null);
+                html += buildAgentCardHtml(m, overrides, modelOptions, 'agent-locked', 'lock', null);
             });
         }
 
@@ -719,7 +755,7 @@
             html += '<span class="agent-bundle-label">' + esc(bundleName) + ' agents are toggled as a unit</span>';
             html += '</div>';
             members.forEach(function (m) {
-                html += buildAgentCardHtml(m, overrides, 'agent-bundle-member', null, bundleName);
+                html += buildAgentCardHtml(m, overrides, modelOptions, 'agent-bundle-member', null, bundleName);
             });
         });
 
@@ -727,7 +763,7 @@
         if (standalone.length > 0) {
             html += '<div class="agent-group-label">Standalone Optional</div>';
             standalone.forEach(function (m) {
-                html += buildAgentCardHtml(m, overrides, null, 'agent', null);
+                html += buildAgentCardHtml(m, overrides, modelOptions, null, 'agent', null);
             });
         }
 
@@ -763,6 +799,20 @@
         container.querySelectorAll('.agent-tool-cb').forEach(function (cb) {
             cb.addEventListener('change', function () {
                 vscode.postMessage({ command: 'toggleAgentTool', agentName: cb.getAttribute('data-agent'), toolName: cb.getAttribute('data-tool'), enabled: cb.checked });
+            });
+        });
+
+        // Bind per-agent model selector
+        container.querySelectorAll('.agent-model-select').forEach(function (select) {
+            select.addEventListener('change', function () {
+                vscode.postMessage({ command: 'updateAgentModel', agentName: select.getAttribute('data-agent'), model: select.value });
+            });
+        });
+
+        // Bind per-agent model reset
+        container.querySelectorAll('.agent-model-reset-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                vscode.postMessage({ command: 'updateAgentModel', agentName: btn.getAttribute('data-agent'), model: '' });
             });
         });
 

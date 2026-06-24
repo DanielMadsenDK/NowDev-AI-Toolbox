@@ -202,28 +202,11 @@ Maintain a comprehensive todo list throughout orchestration using the `todo` too
 
 ## XML Import Management
 
-**Track artifacts for potential XML import generation at the end of development.**
+Track artifact types during planning:
+- Script Includes → `sys_script_include`, Business Rules → `sys_script`, Client Scripts → `sys_script_client`
+- **Fluent artifacts (`.now.ts`)** → deployed via `now-sdk install`, not XML — skip XML generation and tell user to run `now-sdk build && now-sdk install`
 
-### XML Import Creation:
-1. **During Planning Phase:** Track artifact types being created
-   - Script Includes → sys_script_include table
-   - Business Rules → sys_script table
-   - Client Scripts → sys_script_client table
-   - **Fluent artifacts (.now.ts)** → deployed via `now-sdk install`, **not** via XML import — skip XML generation for these and instruct the user to run `now-sdk build && now-sdk install`
-
-2. **Session Tracking:** Maintain list of .js files created during session
-   - Each .js file will generate a corresponding XML import file
-   - XML files represent table records for ServiceNow import
-
-3. **End of Session:** Ask user if they want XML imports
-   - If yes: Invoke Release-Expert to generate XML files
-   - If no: Development artifacts remain as .js files only
-
-### XML Import Organization:
-For complex releases involving multiple artifacts:
-- Create organized directory structure: `xml-imports/script-includes/`, `xml-imports/business-rules/`, etc.
-- Each XML file represents one table record
-- Include import instructions and order documentation
+Track all `.js` files created during the session — each generates one XML record. At session end, ask the user if XML imports are wanted; if yes, invoke `NowDev-AI-Release-Expert`. For complex releases, organize as `xml-imports/script-includes/`, `xml-imports/business-rules/`, etc.
 
 ## File Output Guidelines
 
@@ -280,71 +263,13 @@ Only apply the full checkpoint below when NO shared page is present in context (
 
 **Why this checkpoint is critical:** Browser tools fail silently or hang if used on the unauthenticated login page.
 
-**Interactive Testing (Only After User Login Confirmed):**
-- After user confirms login via `askQuestions`, use these tools to simulate user interactions:
-  - `clickElement`: Press buttons, toggle checkboxes, open dropdowns, navigate links
-  - `typeInPage`: Fill form fields, enter search queries, type keyboard shortcuts
-  - `hoverElement`: Trigger tooltip visibility, reveal hover-dependent UI elements
-  - `dragElement`: Test drag-and-drop interactions, reorder list items or kanban cards
-- Always ask permission: "May I fill in some test data to verify the form behavior?"
-- Only interact with non-destructive operations; never delete or modify production data
+**Interactive Testing (Only After User Login Confirmed):** Use `clickElement`, `typeInPage`, `hoverElement`, `dragElement` to simulate interactions. Ask permission before filling test data. Avoid destructive operations.
 
-**Dialog Handling (`handleDialog`)**
+**Dialog Handling:** Use `handleDialog` when form testing encounters browser dialogs (alerts, confirmations, prompts) during end-to-end testing workflows.
 
-Use when form testing encounters browser dialogs (alerts, confirmations, prompts). This is essential for end-to-end testing workflows.
+**`runPlaywrightCode` — Isolated Context (CRITICAL):** Launches a **separate, headless Playwright instance** with **no access** to the shared VS Code browser tab or its authenticated session. Never use when a shared browser page is present in context — use individual tools with that page ID instead.
 
-*When to use:*
-- Form submission triggers a confirmation dialog (e.g., "Are you sure you want to submit this change request?")
-- Validation error appears as an alert dialog blocking form progression
-- Unexpected permission/access denial dialogs prevent testing continuation
-- Multi-step workflows require accepting/dismissing sequential dialogs
-
-*ServiceNow Examples:*
-1. **Change Request Submission**: Form → Click Submit → Dialog appears "Confirm change to production?" → Accept dialog → Verify redirect to detail page
-2. **Delete Operations**: Delete button → Confirmation "Permanently delete this record?" → Dismiss dialog to test cancel flow
-3. **Access Denied**: User attempts restricted action → Error dialog "Insufficient privileges" → Capture and report for security review
-
-*Usage Pattern:*
-```
-1. Use clickElement to trigger an action that produces a dialog
-2. Use handleDialog to accept or dismiss the dialog
-3. Take a screenshot to confirm what state the form is in after the dialog
-4. Continue testing
-```
-
-**Complex Automation Workflows (`runPlaywrightCode`)**
-
-> **CRITICAL — Isolated context only:** `runPlaywrightCode` launches a **separate, headless Playwright browser instance**. It has no access to the user's shared VS Code integrated browser tab and its authenticated session. Any `page.goto()` inside this code starts a fresh, unauthenticated context. **Never use `runPlaywrightCode` when a shared browser page is present in context** — use the individual tools (`clickElement`, `typeInPage`, `screenshotPage`) with the shared page ID instead.
-
-Use `runPlaywrightCode` only when no shared session exists AND you need multi-step verification with conditional logic, state tracking, or deep inspection beyond what individual tool calls can achieve.
-
-*When to use:*
-- Testing workflows that depend on dynamic values extracted from the form (e.g., generate incident number, verify it appears in confirmation message)
-- Verifying performance: timing form submissions, measuring GlideAjax response times
-- Complex form scenarios: fill field → trigger onChange → verify dependent fields update → submit form
-- Inspecting browser environment: console logs, network requests, CSS computed styles
-- Conditional logic: "If error appears, extract error code and log it; otherwise, capture success message"
-
-*Decision Tree (MANDATORY — evaluate in order):*
-
-**BEFORE using `runPlaywrightCode`, answer all of these:**
-
-- Is there a shared browser page in context (page ID + URL visible)? → **STOP. Use individual tools with that page ID. Never use runPlaywrightCode.**
-- Can the scenario be completed with a linear chain of individual tool calls? → **STOP. Use individual tools.**
-- Is this a single action (click, type, screenshot, navigate)? → **STOP. Use the matching individual tool.**
-
-**Only proceed with `runPlaywrightCode` if ALL of the following are true:**
-- No shared browser page exists in context
-- The scenario requires extracting a dynamic value AND using it conditionally in the next step
-- OR the scenario requires waiting for an async operation (GlideAjax, page redirect) that individual tools cannot wait for
-- OR performance metrics or network inspection are explicitly needed
-- The scenario cannot be achieved by chaining individual tool calls
-
-*Best Practices:*
-- Keep Playwright code focused and under 20 lines; break complex scenarios into sequential tool calls
-- Always include error handling and timeouts (GlideAjax calls can be unpredictable)
-- Annotate code with comments explaining what ServiceNow behavior is being tested
-- Extract specific values (incident numbers, field names) for reporting back to user
+Use `runPlaywrightCode` only when ALL are true: no shared page exists in context; the scenario requires dynamic value extraction with conditional logic, async waiting (GlideAjax/redirect), or performance/network inspection; and the scenario cannot be achieved with individual tool calls in sequence.
 
 ## Session Management
 

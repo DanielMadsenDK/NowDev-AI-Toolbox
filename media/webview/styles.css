@@ -932,6 +932,48 @@ a:hover {
     align-items: center;
     gap: var(--nd-sp-2);
 }
+.agent-card-model-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+    padding: 4px 0 2px 22px;
+}
+.agent-model-label {
+    flex-shrink: 0;
+    font-size: 10.5px;
+    color: var(--nd-fg-mute);
+    font-weight: 600;
+}
+.agent-model-select {
+    flex: 1;
+    min-width: 0;
+    height: 24px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    color: var(--vscode-dropdown-foreground, var(--nd-fg));
+    background: var(--vscode-dropdown-background, var(--nd-bg-input));
+    border: 1px solid var(--vscode-dropdown-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+}
+.agent-model-select:focus { border-color: var(--nd-accent); }
+.agent-model-reset-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--nd-r-sm);
+    border: 1px solid var(--nd-border);
+    background: var(--nd-bg-input);
+    color: var(--nd-fg-mute);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+}
+.agent-model-reset-btn:hover {
+    color: var(--nd-fg);
+    border-color: var(--nd-border-strong);
+}
 .agent-card-info {
     flex: 1;
     display: flex;
