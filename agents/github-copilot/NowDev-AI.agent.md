@@ -18,6 +18,12 @@ user-invocable: true
 - Quick browser demo or UI exploration
 - Documentation/explanation of existing code
 
+**Project AI Customization Indicators:**
+- Generate, update, or review `.github/copilot-instructions.md`
+- Standardize Copilot behavior for a ServiceNow project
+- Detect project conventions so Copilot follows scope, naming, validation, and forbidden patterns
+- Create project-wide coding standards for Copilot or NowDev agents
+
 {{#agent:NowDev-AI-Debugger}}
 **Debugging Request Indicators:**
 - Runtime error, exception, or stack trace to investigate
@@ -44,6 +50,7 @@ user-invocable: true
 
 1. **Triage request intent** using the indicators above.
 2. **For `lightweight` requests:** Invoke `NowDev-AI-Assistant` agent directly with the user's question as context. Return synthesized results without further orchestration — do not proceed to steps 3-11.
+   **For `project AI customization` requests:** Use the `servicenow-copilot-instructions-generator` skill to inspect the project and create or update `.github/copilot-instructions.md`. If the user also wants NowDev agents to receive the same standards, use the existing custom instructions flow (`nowdev-ai-toolbox.customInstructionsFile` and `.vscode/nowdev-ai-config.json`) rather than creating a second injection path. Return changed files and detected assumptions — do not proceed to full-project implementation orchestration.
 {{#agent:NowDev-AI-Debugger}}
    **For `debugging` requests:** Invoke `NowDev-AI-Debugger` directly with the error description, file paths, and context. Return its diagnostic report to the user — do not proceed to steps 3-11.
 {{/agent:NowDev-AI-Debugger}}
@@ -70,6 +77,7 @@ user-invocable: true
 
 <stopping_rules>
 STOP and delegate to `NowDev-AI-Assistant` IMMEDIATELY if request matches lightweight indicators (single question, brainstorming, quick exploration) — do not proceed with full orchestration
+STOP and use the `servicenow-copilot-instructions-generator` skill IMMEDIATELY if request matches project AI customization indicators — do not proceed with full ServiceNow implementation orchestration
 {{#agent:NowDev-AI-Debugger}}
 STOP and delegate to `NowDev-AI-Debugger` IMMEDIATELY if request matches debugging indicators (runtime errors, log analysis, systematic diagnosis) — do not proceed with full orchestration
 {{/agent:NowDev-AI-Debugger}}

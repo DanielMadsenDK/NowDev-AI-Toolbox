@@ -314,6 +314,9 @@
         "path": "./agents/skills/servicenow-ui-forms/SKILL.md"
       },
       {
+        "path": "./agents/skills/servicenow-copilot-instructions-generator/SKILL.md"
+      },
+      {
         "path": "./agents/skills/servicenow-fluent-development/SKILL.md",
         "applyTo": "**/*.now.ts"
       },

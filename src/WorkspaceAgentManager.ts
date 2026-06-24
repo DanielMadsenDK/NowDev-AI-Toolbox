@@ -267,6 +267,9 @@ export function syncAllAgents(
             ...mcpTools,
             ...expandedBase.filter(t => !disabledTools.has(t)),
         ];
+        const canRunTerminalCommands = effectiveTools.some(t =>
+            t === 'execute/runInTerminal' || t === 'execute/createAndRunTask'
+        );
 
         // Guarantee 'agent' is present whenever the file delegates to sub-agents
         if (manifest.subAgentNames.length > 0 && !effectiveTools.includes('agent')) {
@@ -312,7 +315,8 @@ export function syncAllAgents(
             devops,
             cfg.profileInstructions,
             cfg.customInstructions,
-            cfg.agentGuidelines
+            cfg.agentGuidelines,
+            canRunTerminalCommands
         );
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
@@ -338,7 +342,8 @@ function buildContent(
     orchestratorDevopsConfig?: DevOpsConfig,
     profileInstructions?: string,
     customInstructions?: string,
-    agentGuidelines?: string
+    agentGuidelines?: string,
+    canRunTerminalCommands = false
 ): string {
     // Rewrite the tools: [...] line (always single-line in these files)
     const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
@@ -397,8 +402,8 @@ If the user does not provide a task reference, ask them for one before proceedin
     // Remove content that belongs to disabled agents
     content = applyAgentConditionals(content, disabledAgents);
 
-    // Append SDK query block to every agent (useful at all stages: design, planning, refinement)
-    if (!content.includes('now-sdk query')) {
+    // Append SDK query guidance only to agents that can actually run terminal commands.
+    if (canRunTerminalCommands && !content.includes('now-sdk query')) {
         content = content.trimEnd() + '\n\n' + SDK_QUERY_BLOCK + '\n';
     }
 

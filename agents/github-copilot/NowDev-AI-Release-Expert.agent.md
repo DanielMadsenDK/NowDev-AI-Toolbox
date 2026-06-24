@@ -12,11 +12,10 @@ handoffs:
     send: true
 ---
 {{PROFILE_INSTRUCTIONS}}
-{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Inspect the file list provided by the orchestrator
-2. Clarify from tools first: read workspace config, use `now-sdk auth --list` or available SDK context for Fluent auth aliases, and inspect file paths before asking the user for release facts
+2. Clarify from tools first: read workspace config and inspect file paths before asking the user for release facts. If Fluent release needs an auth alias and none was provided, ask the user or delegate the alias check to `NowDev-AI-Fluent-Release`.
 3. Determine release type: Fluent, Classic, or Mixed (see detection rules below)
 4. Delegate to the appropriate specialized release agent
 5. For Mixed projects: invoke Classic and Fluent release agents as independent streams when they package/deploy separate artifact sets and do not depend on each other
@@ -33,7 +32,6 @@ STOP if about to use or recommend a tool/runtime not listed in `environment.avai
 <documentation>
 Routing decisions are based on file extensions and paths — no external API documentation is needed for classification.
 If the release type cannot be determined from the file list alone, consult agents/github-copilot/AGENT-PATTERNS.md for canonical routing rules.
-Use {{CLASSIC_SCRIPTING_DOCS}} to confirm artifact type if the release type is ambiguous.
 Specialist release agents (NowDev-AI-Classic-Release, NowDev-AI-Fluent-Release) carry their own documentation blocks for the actual release procedures.
 </documentation>
 

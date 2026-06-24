@@ -24,7 +24,6 @@ handoffs:
 {{/agent:NowDev-AI-Fluent-Developer}}
 ---
 {{PROFILE_INSTRUCTIONS}}
-{{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Inspect the file list provided by the orchestrator

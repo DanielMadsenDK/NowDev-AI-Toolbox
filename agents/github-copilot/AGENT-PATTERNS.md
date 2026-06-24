@@ -53,6 +53,52 @@ The orchestrator and coordinator agents should build a dependency graph before d
 
 Sub-agent prompts must specify: task scope, owned files/artifacts, dependencies already complete, expected output, validation command, and what memory/session artifact entries to update.
 
+## Canonical: Context Engineering
+
+Agents should spend context only on information that changes the next decision or implementation step. Prefer narrow discovery, explicit handoffs, and reusable shared references over repeatedly loading broad docs or embedding large examples in agent prompts.
+
+### Request Routing
+
+- Route lightweight questions, brainstorming, and quick explanations to `NowDev-AI-Assistant` before loading full-project context.
+- Route debugging symptoms to `NowDev-AI-Debugger` before initializing implementation state.
+- For full-project work, separate planning from implementation: refine requirements first, then hand the approved brief to implementation agents.
+- Start a new chat for unrelated work. Fork a conversation when exploring alternatives from the same context. Use `/compact` when a session becomes long but the task continues.
+
+### Prompt Weight Budget
+
+- **Orchestrators** should contain routing, approval gates, dependency planning, and artifact/session tracking rules. They should reference shared patterns instead of restating specialist implementation details.
+- **Coordinators** should contain sequencing rules, dependency gates, and delegation contracts. They should pass explicit discovered facts rather than requiring each specialist to rediscover them.
+- **Routers** should contain classification rules only. They should not load product documentation or implementation examples unless routing genuinely depends on them.
+- **Specialists** should contain only the role boundary, short workflow, stopping rules, documentation pointers, and output contract. Move durable API guidance, examples, and playbooks to `agents/skills/`, `agents/exemplars/`, or external docs.
+
+### Tool Scope
+
+- Give each agent only the tools needed for its role. Remove write tools from reviewers, routers, and debuggers. Remove browser tools unless the agent directly inspects an instance page.
+- Prefer `read/readFile`, `search`, and memory lookups before broader `web` or MCP calls.
+- Use terminal execution only when the agent has an execution role and the required runtime appears in `.vscode/nowdev-ai-config.json` under `environment.availableTools`.
+- Disable unneeded MCP servers and tools for the current task when possible. Every tool call adds output to the context window.
+
+### Documentation Token Policy
+
+- Include `{{PRODUCT_DOCS_CONTEXT}}` only in agents that verify ServiceNow platform behavior or release-specific APIs.
+- Include `{{FLUENT_SDK_EXPLAIN}}` and `{{SDK_DOCS_CONTEXT}}` only in Fluent agents that need SDK signatures, metadata APIs, or build/deploy behavior.
+- Include `{{CLASSIC_SCRIPTING_DOCS}}` only in Classic scripting agents and reviewers that need Glide/API verification.
+- Router-only agents should usually omit documentation tokens; they classify and delegate, they do not verify APIs.
+- Live instance query guidance belongs only with agents that can execute terminal commands and are expected to resolve instance facts.
+
+### Sub-Agent Context Contract
+
+Every delegation prompt must include:
+
+- Task scope and success criteria.
+- Owned files or artifact boundaries.
+- Facts already discovered by the parent agent, including project style, scope, instance URL, and environment capabilities.
+- Dependencies already completed and the exact files/exports that downstream work may use.
+- Validation command or validation expectation for the sub-agent's slice.
+- Expected output format, including created/modified files, validation results, warnings, and memory registry updates.
+
+Do not ask downstream agents to repeat broad discovery that the parent has already completed. Pass summaries for orientation, and pass file paths or memory entries when exact details are needed.
+
 ## Canonical: Specialist Prompt Contract
 
 Specialist `.agent.md` files should stay lean. Put reusable examples, long API notes, pipeline templates, debugging playbooks, and release recipes in `agents/skills/`, `agents/exemplars/`, or external docs queried through MCP/llms.txt. The agent prompt itself should contain only:

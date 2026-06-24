@@ -122,6 +122,26 @@ Teams can keep coding standards, review rules, and release policies in ServiceNo
 
 > **Note**: `.vscode/nowdev-ai-config.json` is auto-generated and is automatically added to `.gitignore`. It should not be committed to source control.
 
+### Project Copilot Instructions
+
+For repository-wide Copilot behavior, create `.github/copilot-instructions.md`. NowDev includes the `servicenow-copilot-instructions-generator` skill to inspect a ServiceNow workspace and draft project-specific instructions from detected facts such as Fluent vs Classic style, scope prefix, artifact folders, naming patterns, validation commands, and forbidden patterns.
+
+Ask the NowDev AI Agent to generate Copilot instructions for the current project when:
+- The workspace has no `.github/copilot-instructions.md`
+- Copilot suggestions are using the wrong ServiceNow style or scope
+- You want team-wide standards committed with the repository
+- You changed architecture, folders, validation commands, or naming conventions
+
+If you also want NowDev agents to receive the same standards, keep using the existing custom instructions file flow above. The generated project instructions and NowDev custom instructions solve related but different problems: `.github/copilot-instructions.md` is repository-wide Copilot context, while the NowDev custom instructions file is injected into generated NowDev agents.
+
+### Efficient Copilot Usage
+
+- Use planning/refinement first for multi-artifact work, then implement from the approved brief.
+- Start a new chat for unrelated tasks, fork when exploring alternatives, and compact long sessions when continuing the same task.
+- Disable unneeded tools or MCP servers for a request when they are not relevant.
+- Keep generated files such as `.github/agents/**` and `out/**` excluded from search so agent discovery does not spend context on generated output.
+- Use efficient model choices for simple edits and reserve higher reasoning effort for planning, architecture, and debugging.
+
 ### Template Sections
 
 The [template](agents/github-copilot/CUSTOM-INSTRUCTIONS-TEMPLATE.md) covers these sections (all optional):
