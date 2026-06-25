@@ -274,6 +274,20 @@
         if (e.key === 'Enter') { postQuery(); }
     });
 
+    var generateReleaseNotesBtn = document.getElementById('generateReleaseNotesBtn');
+    if (generateReleaseNotesBtn) {
+        generateReleaseNotesBtn.addEventListener('click', function () {
+            vscode.postMessage({
+                command: 'generateReleaseNotes',
+                auth: document.getElementById('sdkCmdAuth').value,
+                targetRelease: document.getElementById('releaseNotesTargetRelease').value,
+                includePlugins: document.getElementById('releaseNotesIncludePlugins').checked,
+                includeStoreApps: document.getElementById('releaseNotesIncludeStoreApps').checked,
+                includeScopes: document.getElementById('releaseNotesIncludeScopes').checked,
+            });
+        });
+    }
+
     // ── Tools tab: rescan ──────────────────────────────────────────
     document.getElementById('rescanTools').addEventListener('click', () => {
         vscode.postMessage({ command: 'rescanTools' });
@@ -995,6 +1009,19 @@
                 relOpts += '<option value="' + esc(pd.release) + '" selected>' + esc(pd.release) + '</option>';
             }
             relSel.innerHTML = relOpts;
+        }
+
+        var releaseNotesSel = document.getElementById('releaseNotesTargetRelease');
+        if (releaseNotesSel) {
+            var releaseNotesCurrent = releaseNotesSel.value || pd.release || '';
+            var releaseNotesOpts = '<option value="">(select a release)</option>';
+            releases.forEach(function (r) {
+                releaseNotesOpts += '<option value="' + esc(r) + '"' + (r === releaseNotesCurrent ? ' selected' : '') + '>' + esc(r) + '</option>';
+            });
+            if (releaseNotesCurrent && releases.indexOf(releaseNotesCurrent) < 0) {
+                releaseNotesOpts += '<option value="' + esc(releaseNotesCurrent) + '" selected>' + esc(releaseNotesCurrent) + '</option>';
+            }
+            releaseNotesSel.innerHTML = releaseNotesOpts;
         }
 
         // Render product docs source config

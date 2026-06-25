@@ -187,6 +187,13 @@ export const AGENT_TREE: AgentNode = {
                     description: 'now-sdk build & install',
                     children: [],
                 },
+                {
+                    id: 'NowDev-AI-ReleaseNotes-Synthesizer',
+                    shortName: 'Release Notes',
+                    role: 'release',
+                    description: 'Instance-tailored upgrade release notes',
+                    children: [],
+                },
             ],
         },
     ],

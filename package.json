@@ -181,6 +181,16 @@
         "command": "nowdev-ai-toolbox.sdkSync",
         "title": "SDK: Sync from Instance (download + transform)",
         "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.generateReleaseNotes",
+        "title": "ServiceNow: Generate Upgrade Release Notes",
+        "category": "NowDev AI"
+      },
+      {
+        "command": "nowdev-ai-toolbox.openReleaseNotes",
+        "title": "ServiceNow: Open Release Notes",
+        "category": "NowDev AI"
       }
     ],
     "menus": {

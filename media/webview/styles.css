@@ -851,6 +851,47 @@ a:hover {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   RELEASE NOTES LAUNCHER
+   ════════════════════════════════════════════════════════════════ */
+.release-notes-launch {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nd-sp-3);
+    margin: var(--nd-sp-3) 0 var(--nd-sp-4);
+    padding: var(--nd-sp-3);
+    border: 1px solid color-mix(in srgb, var(--nd-border) 70%, var(--nd-accent) 30%);
+    border-radius: var(--nd-r-md);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nd-bg-card) 86%, var(--nd-accent) 14%), var(--nd-bg-card));
+}
+.release-notes-title {
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--nd-fg-strong);
+    margin-bottom: 3px;
+}
+.release-notes-controls {
+    display: grid;
+    gap: var(--nd-sp-2);
+}
+.release-notes-controls select {
+    width: 100%;
+    padding: 6px 8px;
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+}
+.release-notes-options {
+    display: flex;
+    gap: var(--nd-sp-2);
+    flex-wrap: wrap;
+}
+.release-notes-generate {
+    justify-self: start;
+    border-color: rgba(129,181,161,0.45);
+}
+
+/* ════════════════════════════════════════════════════════════════
    TOOL ROWS (env tools, MCP integrations)
    ════════════════════════════════════════════════════════════════ */
 .tool-row {

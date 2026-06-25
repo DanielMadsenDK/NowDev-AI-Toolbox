@@ -10,6 +10,7 @@ import { showSdkExplainPanel } from './SdkExplainPanel';
 import { showSdkQueryPanel } from './SdkQueryPanel';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
 import { showInstanceBrowserPanel } from './InstanceBrowserPanel';
+import { showReleaseNotesPanel } from './ReleaseNotesPanel';
 import { InstanceClient } from './InstanceClient';
 import { spawnNpm, spawnSdk } from './SdkProcess';
 
@@ -537,6 +538,18 @@ export function activate(context: vscode.ExtensionContext) {
                 showSdkQueryPanel(table.trim(), query ?? '', fields ?? '', limit ?? '', displayValue ?? 'true', offset, page);
             }
         ),
+
+        vscode.commands.registerCommand('nowdev-ai-toolbox.generateReleaseNotes', (options) => {
+            if (!options?.targetRelease) {
+                vscode.window.showWarningMessage('Select a target ServiceNow release before generating release notes.');
+                return;
+            }
+            showReleaseNotesPanel(context, options);
+        }),
+
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openReleaseNotes', () => {
+            showReleaseNotesPanel(context);
+        }),
 
         // Auth — Add
         vscode.commands.registerCommand('nowdev-ai-toolbox.sdkAuthAdd', async () => {

@@ -527,6 +527,20 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'sdkCommandHelp':
                     showSdkCommandHelpPanel(message.cmd);
                     break;
+                case 'generateReleaseNotes':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.generateReleaseNotes', {
+                        auth: message.auth,
+                        targetRelease: message.targetRelease,
+                        includePlugins: message.includePlugins !== false,
+                        includeStoreApps: message.includeStoreApps !== false,
+                        includeScopes: message.includeScopes !== false,
+                        allDocSources: this._allDocSources,
+                        guidelinesConfig: this._guidelinesConfig,
+                    });
+                    break;
+                case 'openReleaseNotes':
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openReleaseNotes');
+                    break;
                 case 'rescanAuthAliases':
                     this._sendSdkData();
                     break;
@@ -544,6 +558,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     if (tab === 'sdk' && !this._initializedTabs.has('sdk')) {
                         this._initializedTabs.add('sdk');
                         this._sendSdkData();
+                        this._fetchDocsReleasesFromGitHub().catch(() => {});
                     } else if (tab === 'agents') {
                         this._sendAgentData();
                     } else if (tab === 'docs' && !this._initializedTabs.has('docs')) {
@@ -1676,6 +1691,27 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 </select>
             </div>
 
+            <div class="release-notes-launch">
+                <div class="release-notes-copy">
+                    <div class="release-notes-title">Upgrade release notes</div>
+                    <div class="field-desc">Generate a styled, instance-aware report from installed products, plugins, Store apps, scopes, and configured documentation references.</div>
+                </div>
+                <div class="release-notes-controls">
+                    <label for="releaseNotesTargetRelease" class="sdk-auth-label">Target release</label>
+                    <select id="releaseNotesTargetRelease">
+                        <option value="">(select a release)</option>
+                        ${this._docsReleases.map(r => `<option value="${this._escapeHtml(r)}"${r === (this._allDocSources.productDocs.release ?? '') ? ' selected' : ''}>${this._escapeHtml(r)}</option>`).join('')}
+                    </select>
+                    <div class="field-desc">Release list comes from ServiceNow/ServiceNowDocs branches on GitHub.</div>
+                    <div class="release-notes-options">
+                        <label class="sdk-opt"><input type="checkbox" id="releaseNotesIncludePlugins" checked> Plugins</label>
+                        <label class="sdk-opt"><input type="checkbox" id="releaseNotesIncludeStoreApps" checked> Store apps</label>
+                        <label class="sdk-opt"><input type="checkbox" id="releaseNotesIncludeScopes" checked> Scopes</label>
+                    </div>
+                    <button class="fix-btn release-notes-generate" id="generateReleaseNotesBtn">Generate release notes</button>
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="sdk-quick-actions">
                 <button class="fix-btn sdk-run-btn sdk-deploy-btn" data-cmd="deploy" title="Build then Install — stops if Build fails">Deploy (Build &rarr; Install)</button>
@@ -1781,6 +1817,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
 
     </div>`;
+    }
+
+    private _escapeHtml(value: string): string {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     private _renderAgentsTab(): string {
