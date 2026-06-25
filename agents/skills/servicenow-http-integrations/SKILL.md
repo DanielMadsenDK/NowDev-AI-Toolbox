@@ -120,11 +120,7 @@ Choose the pattern that matches your implementation context:
   - SOAP web service integration
   - Error handling and retry logic
 
-- **[FLUENT.md](./FLUENT.md)** — SDK-based HTTP integrations (TypeScript syntax)
-  - Type-safe REST requests
-  - Modern async/await patterns
-  - TypeScript types for payloads
-  - Full error handling
+- Fluent SDK HTTP or REST metadata — use `now-sdk explain --list rest` and route implementation to the appropriate Fluent specialist.
 
 - **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
 

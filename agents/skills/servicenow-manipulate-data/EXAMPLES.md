@@ -29,21 +29,8 @@ while (incidentGr.next()) {
 
 ---
 
-### **[FLUENT.md](FLUENT.md) — Modern SDK (GlideQuery)**
-Use for new TypeScript projects and full-stack SDK applications.
-
-**Quick example:**
-```typescript
-const incidents = new GlideQuery('incident')
-    .where('active', 'true')
-    .where('priority', '1')
-    .orderBy('created_on')
-    .select()
-
-incidents.forEach(incident => {
-    gs.info(`Incident: ${incident.number}`)
-})
-```
+### **Fluent SDK Data Access**
+Use `now-sdk explain data-helpers-guide --format raw` or the relevant installed SDK topic, then route implementation to the appropriate Fluent specialist. Local examples are not SDK API reference.
 
 **When to use:**
 - ✓ New TypeScript projects
@@ -64,7 +51,7 @@ incidents.forEach(incident => {
 | Data aggregation | ✓ | ✓ | See respective guide |
 | Bulk operations | ✓ | ✓ | See respective guide |
 | Complex filtering | ✓ | ✓ | See respective guide |
-| Type safety | - | ✓ | [FLUENT.md](FLUENT.md) |
+| Type safety | - | ✓ | `now-sdk explain data-helpers-guide` |
 | ACL enforcement | ✓ | - | [CLASSIC.md](CLASSIC.md) |
 
 ---
@@ -74,11 +61,11 @@ incidents.forEach(incident => {
 | Question | Answer | Use |
 |----------|--------|-----|
 | Is this an existing instance? | Yes | [CLASSIC.md](CLASSIC.md) |
-| Is this a new SDK project? | Yes | [FLUENT.md](FLUENT.md) |
-| Do we use TypeScript? | Yes | [FLUENT.md](FLUENT.md) |
+| Is this a new SDK project? | Yes | NowDev-AI-Fluent-Logic-Developer |
+| Do we use TypeScript? | Yes | `now-sdk explain data-helpers-guide` |
 | Is this a business rule? | Yes | [CLASSIC.md](CLASSIC.md) |
 | Is this a quick fix? | Yes | [CLASSIC.md](CLASSIC.md) |
-| Do we need type safety? | Yes | [FLUENT.md](FLUENT.md) |
+| Do we need type safety? | Yes | `now-sdk explain data-helpers-guide` |
 
 ---
 
@@ -96,14 +83,7 @@ while (incidentGr.next()) {
 ```
 
 ### Fluent SDK
-```typescript
-// TypeScript syntax, chainable API
-const incidents = new GlideQuery('incident')
-    .where('priority', '1')
-    .select()
-
-const numbers = incidents.map(i => i.number)
-```
+Use installed-version docs: `now-sdk explain data-helpers-guide --format raw`.
 
 ---
 
@@ -111,4 +91,4 @@ const numbers = incidents.map(i => i.number)
 
 - **[BEST_PRACTICES.md](BEST_PRACTICES.md)** — Performance optimization and anti-patterns
 - **[CLASSIC.md](CLASSIC.md)** — Full reference for GlideRecord patterns
-- **[FLUENT.md](FLUENT.md)** — Full reference for GlideQuery patterns
+- Fluent SDK data access — `now-sdk explain data-helpers-guide --format raw`

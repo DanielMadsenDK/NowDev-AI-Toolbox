@@ -1,5 +1,7 @@
 # `$override` Guide
 
+Supplementary NowDev risk policy only. Verify the current artifact API with `now-sdk explain <topic> --format raw` before using `$override`; prefer typed SDK properties whenever the installed SDK exposes them.
+
 `$override` is an escape hatch available on Fluent API constructors for fields that the typed SDK API does not expose. It writes database column names and values directly to the generated metadata.
 
 ## When To Use

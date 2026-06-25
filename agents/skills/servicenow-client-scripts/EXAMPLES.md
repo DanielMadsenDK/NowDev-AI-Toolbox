@@ -31,31 +31,8 @@ function onChange(control, oldValue, newValue, isLoading) {
 
 ---
 
-### **[FLUENT.md](FLUENT.md) — SDK-Based Scripts (.now.ts)**
-Use for TypeScript projects with `.now.ts` metadata definitions and handler functions.
-
-**Quick example:**
-```typescript
-import { ClientScript } from '@servicenow/sdk/core'
-
-export const cs = ClientScript({
-    $id: Now.ID['incident_onchange'],
-    type: 'onChange',
-    field: 'field_name',
-    table: 'incident',
-    script: (oldValue, newValue, isLoading) => {
-        if (isLoading || !newValue) return;
-
-        const ga = new GlideAjax('ScriptIncludeName');
-        ga.addParam('sysparm_name', 'methodName');
-        ga.addParam('sysparm_data', newValue);
-
-        ga.getXMLAnswer((answer) => {
-            g_form.setValue('target_field', answer);
-        });
-    }
-})
-```
+### **Fluent SDK Scripts (.now.ts)**
+Use `now-sdk explain clientscript-api --format raw` and `now-sdk explain client-script-guide --format raw`, then route implementation to NowDev-AI-Fluent-UI-Developer. Local examples are not SDK API reference.
 
 **When to use:**
 - ✓ New SDK projects
@@ -86,8 +63,8 @@ export const cs = ClientScript({
 | GlideAjax calls | ✓ | ✓ | See respective guide |
 | Dynamic visibility | ✓ | ✓ | See respective guide |
 | Cascading updates | ✓ | ✓ | See respective guide |
-| Type safety | - | ✓ | [FLUENT.md](FLUENT.md) |
-| Version control | - | ✓ | [FLUENT.md](FLUENT.md) |
+| Type safety | - | ✓ | `now-sdk explain clientscript-api` |
+| Version control | - | ✓ | `now-sdk explain developing-apps-guide` |
 
 ---
 
@@ -96,9 +73,9 @@ export const cs = ClientScript({
 | Question | Answer | Use |
 |----------|--------|-----|
 | Is this an existing instance? | Yes | [CLASSIC.md](CLASSIC.md) |
-| Is this a new SDK project? | Yes | [FLUENT.md](FLUENT.md) |
-| Do we use TypeScript? | Yes | [FLUENT.md](FLUENT.md) |
-| Need version control? | Yes | [FLUENT.md](FLUENT.md) |
+| Is this a new SDK project? | Yes | NowDev-AI-Fluent-UI-Developer |
+| Do we use TypeScript? | Yes | `now-sdk explain clientscript-api` |
+| Need version control? | Yes | `now-sdk explain developing-apps-guide` |
 | Quick form enhancement? | Yes | [CLASSIC.md](CLASSIC.md) |
 
 ---
@@ -119,25 +96,7 @@ function onChange(control, oldValue, newValue, isLoading) {
 ```
 
 ### Fluent: SDK Script
-```typescript
-// Version-controlled .now.ts file
-import { ClientScript } from '@servicenow/sdk/core'
-
-export const cs = ClientScript({
-    $id: Now.ID['my_script'],
-    type: 'onChange',
-    field: 'field_name',
-    table: 'incident',
-    script: (oldValue, newValue, isLoading) => {
-        if (isLoading || !newValue) return;
-        const ga = new GlideAjax('ScriptInclude');
-        ga.addParam('sysparm_name', 'method');
-        ga.getXMLAnswer((answer) => {
-            g_form.setValue('field', answer);
-        });
-    }
-})
-```
+Use installed-version docs: `now-sdk explain clientscript-api --format raw`.
 
 ---
 
@@ -145,4 +104,4 @@ export const cs = ClientScript({
 
 - **[BEST_PRACTICES.md](BEST_PRACTICES.md)** — GlideAjax patterns and g_form API reference
 - **[CLASSIC.md](CLASSIC.md)** — Full reference for instance-based scripts
-- **[FLUENT.md](FLUENT.md)** — Full reference for SDK scripts
+- Fluent SDK scripts — `now-sdk explain clientscript-api --format raw`

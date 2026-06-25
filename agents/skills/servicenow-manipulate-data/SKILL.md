@@ -128,11 +128,7 @@ Choose the pattern that matches your project type:
   - GlideAggregate for performance
   - Bulk operations and complex filtering
 
-- **[FLUENT.md](./FLUENT.md)** — Modern SDK patterns (TypeScript, new projects)
-  - Type-safe fluent API
-  - GlideQuery chainable methods
-  - Array transformations and aggregations
-  - Full-stack application development
+- Fluent SDK data access — use `now-sdk explain data-helpers-guide --format raw` or the relevant installed SDK topic, then route implementation to the appropriate Fluent specialist.
 
 - **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches side-by-side
 

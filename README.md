@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.6.6-blue)
+  ![Version](https://img.shields.io/badge/version-0.6.7-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.120+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -47,12 +47,12 @@ Agents use three knowledge channels, all configurable from the NowDev AI Toolbox
 
 | Source | What it covers | Default |
 |--------|----------------|---------|
-| **`now-sdk explain`** (always-on) | Fluent SDK API reference and guides — local CLI, works offline | Always enabled |
-| **SDK llms.txt** | ServiceNow SDK documentation index | `https://servicenow.github.io/sdk/llms.txt` |
+| **`now-sdk explain`** (always-on) | Fluent SDK API reference, guides, examples, and CLI behavior — local CLI tied to the installed SDK version | Always enabled |
+| **SDK llms.txt** | Supplemental SDK documentation index when `now-sdk explain` does not cover a topic | `https://servicenow.github.io/sdk/llms.txt` |
 | **Product llms.txt** | General ServiceNow platform docs | `https://www.servicenow.com/llms.txt` |
 | **MCP server** | Your own indexed sources (optional) | None |
 
-To configure, open the NowDev AI Toolbox sidebar and expand **Documentation Sources**. You can point each channel at an llms.txt URL, an MCP server, or leave it as none.
+For Fluent SDK work, agents use `now-sdk explain --list <keyword>`, `now-sdk explain <topic> --peek`, and `now-sdk explain <topic> --format raw` before relying on local skills. Local skills now focus on Classic scripting, ServiceNow platform patterns, NowDev workflows, and small opinionated guardrails. To configure supplemental sources, open the NowDev AI Toolbox sidebar and expand **Documentation Sources**.
 
 ### Connecting to Your ServiceNow Instance
 
@@ -87,6 +87,26 @@ Once `now-sdk init` completes, the sidebar will automatically detect the new `no
 - Ensure all work follows ServiceNow best practices
 
 You can also use specialized agents directly for specific tasks, but starting with the orchestrator ensures proper planning and coordination.
+
+### Workspace Customizations and Artifact State
+
+NowDev writes modern VS Code Copilot customization files into the workspace when agents are synced:
+
+| File location | Purpose |
+|---------------|---------|
+| `.github/agents/*.agent.md` | Generated custom agents for the active profile, tools, MCP servers, and enabled agent set |
+| `.github/instructions/nowdev-ai.instructions.md` | Workspace-wide NowDev context, artifact protocol, custom instructions, and selected instance guidelines |
+| `.github/prompts/nowdev-*.prompt.md` | Slash prompts for starting, reviewing, and compacting NowDev sessions |
+
+Session artifacts are tracked in `.vscode/nowdev-ai-session/artifacts.json`, discovered through `.vscode/nowdev-ai-config.json` under `artifactState.path`. This file is the source of truth for cross-agent handoffs and survives chat context compaction better than a memory-only table. The sidebar summarizes artifact dependencies, reports missing source files, and includes actions to open or reset the artifact state without deleting generated source files.
+
+The Agents tab supports per-agent model overrides and role-aware model presets based on the chat models VS Code reports as available. Keep bundled agents mostly unpinned unless a team has a clear quality, latency, or cost reason to override them.
+
+Memory is optional. If Copilot memory is unavailable or disabled by an organization, NowDev still uses the workspace artifact state. The sidebar reports administrator-managed preview features without showing impossible fix buttons.
+
+Hooks are optional Preview functionality. Use **NowDev AI: Hooks: Create Optional Artifact Templates** to create reviewable `.github/hooks` templates for teams that want deterministic lifecycle automation. The generated template includes a Node-based Artifact Manifest merge script plus Windows and Linux/macOS wrapper commands, but hooks are not required for normal operation.
+
+If hooks are not enabled, agents still end with an `Artifact Manifest` JSON block. Copy an agent response and run **NowDev AI: Artifacts: Merge Manifest from Clipboard** to merge the manifest into the workspace artifact state.
 
 ### Example Usage
 Open GitHub Copilot Chat, select "NowDev AI Agent" from the agent dropdown, and type:
@@ -232,13 +252,13 @@ The extension integrates specialized AI agents directly into VS Code through Git
 
 ## Included Skills
 
-These best practice modules are now natively registered as Copilot Skills, sourced from **ServiceNow SDK official documentation**:
+These best practice modules are now natively registered as Copilot Skills. Fluent SDK API details come from `now-sdk explain`; local skills provide Classic/platform guidance and NowDev-specific workflow patterns:
 - **ServiceNow Scripting**: Naming conventions, `GlideAggregate` vs `GlideRecord`, and forbidden patterns (`eval`).
 - **Business Rules**: Execution timing (`before`/`after`/`async`), recursion prevention, and IIFE wrapping.
 - **Client Scripts**: `GlideAjax` patterns, performance optimization, and `g_scratchpad` usage.
 - **Deployment**: Update Set hygiene, batching strategies, and XML migration rules.
-- **JavaScript Modules**: Module import/export patterns, `@servicenow/glide` APIs, Script Include bridging.
-- **Full Fluent SDK Coverage**: Tables (52 column types), Service Catalog (29+ variables), Flows, UI Pages, Workspaces, AI Agent Studio, and more.
+- **JavaScript Modules**: NowDev guardrails for module import/export patterns and Script Include bridging; verify SDK details with `now-sdk explain module-guide` and `now-sdk explain now-include-guide`.
+- **Fluent SDK Routing**: Agents map Tables, Catalog, Flows, UI Pages, Workspaces, AI Agent Studio, and more to the relevant `now-sdk explain` topics for the installed SDK.
 
 ### Agent Definitions
 Each AI agent is defined in declarative format:
@@ -279,7 +299,7 @@ Claude Code users can leverage the same best practice skills as Copilot users:
 
 2. **Reference the skills** directly in Claude — all `agents/skills/` documentation works seamlessly with Claude's tools.
 
-3. **Use the official SDK docs** — `package/docs/` contains 157 API reference files and 40+ guides that Claude can consult.
+3. **Use installed SDK docs** — run `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw` for Fluent SDK API accuracy tied to the user's SDK version.
 
 See [agents/claude-code/README.md](agents/claude-code/README.md) for detailed setup instructions.
 

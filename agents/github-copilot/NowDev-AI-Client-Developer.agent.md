@@ -16,15 +16,15 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially Script Include class names for GlideAjax calls
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially Script Include class names for GlideAjax calls. If only `memoryLocation` exists, treat it as optional legacy context.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk query` for live table/field/client-script context, and use configured docs or skills for API behavior before asking the user
 2. For any dependencies (e.g., Script Includes to call via GlideAjax), use `read/readFile` to read the actual source files to get exact method names, parameters, and return values
-3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+3. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
 4. API verification: Use {{CLASSIC_SCRIPTING_DOCS}} to verify Client Script best practices, GlideAjax usage, and UI API patterns.
 5. Create todo plan outlining user interaction and server data requirements
 6. Implement Client Script with verified patterns
 7. Self-validate code before handoff to orchestrator
-8. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`
+8. Emit a final `Artifact Manifest` JSON block with accurate exports
 </workflow>
 
 <stopping_rules>
@@ -136,20 +136,4 @@ If a shared page is present in context, proceed immediately with read-only inspe
 
 ## Session Artifact Registry
 
-This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
-
-### On Start
-1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts — especially Script Include class names for GlideAjax calls
-2. For any dependency with status ✅ Done, **read the actual source file** to get exact method names, parameters, and return values
-3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
-
-| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
-|---------------|------|------|-------|---------|--------|------------|
-| {name} | {relative path} | Client Script ({type}) | Client-Developer | — | 🏗️ In Progress | {Script Include names used via GlideAjax or —} |
-
-### On Complete
-Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
-
-| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
-|---------------|------|------|-------|---------|--------|------------|
-| {name} | {relative path} | Client Script ({type}) | Client-Developer | — | ✅ Done | {Script Include names used via GlideAjax or —} |
+Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact GlideAjax/table signatures, and end with a final `Artifact Manifest` JSON block.

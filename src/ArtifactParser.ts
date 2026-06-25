@@ -1,11 +1,92 @@
 export interface ParsedArtifact {
+    id?: string;
     name: string;
     file: string;
+    files?: string[];
     type: string;
     agent: string;
     exports: string;
     status: string;
     dependsOn: string;
+    dependsOnIds?: string[];
+    missingFiles?: string[];
+}
+
+interface ArtifactStateRecord {
+    id?: string;
+    name?: string;
+    file?: string;
+    files?: string[];
+    type?: string;
+    agent?: string;
+    ownerAgent?: string;
+    exports?: unknown;
+    status?: string;
+    dependsOn?: string[];
+}
+
+interface ArtifactStateDocument {
+    artifacts?: ArtifactStateRecord[];
+}
+
+export function parseArtifactsContent(content: string): ParsedArtifact[] {
+    const trimmed = content.trim();
+    if (!trimmed) { return []; }
+
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        return parseArtifactsJson(trimmed);
+    }
+
+    return parseArtifactsMarkdown(content);
+}
+
+export function parseArtifactsJson(content: string, workspaceRoot?: string): ParsedArtifact[] {
+    try {
+        const parsed = JSON.parse(content) as ArtifactStateDocument | ArtifactStateRecord[];
+        const records = Array.isArray(parsed) ? parsed : Array.isArray(parsed.artifacts) ? parsed.artifacts : [];
+        return records.map(record => ({
+            id: record.id || record.name || '',
+            name: record.name || record.id || '',
+            file: Array.isArray(record.files) ? record.files.join(', ') : record.file || '',
+            files: normalizeFileList(record),
+            type: record.type || '',
+            agent: record.ownerAgent || record.agent || '',
+            exports: formatArtifactValue(record.exports),
+            status: record.status || '',
+            dependsOn: Array.isArray(record.dependsOn) ? record.dependsOn.join(', ') : '',
+            dependsOnIds: Array.isArray(record.dependsOn) ? record.dependsOn.filter(Boolean) : [],
+            missingFiles: workspaceRoot ? findMissingFiles(workspaceRoot, normalizeFileList(record)) : [],
+        })).filter(artifact => artifact.name || artifact.file);
+    } catch {
+        return [];
+    }
+}
+
+function normalizeFileList(record: ArtifactStateRecord): string[] {
+    if (Array.isArray(record.files)) {
+        return record.files.filter(Boolean);
+    }
+    return record.file ? [record.file] : [];
+}
+
+function findMissingFiles(workspaceRoot: string, files: string[]): string[] {
+    const fs = require('fs') as typeof import('fs');
+    const path = require('path') as typeof import('path');
+    return files.filter(file => {
+        const resolved = path.resolve(workspaceRoot, file);
+        const root = path.resolve(workspaceRoot);
+        if (resolved !== root && !resolved.startsWith(root + path.sep)) { return true; }
+        return !fs.existsSync(resolved);
+    });
+}
+
+function formatArtifactValue(value: unknown): string {
+    if (Array.isArray(value)) {
+        return value.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(', ');
+    }
+    if (typeof value === 'string') { return value; }
+    if (value && typeof value === 'object') { return JSON.stringify(value); }
+    return '';
 }
 
 /**

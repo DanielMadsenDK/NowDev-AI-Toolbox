@@ -40,7 +40,7 @@ Key topics for release/deployment (use `now-sdk explain <topic> --format raw`):
   - CI/CD integration and auth: `ci-integration`
   - App development workflow and CLI: `developing-apps-guide`
 
-Use {{SDK_DOCS_CONTEXT}} for supplementary SDK deployment patterns
+Use {{SDK_DOCS_CONTEXT}} only for supplementary SDK deployment context not covered by `now-sdk explain`
 </documentation>
 
 # ServiceNow Fluent Release Agent

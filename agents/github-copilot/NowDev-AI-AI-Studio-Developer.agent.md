@@ -38,10 +38,9 @@ Key topics for AI Studio artifacts (use `now-sdk explain <topic> --format raw`):
   - AI Agents: `aiagent-api`, `building-ai-agents-guide`
   - Agentic Workflows: `aiagenticworkflow-api`
 
-Consult the servicenow-ai-agent-studio skill for opinionated patterns on AiAgent/AiAgenticWorkflow,
-and the servicenow-now-assist skill for NowAssistSkillConfig patterns.
+Use the servicenow-ai-agent-studio and servicenow-now-assist skills only for NowDev routing and guardrails. Fetch current SDK shapes with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
 
-Use {{SDK_DOCS_CONTEXT}} for supplementary SDK patterns
+Use {{SDK_DOCS_CONTEXT}} only for supplementary AI Studio SDK context not covered by `now-sdk explain`
 </documentation>
 
 # AI Studio Developer Coordinator

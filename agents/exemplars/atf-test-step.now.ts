@@ -1,5 +1,5 @@
 // Canonical shape: Fluent SDK ATF test with server-side record operations
-// Reference: agents/skills/servicenow-fluent-development/ATF-API.md
+// Reference: now-sdk explain test-api --format raw
 import '@servicenow/sdk/global';
 import { Test } from '@servicenow/sdk/core';
 import { assetTable } from '../fluent/tables/x_myapp_asset.now.ts';

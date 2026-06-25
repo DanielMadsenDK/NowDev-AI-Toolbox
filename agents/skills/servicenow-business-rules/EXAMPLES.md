@@ -26,24 +26,8 @@ Use for direct ServiceNow instance customizations created in the Business Rules 
 
 ---
 
-### **[FLUENT.md](FLUENT.md) — SDK-Based Rules (.now.ts)**
-Use for TypeScript projects with `.now.ts` metadata definitions and handler functions.
-
-**Quick example:**
-```typescript
-import { BusinessRule } from '@servicenow/sdk/core'
-
-export default BusinessRule({
-    $id: Now.ID['incident_before_rule'],
-    name: 'Auto-Set Urgency',
-    table: 'incident',
-    when: 'before',
-    script: (current, previous) => {
-        if (current.priority === previous.priority) return;
-        current.urgency = current.priority;
-    }
-})
-```
+### **Fluent SDK Rules (.now.ts)**
+Use `now-sdk explain businessrule-api --format raw` and `now-sdk explain business-rule-guide --format raw`, then route implementation to NowDev-AI-Fluent-Logic-Developer. Local examples are not SDK API reference.
 
 **When to use:**
 - ✓ New SDK projects
@@ -75,8 +59,8 @@ export default BusinessRule({
 | Related record updates | ✓ | ✓ | See respective guide |
 | Notifications | ✓ | ✓ | See respective guide |
 | Error handling | ✓ | ✓ | See respective guide |
-| Type safety | - | ✓ | [FLUENT.md](FLUENT.md) |
-| Version control | - | ✓ | [FLUENT.md](FLUENT.md) |
+| Type safety | - | ✓ | `now-sdk explain businessrule-api` |
+| Version control | - | ✓ | `now-sdk explain developing-apps-guide` |
 
 ---
 
@@ -85,9 +69,9 @@ export default BusinessRule({
 | Question | Answer | Use |
 |----------|--------|-----|
 | Is this an existing instance? | Yes | [CLASSIC.md](CLASSIC.md) |
-| Is this a new SDK project? | Yes | [FLUENT.md](FLUENT.md) |
-| Do we use TypeScript? | Yes | [FLUENT.md](FLUENT.md) |
-| Need version control for rules? | Yes | [FLUENT.md](FLUENT.md) |
+| Is this a new SDK project? | Yes | NowDev-AI-Fluent-Logic-Developer |
+| Do we use TypeScript? | Yes | `now-sdk explain businessrule-api` |
+| Need version control for rules? | Yes | `now-sdk explain developing-apps-guide` |
 | Quick instance customization? | Yes | [CLASSIC.md](CLASSIC.md) |
 
 ---
@@ -103,20 +87,7 @@ export default BusinessRule({
 ```
 
 ### Fluent: SDK Rule (.now.ts)
-```typescript
-// Version-controlled, TypeScript
-import { BusinessRule } from '@servicenow/sdk/core'
-
-export default BusinessRule({
-    $id: Now.ID['incident_rule'],
-    name: 'Auto-Set Urgency',
-    table: 'incident',
-    when: 'before',
-    script: (current, previous) => {
-        current.urgency = current.priority;
-    }
-})
-```
+Use installed-version docs: `now-sdk explain businessrule-api --format raw`.
 
 ---
 
@@ -124,4 +95,4 @@ export default BusinessRule({
 
 - **[BEST_PRACTICES.md](BEST_PRACTICES.md)** — Execution matrix and advanced patterns
 - **[CLASSIC.md](CLASSIC.md)** — Full reference for instance-based rules
-- **[FLUENT.md](FLUENT.md)** — Full reference for SDK rules
+- Fluent SDK rules — `now-sdk explain businessrule-api --format raw`

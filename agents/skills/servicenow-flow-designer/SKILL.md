@@ -8,18 +8,18 @@ last_verified: "2026-05-18"
 
 # Flow Designer Scripting
 
-> **Scope:** This skill covers **Classic FlowAPI** execution — running flows, subflows, and actions programmatically from server-side scripts using `sn_fd.FlowAPI`. For the **Fluent SDK** `wfa` automation API (declarative `Flow()`, `wfa.trigger()`, `wfa.action()`), see [servicenow-fluent-development/FLOW-API.md](../servicenow-fluent-development/FLOW-API.md).
+> **Scope:** This skill covers **Classic FlowAPI** execution — running flows, subflows, and actions programmatically from server-side scripts using `sn_fd.FlowAPI`. For the **Fluent SDK** `wfa` automation API (declarative `Flow()`, `wfa.trigger()`, `wfa.action()`), use `now-sdk explain wfa-flow-guide --format raw` and the artifact-specific topic.
 
 ## Classic FlowAPI vs Fluent SDK WFA
 
 | Use Case | Approach |
 |----------|----------|
 | **Execute an existing flow** from a Business Rule or Script Include | Classic `sn_fd.FlowAPI` (this skill) |
-| **Define a new flow** as code in a Fluent SDK project | Fluent `wfa.trigger()` / `wfa.action()` (see FLOW-API.md) |
+| **Define a new flow** as code in a Fluent SDK project | NowDev-AI-Fluent-Automation-Developer after `now-sdk explain wfa-flow-guide --format raw` |
 | Trigger a flow from a GlideAjax handler | Classic `sn_fd.FlowAPI` |
-| Event-driven / scheduled automation in a Fluent app | Fluent WFA (`Flow()` with `trigger.record.*` or `trigger.scheduled.*`) |
+| Event-driven / scheduled automation in a Fluent app | NowDev-AI-Fluent-Automation-Developer after installed SDK doc lookup |
 
-> **Fluent WFA critical notes:** When building flows with the Fluent SDK, `Time`, `Duration`, and `TemplateValue` are **globally available** — do NOT import them. Data pills (`wfa.dataPill()`) must be used **directly** in action parameters — never assign them to variables first. WFA flows are declarative DSL; do not mix JavaScript abstractions.
+For Fluent WFA API details, use `now-sdk explain wfa-flow-guide --format raw` and the artifact-specific topic. This skill covers Classic `sn_fd.FlowAPI` execution only.
 
 ## Quick start
 
@@ -90,10 +90,6 @@ var success = result.wasSuccessful();
 | FlowAPI | Entry point; manages runner lifecycle |
 | ScriptableFlowRunner | Builder for flow execution |
 | ScriptableFlowRunnerResult | Result container and output handler |
-
-## Examples
-
-For working code examples covering incident escalation, approval workflows, and notification patterns, see [EXAMPLES.md](./EXAMPLES.md)
 
 ## Reference
 

@@ -66,10 +66,11 @@ user-invocable: true
 9. Visualize proposed solution using `renderMermaidDiagram` (do not output diagram code in chat).
 10. Present plan summary, dependency graph, and diagram to user. PAUSE for approval before proceeding.
 11. Initialize todo list with all sub-agent invocations, review steps, parallel batches, and milestones.
-12. **Initialize the Session Artifact Registry** (THREE mandatory sub-steps — do NOT skip any):
-    a. Use the `memory` tool to create `/memories/session/artifacts.md` with the header row (see Session Artifact Registry section below).
-    b. **IMMEDIATELY** call `vscode/resolveMemoryFileUri` with path `artifacts.md` to get the `file:///` URI.
-    c. Read `.vscode/nowdev-ai-config.json` with `read/readFile`, then use `edit/editFiles` to add the `"memoryLocation"` field with the URI from step (b). This is REQUIRED — without it the user cannot see artifact progress in the sidebar.
+12. **Initialize the Session Artifact Registry** (workspace-backed, memory-optional):
+   a. Read `.vscode/nowdev-ai-config.json` with `read/readFile` and locate `artifactState.path`.
+   b. Use `read/readFile` to read the artifact state JSON file if it exists. If the file does not exist, create it at `artifactState.path` with `{ "version": 1, "sessionId": "", "artifacts": [] }`.
+   c. If `artifactState.path` is missing but `memoryLocation` exists, read the legacy memory-backed registry as optional context only. Do not require the memory tool to continue.
+   d. Pass `artifactState.path` to every coordinator and development sub-agent, and require each development sub-agent to return a final `Artifact Manifest` JSON block.
 13. Delegate to sub-agents by dependency batch. Run independent sub-agents in parallel; wait for each batch to finish before starting dependent work.
 14. Update todo list after each sub-agent completes.
 15. Coordinate parallel review where possible, then deployment preparation.
@@ -86,8 +87,8 @@ STOP IMMEDIATELY if writing any ServiceNow code yourself — ALL implementation 
 STOP IMMEDIATELY if attempting implementation yourself (orchestrate only, never implement)
 STOP if todo list not updated after sub-agent completion
 STOP if proceeding to deployment without asking user about XML import creation
-STOP if delegating to development sub-agents without first initializing `/memories/session/artifacts.md`
-STOP if you created `/memories/session/artifacts.md` but did NOT yet call `vscode/resolveMemoryFileUri` and write the `memoryLocation` to `.vscode/nowdev-ai-config.json` — the sidebar cannot track progress without this step
+STOP if delegating to development sub-agents without first reading `.vscode/nowdev-ai-config.json` and resolving `artifactState.path`
+STOP if requiring `/memories/session/artifacts.md`, `vscode/memory`, or `vscode/resolveMemoryFileUri` for artifact tracking — memory is preview and may be disabled by organization policy
 STOP if using runPlaywrightCode when a shared browser page is present in context — always use individual browser tools with the page ID instead
 STOP if using runPlaywrightCode for any scenario achievable with individual browser tool calls (clickElement, typeInPage, etc.)
 STOP if about to use or recommend a tool/runtime/language that is NOT listed in `environment.availableTools` from the config — inform the user what is missing and why it is needed instead
@@ -129,7 +130,7 @@ Sub-agents carry specialized ServiceNow knowledge, rules, and built-in best prac
 {{#agent:NowDev-AI-Fluent-Developer}}
 - Fluent metadata (.now.ts), ServiceNow SDK, full-stack React apps, or AI Studio artifacts (AiAgent, AiAgenticWorkflow, NowAssistSkillConfig) → `NowDev-AI-Fluent-Developer` (routes AI Studio work internally to `NowDev-AI-AI-Studio-Developer`)
 
-**Module pattern context (Fluent projects):** When delegating to `NowDev-AI-Fluent-Developer`, inform it which APIs are function-accepting (BusinessRule, ScriptAction, UiAction, RestApi routes, ScheduledScript — use ES module `import`/`export`) vs string-only (ScriptInclude, ClientScript, UiPolicy, CatalogClientScript, CatalogUiPolicy, Assignment Rule scripts, SPWidget script fields — use `Now.include()` where supported). See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md`.
+**Module pattern context (Fluent projects):** When delegating to `NowDev-AI-Fluent-Developer`, inform it which APIs appear to be function-accepting versus string-only, then require the specialist to verify current behavior with `now-sdk explain now-include-guide --format raw`, `now-sdk explain module-guide --format raw`, and the artifact-specific API topic before writing code.
 {{/agent:NowDev-AI-Fluent-Developer}}
 {{#agent:NowDev-AI-Debugger}}
 - Debugging, diagnostics, runtime errors, or client-side bug investigation → `NowDev-AI-Debugger`
@@ -195,9 +196,9 @@ Use the plan template from `agents/github-copilot/AGENT-PATTERNS.md#plan-format`
 
 ## Session Artifact Registry
 
-**MANDATORY for full-project sessions.** Before delegating to any development sub-agent, initialize the shared artifact registry using the built-in `memory` tool so sub-agents can discover each other's outputs.
+**MANDATORY for full-project sessions.** Before delegating to any development sub-agent, read `.vscode/nowdev-ai-config.json`, resolve `artifactState.path`, and use the workspace-backed artifact state file so sub-agents can discover each other's outputs. The `memory` tool is optional legacy context only.
 
-See `agents/github-copilot/AGENT-PATTERNS.md#session-artifact-registry` for the full registry format, initialization steps, lifecycle, and memory tool operations.
+See `agents/skills/servicenow-artifact-state/SKILL.md` for the full registry format, lifecycle, dependency validation rules, context-compaction recovery behavior, and `Artifact Manifest` protocol.
 
 ## Todo List Management
 

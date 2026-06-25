@@ -46,10 +46,15 @@ Skills are located in `agents/skills/` with the following domains:
 
 ### 3. Reference documentation
 
-Official ServiceNow SDK documentation is in `package/docs/`:
-- `package/docs/api/` — API reference files (157 files)
-- `package/docs/guides/` — Guide documents (40+ files)
-- `package/docs/now-config-reference.md` — Configuration reference
+For Fluent SDK API accuracy, use the SDK installed in the target workspace:
+
+```bash
+now-sdk explain --list <keyword>
+now-sdk explain <topic> --peek
+now-sdk explain <topic> --format raw
+```
+
+Local skills provide workflow conventions and ServiceNow platform patterns; `now-sdk explain` is the source of truth for Fluent SDK APIs and CLI behavior.
 
 ## Usage with Claude Code
 
@@ -57,6 +62,6 @@ When working on ServiceNow development tasks, Claude Code will:
 
 1. Read the relevant skill SKILL.md for the domain
 2. Follow the patterns and best practices documented
-3. Reference the official docs in `package/docs/` for API accuracy
+3. Reference `now-sdk explain` for Fluent SDK API and CLI accuracy
 4. Use JavaScript modules as the preferred server-side pattern (for function-accepting APIs)
 5. Use `Now.include()` for string-only APIs (ClientScript, ScriptInclude, etc.)

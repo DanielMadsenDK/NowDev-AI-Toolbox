@@ -278,4 +278,4 @@ function callExternalAPI(endpoint, method, payload, maxRetries) {
 - ✓ Third-party system connections
 - ✓ Legacy API compatibility
 
-For SDK-based projects, see [FLUENT.md](FLUENT.md) for modern patterns.
+For SDK-based projects, use `now-sdk explain --list rest` and route implementation to the appropriate Fluent specialist.

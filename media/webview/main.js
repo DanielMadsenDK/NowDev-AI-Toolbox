@@ -143,8 +143,19 @@
     document.getElementById('showAgentTopology').addEventListener('click', () => {
         vscode.postMessage({ command: 'showAgentTopology' });
     });
+    document.getElementById('applyModelPresets').addEventListener('click', () => {
+        vscode.postMessage({ command: 'applyModelPresets' });
+    });
     document.getElementById('showCopilotChatLogs').addEventListener('click', () => {
         vscode.postMessage({ command: 'showCopilotChatLogs' });
+    });
+
+    document.getElementById('openArtifactState').addEventListener('click', () => {
+        vscode.postMessage({ command: 'openArtifactState' });
+    });
+
+    document.getElementById('resetArtifactState').addEventListener('click', () => {
+        vscode.postMessage({ command: 'resetArtifactState' });
     });
 
 
@@ -316,7 +327,7 @@
                 renderAgentCards(msg.manifests, msg.overrides, msg.modelOptions || []);
                 break;
             case 'updateArtifacts':
-                renderArtifacts(msg.artifacts, msg.sessionActive);
+                renderArtifacts(msg.artifacts, msg.sessionActive, msg.errors);
                 break;
             case 'updateSdkData':
                 renderAuthAliases(msg.authAliases);
@@ -361,6 +372,8 @@
     var _wsState = {
         prereqsOk: 0,
         prereqsTotal: 0,
+        prereqsFixable: 0,
+        prereqsBlocked: 0,
         conn: null,
         fluentScope: null,
         hasInstanceUrl: false,
@@ -375,29 +388,48 @@
 
     function updateChecks(checks) {
         let allOk = true;
-        let okCount = 0, total = 0;
+        let okCount = 0, total = 0, fixableCount = 0, blockedCount = 0;
         document.querySelectorAll('#checks .check-row').forEach(row => {
             const key = row.dataset.key;
-            const ok = checks[key];
+            const check = checks[key];
+            const ok = typeof check === 'boolean' ? check : !!(check && check.ok);
+            const fixable = typeof check === 'boolean' ? !check : !!(check && check.fixable);
+            const managedByPolicy = !!(check && check.managedByPolicy);
+            const optional = !!(check && check.optional);
+            const message = check && typeof check === 'object' && check.message ? check.message : '';
             const icon = row.querySelector('.check-icon');
             const btn = row.querySelector('.fix-btn');
-            total++;
+            const label = row.querySelector('.check-label');
+            let detail = row.querySelector('.check-detail');
+            if (!detail) {
+                detail = document.createElement('span');
+                detail.className = 'check-detail';
+                if (label) { label.insertAdjacentElement('afterend', detail); }
+            }
+            row.classList.toggle('is-optional', optional);
+            if (!optional) { total++; }
             if (ok) {
-                okCount++;
+                if (!optional) { okCount++; }
                 icon.className = 'check-icon ok';
                 icon.innerHTML = '\u2713';
                 btn.classList.add('nd-hidden');
+                detail.textContent = optional ? message : '';
             } else {
-                icon.className = 'check-icon fail';
-                icon.innerHTML = '\u2717';
-                btn.classList.remove('nd-hidden');
-                allOk = false;
+                icon.className = managedByPolicy ? 'check-icon blocked' : 'check-icon fail';
+                icon.innerHTML = managedByPolicy ? '!' : '\u2717';
+                btn.classList.toggle('nd-hidden', !fixable);
+                detail.textContent = message;
+                if (!optional) { allOk = false; }
+                if (fixable) { fixableCount++; }
+                if (managedByPolicy) { blockedCount++; }
             }
         });
         document.getElementById('allGood').classList.toggle('nd-hidden', !allOk);
-        document.getElementById('fixAll').classList.toggle('nd-hidden', allOk);
+        document.getElementById('fixAll').classList.toggle('nd-hidden', allOk || fixableCount === 0);
         _wsState.prereqsOk = okCount;
         _wsState.prereqsTotal = total;
+        _wsState.prereqsFixable = fixableCount;
+        _wsState.prereqsBlocked = blockedCount;
         renderOnboardingSummary();
     }
 
@@ -638,14 +670,23 @@
         return html;
     }
 
+    function normalizeModelValues(value) {
+        if (Array.isArray(value)) {
+            return value.map(function (item) { return typeof item === 'string' ? item.trim() : ''; }).filter(Boolean);
+        }
+        return typeof value === 'string' && value.trim() ? [value.trim()] : [];
+    }
+
     function buildAgentCardHtml(m, overrides, modelOptions, extraClass, showToggle, bundleName) {
         var override = (overrides && overrides[m.name]) || { enabled: true, disabledTools: [] };
         var agentEnabled = override.enabled !== false;
         var disabledSet = {};
         if (override.disabledTools) { override.disabledTools.forEach(function (t) { disabledSet[t] = true; }); }
         var enabledCount = m.baseTools.filter(function (t) { return !disabledSet[t]; }).length;
-        var currentModel = m.model || '';
-        var currentOverrideModel = override.model || '';
+        var bundledModels = Array.isArray(m.model) ? m.model.filter(Boolean) : (m.model ? [m.model] : []);
+        var currentModel = bundledModels[0] || '';
+        var overrideModels = normalizeModelValues(override.model);
+        var currentOverrideModel = overrideModels[0] || '';
         var selectedModel = currentOverrideModel || currentModel;
 
         var cardClass = 'agent-card' + (extraClass ? ' ' + extraClass : '') + (agentEnabled ? '' : ' agent-disabled');
@@ -661,7 +702,7 @@
         }
         html += '<button class="agent-file-btn" data-filename="' + esc(m.filename) + '" title="Open .agent.md file">&#8599;</button>';
         html += '</div>';
-        html += buildAgentModelHtml(m, selectedModel, currentOverrideModel, modelOptions || []);
+        html += buildAgentModelHtml(m, selectedModel, currentOverrideModel, modelOptions || [], bundledModels);
         html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
         html += '</div>';
         html += buildAgentToolsHtml(m, disabledSet);
@@ -669,14 +710,18 @@
         return html;
     }
 
-    function buildAgentModelHtml(m, selectedModel, overrideModel, modelOptions) {
+    function buildAgentModelHtml(m, selectedModel, overrideModel, modelOptions, bundledModels) {
         var html = '<div class="agent-card-model-row">';
         html += '<label class="agent-model-label" for="model-' + esc(m.name) + '">Model</label>';
         html += '<select class="agent-model-select" id="model-' + esc(m.name) + '" data-agent="' + esc(m.name) + '">';
-        html += '<option value=""' + (!selectedModel ? ' selected' : '') + '>Default</option>';
+        var defaultLabel = 'Default';
+        if (bundledModels && bundledModels.length > 0) {
+            defaultLabel = 'Default: ' + bundledModels[0];
+        }
+        html += '<option value=""' + (!overrideModel ? ' selected' : '') + '>' + esc(defaultLabel) + '</option>';
 
         var hasSelected = false;
-        if (selectedModel) {
+        if (overrideModel && selectedModel) {
             for (var i = 0; i < modelOptions.length; i++) {
                 if (modelOptions[i].value === selectedModel) {
                     hasSelected = true;
@@ -690,7 +735,7 @@
 
         for (var j = 0; j < modelOptions.length; j++) {
             var option = modelOptions[j];
-            html += '<option value="' + esc(option.value) + '"' + (option.value === selectedModel ? ' selected' : '') + '>' + esc(option.label) + '</option>';
+            html += '<option value="' + esc(option.value) + '"' + (overrideModel && option.value === selectedModel ? ' selected' : '') + '>' + esc(option.label) + '</option>';
         }
 
         html += '</select>';
@@ -829,10 +874,12 @@
     let _currentArtifactFilter = 'active'; // default to showing active (non-done) artifacts
     let _lastArtifacts = [];
     let _lastSessionActive = false;
+    let _lastArtifactErrors = [];
 
-    function renderArtifacts(artifacts, sessionActive) {
+    function renderArtifacts(artifacts, sessionActive, errors) {
         _lastArtifacts = artifacts || [];
         _lastSessionActive = sessionActive;
+        _lastArtifactErrors = errors || [];
         _renderArtifactsFiltered();
     }
 
@@ -844,10 +891,21 @@
 
         const artifacts = _lastArtifacts;
         const sessionActive = _lastSessionActive;
+        const artifactErrors = _lastArtifactErrors;
         const hasArtifacts = sessionActive && artifacts && artifacts.length > 0;
+        const hasArtifactErrors = sessionActive && artifactErrors && artifactErrors.length > 0;
 
-        if (section) { section.classList.toggle('nd-hidden', !hasArtifacts); }
+        if (section) { section.classList.toggle('nd-hidden', !hasArtifacts && !hasArtifactErrors); }
         if (pill) { pill.textContent = hasArtifacts ? String(artifacts.length) : ''; }
+
+        const artifactErrorHtml = hasArtifactErrors
+            ? '<div class="artifact-errors">' + artifactErrors.map(function (err) { return '<div>' + esc(err) + '</div>'; }).join('') + '</div>'
+            : '';
+
+        if (hasArtifactErrors && !hasArtifacts) {
+            container.innerHTML = artifactErrorHtml;
+            return;
+        }
 
         if (!hasArtifacts) {
             container.innerHTML = '';
@@ -859,9 +917,19 @@
         const inProgressCount = artifacts.filter(a => isInProgress(a.status)).length;
         const total = artifacts.length;
         const activeCount = total - doneCount;
+        const dependencyEdges = artifacts.reduce(function (count, artifact) {
+            return count + getDependencyIds(artifact).length;
+        }, 0);
+        const missingSourceCount = artifacts.reduce(function (count, artifact) {
+            return count + getMissingFiles(artifact).length;
+        }, 0);
 
         // Filter bar
-        let html = '<div class="artifact-filters">';
+        let html = artifactErrorHtml + '<div class="artifact-actions">';
+        html += '<button class="fix-btn artifact-state-btn" id="openArtifactStateInline">Open State</button>';
+        html += '<button class="fix-btn artifact-state-btn" id="resetArtifactStateInline">Reset</button>';
+        html += '</div>';
+        html += '<div class="artifact-filters">';
         html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'active' ? ' active' : '') + '" data-filter="active">Active (' + activeCount + ')</button>';
         html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'all' ? ' active' : '') + '" data-filter="all">All (' + total + ')</button>';
         html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'done' ? ' active' : '') + '" data-filter="done">Done (' + doneCount + ')</button>';
@@ -874,6 +942,10 @@
         const remaining = total - doneCount - inProgressCount;
         if (remaining > 0) summaryParts.push(remaining + ' other');
         html += '<div class="artifacts-summary"><strong>' + summaryParts.join(' &middot; ') + '</strong></div>';
+        html += '<div class="artifact-graph-summary">';
+        html += '<span class="artifact-graph-pill">' + dependencyEdges + ' dependenc' + (dependencyEdges === 1 ? 'y' : 'ies') + '</span>';
+        html += '<span class="artifact-graph-pill' + (missingSourceCount > 0 ? ' is-warning' : '') + '">' + missingSourceCount + ' missing source file' + (missingSourceCount === 1 ? '' : 's') + '</span>';
+        html += '</div>';
 
         // Filter artifacts
         var filtered = artifacts;
@@ -913,6 +985,12 @@
                 }
                 html += '</div>';
             }
+            var missingFiles = getMissingFiles(a);
+            if (missingFiles.length > 0) {
+                html += '<div class="artifact-source-warning"><span class="detail-label">Missing source:</span> ' + esc(missingFiles.join(', ')) + '</div>';
+            } else if (getFileList(a).length > 0) {
+                html += '<div class="artifact-source-ok">Source files verified</div>';
+            }
             html += '</div>';
         }
         container.innerHTML = html;
@@ -924,11 +1002,43 @@
                 _renderArtifactsFiltered();
             });
         });
+        var openStateBtn = document.getElementById('openArtifactStateInline');
+        if (openStateBtn) {
+            openStateBtn.addEventListener('click', function () { vscode.postMessage({ command: 'openArtifactState' }); });
+        }
+        var resetStateBtn = document.getElementById('resetArtifactStateInline');
+        if (resetStateBtn) {
+            resetStateBtn.addEventListener('click', function () { vscode.postMessage({ command: 'resetArtifactState' }); });
+        }
     }
 
     function isDone(s) { return /done|complete|\u2705/i.test(s); }
     function isInProgress(s) { return /progress|building|\uD83C\uDFD7/i.test(s); }
     function isError(s) { return /error|fail|\u274C/i.test(s); }
+
+    function getDependencyIds(artifact) {
+        if (Array.isArray(artifact.dependsOnIds)) {
+            return artifact.dependsOnIds.filter(Boolean);
+        }
+        if (typeof artifact.dependsOn === 'string') {
+            return artifact.dependsOn.split(',').map(function (item) { return item.trim(); }).filter(function (item) { return item && item !== '-' && item !== '\u2014'; });
+        }
+        return [];
+    }
+
+    function getFileList(artifact) {
+        if (Array.isArray(artifact.files)) {
+            return artifact.files.filter(Boolean);
+        }
+        if (typeof artifact.file === 'string') {
+            return artifact.file.split(',').map(function (item) { return item.trim(); }).filter(Boolean);
+        }
+        return [];
+    }
+
+    function getMissingFiles(artifact) {
+        return Array.isArray(artifact.missingFiles) ? artifact.missingFiles.filter(Boolean) : [];
+    }
 
     // ── DevOps Integration rendering ───────────────────────────────
 
@@ -1218,12 +1328,13 @@
         var html = servers.map(function (s) {
             var isChecked = selected.indexOf(s.name) >= 0;
             var checked = isChecked ? 'checked' : '';
-            var sourceLabel = s.source === 'file' ? 'mcp.json' : 'settings';
+            var sourceLabel = s.source === 'file' ? (s.path || 'mcp.json') : 'settings';
             var sourceBadge = '<span class="auth-alias-default-badge">' + esc(sourceLabel) + '</span>';
             var typeHint = s.type ? ' <span class="tool-version">' + esc(s.type) + '</span>' : '';
+            var kindHint = s.kind ? ' <span class="tool-version">' + esc(s.kind) + '</span>' : '';
             return '<div class="tool-row">' +
                 '  <div class="tool-info">' +
-                '    <span class="tool-name">' + esc(s.name) + '</span>' + typeHint + ' ' + sourceBadge +
+                '    <span class="tool-name">' + esc(s.name) + '</span>' + typeHint + kindHint + ' ' + sourceBadge +
                 '  </div>' +
                 '  <label class="tool-toggle" title="Include in agent tools">' +
                 '    <input type="checkbox" data-mcp="' + esc(s.name) + '" ' + checked + '>' +
@@ -1424,13 +1535,21 @@
 
         if (!prereqsReady) {
             var missing = Math.max(_wsState.prereqsTotal - _wsState.prereqsOk, 1);
-            steps.push({
-                tone: 'warn',
-                title: 'Enable Copilot prerequisites',
-                detail: missing + ' required setting' + (missing !== 1 ? 's' : '') + ' still need to be fixed before the agent workflow is fully available.',
-                action: 'fixAll',
-                label: 'Fix All',
-            });
+            if (_wsState.prereqsFixable > 0) {
+                steps.push({
+                    tone: 'warn',
+                    title: 'Enable Copilot prerequisites',
+                    detail: missing + ' required setting' + (missing !== 1 ? 's' : '') + ' still need to be fixed before the agent workflow is fully available.',
+                    action: 'fixAll',
+                    label: 'Fix All',
+                });
+            } else {
+                steps.push({
+                    tone: 'warn',
+                    title: 'Copilot prerequisites unavailable',
+                    detail: missing + ' required setting' + (missing !== 1 ? 's are' : ' is') + ' disabled or managed by your organization or administrator.',
+                });
+            }
         }
 
         if (!_wsState.hasCustomInstructionsFile) {
@@ -1526,7 +1645,7 @@
                     '<div class="onboarding-step-title">' + esc(step.title) + '</div>' +
                     '<div class="onboarding-step-detail">' + esc(step.detail) + '</div>' +
                     '</div>' +
-                    '<button class="btn-secondary onboarding-step-action" data-onboarding-action="' + esc(step.action) + '">' + esc(step.label) + '</button>' +
+                    (step.action ? '<button class="btn-secondary onboarding-step-action" data-onboarding-action="' + esc(step.action) + '">' + esc(step.label) + '</button>' : '') +
                     '</div>';
             }).join('') +
             (steps.length > visibleSteps.length

@@ -370,4 +370,4 @@ Used for notifications, integrations, and heavy processing after record is saved
 - ✓ Notifications (Async rules)
 - ✓ Maximum compatibility with legacy code
 
-For SDK-based projects, see [FLUENT.md](FLUENT.md) for TypeScript `.now.ts` business rule definitions.
+For SDK-based projects, use `now-sdk explain businessrule-api --format raw` and route implementation to NowDev-AI-Fluent-Logic-Developer.

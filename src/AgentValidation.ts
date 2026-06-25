@@ -1,5 +1,8 @@
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
 import { AGENT_TREE, AgentNode } from './AgentTopology';
+import * as fs from 'fs';
+import * as path from 'path';
+import { parse as parseYaml } from 'yaml';
 
 export type AgentValidationSeverity = 'error' | 'warning';
 
@@ -18,6 +21,7 @@ export interface AgentValidationResult {
 const MAIN_AGENT_FILENAME = 'NowDev-AI.agent.md';
 const MAIN_AGENT_NAME = 'NowDev AI Agent';
 const MAX_SUBAGENT_DEPTH = 5;
+const TOOL_COUNT_WARNING_THRESHOLD = 120;
 
 const WRITE_TOOLS = new Set([
     'edit/createDirectory',
@@ -32,6 +36,11 @@ const NO_WRITE_AGENT_PATTERNS = [
     /Refinement$/,
 ];
 
+interface ChatSkillContribution {
+    path?: unknown;
+    when?: unknown;
+}
+
 export function validateAgents(extensionPath: string): AgentValidationResult {
     const issues: AgentValidationIssue[] = [];
     const manifests = loadAgentRegistry(extensionPath);
@@ -41,13 +50,54 @@ export function validateAgents(extensionPath: string): AgentValidationResult {
         validateRequiredFrontmatter(manifest, issues);
         validateInvocationControls(manifest, issues);
         validateToolBoundaries(manifest, issues);
+        validateModernAgentMetadata(manifest, issues);
     }
 
     validateAgentReferences(manifests, manifestsByName, issues);
     validateSubagentDepth(manifests, manifestsByName, issues);
     validateTopology(manifests, issues);
+    validateBundledSkills(extensionPath, issues);
 
     return { issues, agentCount: manifests.length };
+}
+
+function validateModernAgentMetadata(manifest: AgentManifest, issues: AgentValidationIssue[]): void {
+    if (manifest.baseTools.length > TOOL_COUNT_WARNING_THRESHOLD) {
+        issues.push({ severity: 'warning', file: manifest.filename, agent: manifest.name, message: `Tool list has ${manifest.baseTools.length} entries and may approach VS Code's agent tool limit.` });
+    }
+
+    const modelValues = Array.isArray(manifest.model) ? manifest.model : manifest.model ? [manifest.model] : [];
+    for (const model of modelValues) {
+        if (typeof model !== 'string' || model.trim().length === 0) {
+            issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: 'Model entries must be non-empty strings.' });
+        }
+    }
+
+    if (manifest.rawFrontmatter.handoffs !== undefined) {
+        if (!Array.isArray(manifest.rawFrontmatter.handoffs)) {
+            issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: 'handoffs must be an array.' });
+        } else {
+            for (const [index, handoff] of manifest.rawFrontmatter.handoffs.entries()) {
+                if (!handoff || typeof handoff !== 'object' || Array.isArray(handoff)) {
+                    issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: `handoffs[${index}] must be an object.` });
+                    continue;
+                }
+                const entry = handoff as Record<string, unknown>;
+                for (const field of ['label', 'agent', 'prompt']) {
+                    if (typeof entry[field] !== 'string' || !entry[field]) {
+                        issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: `handoffs[${index}].${field} must be a non-empty string.` });
+                    }
+                }
+                if (entry.send !== undefined && typeof entry.send !== 'boolean') {
+                    issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: `handoffs[${index}].send must be a boolean when declared.` });
+                }
+            }
+        }
+    }
+
+    if (manifest.hooks !== undefined && (!manifest.hooks || typeof manifest.hooks !== 'object')) {
+        issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: 'hooks must be an object or array when declared.' });
+    }
 }
 
 function validateRequiredFrontmatter(manifest: AgentManifest, issues: AgentValidationIssue[]): void {
@@ -166,6 +216,144 @@ function validateTopology(manifests: AgentManifest[], issues: AgentValidationIss
             }
         }
     }
+}
+
+function validateBundledSkills(extensionPath: string, issues: AgentValidationIssue[]): void {
+    const skillsDir = path.join(extensionPath, 'agents', 'skills');
+    if (!fs.existsSync(skillsDir)) { return; }
+
+    const contributedSkillPaths = readContributedSkillPaths(extensionPath, issues);
+    const discoveredSkillPaths = new Set<string>();
+
+    for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) { continue; }
+        const skillDir = path.join(skillsDir, entry.name);
+        const skillPath = path.join(skillDir, 'SKILL.md');
+        const relativeFile = toPackagePath(path.join('agents', 'skills', entry.name, 'SKILL.md'));
+        discoveredSkillPaths.add(relativeFile);
+        if (!fs.existsSync(skillPath)) {
+            issues.push({ severity: 'error', file: path.join('agents', 'skills', entry.name), message: 'Skill directory is missing SKILL.md.' });
+            continue;
+        }
+
+        const content = fs.readFileSync(skillPath, 'utf-8');
+        const frontmatter = readSkillFrontmatter(content);
+        if (!frontmatter) {
+            issues.push({ severity: 'error', file: relativeFile, message: 'Skill is missing YAML frontmatter.' });
+            continue;
+        }
+
+        const name = asString(frontmatter.name);
+        if (!name) {
+            issues.push({ severity: 'error', file: relativeFile, message: 'Skill is missing required frontmatter field: name.' });
+        } else {
+            if (name !== entry.name) {
+                issues.push({ severity: 'error', file: relativeFile, message: `Skill name must match directory name (${entry.name}).` });
+            }
+            if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) {
+                issues.push({ severity: 'error', file: relativeFile, message: 'Skill name must be kebab-case.' });
+            }
+        }
+
+        const description = asString(frontmatter.description);
+        if (!description) {
+            issues.push({ severity: 'error', file: relativeFile, message: 'Skill is missing required frontmatter field: description.' });
+        }
+
+        validateOptionalBoolean(frontmatter, 'user-invocable', relativeFile, issues);
+        validateOptionalBoolean(frontmatter, 'disable-model-invocation', relativeFile, issues);
+
+        if (frontmatter['argument-hint'] !== undefined && !asString(frontmatter['argument-hint'])) {
+            issues.push({ severity: 'error', file: relativeFile, message: 'argument-hint must be a non-empty string when declared.' });
+        }
+
+        if (frontmatter.context !== undefined && frontmatter.context !== 'fork') {
+            issues.push({ severity: 'error', file: relativeFile, message: 'context must be "fork" when declared.' });
+        }
+
+        if (frontmatter.last_verified !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(asString(frontmatter.last_verified))) {
+            issues.push({ severity: 'error', file: relativeFile, message: 'last_verified must use YYYY-MM-DD format when declared.' });
+        }
+    }
+
+    for (const contributedPath of contributedSkillPaths) {
+        if (!discoveredSkillPaths.has(contributedPath)) {
+            issues.push({ severity: 'error', file: contributedPath, message: 'package.json contributes.chatSkills references a missing bundled skill.' });
+        }
+    }
+
+    for (const discoveredPath of discoveredSkillPaths) {
+        if (!contributedSkillPaths.has(discoveredPath)) {
+            issues.push({ severity: 'error', file: discoveredPath, message: 'Bundled skill is not listed in package.json contributes.chatSkills.' });
+        }
+    }
+}
+
+function readContributedSkillPaths(extensionPath: string, issues: AgentValidationIssue[]): Set<string> {
+    const packagePath = path.join(extensionPath, 'package.json');
+    const contributed = new Set<string>();
+    try {
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8')) as { contributes?: { chatSkills?: unknown } };
+        const chatSkills = packageJson.contributes?.chatSkills;
+        if (!Array.isArray(chatSkills)) {
+            issues.push({ severity: 'error', file: 'package.json', message: 'contributes.chatSkills must be an array.' });
+            return contributed;
+        }
+
+        for (const [index, entry] of chatSkills.entries()) {
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+                issues.push({ severity: 'error', file: 'package.json', message: `contributes.chatSkills[${index}] must be an object with a path field.` });
+                continue;
+            }
+            const contribution = entry as ChatSkillContribution;
+            for (const key of Object.keys(contribution)) {
+                if (key !== 'path' && key !== 'when') {
+                    issues.push({ severity: 'error', file: 'package.json', message: `contributes.chatSkills[${index}].${key} is not supported by VS Code. Use only path and optional when.` });
+                }
+            }
+            const skillPath = asString(contribution.path);
+            if (!skillPath) {
+                issues.push({ severity: 'error', file: 'package.json', message: `contributes.chatSkills[${index}].path is required.` });
+                continue;
+            }
+            if (contribution.when !== undefined && !asString(contribution.when)) {
+                issues.push({ severity: 'error', file: 'package.json', message: `contributes.chatSkills[${index}].when must be a non-empty string when declared.` });
+            }
+            contributed.add(toPackagePath(skillPath));
+        }
+    } catch (error) {
+        issues.push({ severity: 'error', file: 'package.json', message: `Unable to read package.json chatSkills: ${error instanceof Error ? error.message : String(error)}.` });
+    }
+    return contributed;
+}
+
+function toPackagePath(value: string): string {
+    return value.replace(/^[.][\\/]/, '').replace(/\\/g, '/');
+}
+
+function readSkillFrontmatter(content: string): Record<string, unknown> | null {
+    const match = content.match(/^---\n([\s\S]*?)\n---/);
+    if (!match) { return null; }
+    try {
+        const parsed = parseYaml(match[1]);
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? parsed as Record<string, unknown>
+            : {};
+    } catch {
+        return null;
+    }
+}
+
+function validateOptionalBoolean(frontmatter: Record<string, unknown>, key: string, file: string, issues: AgentValidationIssue[]): void {
+    if (frontmatter[key] !== undefined && typeof frontmatter[key] !== 'boolean') {
+        issues.push({ severity: 'error', file, message: `${key} must be a boolean when declared.` });
+    }
+}
+
+function asString(value: unknown): string {
+    if (typeof value === 'string') { return value.trim(); }
+    if (typeof value === 'number' || typeof value === 'boolean') { return String(value); }
+    return '';
 }
 
 function flattenAgentTree(root: AgentNode): AgentNode[] {

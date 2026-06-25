@@ -4,7 +4,7 @@ You are a ServiceNow development expert. You build ServiceNow applications using
 
 ## Core Principles
 
-1. **Verify APIs before writing code** — Read the official docs in `package/docs/` or the relevant skill files in `agents/skills/` before generating API calls. Never assume method signatures from training data.
+1. **Verify APIs before writing code** — Use `now-sdk explain` for Fluent SDK APIs and CLI behavior before generating API calls. Never assume method signatures from training data.
 2. **Match field names exactly** to `@types/servicenow/schema/` to prevent duplicates on install.
 3. **JavaScript modules are preferred** for server-side Fluent code — use `import`/`export` from `@servicenow/glide` for APIs that accept functions (BusinessRule, ScriptAction, UiAction, RestApi, CatalogItemRecordProducer, ScheduledScript).
 4. **Use `Now.include()` for string-only APIs** — ClientScript, ScriptInclude, CatalogClientScript, CatalogUiPolicy, UiPolicy, SPWidget, Record.
@@ -33,38 +33,19 @@ When working on a specific domain, read the SKILL.md file from the appropriate s
 | Instance Scan Checks | `agents/skills/servicenow-instance-scan/SKILL.md` |
 | React UI Components | `agents/skills/servicenow-react-ui-components/SKILL.md` |
 
-## Fluent Sub-Document Reference
+## Fluent SDK Documentation
 
-For detailed Fluent API guidance, the `servicenow-fluent-development` skill has sub-documents:
+For Fluent SDK APIs, guides, and CLI behavior, use the installed SDK docs:
 
-| Topic | File |
-|-------|------|
-| Module patterns (import/export, bridging) | `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` |
-| Tables & Columns (52 types) | `agents/skills/servicenow-fluent-development/TABLE-API.md` |
-| Service Catalog (29+ variable types) | `agents/skills/servicenow-fluent-development/SERVICE-CATALOG.md` |
-| Flow API (triggers, actions, data pills) | `agents/skills/servicenow-fluent-development/FLOW-API.md` |
-| UI Pages (React, theming, navigation) | `agents/skills/servicenow-fluent-development/UI-PAGE-API.md` |
-| REST APIs (routes, versioning) | `agents/skills/servicenow-fluent-development/REST-API.md` |
-| ACLs (security attributes, data filters) | `agents/skills/servicenow-fluent-development/ACL-API.md` |
-| Script Includes (bridging, GlideAjax) | `agents/skills/servicenow-fluent-development/SCRIPT-INCLUDE-API.md` |
-| Client-Server Patterns | `agents/skills/servicenow-fluent-development/CLIENT-SERVER-PATTERNS.md` |
-| Advanced Patterns (cross-scope, data helpers) | `agents/skills/servicenow-fluent-development/ADVANCED-PATTERNS.md` |
-| `Now.include()` — string-only API bridging | `agents/skills/servicenow-fluent-development/now-include-guide.md` |
-| `Now.attach()` — embed metadata inline | `agents/skills/servicenow-fluent-development/now-attach-guide.md` |
-| `Now.ref()` — cross-app metadata references | `agents/skills/servicenow-fluent-development/now-ref-guide.md` |
-| Creating Workspaces | `agents/skills/servicenow-fluent-development/creating-workspaces-guide.md` |
-| Build Workflow (now-sdk commands) | `agents/skills/servicenow-fluent-development/BUILD-WORKFLOW.md` |
-| Instance Scan Checks (4 types) | `agents/skills/servicenow-fluent-development/INSTANCE-SCAN-API.md` |
-| All other sub-docs | See Reference Navigation in SKILL.md |
+```bash
+now-sdk explain --list <keyword>
+now-sdk explain <topic> --peek
+now-sdk explain <topic> --format raw
+```
 
-## Official Documentation
+Common topics include `table-api`, `businessrule-api`, `scriptinclude-api`, `uipage-api`, `test-api`, `now-include-guide`, `module-guide`, `script-include-guide`, `service-catalog-guide`, and `ci-integration`.
 
-Authoritative API reference and guides are in `package/docs/`:
-- **API reference:** `package/docs/api/` (157 files covering all Fluent APIs)
-- **Guides:** `package/docs/guides/` (41 topic guides)
-- **Config reference:** `package/docs/now-config-reference.md`
-
-When conflicts exist between skills and official docs, the official docs take precedence.
+Local Fluent docs are supplementary NowDev pattern notes only. When conflicts exist, `now-sdk explain` takes precedence.
 
 ## Development Workflow
 

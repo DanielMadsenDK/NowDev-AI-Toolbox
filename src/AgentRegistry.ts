@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { parse as parseYaml } from 'yaml';
 
 export interface AgentManifest {
     filename: string;       // e.g. 'NowDev-AI.agent.md'
@@ -10,11 +11,13 @@ export interface AgentManifest {
     userInvocable: boolean; // true = visible in the agent picker
     disableModelInvocation: boolean;
     argumentHint: string;
-    model: string;
+    model: string | string[];
     target: string;
     subAgentNames: string[];
     handoffAgentNames: string[];
     mcpServers: string[];
+    hooks: unknown;
+    rawFrontmatter: Record<string, unknown>;
     declaredFields: string[];
 }
 
@@ -59,59 +62,77 @@ function parseFrontmatter(filename: string, content: string): AgentManifest | nu
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
     if (!fmMatch) { return null; }
     const fm = fmMatch[1];
+    const parsed = parseYamlFrontmatter(fm);
 
-    const name = extractScalar(fm, 'name') ?? filename.replace('.agent.md', '');
-    const description = extractScalar(fm, 'description') ?? '';
-    const userInvocableStr = extractScalar(fm, 'user-invocable');
-    const userInvocable = userInvocableStr !== 'false';
-    const disableModelInvocation = extractScalar(fm, 'disable-model-invocation') === 'true';
-    const argumentHint = extractScalar(fm, 'argument-hint') ?? '';
-    const model = extractScalar(fm, 'model') ?? '';
-    const target = extractScalar(fm, 'target') ?? '';
-    const baseTools = extractArray(fm, 'tools');
-    const subAgentNames = extractArray(fm, 'agents');
-    const handoffAgentNames = extractNestedScalars(fm, 'handoffs', 'agent');
-    const mcpServers = extractArray(fm, 'mcp-servers');
+    const name = asString(parsed.name) || filename.replace('.agent.md', '');
+    const description = asString(parsed.description);
+    const userInvocable = asBoolean(parsed['user-invocable'], true);
+    const disableModelInvocation = asBoolean(parsed['disable-model-invocation'], false);
+    const argumentHint = asString(parsed['argument-hint']);
+    const model = asStringArrayOrScalar(parsed.model);
+    const target = asString(parsed.target);
+    const baseTools = asStringArray(parsed.tools);
+    const subAgentNames = asStringArray(parsed.agents);
+    const handoffAgentNames = extractHandoffAgentNames(parsed.handoffs);
+    const mcpServers = asStringArray(parsed['mcp-servers']);
+    const hooks = parsed.hooks;
     const shortName = name.replace(/^NowDev-AI-?/, '') || name;
-    const declaredFields = extractDeclaredFields(fm);
+    const declaredFields = Object.keys(parsed);
 
-    return { filename, name, shortName, description, baseTools, userInvocable, disableModelInvocation, argumentHint, model, target, subAgentNames, handoffAgentNames, mcpServers, declaredFields };
+    return { filename, name, shortName, description, baseTools, userInvocable, disableModelInvocation, argumentHint, model, target, subAgentNames, handoffAgentNames, mcpServers, hooks, rawFrontmatter: parsed, declaredFields };
 }
 
-function extractDeclaredFields(fm: string): string[] {
-    return fm.split(/\r?\n/)
-        .map(line => line.match(/^([A-Za-z0-9_-]+):/)?.[1])
-        .filter((field): field is string => Boolean(field));
+function parseYamlFrontmatter(fm: string): Record<string, unknown> {
+    try {
+        const parsed = parseYaml(stripTemplateControlLines(fm));
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? parsed as Record<string, unknown>
+            : {};
+    } catch {
+        return {};
+    }
 }
 
-function extractScalar(fm: string, key: string): string | undefined {
-    const m = fm.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
-    if (!m) { return undefined; }
-    return m[1].trim().replace(/^['"](.*)['"]$/, '$1');
+function stripTemplateControlLines(fm: string): string {
+    return fm
+        .split(/\r?\n/)
+        .filter(line => !/^\s*\{\{[#/]agent:[^}]+\}\}\s*$/.test(line))
+        .join('\n');
 }
 
-function extractArray(fm: string, key: string): string[] {
-    // Tools lists are always on a single line in these files
-    const m = fm.match(new RegExp(`^${key}:\\s*\\[([^\\]]*)\\]`, 'm'));
-    if (!m) { return []; }
-    return m[1]
-        .split(',')
-        .map(s => s.trim().replace(/^['"`]|['"`]$/g, ''))
-        .filter(Boolean);
+function asString(value: unknown): string {
+    if (typeof value === 'string') { return value; }
+    if (typeof value === 'number' || typeof value === 'boolean') { return String(value); }
+    return '';
 }
 
-function extractNestedScalars(fm: string, blockKey: string, nestedKey: string): string[] {
-    const lines = fm.split(/\r?\n/);
-    const start = lines.findIndex(line => line.trim() === `${blockKey}:`);
-    if (start < 0) { return []; }
-    const values: string[] = [];
-    for (let index = start + 1; index < lines.length; index++) {
-        const line = lines[index];
-        if (/^\S/.test(line)) { break; }
-        const match = line.match(new RegExp(`^\\s+${nestedKey}:\\s*(.+)$`));
-        if (match) {
-            values.push(match[1].trim().replace(/^['"](.*)['"]$/, '$1'));
+function asBoolean(value: unknown, defaultValue: boolean): boolean {
+    if (typeof value === 'boolean') { return value; }
+    if (typeof value === 'string') {
+        if (value.toLowerCase() === 'true') { return true; }
+        if (value.toLowerCase() === 'false') { return false; }
+    }
+    return defaultValue;
+}
+
+function asStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) { return []; }
+    return value.map(asString).map(item => item.trim()).filter(Boolean);
+}
+
+function asStringArrayOrScalar(value: unknown): string | string[] {
+    if (Array.isArray(value)) { return asStringArray(value); }
+    return asString(value);
+}
+
+function extractHandoffAgentNames(value: unknown): string[] {
+    if (!Array.isArray(value)) { return []; }
+    const names: string[] = [];
+    for (const handoff of value) {
+        if (handoff && typeof handoff === 'object' && !Array.isArray(handoff)) {
+            const agent = asString((handoff as Record<string, unknown>).agent).trim();
+            if (agent) { names.push(agent); }
         }
     }
-    return values;
+    return names;
 }

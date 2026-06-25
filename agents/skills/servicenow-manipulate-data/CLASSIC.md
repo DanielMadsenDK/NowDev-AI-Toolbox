@@ -307,4 +307,4 @@ filteredIncidentGr.query();
 - ✓ Business rules and server-side scripts
 - ✓ When you need to maximize compatibility
 
-For modern TypeScript-based applications, see [FLUENT.md](FLUENT.md) for the newer GlideQuery API.
+For Fluent SDK applications, use `now-sdk explain data-helpers-guide --format raw` or the relevant installed SDK topic.

@@ -16,15 +16,15 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents in this session
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents in this session. If only `memoryLocation` exists, treat it as optional legacy context.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk query` for live table/role/sys_id facts, and use configured docs or skills for API behavior before asking the user
 2. For any dependencies, use `read/readFile` to read the actual source files to get exact method signatures and class structures
-3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+3. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
 4. API verification: Use {{CLASSIC_SCRIPTING_DOCS}} to verify APIs, parameters, and usage patterns.
 5. Create todo plan outlining class structure, methods, and logic
 6. Implement Script Include with verified APIs and patterns
 7. Self-validate code before handoff to orchestrator
-8. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (class name, method signatures, clientCallable status)
+8. Emit a final `Artifact Manifest` JSON block with accurate exports (class name, method signatures, clientCallable status)
 </workflow>
 
 <stopping_rules>
@@ -69,7 +69,7 @@ ScriptInclude({
 })
 ```
 
-See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` for the full bridging example with wrapper and module files.
+Verify the current bridge pattern with `now-sdk explain now-include-guide --format raw` and `now-sdk explain script-include-guide --format raw` before writing Fluent Script Includes.
 
 **Classic projects** continue to use the `Class.create()` pattern below.
 
@@ -118,20 +118,4 @@ See `agents/skills/servicenow-fluent-development/MODULE-GUIDE.md` for the full b
 
 ## Session Artifact Registry
 
-This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
-
-### On Start
-1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts and their exports
-2. For any dependency with status ✅ Done, **read the actual source file** to get exact method signatures, class structures, and return types
-3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
-
-| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
-|---------------|------|------|-------|---------|--------|------------|
-| {name} | {relative path} | Script Include | Script-Developer | — | 🏗️ In Progress | {dependencies or —} |
-
-### On Complete
-Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
-
-| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
-|---------------|------|------|-------|---------|--------|------------|
-| {ClassName} | {relative path} | Script Include | Script-Developer | `ClassName.methodName(params)`, `clientCallable: true/false` | ✅ Done | {dependencies or —} |
+Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact Script Include signatures, and end with a final `Artifact Manifest` JSON block.

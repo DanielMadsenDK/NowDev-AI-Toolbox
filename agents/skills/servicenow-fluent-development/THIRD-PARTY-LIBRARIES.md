@@ -1,5 +1,7 @@
 # Third-Party Libraries in ServiceNow Fluent React Apps
 
+Supplementary NowDev build-layout notes only. Verify current UI Page and SDK build behavior with `now-sdk explain uipage-api --format raw`, `now-sdk explain ui-page-guide --format raw`, and `now-sdk explain ci-integration --format raw` before finalizing code or pipeline steps.
+
 The ServiceNow Fluent SDK uses **Rollup** (via `@servicenow/isomorphic-rollup`) to bundle client code.
 This means standard npm packages work out of the box — you install them, import them, and Rollup
 bundles everything into the static assets that the `UiPage` serves.

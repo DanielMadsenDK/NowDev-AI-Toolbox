@@ -1,5 +1,7 @@
 # JavaScript Modules Reference
 
+Supplementary NowDev pattern notes only. Before applying any API-specific rule here, verify current SDK behavior with `now-sdk explain now-include-guide --format raw`, `now-sdk explain module-guide --format raw`, and the artifact-specific API topic.
+
 JavaScript modules are the **preferred approach** for all server-side code in Fluent projects. Modules support `import`/`export`, provide access to typed Glide APIs via `@servicenow/glide`, enable code reuse across your application, and integrate with third-party npm libraries.
 
 ## When to Use Modules vs Now.include()

@@ -16,21 +16,21 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. **Context Sync**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer. If only `memoryLocation` exists, treat it as optional legacy context.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for Fluent APIs, and use `now-sdk query` for live table/field/role/sys_id facts before asking the user
 2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact table structures and field types
-3. Use the `memory` tool to insert your entry to `/memories/session/artifacts.md` with `Status: 🏗️ In Progress` before writing code
+3. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
 4. Analyze the requirements and identify all server-side logic artifacts needed
 5. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
-6. Verify APIs using {{SDK_DOCS_CONTEXT}}
+6. Verify APIs using `now-sdk explain <topic> --format raw`; use {{SDK_DOCS_CONTEXT}} only for supplementary context not covered by explain
 7. Implement .now.ts metadata files and linked .js server scripts in dependency order
 8. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
-9. Use the `memory` tool `str_replace` to update your registry entry: change status to `✅ Done` and fill in accurate `Exports` (class/method names, REST paths)
+9. Emit a final `Artifact Manifest` JSON block with accurate exports (class/method names, REST paths)
 10. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with configured docs MCP or the skill
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with `now-sdk explain <topic> --format raw`
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if using deprecated `script\`\`` tagged template literals — use `Now.include('./file.js')`
 STOP if writing `current.update()` or `current.insert()` inside a Business Rule script
@@ -56,7 +56,7 @@ Key topics for logic artifacts (use `now-sdk explain <topic> --format raw`):
   - agents/exemplars/fluent-script-include.now.ts — canonical ScriptInclude shape
   - agents/exemplars/fluent-business-rule.now.ts — canonical BusinessRule shape
 
-  - {{SDK_DOCS_CONTEXT}} for supplementary SDK patterns
+  - {{SDK_DOCS_CONTEXT}} only for supplementary SDK context not covered by `now-sdk explain`
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content (GlideRecord, gs.*, etc.)
 </documentation>
 
@@ -90,20 +90,4 @@ When multiple artifacts are needed:
 
 ## Session Artifact Registry
 
-This agent participates in the **Context Sync Protocol** via the `memory` tool at `/memories/session/artifacts.md`.
-
-### On Start
-1. Use the `memory` tool to view `/memories/session/artifacts.md` to discover sibling artifacts — especially table names, field names, and role names from the Schema Developer
-2. For any dependency with status ✅ Done, **read the actual source file** to get exact table structures, field types, and role names
-3. Use the `memory` tool to insert your entry with `Status: 🏗️ In Progress` before writing any code:
-
-| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
-|---------------|------|------|-------|---------|--------|------------|
-| {name} | {relative path} | Script Include / Business Rule / REST API / Notification / SLA | Fluent-Logic-Developer | — | 🏗️ In Progress | {table names, role names, or —} |
-
-### On Complete
-Use the `memory` tool (`str_replace`) to update your registry entry: change status to `✅ Done` and fill in accurate `Exports`:
-
-| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
-|---------------|------|------|-------|---------|--------|------------|
-| {name} | {relative path} | Script Include / Business Rule / REST API / Notification / SLA | Fluent-Logic-Developer | `ClassName.methodName(params)`, `clientCallable: true`, REST path: `/api/x_myapp/v1/assets` | ✅ Done | {table names, role names, or —} |
+Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact table and method signatures, and end with a final `Artifact Manifest` JSON block.

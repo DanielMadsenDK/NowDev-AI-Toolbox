@@ -101,6 +101,8 @@ export interface WorkspaceAgentSyncConfig {
 
 const AGENTS_SRC       = path.join('agents', 'github-copilot');
 const AGENTS_OUT       = path.join('.github', 'agents');
+const INSTRUCTIONS_OUT = path.join('.github', 'instructions', 'nowdev-ai.instructions.md');
+const PROMPTS_OUT      = path.join('.github', 'prompts');
 const HASH_TAG         = '# nowdev-hash:';
 const MANAGED_TAG      = '# nowdev-managed: true';
 
@@ -283,7 +285,7 @@ export function syncAllAgents(
             srcHash:       crypto.createHash('sha256').update(bundledContent).digest('hex'),
             mcpTools:      [...mcpTools].sort(),
             disabledTools: [...disabledTools].sort(),
-            model:         override?.model ?? '',
+            model:         normalizeModelList(override?.model),
             disabledAgents: [...disabledAgentNames].sort(),
             allDocSources: cfg.allDocSources,
             mcpIntegrationConfigs: cfg.mcpIntegrationConfigs,
@@ -316,11 +318,48 @@ export function syncAllAgents(
             cfg.profileInstructions,
             cfg.customInstructions,
             cfg.agentGuidelines,
-            canRunTerminalCommands
+            canRunTerminalCommands,
+            manifest.subAgentNames
         );
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
         addToGitignore(workspaceRoot, `.github/agents/${manifest.filename}`);
+    }
+}
+
+export function syncWorkspaceInstructionsFile(
+    workspaceRoot: string,
+    cfg: Pick<WorkspaceAgentSyncConfig, 'autoUpdate' | 'activeProfileId' | 'profileInstructions' | 'customInstructions' | 'agentGuidelines'>
+): void {
+    const outPath = path.join(workspaceRoot, INSTRUCTIONS_OUT);
+    const content = buildWorkspaceInstructionsContent(cfg);
+    const hash = crypto.createHash('sha256').update(content).digest('hex');
+
+    if (!cfg.autoUpdate && fs.existsSync(outPath)) { return; }
+    if (fs.existsSync(outPath)) {
+        const existing = fs.readFileSync(outPath, 'utf-8');
+        if (readTag(existing, HASH_TAG) === hash) { return; }
+    }
+
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, content.replace(/^---\n/, `---\n${MANAGED_TAG}\n${HASH_TAG} ${hash}\n`), 'utf-8');
+    addToGitignore(workspaceRoot, INSTRUCTIONS_OUT.replace(/\\/g, '/'));
+}
+
+export function syncWorkspacePromptFiles(workspaceRoot: string, autoUpdate: boolean): void {
+    const prompts = buildWorkspacePrompts();
+    const outDir = path.join(workspaceRoot, PROMPTS_OUT);
+    fs.mkdirSync(outDir, { recursive: true });
+    for (const prompt of prompts) {
+        const outPath = path.join(outDir, prompt.filename);
+        const hash = crypto.createHash('sha256').update(prompt.content).digest('hex');
+        if (!autoUpdate && fs.existsSync(outPath)) { continue; }
+        if (fs.existsSync(outPath)) {
+            const existing = fs.readFileSync(outPath, 'utf-8');
+            if (readTag(existing, HASH_TAG) === hash) { continue; }
+        }
+        fs.writeFileSync(outPath, prompt.content.replace(/^---\n/, `---\n${MANAGED_TAG}\n${HASH_TAG} ${hash}\n`), 'utf-8');
+        addToGitignore(workspaceRoot, `${PROMPTS_OUT.replace(/\\/g, '/')}/${prompt.filename}`);
     }
 }
 
@@ -336,31 +375,25 @@ function buildContent(
     effectiveTools: string[],
     disabledAgents: Set<string>,
     hash: string,
-    model: string | undefined,
+    model: string | string[] | undefined,
     allDocSources: AllDocSources,
     devopsAgentConfig?: DevOpsConfig,
     orchestratorDevopsConfig?: DevOpsConfig,
     profileInstructions?: string,
     customInstructions?: string,
     agentGuidelines?: string,
-    canRunTerminalCommands = false
+    canRunTerminalCommands = false,
+    subAgentNames: string[] = []
 ): string {
-    // Rewrite the tools: [...] line (always single-line in these files)
-    const toolsLine = `tools: [${effectiveTools.map(t => `'${t}'`).join(', ')}]`;
-    let content = bundled.replace(/^tools:\s*\[.*?\]$/m, toolsLine);
+    let content = setFrontmatterField(bundled, 'tools', formatInlineArray(effectiveTools));
 
     content = applyFrontmatterModel(content, model);
 
     // Filter disabled agent names from the agents: [...] list so the
     // orchestrator never tries to delegate to a non-existent file.
     if (disabledAgents.size > 0) {
-        content = content.replace(/^(agents:\s*\[)([^\]]*)\]$/m, (_match, prefix, inner) => {
-            const names = inner
-                .split(',')
-                .map((s: string) => s.trim().replace(/^['"`]|['"`]$/g, ''))
-                .filter((n: string) => n && !disabledAgents.has(n));
-            return `${prefix}${names.map((n: string) => `'${n}'`).join(', ')}]`;
-        });
+        const names = subAgentNames.filter(name => !disabledAgents.has(name));
+        content = setFrontmatterField(content, 'agents', formatInlineArray(names));
     }
 
     // Substitute DevOps agent body tokens ({{DEVOPS_CUSTOM_INSTRUCTIONS}})
@@ -414,28 +447,137 @@ If the user does not provide a task reference, ask them for one before proceedin
     return content;
 }
 
-function applyFrontmatterModel(content: string, model: string | undefined): string {
-    const trimmedModel = model?.trim();
-    if (!trimmedModel) { return content; }
+function buildWorkspaceInstructionsContent(cfg: Pick<WorkspaceAgentSyncConfig, 'activeProfileId' | 'profileInstructions' | 'customInstructions' | 'agentGuidelines'>): string {
+    const blocks = [
+        '# NowDev AI Workspace Instructions',
+        '',
+        'These generated instructions make NowDev AI project context available in Copilot contexts outside the bundled agent files.',
+        '',
+        '## Artifact State',
+        '',
+        '- Use `.vscode/nowdev-ai-config.json` to find `artifactState.path`.',
+        '- Treat `.vscode/nowdev-ai-session/artifacts.json` as the workspace source of truth for session artifacts.',
+        '- Do not require Copilot memory for artifact tracking; memory may be unavailable or disabled by organization policy.',
+        '- When handing work back to a coordinator, include an `Artifact Manifest` JSON block for created or modified artifacts.',
+    ];
 
-    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-    if (!frontmatterMatch) { return content; }
-
-    const escapedModel = trimmedModel.replace(/'/g, "\\'");
-    const modelLine = `model: '${escapedModel}'`;
-    const frontmatter = frontmatterMatch[1];
-
-    if (/^model:\s*.*$/m.test(frontmatter)) {
-        return content.replace(/^model:\s*.*$/m, modelLine);
+    if (cfg.customInstructions?.trim()) {
+        blocks.push('', '## Workspace Guidelines', '', cfg.customInstructions.trim());
+    }
+    if (cfg.agentGuidelines?.trim()) {
+        blocks.push('', '## Instance-Backed Guidelines', '', cfg.agentGuidelines.trim());
+    }
+    if (cfg.profileInstructions?.trim()) {
+        blocks.push('', `## Active Profile: ${cfg.activeProfileId || 'default'}`, '', cfg.profileInstructions.trim());
     }
 
-    if (/^description:\s*.*$/m.test(frontmatter)) {
-        return content.replace(/^description:\s*.*$/m, match => `${match}\n${modelLine}`);
+    return ['---', "name: 'NowDev AI Workspace Context'", "description: 'Workspace-wide NowDev AI conventions, artifact state protocol, and selected guidelines.'", "applyTo: '**/*'", '---', '', ...blocks, ''].join('\n');
+}
+
+function buildWorkspacePrompts(): Array<{ filename: string; content: string }> {
+    return [
+        {
+            filename: 'nowdev-start.prompt.md',
+            content: [
+                '---',
+                "name: 'nowdev-start'",
+                "description: 'Start a NowDev AI implementation session with artifact-state setup and routing.'",
+                "argument-hint: '<feature or task description>'",
+                "agent: 'NowDev AI Agent'",
+                '---',
+                '',
+                'Start a NowDev AI implementation session for: ${input:task:Describe the ServiceNow feature or change}.',
+                '',
+                'Before delegating, read `.vscode/nowdev-ai-config.json`, initialize or read `artifactState.path`, and use the workspace-backed artifact state as the source of truth. Do not require Copilot memory.',
+                '',
+                'Clarify only what cannot be discovered from workspace files, ServiceNow SDK config, instance queries, selected guidelines, or configured docs.',
+                '',
+            ].join('\n'),
+        },
+        {
+            filename: 'nowdev-review.prompt.md',
+            content: [
+                '---',
+                "name: 'nowdev-review'",
+                "description: 'Review current NowDev artifacts against the workspace artifact state.'",
+                "argument-hint: '<optional focus area>'",
+                "agent: 'NowDev-AI-Reviewer'",
+                '---',
+                '',
+                'Review the current workspace changes and artifact state. Read `.vscode/nowdev-ai-config.json`, then read `artifactState.path` and the source files referenced by each artifact.',
+                '',
+                'Focus on correctness, missing dependencies, ServiceNow API misuse, security, deployment risk, and missing ATF coverage. Report findings first, ordered by severity.',
+                '',
+            ].join('\n'),
+        },
+        {
+            filename: 'nowdev-compact.prompt.md',
+            content: [
+                '---',
+                "name: 'nowdev-compact'",
+                "description: 'Prepare a compact handoff summary anchored to artifact state.'",
+                "argument-hint: '<optional handoff notes>'",
+                "agent: 'NowDev AI Agent'",
+                '---',
+                '',
+                'Prepare a compact handoff summary for this NowDev AI session. Anchor the summary to `.vscode/nowdev-ai-config.json` and `artifactState.path`.',
+                '',
+                'Include active artifacts, completed artifacts, dependencies, files changed, validation results, unresolved decisions, and the next concrete action. Keep memory optional and do not rely on it as the source of truth.',
+                '',
+            ].join('\n'),
+        },
+    ];
+}
+
+function applyFrontmatterModel(content: string, model: string | string[] | undefined): string {
+    const models = normalizeModelList(model);
+    if (models.length === 0) { return content; }
+    return setFrontmatterField(content, 'model', models.length === 1 ? quoteYamlScalar(models[0]) : formatInlineArray(models));
+}
+
+function normalizeModelList(model: string | string[] | undefined): string[] {
+    if (Array.isArray(model)) {
+        return model.map(item => item.trim()).filter(Boolean);
     }
-    if (/^name:\s*.*$/m.test(frontmatter)) {
-        return content.replace(/^name:\s*.*$/m, match => `${match}\n${modelLine}`);
+    return model?.trim() ? [model.trim()] : [];
+}
+
+function setFrontmatterField(content: string, key: string, renderedValue: string): string {
+    const match = content.match(/^---\n([\s\S]*?)\n---/);
+    if (!match) { return content; }
+
+    const frontmatter = match[1];
+    const lines = frontmatter.split(/\r?\n/);
+    const fieldIndex = lines.findIndex(line => new RegExp(`^${escapeRegExp(key)}:`).test(line));
+    const replacement = `${key}: ${renderedValue}`;
+
+    if (fieldIndex >= 0) {
+        let endIndex = fieldIndex + 1;
+        while (endIndex < lines.length && !/^[A-Za-z0-9_-]+:/.test(lines[endIndex]) && !/^\s*\{\{[#/]agent:/.test(lines[endIndex])) {
+            endIndex++;
+        }
+        lines.splice(fieldIndex, endIndex - fieldIndex, replacement);
+    } else {
+        const descriptionIndex = lines.findIndex(line => /^description:/.test(line));
+        const nameIndex = lines.findIndex(line => /^name:/.test(line));
+        const insertAfter = descriptionIndex >= 0 ? descriptionIndex : nameIndex;
+        lines.splice(insertAfter >= 0 ? insertAfter + 1 : 0, 0, replacement);
     }
-    return content.replace(/^---\n/, `---\n${modelLine}\n`);
+
+    const updatedFrontmatter = lines.join('\n');
+    return content.replace(/^---\n[\s\S]*?\n---/, `---\n${updatedFrontmatter}\n---`);
+}
+
+function formatInlineArray(values: string[]): string {
+    return `[${values.map(quoteYamlScalar).join(', ')}]`;
+}
+
+function quoteYamlScalar(value: string): string {
+    return `'${value.replace(/'/g, "''")}'`;
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -489,21 +631,28 @@ Use \`--fields\` to narrow output to only what you need. Use \`hasMore\` and \`n
 
 /**
  * Always-present block injected into Fluent SDK agent files via {{FLUENT_SDK_EXPLAIN}}.
- * Not configurable — now-sdk is always installed in a ServiceNow development environment.
- * Covers both API reference (e.g. businessrule-api) and guides (e.g. wfa-flow-guide).
+ * Not configurable — now-sdk is the installed-version source of truth for Fluent SDK docs.
+ * Covers API reference, guides, examples, and SDK CLI behavior.
  */
 const FLUENT_SDK_EXPLAIN_BLOCK =
 `## Fluent SDK Documentation
 
-\`now-sdk explain\` is always available as the first choice for any Fluent SDK question — API signatures, guides, patterns, and architecture. It is local, offline, and always in sync with the installed SDK version.
+Use \`now-sdk explain\` as the first source for every Fluent SDK question: API signatures, constructor properties, examples, guides, architecture notes, and CLI behavior. It is local, works offline, and is tied to the installed SDK version.
 
 \`\`\`
-now-sdk explain <topic> --format raw    # Full documentation for a specific topic
 now-sdk explain --list <keyword>        # Discover available topics by keyword
 now-sdk explain <topic> --peek          # One-line summary
+now-sdk explain <topic> --format raw    # Full documentation for a specific topic
 \`\`\`
 
-Use \`now-sdk explain --list <keyword>\` first to discover relevant topics, then fetch full docs with \`--format raw\`. This covers both API reference (e.g. \`businessrule-api\`, \`table-api\`, \`wfa-api\`) and guides (e.g. \`wfa-flow-guide\`, \`atf-guide\`, \`service-catalog-guide\`, \`business-rule-guide\`).
+Protocol:
+1. Use \`now-sdk explain --list <keyword>\` when the exact topic is unknown.
+2. Use \`now-sdk explain <topic> --peek\` to disambiguate similar topics quickly.
+3. Use \`now-sdk explain <topic> --format raw\` before writing or reviewing Fluent SDK code.
+
+This covers API reference topics such as \`businessrule-api\`, \`table-api\`, and \`uipage-api\`; guide topics such as \`now-include-guide\`, \`script-include-guide\`, \`ci-integration\`, and \`service-catalog-guide\`; and current SDK command behavior.
+
+Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 
 For general ServiceNow platform knowledge that is not Fluent-specific (admin/config, best practices across the platform), use the configured product docs source.`;
 

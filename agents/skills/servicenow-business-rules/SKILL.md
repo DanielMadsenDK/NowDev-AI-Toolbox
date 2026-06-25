@@ -3,7 +3,7 @@ name: servicenow-business-rules
 context: fork
 user-invocable: false
 description: >-
-  Create server-side database triggers with proper execution timing, recursion prevention, and validation patterns. Covers two approaches: (1) Classic business rules in existing instances, and (2) Fluent SDK TypeScript definitions in .now.ts files. Use when implementing Before/After/Async business rules, preventing recursive rule execution, or enforcing data validation on database operations. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns. Trigger this skill whenever the user mentions business rules, database triggers, Before/After/Async rules, validating records on save, or running server-side logic when records are inserted, updated, or deleted.
+  Create server-side database triggers with proper execution timing, recursion prevention, and validation patterns. Covers Classic Business Rule behavior and platform scripting guardrails. For Fluent SDK metadata, use `now-sdk explain businessrule-api --format raw` and the NowDev Fluent Logic agent. Trigger whenever the user mentions business rules, database triggers, Before/After/Async rules, validating records on save, or running server-side logic when records are inserted, updated, or deleted.
 last_verified: "2026-05-18"
 ---
 
@@ -11,7 +11,7 @@ last_verified: "2026-05-18"
 
 ## Choosing Your Approach
 
-Business rules exist in two distinct contexts:
+Business rules exist in two distinct contexts. This skill covers Classic/platform behavior; Fluent SDK constructor shape must come from `now-sdk explain businessrule-api --format raw`.
 
 ### **Classic Business Rules** (for existing instances)
 Use for direct ServiceNow instance customizations created in the Business Rules UI.
@@ -23,33 +23,7 @@ Use for direct ServiceNow instance customizations created in the Business Rules 
 ```
 
 ### **Fluent SDK Business Rules** (for SDK projects)
-Use for TypeScript-based projects with `.now.ts` metadata files. JavaScript modules are the **preferred** approach — the BusinessRule `script` property accepts functions, so write logic in module files with typed Glide API imports.
-
-```typescript
-import { BusinessRule } from '@servicenow/sdk/core'
-import { autoSetUrgency } from '../../server/business-rules/auto-set-urgency'
-
-export default BusinessRule({
-    $id: Now.ID['incident_before_rule'],
-    name: 'Auto-Set Urgency',
-    active: true,
-    table: 'incident',
-    when: 'before',
-    action: ['insert', 'update'],
-    order: 100,
-    filterCondition: 'priority=1^ORpriority=2',
-    script: autoSetUrgency,
-})
-```
-
-```typescript
-// server/business-rules/auto-set-urgency.ts
-import { gs, GlideRecord } from '@servicenow/glide'
-
-export function autoSetUrgency(current: GlideRecord<'incident'>, previous: GlideRecord<'incident'>) {
-    current.setValue('urgency', '1');
-}
-```
+Use `now-sdk explain businessrule-api --format raw` and `now-sdk explain business-rule-guide --format raw`, then route implementation to NowDev-AI-Fluent-Logic-Developer. Do not use local skill examples as SDK API reference.
 
 ---
 
@@ -89,9 +63,9 @@ if (current.start_date > current.end_date) {
 | Situation | Classic | Fluent | Rationale |
 |-----------|---------|--------|-----------|
 | Existing instance customization | ✓ | - | Created in UI, no SDK setup needed |
-| New SDK project | - | ✓ | Use .now.ts with TypeScript |
+| New SDK project | - | ✓ | Verify with `now-sdk explain businessrule-api` |
 | Version control needed | - | ✓ | SDK files tracked in Git |
-| Type-safe business logic | - | ✓ | TypeScript compiler catches errors |
+| Type-safe business logic | - | ✓ | Verify module pattern with installed SDK docs |
 | Quick field validation | ✓ | - | No need for SDK complexity |
 | Team knows TypeScript | - | ✓ | Leverage team expertise |
 | Quick deployment | ✓ | - | Direct instance modification |
@@ -132,13 +106,9 @@ Choose the pattern that matches your implementation context:
   - Recursion prevention strategies
   - Error handling and logging
 
-- **[FLUENT.md](./FLUENT.md)** — SDK-based business rules (TypeScript, `.now.ts` files)
-  - Metadata-driven rule definitions
-  - TypeScript handler implementation
-  - Version-controlled rules
-  - Full IDE support and type safety
+- Fluent SDK rules — use `now-sdk explain businessrule-api --format raw` and `now-sdk explain business-rule-guide --format raw`; route implementation to NowDev-AI-Fluent-Logic-Developer.
 
-- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
+- **[EXAMPLES.md](./EXAMPLES.md)** — Classic quick reference plus Fluent topic pointers
 
 ## Reference
 

@@ -20,10 +20,10 @@ handoffs:
 2. Clarify from tools before asking the user: read workspace config/memory, use `now-sdk query` for live table/role/choice/sys_id facts when available, and use configured product/classic scripting docs for API behavior.
 3. Analyze the business requirements and identify all Classic ServiceNow artifacts needed
 4. Build a todo plan listing every artifact, its type, file ownership, and dependencies on other artifacts
-5. Use the `memory` tool to check if `/memories/session/artifacts.md` exists — if not, use the `memory` tool to create it with the registry header
+5. Read `.vscode/nowdev-ai-config.json`, resolve `artifactState.path`, and read the workspace-backed artifact state JSON if it exists
 6. Determine the correct implementation batches — artifacts that other artifacts depend on must be built first (e.g. a Script Include before the Business Rule that calls it); independent artifacts can run in parallel.
-7. Delegate each artifact to the appropriate sub-agent; parallelize independent artifacts, sequence dependent ones. Always include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists in this session."
-8. After each sub-agent completes, verify it appended to the registry. Collect file paths and key exports (class names, method signatures)
+7. Delegate each artifact to the appropriate sub-agent; parallelize independent artifacts, sequence dependent ones. Always include: "Read `.vscode/nowdev-ai-config.json`, read the artifact state file at `artifactState.path`, and use `read/readFile` to read actual dependency source files."
+8. After each sub-agent completes, parse its final `Artifact Manifest` JSON block. Collect file paths and key exports (class names, method signatures)
 9. When delegating to the next sub-agent, pass the previous sub-agent's full artifact details: file paths, class names, method names, parameters, table names
 10. Report the complete list of created files and implementation summary back to the orchestrator
 </workflow>
@@ -80,16 +80,7 @@ Maintain a running list of all `.js` files created or modified by sub-agents dur
 
 ## Session Artifact Registry
 
-Before delegating to the first specialist, use the `memory` tool to check if `/memories/session/artifacts.md` exists. If not, use the `memory` tool to create it with this content:
-
-```markdown
-# Session Artifact Registry
-
-| Artifact Name | File | Type | Agent | Exports | Status | Depends On |
-|---------------|------|------|-------|---------|--------|------------|
-```
-
-After each specialist completes, use the `memory` tool to verify they updated their registry entry status to ✅ Done and filled in Exports. When delegating to the next specialist, always include: "Use the `memory` tool to view `/memories/session/artifacts.md` for artifacts created by previous specialists, then use `read/readFile` to read the actual source files of your dependencies to get exact method signatures."
+Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Before delegation, read the workspace artifact state path and pass it to each specialist. After each specialist returns, parse its final `Artifact Manifest` block and carry exact files, exports, and dependency ids into dependent delegation prompts.
 
 ### Context Passing Between Sub-Agents
 

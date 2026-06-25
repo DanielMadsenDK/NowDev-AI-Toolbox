@@ -5,9 +5,9 @@ import * as https from 'https';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
+import { syncAllAgents, syncWorkspaceInstructionsFile, syncWorkspacePromptFiles, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
 import { BUILT_IN_PROFILES, DEFAULT_PROFILE_ID, getProfileById, getEffectiveAgentConfig } from './ProfileManager';
-import { parseArtifactsMarkdown } from './ArtifactParser';
+import { readArtifactStateFile, writeArtifactStateFile } from './ArtifactStateManager';
 import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
 
@@ -45,6 +45,42 @@ interface CheckChangesState {
 interface AvailableAgentModel {
     label: string;
     value: string;
+}
+
+type PrerequisiteStatusKind = 'enabled' | 'disabled-by-user' | 'disabled-by-policy' | 'unknown';
+
+interface PrerequisiteStatus {
+    id: string;
+    label: string;
+    setting: string;
+    ok: boolean;
+    status: PrerequisiteStatusKind;
+    fixable: boolean;
+    managedByPolicy: boolean;
+    preview?: boolean;
+    optional?: boolean;
+    message: string;
+}
+
+interface RequiredSetting {
+    section: string;
+    prop: string;
+    expected: unknown;
+    label: string;
+    preview?: boolean;
+    optional?: boolean;
+}
+
+type InspectWithPolicy = { policyValue?: unknown };
+
+function normalizeModelOverride(value: unknown): string {
+    if (Array.isArray(value)) {
+        return value.map(item => typeof item === 'string' ? item.trim() : '').find(Boolean) ?? '';
+    }
+    if (typeof value === 'string') {
+        return value.split(/[\n,]/).map(item => item.trim()).find(Boolean) ?? '';
+    }
+    return '';
 }
 
 function resolveInside(root: string, child: string): string | undefined {
@@ -92,6 +128,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _profileInstructionsOverrides: Record<string, string> = {};
     private _docsReleases: string[] = [...SERVICENOW_RELEASES];
     private _docsDownloadStatus: { loading: boolean; downloaded?: number; total?: number; error?: string; cancelled?: boolean } = { loading: false };
+    private _policyBlockedSettings = new Set<string>();
     private _abortDownload = false;
     private _statusUpdateTimer: NodeJS.Timeout | undefined;
     private _agentSyncTimer: NodeJS.Timeout | undefined;
@@ -227,6 +264,12 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'showCopilotChatLogs':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.showCopilotChatLogs');
+                    break;
+                case 'openArtifactState':
+                    await this._openArtifactStateFile();
+                    break;
+                case 'resetArtifactState':
+                    await this._resetArtifactStateFile();
                     break;
                 case 'updateConfig': {
                     const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
@@ -410,7 +453,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 }
                 case 'updateAgentModel': {
                     const agentName = message.agentName as string;
-                    const model = typeof message.model === 'string' ? message.model.trim() : '';
+                    const model = normalizeModelOverride(message.model);
                     const cur: AgentOverride = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
                     if (model) {
                         this._agentOverrides[agentName] = { ...cur, model };
@@ -431,6 +474,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'resyncAgents':
                     this._syncWorkspaceAgents(true);
                     this._sendAgentData();
+                    break;
+                case 'applyModelPresets':
+                    await this._applyModelPresets();
                     break;
                 case 'openAgentFile': {
                     const agentFileName = message.filename as string;
@@ -663,12 +709,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _sendStatusNow() {
         if (!this._view) { return; }
 
-        const checks: Record<string, boolean> = {
-            subAgents: this._checkSetting('chat.subagents', 'allowInvocationsFromSubagents', true),
-            memory: this._checkSetting('github.copilot.chat.tools.memory', 'enabled', true),
-            askChatLocation: this._checkSetting('workbench.commandPalette.experimental', 'askChatLocation', 'chatView'),
-            browserTools: this._checkSetting('workbench.browser', 'enableChatTools', true),
-        };
+        const checks = this._getPrerequisiteStatuses();
 
         const toolboxConfig = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
         const customInstructionsFile = toolboxConfig.get<string>('customInstructionsFile', '');
@@ -728,6 +769,73 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    private async _applyModelPresets(): Promise<void> {
+        const modelOptions = await this._getAvailableAgentModels();
+        const strongModels = this._selectPreferredModels(modelOptions, [
+            /gpt-5/i,
+            /claude.*(opus|sonnet)/i,
+            /gemini.*2\.5.*pro/i,
+            /o[34]/i,
+        ]);
+        const fastModels = this._selectPreferredModels(modelOptions, [
+            /mini/i,
+            /flash/i,
+            /haiku/i,
+            /nano/i,
+        ]);
+
+        if (strongModels.length === 0 && fastModels.length === 0) {
+            vscode.window.showWarningMessage('No selectable chat models were reported by VS Code. Model presets were not applied.');
+            return;
+        }
+
+        const plannerReviewerModels = this._uniqueModels([...strongModels, ...fastModels]).slice(0, 1);
+        const routerModels = this._uniqueModels([...fastModels, ...strongModels]).slice(0, 1);
+        const plannerReviewerAgents = new Set([
+            'NowDev AI Agent',
+            'NowDev-AI-Refinement',
+            'NowDev-AI-Reviewer',
+            'NowDev-AI-Classic-Reviewer',
+            'NowDev-AI-Fluent-Reviewer',
+        ]);
+        const routerAgents = new Set([
+            'NowDev-AI-Classic-Developer',
+            'NowDev-AI-Fluent-Developer',
+            'NowDev-AI-AI-Studio-Developer',
+            'NowDev-AI-Release-Expert',
+        ]);
+
+        let updated = 0;
+        for (const manifest of this._agentManifests) {
+            const models = plannerReviewerAgents.has(manifest.name) ? plannerReviewerModels : routerAgents.has(manifest.name) ? routerModels : [];
+            if (models.length === 0) { continue; }
+            const cur = this._agentOverrides[manifest.name] ?? { enabled: true, disabledTools: [] };
+            this._agentOverrides[manifest.name] = { ...cur, model: models[0] };
+            updated++;
+        }
+
+        this._syncWorkspaceAgents();
+        this._updateStatus();
+        this._sendAgentData();
+        vscode.window.showInformationMessage(`Applied model presets to ${updated} agent${updated === 1 ? '' : 's'}.`);
+    }
+
+    private _selectPreferredModels(modelOptions: AvailableAgentModel[], patterns: RegExp[]): string[] {
+        const matches: string[] = [];
+        for (const pattern of patterns) {
+            for (const option of modelOptions) {
+                if (pattern.test(option.value) && !matches.includes(option.value)) {
+                    matches.push(option.value);
+                }
+            }
+        }
+        return matches;
+    }
+
+    private _uniqueModels(models: string[]): string[] {
+        return [...new Set(models.map(model => model.trim()).filter(Boolean))];
+    }
+
     private _sendSdkData(): void {
         if (!this._view) { return; }
         this._authAliases = scanAuthAliases();
@@ -739,25 +847,43 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     private _sendArtifacts() {
         if (!this._view) { return; }
-        const content = this._readArtifactsFile();
-        if (content === null) {
-            this._view.webview.postMessage({ command: 'updateArtifacts', artifacts: [], sessionActive: false });
-        } else {
-            const artifacts = parseArtifactsMarkdown(content);
-            this._view.webview.postMessage({ command: 'updateArtifacts', artifacts, sessionActive: true });
+        if (!this._artifactFilePath) {
+            this._view.webview.postMessage({ command: 'updateArtifacts', artifacts: [], sessionActive: false, errors: [] });
+            return;
         }
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const result = readArtifactStateFile(this._artifactFilePath, workspaceRoot);
+        this._view.webview.postMessage({ command: 'updateArtifacts', artifacts: result.artifacts, sessionActive: result.sessionActive, errors: result.errors });
     }
 
-    private _readArtifactsFile(): string | null {
-        if (!this._artifactFilePath) { return null; }
-        try {
-            if (fs.existsSync(this._artifactFilePath)) {
-                return fs.readFileSync(this._artifactFilePath, 'utf-8');
-            }
-        } catch {
-            // File may not exist yet
+    private async _openArtifactStateFile(): Promise<void> {
+        if (!this._artifactFilePath) {
+            vscode.window.showInformationMessage('Artifact state file has not been initialized yet.');
+            return;
         }
-        return null;
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(this._artifactFilePath));
+        await vscode.window.showTextDocument(doc);
+    }
+
+    private async _resetArtifactStateFile(): Promise<void> {
+        if (!this._artifactFilePath) {
+            vscode.window.showInformationMessage('Artifact state file has not been initialized yet.');
+            return;
+        }
+        const confirmed = await vscode.window.showWarningMessage(
+            'Reset the current NowDev artifact state? This clears the session artifact registry but leaves generated files untouched.',
+            { modal: true },
+            'Reset Artifact State'
+        );
+        if (confirmed !== 'Reset Artifact State') { return; }
+        const document = {
+            version: 1 as const,
+            sessionId: `session-${Date.now().toString(36)}`,
+            updatedAt: new Date().toISOString(),
+            artifacts: [],
+        };
+        writeArtifactStateFile(this._artifactFilePath, document);
+        this._sendArtifacts();
     }
 
     private _onConfigFileChanged(): void {
@@ -855,11 +981,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             // Sync agents whenever config changes
             this._syncWorkspaceAgents();
 
-            const memoryLocation: string | undefined = config.memoryLocation;
-            if (!memoryLocation) { return; }
-
-            // Convert file:/// URI to filesystem path
-            const resolvedPath = vscode.Uri.parse(memoryLocation).fsPath;
+            const resolvedPath = this._resolveArtifactStatePath(workspaceFolders[0].uri.fsPath, config);
+            if (!resolvedPath) { return; }
 
             // Only re-setup if the path actually changed
             if (resolvedPath === this._artifactFilePath) { return; }
@@ -933,6 +1056,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 activeProfileId: profile.id,
             }
         );
+        syncWorkspaceInstructionsFile(workspaceFolders[0].uri.fsPath, {
+            autoUpdate,
+            activeProfileId: profile.id,
+            profileInstructions: effective.profileInstructions,
+            customInstructions,
+            agentGuidelines,
+        });
+        syncWorkspacePromptFiles(workspaceFolders[0].uri.fsPath, autoUpdate);
     }
 
     private _formatAgentGuidelines(): string {
@@ -1167,6 +1298,46 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         this._artifactFilePath = null;
     }
 
+    private _resolveArtifactStatePath(workspaceRoot: string, config: Record<string, unknown>): string | undefined {
+        const artifactState = config.artifactState as { path?: unknown } | undefined;
+        if (artifactState && typeof artifactState.path === 'string') {
+            return resolveInside(workspaceRoot, artifactState.path);
+        }
+
+        if (typeof config.artifactStateLocation === 'string') {
+            return this._resolveArtifactLocation(workspaceRoot, config.artifactStateLocation);
+        }
+
+        if (typeof config.memoryLocation === 'string') {
+            return this._resolveArtifactLocation(workspaceRoot, config.memoryLocation);
+        }
+
+        return undefined;
+    }
+
+    private _resolveArtifactLocation(workspaceRoot: string, location: string): string | undefined {
+        if (/^[a-z][a-z0-9+.-]*:/i.test(location)) {
+            try { return vscode.Uri.parse(location).fsPath; } catch { return undefined; }
+        }
+        return resolveInside(workspaceRoot, location);
+    }
+
+    private _ensureArtifactStateFile(workspaceRoot: string): { relativePath: string; absolutePath: string } {
+        const relativePath = '.vscode/nowdev-ai-session/artifacts.json';
+        const absolutePath = resolveInside(workspaceRoot, relativePath)!;
+        if (!fs.existsSync(absolutePath)) {
+            fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+            const initialState = {
+                version: 1,
+                sessionId: '',
+                artifacts: [],
+                updatedAt: new Date().toISOString(),
+            };
+            fs.writeFileSync(absolutePath, JSON.stringify(initialState, null, 2) + '\n', 'utf-8');
+        }
+        return { relativePath, absolutePath };
+    }
+
     // ── Config helpers ─────────────────────────────────────────────
 
     private _readNowConfig(): { scope: string; scopeId: string; name: string; scopePrefix: string; numericScopeId: string } | null {
@@ -1210,12 +1381,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
 
         const vscodePath = path.join(workspaceFolders[0].uri.fsPath, '.vscode');
+        const artifactState = this._ensureArtifactStateFile(workspaceFolders[0].uri.fsPath);
         const configPath = path.join(vscodePath, 'nowdev-ai-config.json');
 
         const configData: Record<string, unknown> = {
             _comment: 'Auto-generated by NowDev AI Toolbox. Agents read this file for project context. Do not edit manually.',
             instanceUrl: settings.instanceUrl,
             preferredDevelopmentStyle: settings.preferredStyle,
+            artifactState: {
+                version: 1,
+                storage: 'workspace',
+                path: artifactState.relativePath,
+            },
         };
 
         if (fluentApp) {
@@ -1308,6 +1485,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 if (existing.memoryLocation) {
                     configData.memoryLocation = existing.memoryLocation;
                 }
+                if (existing.artifactState && typeof existing.artifactState === 'object') {
+                    configData.artifactState = { ...existing.artifactState as Record<string, unknown>, ...configData.artifactState as Record<string, unknown> };
+                }
                 if (existing.guidelines && !configData.guidelines) {
                     configData.guidelines = existing.guidelines;
                 }
@@ -1319,6 +1499,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 fs.mkdirSync(vscodePath, { recursive: true });
             }
             fs.writeFileSync(configPath, JSON.stringify(configData, null, 2) + '\n', 'utf-8');
+            if (this._artifactFilePath !== artifactState.absolutePath) {
+                this._setupArtifactWatcher(artifactState.absolutePath);
+            }
         } catch (err) {
             console.error('Failed to write nowdev-ai-config.json:', err);
         }
@@ -1342,31 +1525,82 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         } catch { /* ignore */ }
     }
 
-    private _checkSetting(section: string, key: string, expected: unknown): boolean {
-        const config = vscode.workspace.getConfiguration(section);
-        return config.get(key) === expected;
+    private _getRequiredSettings(): Record<string, RequiredSetting> {
+        return {
+            subAgents: { section: 'chat.subagents', prop: 'allowInvocationsFromSubagents', expected: true, label: 'Sub-agent invocations' },
+            memory: { section: 'github.copilot.chat.tools.memory', prop: 'enabled', expected: true, label: 'Memory tool', preview: true, optional: true },
+            customAgentHooks: { section: 'chat', prop: 'useCustomAgentHooks', expected: true, label: 'Agent-scoped hooks', preview: true, optional: true },
+            askChatLocation: { section: 'workbench.commandPalette.experimental', prop: 'askChatLocation', expected: 'chatView', label: 'Ask Chat Location' },
+            browserTools: { section: 'workbench.browser', prop: 'enableChatTools', expected: true, label: 'Browser tools' },
+        };
+    }
+
+    private _getPrerequisiteStatuses(): Record<string, PrerequisiteStatus> {
+        const statuses: Record<string, PrerequisiteStatus> = {};
+        for (const [id, setting] of Object.entries(this._getRequiredSettings())) {
+            statuses[id] = this._getPrerequisiteStatus(id, setting);
+        }
+        return statuses;
+    }
+
+    private _getPrerequisiteStatus(id: string, setting: RequiredSetting): PrerequisiteStatus {
+        const config = vscode.workspace.getConfiguration(setting.section);
+        const actual = config.get(setting.prop);
+        const ok = actual === setting.expected;
+        const inspect = config.inspect(setting.prop) as InspectWithPolicy | undefined;
+        const managedByPolicy = this._policyBlockedSettings.has(id) || (inspect?.policyValue !== undefined && inspect.policyValue !== setting.expected);
+        const status: PrerequisiteStatusKind = ok ? 'enabled' : managedByPolicy ? 'disabled-by-policy' : actual === undefined ? 'unknown' : 'disabled-by-user';
+        const fixable = !setting.optional && !ok && !managedByPolicy;
+        const message = ok
+            ? setting.optional ? 'Available.' : 'Configured.'
+            : managedByPolicy
+                ? 'Disabled or managed by your organization or administrator.'
+                : setting.optional
+                    ? 'Optional preview capability; the toolbox works without it.'
+                    : 'Can be enabled automatically for this user.';
+
+        return {
+            id,
+            label: setting.label,
+            setting: `${setting.section}.${setting.prop}`,
+            ok,
+            status,
+            fixable,
+            managedByPolicy,
+            preview: setting.preview,
+            optional: setting.optional,
+            message,
+        };
     }
 
     private async _fixSetting(key: string) {
-        const settingsMap: Record<string, [string, string, unknown]> = {
-            subAgents: ['chat.subagents', 'allowInvocationsFromSubagents', true],
-            memory: ['github.copilot.chat.tools.memory', 'enabled', true],
-            askChatLocation: ['workbench.commandPalette.experimental', 'askChatLocation', 'chatView'],
-            browserTools: ['workbench.browser', 'enableChatTools', true],
-        };
+        const setting = this._getRequiredSettings()[key];
+        if (!setting) { return; }
 
-        const setting = settingsMap[key];
-        if (setting) {
-            const [section, prop, value] = setting;
-            const config = vscode.workspace.getConfiguration(section);
-            await config.update(prop, value, vscode.ConfigurationTarget.Global);
+        const status = this._getPrerequisiteStatus(key, setting);
+        if (!status.fixable) {
+            if (status.managedByPolicy) {
+                vscode.window.showInformationMessage(`${status.label} is disabled by your organization or administrator.`);
+            }
+            return;
+        }
+
+        const config = vscode.workspace.getConfiguration(setting.section);
+        try {
+            await config.update(setting.prop, setting.expected, vscode.ConfigurationTarget.Global);
+        } catch (error) {
+            this._policyBlockedSettings.add(key);
+            console.warn(`NowDev AI Toolbox could not update ${status.setting}; it may be managed by policy.`, error);
         }
     }
 
     private async _fixAllSettings() {
-        const keys = ['subAgents', 'memory', 'askChatLocation', 'browserTools'];
-        for (const key of keys) {
-            await this._fixSetting(key);
+        for (const key of Object.keys(this._getRequiredSettings())) {
+            const setting = this._getRequiredSettings()[key];
+            const status = this._getPrerequisiteStatus(key, setting);
+            if (status.fixable) {
+                await this._fixSetting(key);
+            }
         }
     }
 
@@ -1492,6 +1726,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <span class="check-label">Memory tool</span>
                     <button class="fix-btn">Enable</button>
                 </div>
+                <div class="check-row" data-key="customAgentHooks">
+                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-label">Agent-scoped hooks</span>
+                    <button class="fix-btn">Enable</button>
+                </div>
                 <div class="check-row" data-key="askChatLocation">
                     <span class="check-icon fail">&#10005;</span>
                     <span class="check-label">Ask Chat Location</span>
@@ -1508,7 +1747,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         <!-- Session Artifacts (shown only when artifacts exist) -->
         <div id="artifactsSection" class="nd-hidden">
             <div class="section-title artifacts-section-title" id="artifactsSectionHeader">
-                Session Artifacts <span id="artifactCount" class="nd-pill"></span>
+                <span>Session Artifacts <span id="artifactCount" class="nd-pill"></span></span>
+                <div class="nd-btn-group">
+                    <button class="fix-btn" id="openArtifactState" title="Open the workspace artifact state JSON">Open State</button>
+                    <button class="fix-btn" id="resetArtifactState" title="Clear the current artifact registry without deleting generated files">Reset</button>
+                </div>
             </div>
             <div id="artifactsView" class="artifacts-home-body"></div>
         </div>
@@ -1799,6 +2042,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 Agent files are written to <code>.github/agents/</code>. Disabled agents are not written to the workspace and are removed from orchestration routing.
             </div>
             <div class="agents-actions">
+                <button class="fix-btn" id="applyModelPresets" title="Apply role-aware model presets using available VS Code chat models">Apply Model Presets</button>
                 <button class="fix-btn" id="showCopilotChatLogs" title="Open the Copilot chat log view">Chat Logs</button>
             </div>
             <div id="agentCards"></div>

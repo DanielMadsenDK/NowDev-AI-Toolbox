@@ -1,5 +1,7 @@
 # Client-Server Communication Patterns
 
+Supplementary NowDev architecture notes only. Verify current SDK API shape with `now-sdk explain scriptinclude-api --format raw`, `now-sdk explain uipage-api --format raw`, and the relevant client/server guide topic before writing code.
+
 ## GlideAjax — Full Implementation Pattern
 
 ### 1. Server-Side JavaScript (`.server.js`)

@@ -1,6 +1,9 @@
 ---
 name: servicenow-copilot-instructions-generator
+context: fork
+user-invocable: false
 description: Generate or update project-specific GitHub Copilot instructions for ServiceNow projects by detecting Fluent vs Classic style, scope, naming conventions, dependencies, tests, and forbidden patterns. Use when a ServiceNow workspace lacks `.github/copilot-instructions.md`, when a team wants Copilot aligned to project conventions, or when updating existing Copilot instructions after architecture changes.
+last_verified: "2026-06-25"
 ---
 
 # ServiceNow Copilot Instructions Generator

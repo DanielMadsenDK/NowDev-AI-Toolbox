@@ -51,27 +51,8 @@ IncidentUtils.prototype = {
 
 ---
 
-### **[FLUENT.md](FLUENT.md) — SDK-Based Script Includes (.now.ts)**
-Use for TypeScript projects with modern ES6 class syntax.
-
-**Quick example:**
-```typescript
-import { ScriptInclude } from '@servicenow/sdk/core'
-
-export default ScriptInclude({
-    $id: Now.ID['incident_utils'],
-    name: 'IncidentUtils',
-    apiName: 'x_my_app.IncidentUtils',
-    script: class {
-        getIncidentCount(state) {
-            const incidentGr = new GlideRecord('incident');
-            incidentGr.addQuery('state', state);
-            incidentGr.query();
-            return incidentGr.getRowCount();
-        }
-    }
-})
-```
+### **Fluent SDK Script Includes (.now.ts)**
+Use `now-sdk explain scriptinclude-api --format raw`, `now-sdk explain script-include-guide --format raw`, and `now-sdk explain now-include-guide --format raw`, then route implementation to NowDev-AI-Fluent-Logic-Developer. Local examples are not SDK API reference.
 
 **When to use:**
 - ✓ New SDK projects
@@ -103,8 +84,8 @@ export default ScriptInclude({
 | Database operations | ✓ | ✓ | See respective guide |
 | System operations | ✓ | ✓ | See respective guide |
 | Logging | ✓ | ✓ | See respective guide |
-| Type safety | - | ✓ | [FLUENT.md](FLUENT.md) |
-| ES6+ syntax | - | ✓ | [FLUENT.md](FLUENT.md) |
+| Type safety | - | ✓ | `now-sdk explain scriptinclude-api` |
+| ES6+ syntax | - | ✓ | `now-sdk explain module-guide` |
 
 ---
 
@@ -113,9 +94,9 @@ export default ScriptInclude({
 | Question | Answer | Use |
 |----------|--------|-----|
 | Is this an existing instance? | Yes | [CLASSIC.md](CLASSIC.md) |
-| Is this a new SDK project? | Yes | [FLUENT.md](FLUENT.md) |
-| Do we use TypeScript? | Yes | [FLUENT.md](FLUENT.md) |
-| Need version control? | Yes | [FLUENT.md](FLUENT.md) |
+| Is this a new SDK project? | Yes | NowDev-AI-Fluent-Logic-Developer |
+| Do we use TypeScript? | Yes | `now-sdk explain scriptinclude-api` |
+| Need version control? | Yes | `now-sdk explain developing-apps-guide` |
 | Quick utility function? | Yes | [CLASSIC.md](CLASSIC.md) |
 
 ---
@@ -136,21 +117,7 @@ MyUtil.prototype = {
 ```
 
 ### Fluent: SDK Script Include
-```typescript
-// Version-controlled .now.ts file
-import { ScriptInclude } from '@servicenow/sdk/core'
-
-export default ScriptInclude({
-    $id: Now.ID['my_util'],
-    name: 'MyUtil',
-    apiName: 'x_my_app.MyUtil',
-    script: class {
-        doSomething(param) {
-            return param + 1;
-        }
-    }
-})
-```
+Use installed-version docs: `now-sdk explain scriptinclude-api --format raw`.
 
 ---
 
@@ -158,28 +125,11 @@ export default ScriptInclude({
 
 - **[BEST_PRACTICES.md](BEST_PRACTICES.md)** — Advanced patterns and debugging
 - **[CLASSIC.md](CLASSIC.md)** — Full reference for Class.create() patterns
-- **[FLUENT.md](FLUENT.md)** — Full reference for SDK Script Includes
+- Fluent SDK Script Includes — `now-sdk explain scriptinclude-api --format raw`
 
 ---
 
 ## Class-Based Script Include
-
-**File:** `my-script-include.now.ts`
-
-```typescript
-import { ScriptInclude } from '@servicenow/sdk/core'
-
-export default ScriptInclude({
-    $id: Now.ID['my_script_include'],
-    name: 'MyScriptInclude',
-    description: 'Example script include for incident management utilities',
-    active: true,
-    apiName: 'x_ai_toolbox.MyScriptInclude',
-    client_callable: false,
-    // ScriptInclude.script is string-only — use Now.include() with a Class.create() .server.js file
-    script: Now.include('../server/MyScriptInclude.server.js'),
-})
-```
 
 **File:** `MyScriptInclude.server.js`
 

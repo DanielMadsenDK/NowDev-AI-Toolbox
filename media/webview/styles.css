@@ -637,7 +637,15 @@ hr {
 }
 .check-icon.ok   { background: var(--nd-success); color: #fff; }
 .check-icon.fail { background: var(--nd-danger);  color: #fff; }
-.check-label { flex: 1; color: var(--nd-fg); }
+.check-icon.blocked { background: var(--vscode-inputValidation-warningBackground); color: var(--vscode-inputValidation-warningForeground); border: 1px solid var(--vscode-inputValidation-warningBorder); }
+.check-label { color: var(--nd-fg); }
+.check-detail {
+    flex: 1;
+    min-width: 0;
+    color: var(--nd-fg-muted);
+    font-size: 10.5px;
+    line-height: 1.25;
+}
 
 .all-good {
     display: flex;
@@ -851,6 +859,16 @@ a:hover {
 }
 
 /* ════════════════════════════════════════════════════════════════
+}
+.artifact-errors {
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--vscode-inputValidation-warningBorder, #cca700);
+    border-radius: 6px;
+    color: var(--vscode-inputValidation-warningForeground, var(--vscode-foreground));
+    background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.12));
+    font-size: 12px;
+}
    TOOL ROWS (env tools, MCP integrations)
    ════════════════════════════════════════════════════════════════ */
 .tool-row {
@@ -1153,6 +1171,25 @@ a:hover {
 }
 .artifacts-summary strong { color: var(--nd-fg); }
 
+.artifact-graph-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nd-sp-1);
+    margin-bottom: var(--nd-sp-2);
+}
+.artifact-graph-pill {
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-pill);
+    color: var(--nd-fg-mute);
+    background: var(--nd-bg-soft);
+    font-size: 10.5px;
+    padding: 2px 8px;
+}
+.artifact-graph-pill.is-warning {
+    color: var(--nd-danger);
+    border-color: color-mix(in srgb, var(--nd-danger) 45%, var(--nd-border));
+}
+
 .artifact-filters {
     display: flex;
     gap: var(--nd-sp-1);
@@ -1262,6 +1299,13 @@ a:hover {
     gap: 2px;
 }
 .artifact-detail { color: var(--nd-fg); }
+.artifact-source-warning,
+.artifact-source-ok {
+    margin-top: var(--nd-sp-2);
+    font-size: 10.5px;
+}
+.artifact-source-warning { color: var(--nd-danger); }
+.artifact-source-ok { color: var(--nd-success); }
 .detail-label {
     color: var(--nd-fg-mute);
     font-weight: 600;

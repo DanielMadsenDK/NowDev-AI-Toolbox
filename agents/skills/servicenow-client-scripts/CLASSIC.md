@@ -491,4 +491,4 @@ function onChange(control, oldValue, newValue, isLoading) {
 - ✓ Legacy form customizations
 - ✓ Maximum compatibility
 
-For SDK-based projects, see [FLUENT.md](FLUENT.md) for TypeScript client script patterns.
+For SDK-based projects, use `now-sdk explain clientscript-api --format raw` and route implementation to NowDev-AI-Fluent-UI-Developer.

@@ -6,6 +6,8 @@ export interface McpServer {
     name: string;
     source: 'settings' | 'file';
     type?: string;
+    kind?: McpServerConfig['kind'];
+    path?: string;
 }
 
 export interface McpStdioConfig {
@@ -103,7 +105,7 @@ export function scanMcpServers(): McpServer[] {
         if (!seen.has(name)) {
             seen.add(name);
             const srv = settingsServers[name] as Record<string, unknown>;
-            servers.push({ name, source: 'settings', type: srv['type'] as string | undefined });
+            servers.push({ name, source: 'settings', type: srv['type'] as string | undefined, kind: parseServerEntry(srv)?.kind });
         }
     }
 
@@ -132,7 +134,7 @@ export function scanMcpServers(): McpServer[] {
                         if (!seen.has(name)) {
                             seen.add(name);
                             const srv = fileServers[name];
-                            servers.push({ name, source: 'file', type: srv['type'] as string | undefined });
+                            servers.push({ name, source: 'file', type: srv['type'] as string | undefined, kind: parseServerEntry(srv)?.kind, path: path.relative(folderPath, mcpJsonPath).replace(/\\/g, '/') });
                         }
                     }
                 } catch {

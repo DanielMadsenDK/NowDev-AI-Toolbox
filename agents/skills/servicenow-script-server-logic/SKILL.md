@@ -150,36 +150,13 @@ user.savePreference('my_app.my_key', null);
 | GlideScopedEvaluator | Safe script evaluation |
 | GlideImpersonate | Admin user context switching |
 
-## JavaScript Modules vs Script Includes
+## Fluent SDK Script Includes and Modules
 
-In Fluent projects, JavaScript modules are the **preferred** approach for new server-side logic. However, Script Includes are still required for:
-
-- **GlideAjax** — client-side code calls script includes by name
-- **Cross-scope APIs** — other scoped apps access script includes by name
-- **Extension points** — platform features that expect script include names
-- **Dynamic reference qualifiers / condition scripts** — platform expects script includes
-
-### Module vs Script Include Rules
-
-| File Type | Import Glide APIs? | Why |
-|-----------|-------------------|-----|
-| **Module files** (normal functions) | **YES** — `import { gs } from '@servicenow/glide'` | Glide APIs NOT auto-available |
-| **Script Include class files** (`Class.create`) | **NO** — do NOT import Glide APIs | Glide APIs ARE auto-available |
-
-### APIs that accept module functions vs. string-only
-
-| API | Script type | How to provide script |
-|-----|------------|----------------------|
-| `BusinessRule`, `ScriptAction`, `UiAction` | **Module function** (preferred) | `import { fn } from './module.ts'` then `script: fn` |
-| `ScheduledScript` | **String only** | `script: Now.include('./file.js')` with IIFE wrapper |
-| `ScriptInclude` | **String only** | `script: Now.include('./file.js')` with `Class.create()` |
-| `ClientScript` | **String only** | `script: Now.include('./file.client.js')` |
-
-> **ScheduledScript:** The `script` property is **string-only** — do NOT pass module imports. Use `Now.include('../../server/scheduled-scripts/my-job.js')`. The script file must wrap logic in an IIFE: `(function() { ... })();`
+For Fluent projects, use `now-sdk explain now-include-guide --format raw`, `now-sdk explain module-guide --format raw`, `now-sdk explain scriptinclude-api --format raw`, and the artifact-specific API topic. Route implementation to NowDev-AI-Fluent-Logic-Developer. This skill keeps Classic server-side scripting guidance and platform API guardrails only.
 
 > **Scoped app restriction:** `gs.nowDateTime()` is **not allowed** in scoped applications. Use `new GlideDateTime().getDisplayValue()` instead.
 
-When your logic lives in a module but needs to be accessible via one of the mechanisms above, use the **module bridging pattern**: create a thin Script Include wrapper that uses `require()` to load the module. See servicenow-fluent-development: [MODULE-GUIDE.md](../servicenow-fluent-development/MODULE-GUIDE.md) for the full pattern.
+When Fluent logic must bridge module code to legacy callers, verify the current bridge pattern with `now-sdk explain script-include-guide --format raw`.
 
 ## Detailed Patterns
 
@@ -191,13 +168,9 @@ Choose the pattern that matches your implementation context:
   - System operations and logging
   - Audit trails and error handling
 
-- **[FLUENT.md](./FLUENT.md)** — SDK-based Script Includes (TypeScript, ES6 classes)
-  - Metadata-driven script definitions
-  - Modern ES6+ syntax
-  - Type-safe utilities
-  - Version-controlled scripts
+- Fluent SDK Script Includes — use `now-sdk explain scriptinclude-api --format raw` and route implementation to NowDev-AI-Fluent-Logic-Developer.
 
-- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
+- **[EXAMPLES.md](./EXAMPLES.md)** — Classic quick reference plus Fluent topic pointers
 
 ## Decision Matrix: Which Approach to Use
 

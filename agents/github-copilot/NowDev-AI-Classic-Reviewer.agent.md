@@ -21,7 +21,7 @@ handoffs:
 4. For each artifact type found, load the relevant servicenow-* skill and identify the best practices that apply
 5. Apply universal Classic scripting rules (always applicable regardless of artifact type)
 6. Review each file against the best practices sourced from the relevant skill references, covering correctness, security, performance, maintainability, and API fit as separate perspectives
-7. **Dependency Validation**: Use the `memory` tool to view `/memories/session/artifacts.md` (if it exists) and cross-reference — verify that method signatures called by dependent artifacts match the actual exports of their dependencies
+7. **Dependency Validation**: Read `.vscode/nowdev-ai-config.json`, read `artifactState.path` if available, and cross-reference dependencies — verify that method signatures called by dependent artifacts match the actual exports of their dependencies
 8. Generate structured feedback
 9. Emit the **Structured Findings Block** (Section 9) as a JSON code fence — this block is required regardless of status so the reviewer router can offer fix delegation to the user
 </workflow>
@@ -127,10 +127,10 @@ List each artifact type found and which skill was consulted for it.
 Complete list of files reviewed.
 
 ### 7. **Dependency Validation:**
-If `/memories/session/artifacts.md` exists (use the `memory` tool to check), cross-reference the registry:
-- For each artifact's `Depends On` column, verify the dependency's `Exports` match the actual method calls in the source code
+Follow `agents/skills/servicenow-artifact-state/SKILL.md` for dependency validation:
+- Cross-reference each artifact's `dependsOn` entries with registry exports and actual dependency source files
 - Flag mismatches (wrong method name, missing parameters, calling a non-existent export) as **Critical** findings
-- Flag any artifact still showing 🏗️ In Progress status — it may have incomplete exports
+- Flag any artifact still showing `in_progress` status — it may have incomplete exports
 
 ### 8. **Next Steps:**
 Action items for the development team and suggestions for follow-up reviews.

@@ -533,4 +533,4 @@ function logAuditTrail(action, details) {
 - ✓ System-level operations
 - ✓ Maximum compatibility
 
-For SDK-based projects, see [FLUENT.md](FLUENT.md) for TypeScript patterns.
+For SDK-based projects, use `now-sdk explain scriptinclude-api --format raw` and route implementation to NowDev-AI-Fluent-Logic-Developer.

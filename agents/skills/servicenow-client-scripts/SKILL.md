@@ -3,7 +3,7 @@ name: servicenow-client-scripts
 context: fork
 user-invocable: false
 description: >-
-    Implement browser-side client scripts using GlideAjax for async server communication. Covers two approaches: (1) Classic client scripts in existing instances, and (2) Fluent SDK TypeScript scripts in .now.ts files. Use for OnChange/OnLoad/OnSubmit scripts that make async server calls or event-driven logic requiring data from the server. For pure g_form field state operations with no server calls, use the servicenow-ui-forms skill. For legacy instances, recommend Classic patterns; for SDK projects, recommend Fluent patterns. Trigger this skill whenever the user mentions client scripts, GlideAjax, OnChange/OnLoad/OnSubmit handlers, or needs browser-side logic that communicates with the server.
+    Implement browser-side client scripts using GlideAjax for async server communication. Covers Classic client script behavior, GlideAjax, g_scratchpad, and form performance guardrails. For Fluent SDK metadata, use `now-sdk explain clientscript-api --format raw` and the NowDev Fluent UI agent. Trigger whenever the user mentions client scripts, GlideAjax, OnChange/OnLoad/OnSubmit handlers, or browser-side logic that communicates with the server.
 last_verified: "2026-05-18"
 ---
 
@@ -11,7 +11,7 @@ last_verified: "2026-05-18"
 
 ## Choosing Your Approach
 
-Client scripts exist in two distinct contexts:
+Client scripts exist in two distinct contexts. This skill covers Classic/platform behavior; Fluent SDK constructor shape must come from `now-sdk explain clientscript-api --format raw`.
 
 ### **Classic Client Scripts** (for existing instances)
 Use for direct ServiceNow instance customizations created in the Client Script UI.
@@ -31,38 +31,7 @@ function onChange(control, oldValue, newValue, isLoading) {
 ```
 
 ### **Fluent SDK Client Scripts** (for SDK projects)
-Use for TypeScript-based projects with `.now.ts` metadata files and `.client.js` handlers. The ClientScript `script` property is **string-only** — JavaScript modules are NOT supported. Use `Now.include()` to reference external script files.
-
-```typescript
-import '@servicenow/sdk/global'
-import { ClientScript } from '@servicenow/sdk/core'
-
-export const cs = ClientScript({
-    $id: Now.ID['incident_onchange_script'],
-    type: 'onChange',
-    field: 'field_name',
-    table: 'incident',
-    name: 'My Script',
-    script: Now.include('./incident-onchange.client.js'),
-})
-```
-
-```javascript
-// incident-onchange.client.js
-function onChange(control, oldValue, newValue, isLoading) {
-    if (isLoading || !newValue) return;
-
-    var ga = new GlideAjax('ScriptIncludeName');
-    ga.addParam('sysparm_name', 'methodName');
-    ga.addParam('sysparm_data', newValue);
-
-    ga.getXMLAnswer(function(answer) {
-        g_form.setValue('target_field', answer);
-    });
-}
-```
-
-> **Note:** Do NOT pass functions or module imports to ClientScript `script` — it only accepts strings. Use `Now.include()` for external files or inline strings for short scripts.
+Use `now-sdk explain clientscript-api --format raw` and `now-sdk explain client-script-guide --format raw`, then route implementation to NowDev-AI-Fluent-UI-Developer. Do not use local skill examples as SDK API reference.
 
 ## Performance optimization
 
@@ -136,7 +105,7 @@ g_form.setValue('ref_field', id, displayValue);
 
 **Performance tip:** If you only need to conditionally show/hide fields or set mandatory flags based on a field value, **always prefer UI Policies over client scripts**. UI Policies are more efficient and don't require async callbacks.
 
-For complete UI Policy documentation, see the **servicenow-fluent-development** skill reference: **UI-POLICY-API.md** — UiPolicy object properties, field actions (visible/readOnly/mandatory/cleared), related list actions, conditions, script-based behavior, and inheritance patterns.
+For Fluent UI Policy metadata, use `now-sdk explain uipolicy-api --format raw` and route implementation to NowDev-AI-Fluent-UI-Developer.
 
 ## Key APIs
 
@@ -160,14 +129,9 @@ Choose the pattern that matches your implementation context:
   - Event handling and listeners
   - Reusable functions in global scope
 
-- **[FLUENT.md](./FLUENT.md)** — SDK-based client scripts (TypeScript, `.now.ts` files)
-  - Metadata-driven script definitions
-  - TypeScript handler implementation
-  - Version-controlled scripts
-  - Type-safe form handling
-  - Full IDE support
+- Fluent SDK client scripts — use `now-sdk explain clientscript-api --format raw` and `now-sdk explain client-script-guide --format raw`; route implementation to NowDev-AI-Fluent-UI-Developer.
 
-- **[EXAMPLES.md](./EXAMPLES.md)** — Quick reference showing both approaches
+- **[EXAMPLES.md](./EXAMPLES.md)** — Classic quick reference plus Fluent topic pointers
 
 ## Decision Matrix: Which Approach to Use
 

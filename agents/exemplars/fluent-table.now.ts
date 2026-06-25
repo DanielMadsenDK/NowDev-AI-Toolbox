@@ -1,5 +1,5 @@
 // Canonical shape: Fluent SDK table definition
-// Reference: agents/skills/servicenow-fluent-development/TABLE-API.md
+// Reference: now-sdk explain table-api --format raw
 import '@servicenow/sdk/global';
 import { Table, StringColumn, IntegerColumn, ReferenceColumn, Role, Acl } from '@servicenow/sdk/core';
 

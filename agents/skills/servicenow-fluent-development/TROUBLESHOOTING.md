@@ -1,5 +1,7 @@
 # Troubleshooting
 
+Supplementary NowDev troubleshooting notes only. Verify current API and build behavior with `now-sdk explain`, `now-sdk build`, and workspace schema/types before treating any item here as definitive.
+
 ## Common Issues
 
 | Issue | Solution |

@@ -40,7 +40,7 @@ STOP IF modifying any application source files — this agent generates pipeline
 
 <documentation>
 Reference `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md` for detailed pipeline patterns specific to the ServiceNow Fluent SDK
-Use {{SDK_DOCS_CONTEXT}} for current `@servicenow/sdk` CLI flags and CI environment variables. Prefer SDK 4.7 CI env vars (`SN_SDK_NODE_ENV`, `SN_SDK_AUTH_TYPE`, `SN_SDK_INSTANCE_URL`, `SN_SDK_USER`, `SN_SDK_USER_PWD`, `SN_SDK_OAUTH_CLIENT_ID`, `SN_SDK_OAUTH_CLIENT_SECRET`) over direct credential flags. Use `--scope` and `--reinstall` only when needed.
+Use `now-sdk explain ci-integration --format raw` and `now-sdk explain developing-apps-guide --format raw` for current SDK CLI flags and CI environment variables. Use {{SDK_DOCS_CONTEXT}} only for supplementary SDK context not covered by explain. Prefer SDK CI environment variables over direct credential flags, and use `--scope` or `--reinstall` only when the installed SDK docs and project context support them.
 Use {{CLASSIC_SCRIPTING_DOCS}} for any instance-side deployment prerequisites (e.g., application scope availability, ATF integration)
 </documentation>
 
