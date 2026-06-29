@@ -219,16 +219,17 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
      * Runs the environment scan, respecting user-disabled tools.
      * Called on activation and when the user toggles a tool.
      */
-    public scanTools(): void {
+    public async scanTools(): Promise<void> {
         try {
             const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
             const disabledTools = config.get<string[]>('disabledTools', []);
             const enabledTools = config.get<string[]>('enabledTools', []);
-            this._environmentInfo = scanEnvironment(disabledTools, enabledTools);
+            this._environmentInfo = await scanEnvironment(disabledTools, enabledTools);
         } catch (err) {
             console.error('Environment scan failed:', err);
             this._environmentInfo = null;
         }
+        if (this._view) { this._updateStatus(); }
     }
 
     resolveWebviewView(
@@ -525,13 +526,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
                     await cfg.update('disabledTools', disabled, vscode.ConfigurationTarget.Global);
                     await cfg.update('enabledTools', forceEnabled, vscode.ConfigurationTarget.Global);
-                    this.scanTools();
-                    this._updateStatus();
+                    await this.scanTools();
                     break;
                 }
                 case 'rescanTools':
-                    this.scanTools();
-                    this._updateStatus();
+                    await this.scanTools();
                     break;
                 case 'refresh':
                     this._updateStatus();

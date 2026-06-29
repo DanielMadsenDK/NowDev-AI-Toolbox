@@ -1,7 +1,10 @@
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 export interface ToolInfo {
     /** Whether the tool binary was found on the system */
@@ -188,28 +191,8 @@ function detectShell(): string {
     }
 }
 
-function tryExec(command: string, timeoutMs = 10000): string | null {
-    const opts = {
-        timeout: timeoutMs,
-        encoding: 'utf-8' as const,
-        stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'],
-    };
-
-    // Some CLIs exit with a non-zero code but still write the version string to stdout.
-    // execSync throws in that case but attaches the output to the error object.
-    function execAndCapture(cmd: string): string | null {
-        try {
-            const [executable, ...args] = splitCommand(cmd);
-            return execFileSync(executable, args, opts).trim();
-        } catch (err: any) {
-            // Only capture stdout — Windows shell error messages (e.g. "not recognized")
-            // go to stderr, so ignoring stderr avoids false positives for missing tools.
-            const stdout = ((err?.stdout as string | undefined) || '').trim();
-            return stdout || null;
-        }
-    }
-
-    const direct = execAndCapture(command);
+async function tryExec(command: string, timeoutMs = 4000): Promise<string | null> {
+    const direct = await execAndCapture(command, timeoutMs);
     if (direct !== null) {
         return direct;
     }
@@ -219,13 +202,13 @@ function tryExec(command: string, timeoutMs = 10000): string | null {
     // Try progressively broader shell invocations as fallbacks.
     if (process.platform === 'win32') {
         // Attempt 1: explicit cmd /c — resolves .cmd/.bat extensions and uses system PATH
-        const cmdResult = execFileAndCapture('cmd', ['/c', ...splitCommand(command)]);
+        const cmdResult = await execFileAndCapture('cmd', ['/c', ...splitCommand(command)], timeoutMs);
         if (cmdResult !== null) {
             return cmdResult;
         }
 
         // Attempt 2: PowerShell so npm-global PATH entries from user profile are loaded
-        const psResult = execFileAndCapture('powershell', ['-Command', `& { ${command} }`]);
+        const psResult = await execFileAndCapture('powershell', ['-Command', `& { ${command} }`], timeoutMs);
         if (psResult !== null) {
             return psResult;
         }
@@ -234,7 +217,7 @@ function tryExec(command: string, timeoutMs = 10000): string | null {
         // PATH before running via cmd.
         const appdata = process.env.APPDATA || '';
         if (appdata) {
-            return execAndCapture(`cmd /c "set PATH=${appdata}\\npm;%PATH% && ${command}"`);
+            return execAndCapture(`cmd /c "set PATH=${appdata}\\npm;%PATH% && ${command}"`, timeoutMs);
         }
 
         return null;
@@ -243,14 +226,24 @@ function tryExec(command: string, timeoutMs = 10000): string | null {
     return null;
 }
 
-function execFileAndCapture(executable: string, args: string[], timeoutMs = 10000): string | null {
+// Some CLIs exit with a non-zero code but still write the version string to stdout.
+// execFile rejects in that case but attaches the output to the error object.
+async function execAndCapture(cmd: string, timeoutMs: number): Promise<string | null> {
+    const [executable, ...args] = splitCommand(cmd);
+    return execFileAndCapture(executable, args, timeoutMs);
+}
+
+async function execFileAndCapture(executable: string, args: string[], timeoutMs = 4000): Promise<string | null> {
     try {
-        return execFileSync(executable, args, {
+        const { stdout } = await execFileAsync(executable, args, {
             timeout: timeoutMs,
             encoding: 'utf-8',
-            stdio: ['pipe', 'pipe', 'pipe'],
-        }).trim();
+            windowsHide: true,
+        });
+        return stdout.trim() || null;
     } catch (err: any) {
+        // Only capture stdout — Windows shell error messages (e.g. "not recognized")
+        // go to stderr, so ignoring stderr avoids false positives for missing tools.
         return (((err?.stdout as string | undefined) || '').trim()) || null;
     }
 }
@@ -271,7 +264,7 @@ function extractVersion(raw: string): string {
  * @param disabledTools Tool keys the user has explicitly disabled.
  * @param enabledTools Tool keys the user has manually force-enabled (auto-detection skipped).
  */
-export function scanEnvironment(disabledTools: string[], enabledTools: string[]): EnvironmentInfo {
+export async function scanEnvironment(disabledTools: string[], enabledTools: string[]): Promise<EnvironmentInfo> {
     const tools: Record<string, ToolInfo> = {};
 
     for (const [key, def] of Object.entries(TOOL_DEFINITIONS)) {
@@ -307,7 +300,7 @@ export function scanEnvironment(disabledTools: string[], enabledTools: string[])
                 continue;
             }
 
-            const raw = tryExec(def.versionCommand);
+            const raw = await tryExec(def.versionCommand);
             const outputValid = raw !== null && (def.validateOutput ? def.validateOutput(raw) : true);
             const available = outputValid;
 

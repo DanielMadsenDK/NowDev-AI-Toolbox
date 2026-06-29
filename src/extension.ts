@@ -326,8 +326,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Register the sidebar welcome webview
     const welcomeProvider = new WelcomeViewProvider(context.extensionUri);
 
-    // Scan for available tools/environment on activation
-    welcomeProvider.scanTools();
+    // Scan for available tools/environment on activation (async; never blocks activation)
+    void welcomeProvider.scanTools();
     welcomeProvider.scanMcp();
     welcomeProvider.loadAgentRegistry();
 

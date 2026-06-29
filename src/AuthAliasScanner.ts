@@ -1,4 +1,6 @@
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 import { getShell } from './shellConfig';
 
 export interface AuthAlias {
@@ -21,22 +23,76 @@ export interface AuthAlias {
  *         default = Yes
  */
 export function scanAuthAliases(): AuthAlias[] {
-    try {
-        const raw = execSync('now-sdk auth --list', {
-            timeout: 8000,
-            encoding: 'utf-8',
-            stdio: ['pipe', 'pipe', 'pipe'],
-            shell: getShell(),
-        });
-        return parseAuthListOutput(String(raw));
-    } catch (err: any) {
-        // now-sdk may write output to stderr on some platforms
-        const combined = String(err?.stdout ?? '') + String(err?.stderr ?? '');
-        if (combined.includes('Listing all credentials')) {
-            return parseAuthListOutput(combined);
+    for (const raw of collectAuthListOutputs()) {
+        if (raw.includes('Listing all credentials') || /^\s*\*?\[.+\]\s*$/m.test(raw)) {
+            const aliases = parseAuthListOutput(raw);
+            if (aliases.length > 0) { return aliases; }
         }
-        return [];
     }
+    return [];
+}
+
+/**
+ * Runs `now-sdk auth --list` and yields stdout+stderr for each strategy.
+ * On Windows the now-sdk shim must be invoked via cmd (shell:true) with a closed
+ * stdin — running it through PowerShell or with an open stdin pipe hangs
+ * (ETIMEDOUT). We resolve the shim by full path so detection survives a stripped
+ * PATH in GUI-launched VS Code, then fall back to a bare `now-sdk` on PATH.
+ */
+function collectAuthListOutputs(): string[] {
+    const outputs: string[] = [];
+
+    // Build the ordered list of executables to try.
+    const executables: string[] = [];
+    if (process.platform === 'win32') {
+        const shim = findNowSdkExecutable();
+        if (shim) { executables.push(shim); }
+        executables.push('now-sdk');
+    } else {
+        executables.push('now-sdk');
+    }
+
+    for (const exe of executables) {
+        try {
+            const result = spawnSync(exe, ['auth', '--list'], {
+                timeout: 30000,
+                encoding: 'utf-8',
+                // stdin must be closed: now-sdk hangs waiting for input on an open
+                // stdin pipe when run non-interactively (ETIMEDOUT). Forcing cmd via
+                // shell:true on Windows avoids the PowerShell hang.
+                stdio: ['ignore', 'pipe', 'pipe'],
+                shell: process.platform === 'win32' ? true : getShell(),
+            });
+            outputs.push(String(result.stdout ?? '') + String(result.stderr ?? ''));
+        } catch (err: any) {
+            outputs.push(String(err?.stdout ?? '') + String(err?.stderr ?? ''));
+        }
+    }
+    return outputs;
+}
+
+/**
+ * Locates the now-sdk shim on disk so it can be invoked by full path, bypassing
+ * PATH issues in GUI-launched VS Code processes. Checks PATH dirs plus the npm
+ * global prefix (%APPDATA%\npm) for now-sdk.cmd / .ps1.
+ */
+function findNowSdkExecutable(): string | undefined {
+    const dirs: string[] = [];
+    const pathEnv = process.env.PATH || process.env.Path || '';
+    dirs.push(...pathEnv.split(path.delimiter).filter(Boolean));
+    if (process.env.APPDATA) { dirs.push(path.join(process.env.APPDATA, 'npm')); }
+    dirs.push('C:\\Program Files\\nodejs', 'C:\\Program Files (x86)\\nodejs');
+    const seen = new Set<string>();
+    for (const dir of dirs) {
+        const norm = path.normalize(dir);
+        if (seen.has(norm)) { continue; }
+        seen.add(norm);
+        for (const name of ['now-sdk.cmd', 'now-sdk.exe', 'now-sdk.bat']) {
+            const candidate = path.join(norm, name);
+            try { if (fs.existsSync(candidate)) { return candidate; } } catch { /* skip */ }
+        }
+    }
+    return undefined;
 }
 
 function parseAuthListOutput(raw: string): AuthAlias[] {
