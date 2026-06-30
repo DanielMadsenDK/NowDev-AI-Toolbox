@@ -31,7 +31,7 @@
       "activitybar": [
         {
           "id": "nowdev-ai-toolbox",
-          "title": "NowDev AI Toolbox",
+          "title": "NowDev AI",
           "icon": "media/activitybar-icon.svg"
         }
       ]
@@ -40,7 +40,7 @@
       "nowdev-ai-toolbox": [
         {
           "id": "nowdev-ai-toolbox.welcome",
-          "name": "NowDev AI Toolbox",
+          "name": "NowDev AI",
           "icon": "media/activitybar-icon.svg",
           "type": "webview"
         }
@@ -55,7 +55,14 @@
       {
         "command": "nowdev-ai-toolbox.openCopilotChat",
         "title": "Open Copilot Chat",
-        "category": "NowDev AI"
+        "category": "NowDev AI",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "nowdev-ai-toolbox.openSettings",
+        "title": "Open Settings",
+        "category": "NowDev AI",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "nowdev-ai-toolbox.collectCopilotDiagnostics",
@@ -75,7 +82,8 @@
       {
         "command": "nowdev-ai-toolbox.refreshStatus",
         "title": "Refresh Status",
-        "category": "NowDev AI"
+        "category": "NowDev AI",
+        "icon": "$(refresh)"
       },
       {
         "command": "nowdev-ai-toolbox.mergeArtifactManifest",
@@ -90,7 +98,8 @@
       {
         "command": "nowdev-ai-toolbox.initFluentProject",
         "title": "Initialize Fluent Project",
-        "category": "NowDev AI"
+        "category": "NowDev AI",
+        "icon": "$(new-folder)"
       },
       {
         "command": "nowdev-ai-toolbox.sdkBuild",
@@ -170,12 +179,14 @@
       {
         "command": "nowdev-ai-toolbox.openInstanceBrowser",
         "title": "ServiceNow: Open Instance Browser",
-        "category": "NowDev AI"
+        "category": "NowDev AI",
+        "icon": "$(database)"
       },
       {
         "command": "nowdev-ai-toolbox.openAgentGuidelines",
         "title": "ServiceNow: Open Agent Guidelines",
-        "category": "NowDev AI"
+        "category": "NowDev AI",
+        "icon": "$(book)"
       },
       {
         "command": "nowdev-ai-toolbox.openContextScanner",
@@ -194,6 +205,23 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "nowdev-ai-toolbox.openCopilotChat",
+          "when": "view == nowdev-ai-toolbox.welcome",
+          "group": "navigation@1"
+        },
+        {
+          "command": "nowdev-ai-toolbox.refreshStatus",
+          "when": "view == nowdev-ai-toolbox.welcome",
+          "group": "navigation@2"
+        },
+        {
+          "command": "nowdev-ai-toolbox.openSettings",
+          "when": "view == nowdev-ai-toolbox.welcome",
+          "group": "navigation@3"
+        }
+      ],
       "explorer/context": [
         {
           "command": "nowdev-ai-toolbox.initFluentProject",
@@ -202,6 +230,55 @@
         }
       ]
     },
+    "walkthroughs": [
+      {
+        "id": "nowdev-ai-toolbox.getStarted",
+        "title": "Get Started with NowDev AI",
+        "description": "Configure ServiceNow-aware Copilot agents for this workspace.",
+        "steps": [
+          {
+            "id": "open-sidebar",
+            "title": "Open the NowDev AI sidebar",
+            "description": "Open the NowDev AI view from the Activity Bar, then use the Home dashboard to review setup status.\n\n[Open NowDev AI](command:workbench.view.extension.nowdev-ai-toolbox)",
+            "completionEvents": [
+              "onView:nowdev-ai-toolbox.welcome"
+            ]
+          },
+          {
+            "id": "configure-instance",
+            "title": "Configure your ServiceNow instance",
+            "description": "In the Setup tab, enter your instance URL and run a connection check so agents and SDK commands can target the right instance.\n\n[Check Instance Connection](command:nowdev-ai-toolbox.checkConnection)",
+            "completionEvents": [
+              "onCommand:nowdev-ai-toolbox.checkConnection"
+            ]
+          },
+          {
+            "id": "add-auth-alias",
+            "title": "Add an SDK auth alias",
+            "description": "Create a now-sdk auth alias so the sidebar can run build, install, query, and download commands without a separate terminal flow.\n\n[Add Auth Alias](command:nowdev-ai-toolbox.sdkAuthAdd)",
+            "completionEvents": [
+              "onCommand:nowdev-ai-toolbox.sdkAuthAdd"
+            ]
+          },
+          {
+            "id": "initialize-fluent",
+            "title": "Initialize or detect a Fluent project",
+            "description": "If this workspace has no `now.config.json`, scaffold a Fluent SDK project. Existing Fluent projects are detected automatically.\n\n[Initialize Fluent Project](command:nowdev-ai-toolbox.initFluentProject)",
+            "completionEvents": [
+              "onCommand:nowdev-ai-toolbox.initFluentProject"
+            ]
+          },
+          {
+            "id": "start-agent-chat",
+            "title": "Start agent chat",
+            "description": "Open Copilot Chat and select the NowDev AI Agent from the agent picker to coordinate ServiceNow development work.\n\n[Open Copilot Chat](command:nowdev-ai-toolbox.openCopilotChat)",
+            "completionEvents": [
+              "onCommand:nowdev-ai-toolbox.openCopilotChat"
+            ]
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": "NowDev AI Toolbox",
       "properties": {

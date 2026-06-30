@@ -335,7 +335,7 @@ body {
 .stats {
     display: inline-flex;
     gap: var(--nd-sp-4);
-    background: var(--nd-bg-elev);
+    background: var(--nd-bg-elevated);
     border: 1px solid var(--nd-border);
     border-radius: var(--nd-r-pill);
     padding: var(--nd-sp-1) var(--nd-sp-4);
@@ -465,7 +465,7 @@ body {
     min-width: 140px;
     max-width: 190px;
     text-align: center;
-    background: var(--nd-bg-elev);
+    background: var(--nd-bg-elevated);
     cursor: default;
     transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
 }
@@ -548,7 +548,7 @@ body {
     min-width: 120px;
     max-width: 160px;
     text-align: center;
-    background: var(--nd-bg-elev);
+    background: var(--nd-bg-elevated);
     cursor: default;
     transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
 }

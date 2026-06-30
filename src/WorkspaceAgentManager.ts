@@ -170,6 +170,8 @@ export function getAgentBundleName(agentName: string): string | undefined {
  *  - The `agents:` list in each written file is pruned to remove any
  *    disabled agent names so the orchestrator never tries to invoke a
  *    non-existent agent.
+ *  - Managed output files that no longer correspond to bundled agents are
+ *    removed so VS Code does not discover stale custom agents.
  *
  * Each written file is stamped with a hash of the inputs so that stale files
  * are silently regenerated after an extension update or config change.
@@ -191,6 +193,8 @@ export function syncAllAgents(
 ): void {
     const outDir = path.join(workspaceRoot, AGENTS_OUT);
     const devops = cfg.devopsConfig ?? DEFAULT_DEVOPS_CONFIG;
+
+    pruneStaleManagedAgentOutputs(outDir, manifests);
 
     const profileSuppressed = cfg.profileSuppressedAgents ?? new Set<string>();
 
@@ -323,6 +327,29 @@ export function syncAllAgents(
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(outPath, newContent, 'utf-8');
         addToGitignore(workspaceRoot, `.github/agents/${manifest.filename}`);
+    }
+}
+
+function pruneStaleManagedAgentOutputs(outDir: string, manifests: AgentManifest[]): void {
+    if (!fs.existsSync(outDir)) { return; }
+
+    const expectedFilenames = new Set(
+        manifests
+            .filter(manifest => /^[\w.-]+\.agent\.md$/.test(manifest.filename))
+            .map(manifest => manifest.filename)
+    );
+
+    for (const entry of fs.readdirSync(outDir, { withFileTypes: true })) {
+        if (!entry.isFile() || !/^[\w.-]+\.agent\.md$/.test(entry.name)) { continue; }
+        if (expectedFilenames.has(entry.name)) { continue; }
+
+        const candidate = path.join(outDir, entry.name);
+        if (!isPathInside(outDir, candidate)) { continue; }
+
+        const content = fs.readFileSync(candidate, 'utf-8');
+        if (content.includes(MANAGED_TAG)) {
+            fs.rmSync(candidate);
+        }
     }
 }
 

@@ -4,18 +4,47 @@
     const vscode = acquireVsCodeApi();
 
     // ── Tab switching ──────────────────────────────────────────────
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
+    const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+    const tabContents = Array.from(document.querySelectorAll('.tab-content'));
 
     function activateTab(tabId) {
-        tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
-        tabContents.forEach(c => c.classList.toggle('active', c.id === 'tab-' + tabId));
+        tabButtons.forEach(b => {
+            var isActive = b.dataset.tab === tabId;
+            b.classList.toggle('active', isActive);
+            b.setAttribute('aria-selected', String(isActive));
+            b.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+        tabContents.forEach(c => {
+            var isActive = c.id === 'tab-' + tabId;
+            c.classList.toggle('active', isActive);
+            c.toggleAttribute('hidden', !isActive);
+            c.setAttribute('aria-hidden', String(!isActive));
+        });
         vscode.setState({ activeTab: tabId });
         vscode.postMessage({ command: 'tabActivated', tab: tabId });
     }
 
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+        btn.addEventListener('keydown', function (event) {
+            var currentIndex = tabButtons.indexOf(btn);
+            var nextIndex = currentIndex;
+            if (event.key === 'ArrowRight') {
+                nextIndex = (currentIndex + 1) % tabButtons.length;
+            } else if (event.key === 'ArrowLeft') {
+                nextIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length;
+            } else if (event.key === 'Home') {
+                nextIndex = 0;
+            } else if (event.key === 'End') {
+                nextIndex = tabButtons.length - 1;
+            } else {
+                return;
+            }
+            event.preventDefault();
+            var nextButton = tabButtons[nextIndex];
+            nextButton.focus();
+            activateTab(nextButton.dataset.tab);
+        });
     });
 
     // Restore last active tab (or default to 'home').
@@ -491,6 +520,7 @@
                     gearBtn.classList.toggle('open', !isOpen);
                     gearBtn.innerHTML = isOpen ? '&#9881;' : '&#10005;';
                     gearBtn.title = isOpen ? 'Customize tone instructions' : 'Close';
+                    gearBtn.setAttribute('aria-expanded', String(!isOpen));
                 });
             }
         }
@@ -634,7 +664,7 @@
             }
             html += '  </div>';
             html += '  <label class="tool-toggle" title="' + esc(tooltip) + '">';
-            html += '    <input type="checkbox" data-tool="' + esc(key) + '" ' + checked + '>';
+            html += '    <input type="checkbox" data-tool="' + esc(key) + '" aria-label="' + esc(tooltip) + ' for ' + esc(t.label) + '" ' + checked + '>';
             html += '    <span class="slider"></span>';
             html += '  </label>';
             html += '</div>';
@@ -651,7 +681,7 @@
     // ── Agent card rendering ───────────────────────────────────────
 
     function buildAgentToolsHtml(m, disabledSet) {
-        var html = '<div class="agent-card-tools" id="at-' + esc(m.name) + '">';
+        var html = '<div class="agent-card-tools" id="at-' + esc(m.name) + '" aria-hidden="true">';
         for (var j = 0; j < m.baseTools.length; j++) {
             var tool = m.baseTools[j];
             html += '<label class="agent-tool-row">';
@@ -686,14 +716,14 @@
         var html = '<div class="' + cardClass + '" data-agent-name="' + esc(m.name) + '">';
         html += '<div class="agent-card-header">';
         html += '<div class="agent-card-title-row">';
-        html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" aria-label="Expand tools" title="Show/hide tools">&#9654;</button>';
+        html += '<button class="agent-chevron" data-target="at-' + esc(m.name) + '" aria-controls="at-' + esc(m.name) + '" aria-expanded="false" aria-label="Expand tools for ' + esc(m.shortName || m.name) + '" title="Show/hide tools">&#9654;</button>';
         html += '<div class="agent-card-info"><span class="agent-card-name">' + esc(m.shortName || m.name) + '</span></div>';
         if (showToggle === 'agent') {
             html += '<label class="tool-toggle" title="Enable/disable agent">';
-            html += '<input type="checkbox" class="agent-enable-cb" data-agent="' + esc(m.name) + '"' + (agentEnabled ? ' checked' : '') + '>';
+            html += '<input type="checkbox" class="agent-enable-cb" data-agent="' + esc(m.name) + '" aria-label="Enable ' + esc(m.shortName || m.name) + '"' + (agentEnabled ? ' checked' : '') + '>';
             html += '<span class="slider"></span></label>';
         }
-        html += '<button class="agent-file-btn" data-filename="' + esc(m.filename) + '" title="Open .agent.md file">&#8599;</button>';
+        html += '<button class="agent-file-btn" data-filename="' + esc(m.filename) + '" title="Open .agent.md file" aria-label="Open agent file for ' + esc(m.shortName || m.name) + '">&#8599;</button>';
         html += '</div>';
         html += buildAgentModelHtml(m, selectedModel, currentOverrideModel, modelOptions || [], bundledModels);
         html += '<div class="agent-card-tool-count">' + enabledCount + ' / ' + m.baseTools.length + ' tools enabled</div>';
@@ -787,7 +817,7 @@
             html += '<div class="agent-group-label">' + esc(bundleName) + ' Bundle</div>';
             html += '<div class="agent-bundle-row">';
             html += '<label class="tool-toggle" title="Enable or disable all ' + esc(bundleName) + ' agents">';
-            html += '<input type="checkbox" class="bundle-enable-cb" data-bundle="' + esc(bundleName) + '"' + (bundleEnabled ? ' checked' : '') + '>';
+            html += '<input type="checkbox" class="bundle-enable-cb" data-bundle="' + esc(bundleName) + '" aria-label="Enable ' + esc(bundleName) + ' bundle agents"' + (bundleEnabled ? ' checked' : '') + '>';
             html += '<span class="slider"></span></label>';
             html += '<span class="agent-bundle-label">' + esc(bundleName) + ' agents are toggled as a unit</span>';
             html += '</div>';
@@ -814,6 +844,9 @@
                 if (!target) { return; }
                 var expanded = target.classList.contains('expanded');
                 target.classList.toggle('expanded', !expanded);
+                target.setAttribute('aria-hidden', String(expanded));
+                btn.setAttribute('aria-expanded', String(!expanded));
+                btn.setAttribute('aria-label', (!expanded ? 'Collapse' : 'Expand') + ' tools');
                 btn.innerHTML = !expanded ? '&#9660;' : '&#9654;';
             });
         });
@@ -1332,7 +1365,7 @@
                 '    <span class="tool-name">' + esc(s.name) + '</span>' + typeHint + kindHint + ' ' + sourceBadge +
                 '  </div>' +
                 '  <label class="tool-toggle" title="Include in agent tools">' +
-                '    <input type="checkbox" data-mcp="' + esc(s.name) + '" ' + checked + '>' +
+                '    <input type="checkbox" data-mcp="' + esc(s.name) + '" aria-label="Include ' + esc(s.name) + ' in agent tools" ' + checked + '>' +
                 '    <span class="slider"></span>' +
                 '  </label>' +
                 '</div>';

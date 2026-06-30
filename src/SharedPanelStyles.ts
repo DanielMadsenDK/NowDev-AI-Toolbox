@@ -1,7 +1,7 @@
 /**
  * Shared design tokens & component styles for editor-area webview panels.
  *
- * Every panel (Welcome, Agent Topology, SDK Explain, SDK Command Help) injects
+ * Every panel (Agent Topology, SDK Explain, SDK Command Help) injects
  * this into its inline <style> block so all surfaces share one design language.
  *
  * Sidebar uses media/webview/styles.css — keep token sets in sync with that file.
@@ -362,5 +362,34 @@ h4.props-h {
     color: var(--nd-fg-mute);
 }
 .error-msg { color: var(--nd-danger); }
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+body.vscode-high-contrast .nd-card,
+body.vscode-high-contrast .nd-callout,
+body.vscode-high-contrast pre.codeblock,
+body.vscode-high-contrast .api-header,
+body.vscode-high-contrast .fn-sig {
+    border-color: var(--vscode-contrastBorder, var(--nd-border));
+    box-shadow: none;
+}
+
+@media (forced-colors: active) {
+    .nd-btn,
+    .dismiss-btn,
+    pre.codeblock,
+    .nd-card {
+        border: 1px solid ButtonText;
+    }
+}
 `;
 }

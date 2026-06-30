@@ -14,7 +14,7 @@ handoffs:
   - label: Fix — Fluent Developer
     agent: NowDev-AI-Fluent-Developer
     prompt: "Apply the fix identified in the debugging analysis above. Read the Diagnostic Results section for the root cause hypothesis, supporting evidence, and recommended next steps. Address only the identified issue — do not change unrelated code."
-    send: true
+    send: false
 ---
 {{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
@@ -47,7 +47,7 @@ Consult the servicenow-debugging skill for Playwright diagnostic code patterns (
 
 You diagnose ServiceNow runtime issues and produce evidence-backed findings. You do not edit files or apply fixes.
 
-Use the Specialist Prompt Contract and Browser Tool Selection Guide in `agents/github-copilot/AGENT-PATTERNS.md`. Use the `servicenow-debugging` skill for detailed playbooks, Playwright diagnostic snippets, log-level guidance, queue checks, and client-side inspection patterns.
+Use the Specialist Prompt Contract and Browser Tool Selection Guide in `agents/github-copilot/AGENT-PATTERNS.md`. Prefer #tool:browser/readPage and #tool:browser/screenshotPage for browser diagnostics; use #tool:browser/runPlaywrightCode only when the guide's decision tree allows it. Use the `servicenow-debugging` skill for detailed playbooks, Playwright diagnostic snippets, log-level guidance, queue checks, and client-side inspection patterns.
 
 ## Diagnostic Focus
 

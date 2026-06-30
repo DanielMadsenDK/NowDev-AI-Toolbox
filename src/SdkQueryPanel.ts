@@ -188,20 +188,20 @@ ${panelStyles()}
     <div class="api-id">${esc(params.table)}</div>
     <div class="api-tags">${countLabel}${pageLabel}</div>
   </div>
-  <div class="view-toggle">
-    <button id="btnTable" class="nd-btn secondary active-view">Table</button>
-    <button id="btnJson"  class="nd-btn secondary">JSON</button>
+  <div class="view-toggle" role="tablist" aria-label="Query result views">
+    <button id="btnTable" class="nd-btn secondary active-view" role="tab" aria-selected="true" aria-controls="view-table">Table</button>
+    <button id="btnJson"  class="nd-btn secondary" role="tab" aria-selected="false" aria-controls="view-json" tabindex="-1">JSON</button>
   </div>
 </div>
 ${infoParts.length > 0 ? `<div class="query-info">${infoParts.join(' &middot; ')}</div>` : ''}
 ${records.length === 0 ? '<div class="loading">No records found.</div>' : ''}
 
-<div id="view-table"${records.length === 0 ? ' style="display:none"' : ''}>
+<div id="view-table" role="tabpanel" aria-labelledby="btnTable"${records.length === 0 ? ' style="display:none"' : ''}>
   <div class="table-wrap">${tableHtml}</div>
   ${paginationHtml}
 </div>
 
-<div id="view-json" style="display:none">
+<div id="view-json" role="tabpanel" aria-labelledby="btnJson" style="display:none" hidden aria-hidden="true">
   <pre class="codeblock" data-lang="json"><code>${jsonHtml}</code></pre>
 </div>
 
@@ -213,17 +213,33 @@ ${records.length === 0 ? '<div class="loading">No records found.</div>' : ''}
     var viewTable = document.getElementById('view-table');
     var viewJson  = document.getElementById('view-json');
 
-    btnTable.addEventListener('click', function () {
-      viewTable.style.display = '';
-      viewJson.style.display  = 'none';
-      btnTable.classList.add('active-view');
-      btnJson.classList.remove('active-view');
-    });
-    btnJson.addEventListener('click', function () {
-      viewTable.style.display = 'none';
-      viewJson.style.display  = '';
-      btnTable.classList.remove('active-view');
-      btnJson.classList.add('active-view');
+    function activateView(view) {
+      var tableActive = view === 'table';
+      viewTable.style.display = tableActive ? '' : 'none';
+      viewJson.style.display  = tableActive ? 'none' : '';
+      viewTable.toggleAttribute('hidden', !tableActive);
+      viewJson.toggleAttribute('hidden', tableActive);
+      viewTable.setAttribute('aria-hidden', String(!tableActive));
+      viewJson.setAttribute('aria-hidden', String(tableActive));
+      btnTable.classList.toggle('active-view', tableActive);
+      btnJson.classList.toggle('active-view', !tableActive);
+      btnTable.setAttribute('aria-selected', String(tableActive));
+      btnJson.setAttribute('aria-selected', String(!tableActive));
+      btnTable.setAttribute('tabindex', tableActive ? '0' : '-1');
+      btnJson.setAttribute('tabindex', tableActive ? '-1' : '0');
+    }
+    btnTable.addEventListener('click', function () { activateView('table'); });
+    btnJson.addEventListener('click', function () { activateView('json'); });
+    [btnTable, btnJson].forEach(function (btn) {
+      btn.addEventListener('keydown', function (event) {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Home' && event.key !== 'End') { return; }
+        event.preventDefault();
+        var next = btn === btnTable ? btnJson : btnTable;
+        if (event.key === 'Home') { next = btnTable; }
+        if (event.key === 'End') { next = btnJson; }
+        next.focus();
+        activateView(next === btnTable ? 'table' : 'json');
+      });
     });
 
     var btnNext = document.getElementById('btnNextPage');

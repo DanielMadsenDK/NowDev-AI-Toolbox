@@ -258,7 +258,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     vscode.commands.executeCommand('nowdev-ai-toolbox.openCopilotChat');
                     break;
                 case 'openSettings':
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'nowdev-ai-toolbox');
+                    vscode.commands.executeCommand('nowdev-ai-toolbox.openSettings');
                     break;
                 case 'collectCopilotDiagnostics':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.collectCopilotDiagnostics');
@@ -1625,7 +1625,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     </div>
                 </div>
                 ${optsPanel}
-                <div class="sdk-cmd-status" id="${opts.statusId}"></div>
+                <div class="sdk-cmd-status" id="${opts.statusId}" aria-live="polite"></div>
                 ${opts.afterHtml ?? ''}
             </div>`;
     }
@@ -1644,7 +1644,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         <div class="sdk-cmd-actions">${helpBtn}${extra}<button class="fix-btn sdk-run-btn" data-cmd="${c.runCmd}"${c.runTitle ? ` title="${c.runTitle}"` : ''}>Run</button></div>
                     </div>
                     <div class="sdk-cmd-tagline sdk-cmd-tagline-mt">${c.tagline}</div>
-                    <div class="sdk-cmd-status" id="${c.statusId}"></div>
+                    <div class="sdk-cmd-status" id="${c.statusId}" aria-live="polite"></div>
                 </div>`;
         }).join('');
         return `<div class="sdk-cmd-pair">${inner}</div>`;
@@ -1653,25 +1653,25 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _renderHomeTab(): string {
         return `
     <!-- ═══════════ TAB: Home ═══════════ -->
-    <div id="tab-home" class="tab-content active">
+    <div id="tab-home" class="tab-content active" role="tabpanel" aria-labelledby="tab-btn-home">
 
         <!-- At-a-glance workspace status (rendered by main.js) -->
-        <div id="workspaceStatus" class="workspace-status"></div>
+        <div id="workspaceStatus" class="workspace-status" aria-live="polite"></div>
 
-        <div id="onboardingSummary" class="onboarding-summary"></div>
+        <div id="onboardingSummary" class="onboarding-summary" aria-live="polite"></div>
 
         <section class="home-command-center">
             <div class="home-profile-card">
                 <div class="section-title">Agent Profile</div>
                 <div class="profile-select-row">
-                    <select id="activeProfile" class="profile-select"></select>
-                    <button class="mcp-doc-source-gear" id="profileToneGear" title="Customize tone instructions">&#9881;</button>
+                    <select id="activeProfile" class="profile-select" aria-label="Active agent profile"></select>
+                    <button class="mcp-doc-source-gear" id="profileToneGear" title="Customize tone instructions" aria-label="Customize tone instructions" aria-controls="profileTonePanel" aria-expanded="false">&#9881;</button>
                 </div>
                 <div class="field-desc nd-mt-1" id="profileDescription"></div>
                 <div class="mcp-doc-source-panel" id="profileTonePanel">
                     <div class="field-label nd-mb-1">Tone &amp; style instructions</div>
                     <div class="field-desc" style="margin-bottom:8px;">Injected into all agents for this profile. Customizations survive extension upgrades.</div>
-                    <textarea id="profileInstructionsInput" rows="8" class="profile-tone-textarea" placeholder="Instructions injected into all agents for this profile…"></textarea>
+                    <textarea id="profileInstructionsInput" rows="8" class="profile-tone-textarea" aria-label="Tone and style instructions" placeholder="Instructions injected into all agents for this profile..."></textarea>
                     <button class="fix-btn nd-mt-1 nd-hidden" id="resetProfileInstructions">Reset to default</button>
                 </div>
             </div>
@@ -1700,22 +1700,22 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div id="allGood" class="all-good nd-hidden">All prerequisites configured.</div>
             <div id="checks">
                 <div class="check-row" data-key="subAgents">
-                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-icon fail" aria-hidden="true">&#10005;</span>
                     <span class="check-label">Sub-agent invocations</span>
                     <button class="fix-btn">Enable</button>
                 </div>
                 <div class="check-row" data-key="memory">
-                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-icon fail" aria-hidden="true">&#10005;</span>
                     <span class="check-label">Memory tool</span>
                     <button class="fix-btn">Enable</button>
                 </div>
                 <div class="check-row" data-key="customAgentHooks">
-                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-icon fail" aria-hidden="true">&#10005;</span>
                     <span class="check-label">Agent-scoped hooks</span>
                     <button class="fix-btn">Enable</button>
                 </div>
                 <div class="check-row" data-key="browserTools">
-                    <span class="check-icon fail">&#10005;</span>
+                    <span class="check-icon fail" aria-hidden="true">&#10005;</span>
                     <span class="check-label">Browser tools</span>
                     <button class="fix-btn">Enable</button>
                 </div>
@@ -1739,7 +1739,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _renderProjectTab(): string {
         return `
     <!-- ═══════════ TAB: Project ═══════════ -->
-    <div id="tab-project" class="tab-content">
+    <div id="tab-project" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-project" hidden aria-hidden="true">
 
         <!-- ServiceNow Settings -->
         <div class="section">
@@ -1755,7 +1755,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
                     <button class="fix-btn" id="testConnection" title="Test reachability of the configured instance">Test</button>
                 </div>
-                <div id="connectionStatus" class="connection-status"></div>
+                <div id="connectionStatus" class="connection-status" aria-live="polite"></div>
             </div>
         </div>
 
@@ -1823,7 +1823,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div class="section-title">
                 <span>Work Item Integration</span>
                 <label class="tool-toggle" title="Enable the work-item workflow on the orchestrator">
-                    <input type="checkbox" id="devopsEnabled">
+                    <input type="checkbox" id="devopsEnabled" aria-label="Enable work item integration">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -1858,7 +1858,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _renderSdkTab(): string {
         return `
     <!-- ═══════════ TAB: SDK ═══════════ -->
-    <div id="tab-sdk" class="tab-content">
+    <div id="tab-sdk" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-sdk" hidden aria-hidden="true">
 
         <!-- Auth Aliases -->
         <div class="section">
@@ -1890,9 +1890,9 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <!-- Quick Actions -->
             <div class="sdk-quick-actions">
                 <button class="fix-btn sdk-run-btn sdk-deploy-btn" data-cmd="deploy" title="Build then Install — stops if Build fails">Deploy (Build &rarr; Install)</button>
-                <div class="sdk-cmd-status" id="sdkStatus-deploy"></div>
+                <div class="sdk-cmd-status" id="sdkStatus-deploy" aria-live="polite"></div>
                 <button class="fix-btn sdk-run-btn sdk-sync-btn" data-cmd="sync" title="Incremental download from instance, then transform XML to Fluent source">Sync (Download &rarr; Transform)</button>
-                <div class="sdk-cmd-status" id="sdkStatus-sync"></div>
+                <div class="sdk-cmd-status" id="sdkStatus-sync" aria-live="polite"></div>
             </div>
 
             ${this._sdkCard({
@@ -1955,7 +1955,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div class="section-title">SDK Documentation</div>
             <div class="field-desc nd-mb-2">Open current Fluent SDK documentation with <code>now-sdk explain</code></div>
             <div class="sdk-explain-row">
-                <input type="text" id="explainApiInput" placeholder="e.g. UiPage, Table, Acl" spellcheck="false">
+                <input type="text" id="explainApiInput" aria-label="SDK API to explain" placeholder="e.g. UiPage, Table, Acl" spellcheck="false">
                 <button class="fix-btn" id="runExplain">Explain</button>
             </div>
         </div>
@@ -1965,19 +1965,19 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             <div class="section-title">Instance Query</div>
             <div class="field-desc nd-mb-2">Query live instance data with <code>now-sdk query</code></div>
             <div class="field-row">
-                <label class="field-label">Table</label>
+                <label class="field-label" for="queryTable">Table</label>
                 <input type="text" id="queryTable" placeholder="e.g. incident, sys_user" spellcheck="false">
             </div>
             <div class="field-row">
-                <label class="field-label">Query</label>
+                <label class="field-label" for="queryFilter">Query</label>
                 <input type="text" id="queryFilter" placeholder="e.g. active=true^priority=1" spellcheck="false">
             </div>
             <div class="field-row">
-                <label class="field-label">Fields</label>
+                <label class="field-label" for="queryFields">Fields</label>
                 <input type="text" id="queryFields" placeholder="e.g. sys_id,name (optional)" spellcheck="false">
             </div>
             <div class="field-row">
-                <label class="field-label">Display value</label>
+                <label class="field-label" for="queryDisplayValue">Display value</label>
                 <select id="queryDisplayValue" class="field-select">
                     <option value="true">Human-readable (true)</option>
                     <option value="false">Raw sys values (false)</option>
@@ -1985,7 +1985,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 </select>
             </div>
             <div class="sdk-explain-row">
-                <input type="number" id="queryLimit" placeholder="Limit (default 100)" min="1" max="10000" style="width:160px">
+                <input type="number" id="queryLimit" aria-label="Query result limit" placeholder="Limit (default 100)" min="1" max="10000" style="width:160px">
                 <button class="fix-btn" id="runQuery">Query</button>
             </div>
         </div>
@@ -1997,7 +1997,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _renderAgentsTab(): string {
         return `
     <!-- ═══════════ TAB: Agents ═══════════ -->
-    <div id="tab-agents" class="tab-content">
+    <div id="tab-agents" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-agents" hidden aria-hidden="true">
         <div class="section">
             <div class="section-title">
                 <span>Agent Configuration</span>
@@ -2022,7 +2022,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _renderToolsTab(): string {
         return `
     <!-- ═══════════ TAB: Tools ═══════════ -->
-    <div id="tab-tools" class="tab-content">
+    <div id="tab-tools" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-tools" hidden aria-hidden="true">
         <div class="section">
             <div class="section-title">
                 <span>Environment &amp; Tools</span>
@@ -2037,7 +2037,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _renderDocsTab(): string {
         return `
     <!-- ═══════════ TAB: Docs ═══════════ -->
-    <div id="tab-docs" class="tab-content">
+    <div id="tab-docs" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-docs" hidden aria-hidden="true">
 
         <!-- ── Product Docs ────────────────────────────────────────── -->
         <div class="section">
@@ -2076,7 +2076,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         <span>Sync Documentation</span>
                         <button class="fix-btn" id="syncProductDocs">Download / Update</button>
                     </div>
-                    <div id="docsDownloadStatus" class="field-desc"></div>
+                    <div id="docsDownloadStatus" class="field-desc" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -2138,13 +2138,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     </div>
 
     <!-- Tab Bar -->
-    <div class="tab-bar">
-        <button class="tab-btn active" data-tab="home">Home</button>
-        <button class="tab-btn" data-tab="project">Setup</button>
-        <button class="tab-btn" data-tab="sdk">SDK &amp; Instance</button>
-        <button class="tab-btn" data-tab="agents">Agents</button>
-        <button class="tab-btn" data-tab="tools">Environment</button>
-        <button class="tab-btn" data-tab="docs">References</button>
+    <div class="tab-bar" role="tablist" aria-label="NowDev AI Toolbox sections">
+        <button class="tab-btn active" id="tab-btn-home" data-tab="home" role="tab" aria-selected="true" aria-controls="tab-home">Home</button>
+        <button class="tab-btn" id="tab-btn-project" data-tab="project" role="tab" aria-selected="false" aria-controls="tab-project" tabindex="-1">Setup</button>
+        <button class="tab-btn" id="tab-btn-sdk" data-tab="sdk" role="tab" aria-selected="false" aria-controls="tab-sdk" tabindex="-1">SDK &amp; Instance</button>
+        <button class="tab-btn" id="tab-btn-agents" data-tab="agents" role="tab" aria-selected="false" aria-controls="tab-agents" tabindex="-1">Agents</button>
+        <button class="tab-btn" id="tab-btn-tools" data-tab="tools" role="tab" aria-selected="false" aria-controls="tab-tools" tabindex="-1">Environment</button>
+        <button class="tab-btn" id="tab-btn-docs" data-tab="docs" role="tab" aria-selected="false" aria-controls="tab-docs" tabindex="-1">References</button>
     </div>
 
     ${this._renderHomeTab()}

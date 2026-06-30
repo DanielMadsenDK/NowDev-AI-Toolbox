@@ -3,6 +3,7 @@ name: NowDev-AI-Fluent-Reviewer
 user-invocable: false
 disable-model-invocation: true
 description: specialized agent for reviewing ServiceNow Fluent SDK artifacts (.now.ts metadata, TypeScript modules, React components) against installed-version docs from now-sdk explain and NowDev guardrails
+argument-hint: "Explicit file paths to review plus optional focus areas, artifact types, or known risks from the implementation."
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory']
 agents: []
 handoffs:
@@ -13,14 +14,14 @@ handoffs:
   - label: Fix Issues — Fluent Developer
     agent: NowDev-AI-Fluent-Developer
     prompt: "Apply the fixes described in the Structured Findings Block produced by the last Fluent code review. Address every finding in priority order (Critical first). The Structured Findings Block from the review is included above in the conversation — read it to obtain the exact file paths, line numbers, categories, and recommended fixes before writing any code."
-    send: true
+    send: false
 ---
 {{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
 1. Receive explicit file list from orchestrator
-2. Read each file to understand what artifact types are present
+2. Use #tool:read/readFile to read each file and understand what artifact types are present
 3. Build a todo checklist of artifact types found (e.g. Table, Flow, ScriptInclude, UiPage, React components)
 4. For each artifact type found, identify the relevant `now-sdk explain` topic and fetch it with `--format raw`
 5. Apply universal Fluent language construct rules (always applicable regardless of artifact type)

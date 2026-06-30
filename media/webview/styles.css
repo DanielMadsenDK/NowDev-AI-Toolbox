@@ -5,10 +5,13 @@
    ════════════════════════════════════════════════════════════════════ */
 
 :root {
+    color-scheme: dark light;
+
     /* ── Brand ─────────────────────────────────────────────────── */
     --nd-accent:        #81B5A1;
     --nd-accent-hi:     #a8d4c4;
     --nd-accent-lo:     #5a8a78;
+    --nd-accent-fg:     var(--vscode-button-foreground, #1a2a26);
     --nd-highlight:     #CDDC39;
 
     /* ── Surfaces ──────────────────────────────────────────────── */
@@ -635,14 +638,14 @@ hr {
     font-weight: 700;
     line-height: 1;
 }
-.check-icon.ok   { background: var(--nd-success); color: #fff; }
-.check-icon.fail { background: var(--nd-danger);  color: #fff; }
+.check-icon.ok   { background: var(--nd-success); color: var(--vscode-button-foreground, #fff); }
+.check-icon.fail { background: var(--nd-danger);  color: var(--vscode-button-foreground, #fff); }
 .check-icon.blocked { background: var(--vscode-inputValidation-warningBackground); color: var(--vscode-inputValidation-warningForeground); border: 1px solid var(--vscode-inputValidation-warningBorder); }
 .check-label { color: var(--nd-fg); }
 .check-detail {
     flex: 1;
     min-width: 0;
-    color: var(--nd-fg-muted);
+    color: var(--nd-fg-mute);
     font-size: 10.5px;
     line-height: 1.25;
 }
@@ -851,7 +854,7 @@ a:hover {
 }
 .tool-toggle input:checked + .slider::before {
     transform: translateX(14px);
-    background: #fff;
+    background: var(--vscode-button-foreground, #fff);
 }
 .tool-toggle input:disabled + .slider {
     opacity: 0.4;
@@ -1213,7 +1216,7 @@ a:hover {
 }
 .artifact-filter-btn.active {
     background: var(--nd-accent);
-    color: #1a2a26;
+    color: var(--nd-accent-fg);
     border-color: var(--nd-accent);
     font-weight: 600;
 }
@@ -1432,7 +1435,7 @@ a:hover {
 }
 .sdk-help-btn:hover {
     background: var(--nd-accent);
-    color: #1a2a26;
+    color: var(--nd-accent-fg);
     border-color: var(--nd-accent);
 }
 
@@ -1511,7 +1514,7 @@ a:hover {
     height: 16px;
     border-radius: var(--nd-r-pill);
     font-size: 10px;
-    color: #fff;
+    color: var(--vscode-button-foreground, #fff);
     flex-shrink: 0;
 }
 .sdk-cmd-status.ok .sdk-status-badge { background: var(--nd-success); }
@@ -1919,7 +1922,6 @@ a:hover {
 }
 
 /* ════════════════════════════════════════════════════════════════
-/* ════════════════════════════════════════════════════════════════
    DOCS TAB — radio mode selector
    ════════════════════════════════════════════════════════════════ */
 .docs-mode-field {
@@ -1976,5 +1978,53 @@ a:hover {
     .nd-btn-group {
         width: 100%;
         justify-content: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+body.vscode-high-contrast .header,
+body.vscode-high-contrast .tab-bar,
+body.vscode-high-contrast .home-profile-card,
+body.vscode-high-contrast .launch-card,
+body.vscode-high-contrast .sdk-cmd-card,
+body.vscode-high-contrast .agent-card,
+body.vscode-high-contrast .tool-row,
+body.vscode-high-contrast .file-picker,
+body.vscode-high-contrast .empty-state {
+    border-color: var(--vscode-contrastBorder, var(--nd-border));
+    box-shadow: none;
+}
+
+body.vscode-high-contrast .ws-dot,
+body.vscode-high-contrast .tool-status,
+body.vscode-high-contrast .status-dot,
+body.vscode-high-contrast .conn-dot,
+body.vscode-high-contrast .changes-dot {
+    outline: 1px solid var(--vscode-contrastBorder, currentColor);
+    outline-offset: 1px;
+}
+
+@media (forced-colors: active) {
+    .launch-primary,
+    .btn-primary,
+    .fix-all-btn,
+    .artifact-filter-btn.active,
+    .sdk-help-btn:hover {
+        border: 1px solid ButtonText;
+    }
+
+    .tool-toggle .slider,
+    .tool-toggle input:checked + .slider {
+        border-color: ButtonText;
     }
 }

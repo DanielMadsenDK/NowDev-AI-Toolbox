@@ -343,6 +343,9 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand('workbench.action.chat.open');
             vscode.window.setStatusBarMessage('Select NowDev AI Agent from the chat agent picker.', 5000);
         }),
+        vscode.commands.registerCommand('nowdev-ai-toolbox.openSettings', () => {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'nowdev-ai-toolbox');
+        }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.collectCopilotDiagnostics', async () => {
             await executeIfAvailable(
                 'github.copilot.debug.collectDiagnostics',

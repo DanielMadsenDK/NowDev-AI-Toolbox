@@ -527,35 +527,35 @@ function markup(): string {
     <div class="ib-title-block"><span class="eyebrow">ServiceNow context</span><h1>Instance Browser</h1><p>Find live records, add dependency metadata, and attach KB-backed guidelines without leaving VS Code.</p></div>
     <div class="ib-hero-actions"><div id="aliasBadge" class="badge idle">Auth alias</div><button id="openConfigBtn">Open config</button></div>
 </header>
-<section id="errorBanner" class="error-banner" style="display:none"></section>
-<section id="busyBanner" class="busy-banner" style="display:none"><span class="spinner"></span><span id="busyText">Loading...</span></section>
+<section id="errorBanner" class="error-banner" style="display:none" role="alert" aria-live="assertive"></section>
+<section id="busyBanner" class="busy-banner" style="display:none" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span id="busyText">Loading...</span></section>
 <section class="connection-strip">
     <label>Instance <select id="aliasSelect"></select></label><span id="hostHint" class="hint"></span>
     <span class="grow"></span><label>Package <select id="packageSelect"></select></label>
 </section>
 <div class="ib-workbench">
-<nav class="mode-tabs" aria-label="Instance Browser modes">
-    <button data-mode="browse"><span>Browse</span><small>Find records</small></button><button data-mode="discover"><span>Discover</span><small>Search context</small></button><button data-mode="guidelines"><span>Guidelines</span><small>Save KB articles</small></button><button data-mode="current"><span>Current</span><small>Dependencies</small></button>
+<nav class="mode-tabs" role="tablist" aria-label="Instance Browser modes">
+    <button id="mode-tab-browse" role="tab" data-mode="browse" aria-controls="mode-browse" aria-selected="false"><span>Browse</span><small>Find records</small></button><button id="mode-tab-discover" role="tab" data-mode="discover" aria-controls="mode-discover" aria-selected="false"><span>Discover</span><small>Search context</small></button><button id="mode-tab-guidelines" role="tab" data-mode="guidelines" aria-controls="mode-guidelines" aria-selected="false"><span>Guidelines</span><small>Save KB articles</small></button><button id="mode-tab-current" role="tab" data-mode="current" aria-controls="mode-current" aria-selected="false"><span>Current</span><small>Dependencies</small></button>
 </nav>
 <main class="ib-stage">
-  <section id="mode-browse" class="mode-panel">
+  <section id="mode-browse" class="mode-panel" role="tabpanel" aria-labelledby="mode-tab-browse" hidden>
         <div class="panel-heading"><h2>Browse Records</h2><p>Search a source table, select records, and add them to dependency metadata.</p></div>
-    <div class="toolbar"><label>Source <select id="browseSource"></select></label><label>Scope <select class="scopeSelect" id="browseScope"><option value="*">All Scopes</option></select></label><input id="browseTerm" placeholder="Search by name, label, or description"><button id="browseSearch" class="primary">Search</button></div>
-    <div class="actions"><button id="addBrowse" class="primary" disabled>Add selected</button><span id="browseCount" class="hint">No items selected</span></div><div id="browseResults" class="results empty">Select an auth alias and search to begin.</div>
+    <div class="toolbar"><label>Source <select id="browseSource"></select></label><label>Scope <select class="scopeSelect" id="browseScope"><option value="*">All Scopes</option></select></label><label>Search <input id="browseTerm" placeholder="Name, label, or description"></label><button id="browseSearch" class="primary">Search</button></div>
+    <div class="actions"><button id="addBrowse" class="primary" disabled>Add selected</button><span id="browseCount" class="hint" aria-live="polite">No items selected</span></div><div id="browseResults" class="results empty" role="region" aria-label="Browse results">Select an auth alias and search to begin.</div>
   </section>
-  <section id="mode-discover" class="mode-panel">
+  <section id="mode-discover" class="mode-panel" role="tabpanel" aria-labelledby="mode-tab-discover" hidden>
         <div class="panel-heading"><h2>Discover Context</h2><p>Describe the work and scan related scripts, flows, policies, and KB articles.</p></div>
-    <textarea id="taskText" placeholder="Describe the feature, issue, or project area to discover relevant scripts, flows, and knowledge articles..."></textarea>
+    <textarea id="taskText" aria-label="Task description for context discovery" placeholder="Describe the feature, issue, or project area to discover relevant scripts, flows, and knowledge articles..."></textarea>
     <div class="toolbar"><label>Keywords <input id="keywords" placeholder="approval, change, manager"></label><label>Scope <select class="scopeSelect" id="discoverScope"><option value="*">All Scopes</option></select></label><label>Limit <select id="discoverLimit"><option>10</option><option selected>30</option><option>50</option></select></label><button id="runDiscover" class="primary">Discover</button></div>
-    <div id="discoverSources" class="check-grid"></div><div id="progress" class="hint"></div><div class="actions"><button id="addDiscover" class="primary" disabled>Add selected</button><span id="discoverCount" class="hint">No items selected</span></div><div id="discoverResults" class="results empty">Discovery results will appear here.</div>
+    <div id="discoverSources" class="check-grid" role="group" aria-label="Sources to scan"></div><div id="progress" class="hint" aria-live="polite"></div><div class="actions"><button id="addDiscover" class="primary" disabled>Add selected</button><span id="discoverCount" class="hint" aria-live="polite">No items selected</span></div><div id="discoverResults" class="results empty" role="region" aria-label="Discovery results">Discovery results will appear here.</div>
   </section>
-  <section id="mode-guidelines" class="mode-panel">
+  <section id="mode-guidelines" class="mode-panel" role="tabpanel" aria-labelledby="mode-tab-guidelines" hidden>
         <div class="panel-heading"><h2>KB Guidelines</h2><p>Search Knowledge articles that describe coding standards, review rules, release policies, or team conventions.</p></div>
         <div id="savedGuidelines" class="hint"></div>
     <div class="toolbar"><label>Search KB <input id="guidelineTerm" placeholder="AI guidelines, coding standards, review policy"></label><label>Scope <select class="scopeSelect" id="guidelineScope"><option value="*">All Scopes</option></select></label><button id="searchGuidelines" class="primary">Search</button></div>
-    <div class="actions"><button id="addGuidelines" class="primary" disabled>Save as agent guidelines</button><button id="clearGuidelines">Clear saved guidelines</button><span id="guidelineCount" class="hint">No articles selected</span></div><div id="guidelineResults" class="results empty">Search for KB-backed guidelines.</div>
+    <div class="actions"><button id="addGuidelines" class="primary" disabled>Save as agent guidelines</button><button id="clearGuidelines">Clear saved guidelines</button><span id="guidelineCount" class="hint" aria-live="polite">No articles selected</span></div><div id="guidelineResults" class="results empty" role="region" aria-label="Knowledge guideline results">Search for KB-backed guidelines.</div>
   </section>
-    <section id="mode-current" class="mode-panel"><div class="panel-heading"><h2>Current Dependencies</h2><p>Review and remove dependency entries saved in the selected package configuration.</p></div><div class="actions"><button id="refreshCurrent">Refresh</button><button id="runDeps" class="primary">Download dependency types</button></div><div id="currentDeps" class="results empty">No package selected.</div></section>
+    <section id="mode-current" class="mode-panel" role="tabpanel" aria-labelledby="mode-tab-current" hidden><div class="panel-heading"><h2>Current Dependencies</h2><p>Review and remove dependency entries saved in the selected package configuration.</p></div><div class="actions"><button id="refreshCurrent">Refresh</button><button id="runDeps" class="primary">Download dependency types</button></div><div id="currentDeps" class="results empty" role="region" aria-label="Current dependencies">No package selected.</div></section>
 </main>
 </div>
 </div>`;
@@ -582,7 +582,7 @@ label { font-size:11px; font-weight:700; color:var(--nd-fg-mute); display:inline
 select,input,textarea { background:var(--nd-bg-input); color:var(--nd-fg); border:1px solid var(--nd-border); border-radius:var(--nd-r-sm); padding:5px 8px; font:12px var(--nd-font); }
 input { min-width:220px; } textarea { box-sizing:border-box; width:100%; min-height:120px; resize:vertical; margin-bottom:12px; border-radius:var(--nd-r-md); padding:12px; }
 button { background:var(--nd-bg-soft); color:var(--nd-fg); border:1px solid var(--nd-border); border-radius:var(--nd-r-sm); padding:5px 10px; font:12px var(--nd-font); cursor:pointer; }
-button.primary { background:var(--nd-accent-lo); border-color:var(--nd-accent-lo); color:#fff; } button:disabled { opacity:.45; cursor:not-allowed; }
+button.primary { background:var(--vscode-button-background, var(--nd-accent-lo)); border-color:var(--vscode-button-background, var(--nd-accent-lo)); color:var(--vscode-button-foreground, #fff); } button.primary:hover { background:var(--vscode-button-hoverBackground, var(--nd-accent)); } button:disabled { opacity:.45; cursor:not-allowed; }
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible { outline:2px solid color-mix(in srgb, var(--nd-accent) 72%, transparent); outline-offset:2px; }
 .mode-tabs { position:sticky; top:18px; display:flex; flex-direction:column; gap:6px; padding:8px; background:color-mix(in srgb, var(--nd-bg-card) 88%, transparent); border:1px solid var(--nd-border-soft); border-radius:var(--nd-r-lg); box-shadow:var(--nd-shadow-1); }
 .mode-tabs button { display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; background:transparent; border:1px solid transparent; border-radius:var(--nd-r-sm); color:var(--nd-fg-mute); font-weight:700; padding:10px 11px; text-align:left; }
@@ -612,6 +612,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 pre.preview { white-space:pre-wrap; word-break:break-word; max-height:260px; overflow:auto; margin:8px 0 0; padding:9px; background:var(--nd-bg-code); border:1px solid var(--nd-border-soft); border-radius:var(--nd-r-sm); font-size:11px; }
 @media (max-width: 780px) { .ib-shell { width:calc(100vw - 24px); padding-top:12px; } .ib-hero,.connection-strip { flex-direction:column; align-items:stretch; } .ib-hero-actions { justify-content:flex-start; } .ib-workbench { grid-template-columns:1fr; } .mode-tabs { position:static; flex-direction:row; overflow-x:auto; } .mode-tabs button { min-width:132px; } }
 @media (max-width: 560px) { .toolbar,.actions { align-items:flex-start; } .grow { display:none; } input { min-width:150px; } .mode-panel { padding:12px; } .row { grid-template-columns:28px minmax(0,1fr); } .row > div:last-child { grid-column:2; } }
+body.vscode-high-contrast .ib-hero,body.vscode-high-contrast .connection-strip,body.vscode-high-contrast .mode-tabs,body.vscode-high-contrast .mode-panel,body.vscode-high-contrast .toolbar,body.vscode-high-contrast .actions,body.vscode-high-contrast .results,body.vscode-high-contrast .row { border-color:var(--vscode-contrastBorder,var(--nd-border)); box-shadow:none; }
+@media (forced-colors: active) { button,select,input,textarea,.mode-panel,.results,.row { border-color:ButtonText; } }
 `;
 }
 
@@ -622,8 +624,8 @@ const $ = id => document.getElementById(id);
 const state = { sources: [], selected: new Map(), mode: 'browse', busy: {} };
 function post(msg){ vscode.postMessage(msg); }
 function showError(msg){ const el=$('errorBanner'); el.style.display=msg?'block':'none'; el.textContent=msg||''; }
-function setBusy(target,message){ if(message) state.busy[target]=message; else delete state.busy[target]; const messages=Object.values(state.busy).filter(Boolean); const banner=$('busyBanner'); const text=$('busyText'); if(!banner||!text) return; banner.style.display=messages.length?'flex':'none'; text.textContent=messages[0]||''; }
-function setMode(mode){ state.mode=mode; document.querySelectorAll('.mode-panel').forEach(p=>p.classList.toggle('active', p.id==='mode-'+mode)); document.querySelectorAll('.mode-tabs button').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode)); }
+function setBusy(target,message){ if(message) state.busy[target]=message; else delete state.busy[target]; const messages=Object.values(state.busy).filter(Boolean); const banner=$('busyBanner'); const text=$('busyText'); if(!banner||!text) return; banner.style.display=messages.length?'flex':'none'; banner.setAttribute('aria-busy', messages.length?'true':'false'); text.textContent=messages[0]||''; }
+function setMode(mode){ state.mode=mode; document.querySelectorAll('.mode-panel').forEach(p=>{ const active=p.id==='mode-'+mode; p.classList.toggle('active', active); p.toggleAttribute('hidden', !active); p.setAttribute('aria-hidden', String(!active)); }); document.querySelectorAll('.mode-tabs button').forEach(b=>{ const active=b.dataset.mode===mode; b.classList.toggle('active', active); b.setAttribute('aria-selected', String(active)); b.setAttribute('tabindex', active?'0':'-1'); }); }
 function setAliasBadge(alias){ const b=$('aliasBadge'); b.className='badge ok'; b.textContent=alias ? 'Alias: '+alias : 'Auth alias'; }
 function selectedFor(prefix){ return [...state.selected.values()].filter(x=>x.bucket===prefix); }
 function dependencyScope(selectId){ const value=$(selectId).value; return value === '*' ? 'global' : value; }
@@ -640,7 +642,7 @@ function renderRows(target, items, bucket){
     $(target).querySelectorAll('button[data-preview]').forEach(btn=>btn.addEventListener('click',()=>{ const item=items[Number(btn.dataset.i)]; post({type:'preview',source:item.source,sysId:item.sysId,previewId:'preview-'+btn.dataset.preview+'-'+btn.dataset.i}); }));
 }
 function keywordsFromTask(){ const stop=new Set('the a an and or for to of in on with from this that need want create update build service servicenow instance record table field user'.split(' ')); return $('taskText').value.toLowerCase().replace(/[^a-z0-9_\s-]/g,' ').split(/\s+/).filter(x=>x.length>2&&!stop.has(x)).slice(0,10).join(', '); }
-document.querySelectorAll('.mode-tabs button').forEach(b=>b.addEventListener('click',()=>{ setMode(b.dataset.mode); if(b.dataset.mode==='current') post({type:'refreshCurrent'}); }));
+document.querySelectorAll('.mode-tabs button').forEach(b=>{ b.addEventListener('click',()=>{ setMode(b.dataset.mode); if(b.dataset.mode==='current') post({type:'refreshCurrent'}); }); b.addEventListener('keydown',ev=>{ const tabs=[...document.querySelectorAll('.mode-tabs button')]; const i=tabs.indexOf(b); let next=i; if(ev.key==='ArrowRight'||ev.key==='ArrowDown') next=(i+1)%tabs.length; else if(ev.key==='ArrowLeft'||ev.key==='ArrowUp') next=(i-1+tabs.length)%tabs.length; else if(ev.key==='Home') next=0; else if(ev.key==='End') next=tabs.length-1; else return; ev.preventDefault(); tabs[next].focus(); setMode(tabs[next].dataset.mode); if(tabs[next].dataset.mode==='current') post({type:'refreshCurrent'}); }); });
 $('aliasSelect').addEventListener('change',e=>{ post({type:'selectAlias',alias:e.target.value}); const opt=e.target.selectedOptions[0]; $('hostHint').textContent=opt?.dataset.host||''; setAliasBadge(e.target.value); });
 $('packageSelect').addEventListener('change',e=>post({type:'selectPackage',path:e.target.value})); $('openConfigBtn').onclick=()=>post({type:'openConfigFile'}); $('runDeps').onclick=()=>{ setBusy('current','Downloading dependency types...'); post({type:'runDependenciesCmd'}); }; $('refreshCurrent').onclick=()=>post({type:'refreshCurrent'});
 $('browseSearch').onclick=()=>{ setBusy('browse','Searching records...'); post({type:'search',source:$('browseSource').value,scope:$('browseScope').value,term:$('browseTerm').value}); };

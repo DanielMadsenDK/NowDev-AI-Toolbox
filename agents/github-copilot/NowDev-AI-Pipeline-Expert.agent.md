@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: specialized agent for generating CI/CD pipeline configuration — creates GitHub Actions workflows and Azure DevOps pipelines for automated Fluent SDK deployments to ServiceNow environments; covers credential management, branch strategies, and multi-scope deployments
 argument-hint: "Project root path, target environments (dev/test/prod), CI platform (github-actions/azure-devops), branch strategy (branch-per-env/trunk), and list of scopes if multi-scope"
-tools: ['read/readFile', 'search', 'web', 'todo', 'edit/createFile', 'edit/editFiles', 'web/githubTextSearch']
+tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/getTerminalOutput', 'execute/runInTerminal', 'web/githubTextSearch']
 agents: []
 handoffs:
   - label: Back to Architect
@@ -22,7 +22,7 @@ handoffs:
 4. Determine the target CI platform: GitHub Actions or Azure DevOps (from argument, existing files, or ask the user)
 5. Determine the branch strategy: branch-per-environment or trunk-based (from argument, existing branches/workflows, or ask the user)
 6. Build a todo checklist of all files to generate before writing any file
-7. Generate the pipeline YAML file(s) with correct secret references and environment gates
+7. Generate the pipeline YAML file(s) with correct secret references and environment gates. Use #tool:edit/createDirectory before writing nested workflow folders such as `.github/workflows`.
 8. If multiple scopes are detected in `now.config.json`, generate parallel jobs per scope using the `--scope` flag
 9. Document all required secrets and environment variables the user must configure in their CI platform
 10. If requested, generate a `BRANCHING-STRATEGY.md` explaining the chosen branch strategy
