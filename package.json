@@ -387,6 +387,7 @@
     "vscode:prepublish": "npm run validate:agents && npm run bundle",
     "bundle": "node esbuild.js --production",
     "build": "npm run compile",
+    "build:plugin": "node scripts/build-plugin.mjs",
     "compile": "tsc -p ./",
     "validate:agents": "npm run compile && node out/AgentValidationCli.js",
     "watch": "node esbuild.js --watch",

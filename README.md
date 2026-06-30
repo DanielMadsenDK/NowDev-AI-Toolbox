@@ -308,6 +308,36 @@ Claude Code users can leverage the same best practice skills as Copilot users:
 
 See [agents/claude-code/README.md](agents/claude-code/README.md) for detailed setup instructions.
 
+## Using NowDev AI Toolbox with the GitHub Copilot CLI & App
+
+The toolbox is also distributed as a **GitHub Copilot plugin** so you can use the
+same orchestrated ServiceNow agents and skills in the **GitHub Copilot CLI** and
+the **Copilot desktop app** — not just the VS Code extension. In these surfaces a
+single agent, **NowDev AI Agent**, is selectable via `/agent`; it triages your
+request and delegates to the specialized agents automatically, mirroring the full
+VS Code experience.
+
+1. **Install the plugin** (this repository doubles as a marketplace):
+   ```bash
+   copilot plugin marketplace add DanielMadsenDK/NowDev-AI-Toolbox
+   copilot plugin install nowdev-ai-toolbox@NowDev-AI-Toolbox
+   ```
+   Or in one step:
+   ```bash
+   copilot plugin install DanielMadsenDK/NowDev-AI-Toolbox:plugins/nowdev-ai-toolbox
+   ```
+
+2. **Select the orchestrator** — run `/agent`, pick **NowDev AI Agent**, and
+   describe your ServiceNow task. It delegates to the right specialists and
+   returns the result.
+
+The plugin ships the agents and skills only; the extension's graphical
+management UI, documentation sync, and one-click configuration remain
+VS Code-exclusive. The plugin is generated from the same sources — run
+`npm run build:plugin` to regenerate it. See
+[plugins/nowdev-ai-toolbox/README.md](plugins/nowdev-ai-toolbox/README.md) for
+details.
+
 ## Author
 
 **Daniel Aagren Seehartrai Madsen** - ServiceNow Rising Star 2025
