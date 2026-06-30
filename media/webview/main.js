@@ -1584,9 +1584,9 @@
             steps.push({
                 tone: 'info',
                 title: 'Add a custom instructions file',
-                detail: 'Use the Project tab to attach a Markdown or text file with your ServiceNow and team-specific guidance for every session.',
+                detail: 'Use the Setup tab to attach a Markdown or text file with your ServiceNow and team-specific guidance for every session.',
                 action: 'gotoProject',
-                label: 'Open Project Tab',
+                label: 'Open Setup Tab',
             });
         }
 
@@ -1596,7 +1596,7 @@
                 title: 'Set your ServiceNow instance URL',
                 detail: 'Project-aware prompts and connection checks work better once the workspace knows which instance you are targeting.',
                 action: 'gotoProject',
-                label: 'Open Project Tab',
+                label: 'Open Setup Tab',
             });
         } else if (_wsState.conn && !_wsState.conn.checking && !_wsState.conn.reachable) {
             steps.push({
@@ -1614,7 +1614,7 @@
                 title: 'Add an SDK auth alias',
                 detail: 'Most SDK workflows are faster once now-sdk has a saved auth alias for your instance.',
                 action: 'gotoSdk',
-                label: 'Open SDK Tab',
+                label: 'Open SDK & Instance Tab',
             });
         }
 
@@ -1625,8 +1625,8 @@
                 detail: _wsState.mcpServerCount > 0
                     ? 'Detected MCP servers are not yet exposed to the workspace agents.'
                     : 'No MCP servers are currently detected, so agents will fall back to built-in skills only.',
-                action: 'gotoAgents',
-                label: 'Open Agents Tab',
+                action: _wsState.mcpServerCount > 0 ? 'gotoProject' : 'gotoDocs',
+                label: _wsState.mcpServerCount > 0 ? 'Open Setup Tab' : 'Open References Tab',
             });
         }
 
@@ -1634,9 +1634,9 @@
             steps.push({
                 tone: 'info',
                 title: 'Configure product documentation',
-                detail: 'Select a ServiceNow release in the Docs tab so agents know which platform version you are targeting.',
+                detail: 'Select a ServiceNow release in the References tab so agents know which platform version you are targeting.',
                 action: 'gotoDocs',
-                label: 'Open Docs Tab',
+                label: 'Open References Tab',
             });
         }
 

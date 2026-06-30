@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { findNowSdkExecutable } from './SdkProcess';
+import { findNowSdkExecutable, buildShellInvocation } from './SdkProcess';
 
 export interface AuthAlias {
     alias: string;
@@ -32,10 +32,14 @@ export function scanAuthAliases(): AuthAlias[] {
 
 /**
  * Runs `now-sdk auth --list` and yields stdout+stderr for each strategy.
- * On Windows the now-sdk shim must be invoked via cmd (shell:true) with a closed
- * stdin — running it through PowerShell or with an open stdin pipe hangs
- * (ETIMEDOUT). We resolve the shim by full path so detection survives a stripped
- * PATH in GUI-launched VS Code, then fall back to a bare `now-sdk` on PATH.
+ *
+ * On Windows the now-sdk shim is a `.cmd`, so it must run through cmd.exe
+ * (shell:true) with a closed stdin — an open stdin pipe hangs the CLI (ETIMEDOUT).
+ * We resolve the shim by full path so detection survives a stripped PATH in
+ * GUI-launched VS Code, then fall back to a bare `now-sdk` on PATH. The full path
+ * (and the bare name) are routed through buildShellInvocation so they are quoted:
+ * without quoting, a path containing a space (e.g. a username like "John Smith")
+ * makes cmd.exe fail with "'C:\\Users\\John' is not recognized".
  */
 function collectAuthListOutputs(): string[] {
     const outputs: string[] = [];
@@ -52,14 +56,16 @@ function collectAuthListOutputs(): string[] {
 
     for (const exe of executables) {
         try {
-            const result = spawnSync(exe, ['auth', '--list'], {
+            const { command, args, shell } = buildShellInvocation(exe, ['auth', '--list']);
+            const result = spawnSync(command, args, {
                 timeout: 30000,
                 encoding: 'utf-8',
                 // stdin must be closed: now-sdk hangs waiting for input on an open
                 // stdin pipe when run non-interactively (ETIMEDOUT). On Windows the
                 // shim is a .cmd that requires a shell (cmd) to execute.
                 stdio: ['ignore', 'pipe', 'pipe'],
-                shell: process.platform === 'win32',
+                shell,
+                windowsHide: true,
             });
             outputs.push(String(result.stdout ?? '') + String(result.stderr ?? ''));
         } catch (err: any) {

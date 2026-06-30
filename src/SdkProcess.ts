@@ -40,27 +40,63 @@ export function findNowSdkExecutable(): string | undefined {
 }
 
 /**
- * Resolves how to invoke the now-sdk CLI.
+ * Quotes a single token for a cmd.exe command line.
  *
- * Empirically on Windows the now-sdk shim is a `.cmd` file: it cannot be spawned
- * with `shell:false` (EINVAL/ENOENT) and runs fastest when the full path is
- * resolved and executed through `shell:true` (cmd.exe). PowerShell also works
- * but is ~2.5x slower and hangs on commands that read stdin (e.g. `auth --list`).
- * On Unix the `now-sdk` shebang script is directly executable with `shell:false`.
+ * On Windows the now-sdk/npm shims are `.cmd` files, so they must be spawned
+ * through a shell (`shell:true`). Node does NOT quote the executable or arguments
+ * when `shell:true` — it just joins them with spaces and hands the string to
+ * cmd.exe. That breaks two ways:
+ *   1. A path containing a space (a Windows username like "John Smith", or
+ *      "C:\Program Files\nodejs\now-sdk.cmd") is split by cmd.exe, so the command
+ *      is not found.
+ *   2. cmd metacharacters in arguments are interpreted — notably the "^" used in
+ *      ServiceNow encoded queries (active=true^ORDERBYname) is silently stripped.
+ * Wrapping each token in double quotes (and doubling embedded quotes, the cmd.exe
+ * convention) makes cmd.exe treat the token verbatim.
  */
-function resolveSdkInvocation(): { executable: string; shell: boolean } {
+export function quoteWindowsToken(token: string): string {
+    return '"' + String(token).replace(/"/g, '""') + '"';
+}
+
+/**
+ * Builds the (command, args, shell) tuple used for both async (`spawn`) and sync
+ * (`spawnSync`) invocations of a CLI shim.
+ *
+ * Windows: spawning a `.cmd` with `shell:false` throws EINVAL on patched Node, so
+ * we must use cmd.exe (`shell:true`). Because Node performs no quoting in that mode,
+ * we pre-build the full command line ourselves with every token quoted and pass it
+ * as a single string (with an empty args array). This is the only reliable way to
+ * survive paths/usernames containing spaces and to preserve "^" in encoded queries.
+ *
+ * Unix: the shim is directly executable, so we pass argv untouched with `shell:false`.
+ */
+export function buildShellInvocation(
+    executable: string,
+    args: string[]
+): { command: string; args: string[]; shell: boolean } {
     if (isWindows) {
-        return { executable: findNowSdkExecutable() ?? sdkExecutable, shell: true };
+        const commandLine = [executable, ...args].map(quoteWindowsToken).join(' ');
+        return { command: commandLine, args: [], shell: true };
     }
-    return { executable: sdkExecutable, shell: false };
+    return { command: executable, args, shell: false };
+}
+
+/**
+ * Resolves the now-sdk executable. On Windows we prefer the full shim path (so a
+ * stripped PATH in GUI-launched VS Code still works); on Unix the `now-sdk` shebang
+ * script is directly executable.
+ */
+function resolveSdkExecutable(): string {
+    return isWindows ? findNowSdkExecutable() ?? sdkExecutable : sdkExecutable;
 }
 
 export function spawnSdk(args: string[], options: SdkProcessOptions = {}): cp.ChildProcessWithoutNullStreams {
-    const { executable, shell } = resolveSdkInvocation();
-    const proc = cp.spawn(executable, args, {
+    const { command, args: spawnArgs, shell } = buildShellInvocation(resolveSdkExecutable(), args);
+    const proc = cp.spawn(command, spawnArgs, {
         cwd: options.cwd,
         timeout: options.timeout,
         shell,
+        windowsHide: true,
     });
     // now-sdk hangs (ETIMEDOUT) waiting on an open stdin when run non-interactively.
     // Close stdin immediately so the CLI sees EOF and proceeds.
@@ -72,10 +108,12 @@ export function spawnNpm(args: string[], options: SdkProcessOptions = {}): cp.Ch
     // npm ships as npm.cmd on Windows; spawning a .cmd requires a shell on
     // patched Node (shell:false throws EINVAL). Unix npm is directly executable.
     const executable = isWindows ? 'npm.cmd' : 'npm';
-    const proc = cp.spawn(executable, args, {
+    const { command, args: spawnArgs, shell } = buildShellInvocation(executable, args);
+    const proc = cp.spawn(command, spawnArgs, {
         cwd: options.cwd,
         timeout: options.timeout,
-        shell: isWindows,
+        shell,
+        windowsHide: true,
     });
     proc.stdin.end();
     return proc;
