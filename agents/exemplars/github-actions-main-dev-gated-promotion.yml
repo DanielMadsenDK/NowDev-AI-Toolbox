@@ -1,0 +1,276 @@
+# .github/workflows/deploy.yml
+# ServiceNow Fluent SDK — Main to Dev + Gated Promotion
+#
+# Purpose
+# - Validate pull requests before merge
+# - Auto deploy to dev when code reaches main
+# - Allow manual promotion to test with approvals
+# - Block direct SDK install to production
+# - Avoid accidental demo-data installs in CI (CLI default is --demoData=true)
+#
+# Required GitHub Environments:
+#   dev  (no reviewers or light reviewers)
+#   test (recommended required reviewers)
+#
+# Required GitHub Secrets (basic auth mode):
+#   DEV_SN_SDK_INSTANCE_URL, DEV_SN_SDK_USER, DEV_SN_SDK_USER_PWD
+#   TEST_SN_SDK_INSTANCE_URL, TEST_SN_SDK_USER, TEST_SN_SDK_USER_PWD
+#
+# Optional GitHub Secrets (oauth mode):
+#   DEV_SN_SDK_AUTH_TYPE=oauth
+#   DEV_SN_SDK_OAUTH_CLIENT_ID, DEV_SN_SDK_OAUTH_CLIENT_SECRET
+#   TEST_SN_SDK_AUTH_TYPE=oauth
+#   TEST_SN_SDK_OAUTH_CLIENT_ID, TEST_SN_SDK_OAUTH_CLIENT_SECRET
+#
+# OAuth instance prerequisites (from now-sdk explain ci-integration):
+# - App Registry grant type includes client_credentials
+# - sys_property glide.oauth.inbound.client.credential.grant_type.enabled = true
+# - OAuth mapped service user Identity Type = Human
+
+name: ServiceNow Fluent CI and Deploy
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Promotion target'
+        required: true
+        type: choice
+        options:
+          - test
+          - prod
+      reinstall:
+        description: 'Clean reinstall (--reinstall flag, destructive for unmanaged instance metadata)'
+        required: false
+        type: boolean
+        default: false
+      install_demo_data:
+        description: 'Install demo data (--demoData=true). Default is false for CI safety.'
+        required: false
+        type: boolean
+        default: false
+      skip_flow_activation:
+        description: 'Skip Flow activation after install (--skip-flow-activation)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and validate generated keys
+        run: npx now-sdk build --frozenKeys
+
+  deploy-dev:
+    name: Deploy Dev (main)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: dev
+    concurrency:
+      group: servicenow-deploy-dev
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Fluent SDK artifacts
+        run: npx now-sdk build --frozenKeys
+
+      - name: Validate CI auth variables
+        shell: bash
+        env:
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: ${{ secrets.DEV_SN_SDK_AUTH_TYPE || 'basic' }}
+          SN_SDK_INSTANCE_URL: ${{ secrets.DEV_SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.DEV_SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.DEV_SN_SDK_USER_PWD }}
+          SN_SDK_OAUTH_CLIENT_ID: ${{ secrets.DEV_SN_SDK_OAUTH_CLIENT_ID }}
+          SN_SDK_OAUTH_CLIENT_SECRET: ${{ secrets.DEV_SN_SDK_OAUTH_CLIENT_SECRET }}
+        run: |
+          AUTH_TYPE="${SN_SDK_AUTH_TYPE:-basic}"
+          missing=()
+
+          case "$AUTH_TYPE" in
+            basic)
+              [[ -n "$SN_SDK_INSTANCE_URL" ]] || missing+=("SN_SDK_INSTANCE_URL")
+              [[ -n "$SN_SDK_USER" ]] || missing+=("SN_SDK_USER")
+              [[ -n "$SN_SDK_USER_PWD" ]] || missing+=("SN_SDK_USER_PWD")
+              ;;
+            oauth)
+              [[ -n "$SN_SDK_INSTANCE_URL" ]] || missing+=("SN_SDK_INSTANCE_URL")
+              [[ -n "$SN_SDK_OAUTH_CLIENT_ID" ]] || missing+=("SN_SDK_OAUTH_CLIENT_ID")
+              [[ -n "$SN_SDK_OAUTH_CLIENT_SECRET" ]] || missing+=("SN_SDK_OAUTH_CLIENT_SECRET")
+              ;;
+            *)
+              echo "::error::Unsupported SN_SDK_AUTH_TYPE '$AUTH_TYPE'. Allowed: basic or oauth."
+              exit 1
+              ;;
+          esac
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required CI variables for auth type '$AUTH_TYPE': ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Deploy to ServiceNow dev
+        env:
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: ${{ secrets.DEV_SN_SDK_AUTH_TYPE || 'basic' }}
+          SN_SDK_INSTANCE_URL: ${{ secrets.DEV_SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.DEV_SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.DEV_SN_SDK_USER_PWD }}
+          SN_SDK_OAUTH_CLIENT_ID: ${{ secrets.DEV_SN_SDK_OAUTH_CLIENT_ID }}
+          SN_SDK_OAUTH_CLIENT_SECRET: ${{ secrets.DEV_SN_SDK_OAUTH_CLIENT_SECRET }}
+        run: npx now-sdk install --demoData=false
+
+  guard-manual-promotion-ref:
+    name: Guard Manual Promotion Branch
+    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail non-main promotion attempt
+        run: |
+          echo "::error::Manual promotion workflows must run from refs/heads/main."
+          echo "Re-run workflow_dispatch from main to promote to test/prod."
+          exit 1
+
+  deploy-test:
+    name: Deploy Test (manual promotion)
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.environment == 'test'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: test
+    concurrency:
+      group: servicenow-deploy-test
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Fluent SDK artifacts
+        run: npx now-sdk build --frozenKeys
+
+      - name: Validate CI auth variables
+        shell: bash
+        env:
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: ${{ secrets.TEST_SN_SDK_AUTH_TYPE || 'basic' }}
+          SN_SDK_INSTANCE_URL: ${{ secrets.TEST_SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.TEST_SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.TEST_SN_SDK_USER_PWD }}
+          SN_SDK_OAUTH_CLIENT_ID: ${{ secrets.TEST_SN_SDK_OAUTH_CLIENT_ID }}
+          SN_SDK_OAUTH_CLIENT_SECRET: ${{ secrets.TEST_SN_SDK_OAUTH_CLIENT_SECRET }}
+        run: |
+          AUTH_TYPE="${SN_SDK_AUTH_TYPE:-basic}"
+          missing=()
+
+          case "$AUTH_TYPE" in
+            basic)
+              [[ -n "$SN_SDK_INSTANCE_URL" ]] || missing+=("SN_SDK_INSTANCE_URL")
+              [[ -n "$SN_SDK_USER" ]] || missing+=("SN_SDK_USER")
+              [[ -n "$SN_SDK_USER_PWD" ]] || missing+=("SN_SDK_USER_PWD")
+              ;;
+            oauth)
+              [[ -n "$SN_SDK_INSTANCE_URL" ]] || missing+=("SN_SDK_INSTANCE_URL")
+              [[ -n "$SN_SDK_OAUTH_CLIENT_ID" ]] || missing+=("SN_SDK_OAUTH_CLIENT_ID")
+              [[ -n "$SN_SDK_OAUTH_CLIENT_SECRET" ]] || missing+=("SN_SDK_OAUTH_CLIENT_SECRET")
+              ;;
+            *)
+              echo "::error::Unsupported SN_SDK_AUTH_TYPE '$AUTH_TYPE'. Allowed: basic or oauth."
+              exit 1
+              ;;
+          esac
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required CI variables for auth type '$AUTH_TYPE': ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Deploy to ServiceNow test
+        env:
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: ${{ secrets.TEST_SN_SDK_AUTH_TYPE || 'basic' }}
+          SN_SDK_INSTANCE_URL: ${{ secrets.TEST_SN_SDK_INSTANCE_URL }}
+          SN_SDK_USER: ${{ secrets.TEST_SN_SDK_USER }}
+          SN_SDK_USER_PWD: ${{ secrets.TEST_SN_SDK_USER_PWD }}
+          SN_SDK_OAUTH_CLIENT_ID: ${{ secrets.TEST_SN_SDK_OAUTH_CLIENT_ID }}
+          SN_SDK_OAUTH_CLIENT_SECRET: ${{ secrets.TEST_SN_SDK_OAUTH_CLIENT_SECRET }}
+        run: |
+          REINSTALL_FLAG=""
+          DEMO_DATA_FLAG="--demoData=false"
+          SKIP_FLOW_FLAG=""
+
+          if [ "${{ github.event.inputs.reinstall }}" = "true" ]; then
+            REINSTALL_FLAG="--reinstall"
+          fi
+
+          if [ "${{ github.event.inputs.install_demo_data }}" = "true" ]; then
+            DEMO_DATA_FLAG="--demoData=true"
+          fi
+
+          if [ "${{ github.event.inputs.skip_flow_activation }}" = "true" ]; then
+            SKIP_FLOW_FLAG="--skip-flow-activation"
+          fi
+
+          npx now-sdk install $REINSTALL_FLAG $DEMO_DATA_FLAG $SKIP_FLOW_FLAG
+
+  block-prod:
+    name: Block Direct Production SDK Install
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.environment == 'prod'
+    needs: validate
+    runs-on: ubuntu-latest
+    concurrency:
+      group: servicenow-deploy-prod
+      cancel-in-progress: false
+    steps:
+      - name: Fail with governance guidance
+        run: |
+          echo "::error::Direct SDK install to production is blocked by policy."
+          echo "Use Application Repository promotion with App Engine Management Center Pipelines and Deployments or ReleaseOps."
+          exit 1

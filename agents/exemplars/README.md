@@ -39,6 +39,7 @@ Each file here is the minimal "what good looks like" for a specific ServiceNow a
 |------|--------------|-----------------|
 | `github-actions-branch-per-env.yml` | GitHub Actions — branch-per-environment deploy | NowDev-AI-Pipeline-Expert |
 | `github-actions-trunk.yml` | GitHub Actions — trunk-based deploy (semver tags + dispatch) | NowDev-AI-Pipeline-Expert |
+| `github-actions-main-dev-gated-promotion.yml` | GitHub Actions — PR validation + auto deploy to dev + manual promote to test + prod block | NowDev-AI-Pipeline-Expert |
 | `github-actions-multi-scope.yml` | GitHub Actions — parallel matrix for multiple SDK scopes | NowDev-AI-Pipeline-Expert |
 | `github-actions-rollback.yml` | GitHub Actions — rollback to a previous tag | NowDev-AI-Pipeline-Expert |
 | `azure-devops-branch-per-env.yml` | Azure DevOps — branch-per-environment deploy with variable groups | NowDev-AI-Pipeline-Expert |
