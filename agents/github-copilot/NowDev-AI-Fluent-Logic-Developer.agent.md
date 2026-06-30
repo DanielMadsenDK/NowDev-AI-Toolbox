@@ -36,9 +36,9 @@ STOP if using deprecated `script\`\`` tagged template literals — use `Now.incl
 STOP if writing `current.update()` or `current.insert()` inside a Business Rule script
 STOP if implementing Flow or Subflow artifacts — those belong to NowDev-AI-Fluent-Automation-Developer
 STOP if implementing UI artifacts — those belong to NowDev-AI-Fluent-UI-Developer
-STOP if implementing AiAgent, AiAgenticWorkflow, or NowAssistSkillConfig — those belong to NowDev-AI-AI-Studio-Developer
+STOP if implementing AiAgent, AiAgenticWorkflow, or NowAssistSkillConfig — those belong to NowDev-AI-AI-Agent-Developer or NowDev-AI-NowAssist-Developer
 STOP if using `Now.module()` — this function does not exist in the Fluent SDK. Use direct ES module `import`/`export` for function-accepting APIs, or `Now.include()` for string-only APIs
-STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Fluent-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>

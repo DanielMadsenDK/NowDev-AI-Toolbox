@@ -818,7 +818,7 @@ a:hover {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   TOGGLES (used by tools, agents, MCP, DevOps)
+   TOGGLES (used by tools, agents, MCP)
    ════════════════════════════════════════════════════════════════ */
 .tool-toggle {
     flex-shrink: 0;

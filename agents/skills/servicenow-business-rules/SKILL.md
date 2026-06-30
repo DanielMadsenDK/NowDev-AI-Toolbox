@@ -9,107 +9,69 @@ last_verified: "2026-05-18"
 
 # ServiceNow Business Rules
 
+Use for Classic/platform Business Rule behavior. For Fluent SDK metadata, use `now-sdk explain businessrule-api --format raw` and `now-sdk explain business-rule-guide --format raw`.
+
 ## Choosing Your Approach
 
-Business rules exist in two distinct contexts. This skill covers Classic/platform behavior; Fluent SDK constructor shape must come from `now-sdk explain businessrule-api --format raw`.
+| Situation | Use | Rationale |
+|-----------|-----|-----------|
+| Existing instance customization | Classic Business Rule UI | Runs directly on the instance |
+| New SDK project / version-controlled metadata | Fluent SDK | Verify with `now-sdk explain businessrule-api --format raw` |
+| Quick validation or auto-population | Classic Before rule | Direct assignments are auto-saved |
+| TypeScript-first app logic | Fluent SDK / modules | Verify installed SDK docs first |
 
-### **Classic Business Rules** (for existing instances)
-Use for direct ServiceNow instance customizations created in the Business Rules UI.
+## Execution Timing Guardrails
 
-```javascript
-(function executeRule(current, previous) {
-    // Your code here - runs in instance
-})(current, previous);
-```
+| Type | Runs | Use For | Must Do / Avoid |
+|------|------|---------|-----------------|
+| Before | Before database save | Validation, defaults, field transforms | Modify `current` directly; **never** call `current.update()` |
+| After | After save | Related-record updates | Update other records explicitly; guard recursion |
+| Async | Background after save | Notifications, integrations, heavy work | `previous` may be unavailable; failures do not block the transaction |
+| Display | Form load | Server-to-client data | Read only; populate `g_scratchpad` |
 
-### **Fluent SDK Business Rules** (for SDK projects)
-Use `now-sdk explain businessrule-api --format raw` and `now-sdk explain business-rule-guide --format raw`, then route implementation to NowDev-AI-Fluent-Logic-Developer. Do not use local skill examples as SDK API reference.
+## Critical Guardrails
 
----
+- Prefer the Business Rule Condition/filter builder over script-only `if` guards so the script engine is skipped when conditions fail.
+- Never create Global Business Rules; move shared logic into Script Includes and call from table-specific rules.
+- Always use an IIFE wrapper in Classic rules to avoid global variable pollution.
+- Prevent recursion with field-change checks, state flags, or carefully-scoped related-record updates.
+- Never hardcode `sys_id`s, credentials, or environment-specific values; use System Properties or credential records.
+- Use selective queries and `setLimit()`; never query every record in a rule.
+- Prefer `getValue()` / `getDisplayValue()` over dot-walking in hot paths.
+- Move complex logic (>20 lines or reused behavior) into Script Includes.
+- Validate external/user input before saving; use `gs.addErrorMessage()` plus `current.setAbortAction(true)` in Before rules.
+- Log meaningful production events and test recursion/performance on sub-production first.
 
-## Execution Timing
-
-| Type | When It Runs | Key Constraint |
-|------|--------------|-----------------|
-| **Before** | Before database save | Do NOT use `current.update()` |
-| **After** | After database save | Do NOT modify `current` directly |
-| **Async** | Background, post-save | Heavy ops, notifications |
-| **Display** | Form load | Read-only, use `g_scratchpad` |
-
----
-
-## Quick Start: Field Modification
-
-```javascript
-// ✓ CORRECT: Direct assignment in Before rule
-current.state = 3;           // Auto-saved
-current.urgency = current.priority;
-
-// ✗ WRONG: Never use update() in Before rule
-current.update();            // Causes infinite loop
-```
-
-## Quick Start: Validation
+## Quick Patterns
 
 ```javascript
 if (current.start_date > current.end_date) {
     gs.addErrorMessage('Start date must be before end date');
-    current.setAbortAction(true);  // Blocks save
+    current.setAbortAction(true);
+    return;
 }
+current.urgency = current.priority;
 ```
 
-## Decision Matrix: Which Approach to Use
-
-| Situation | Classic | Fluent | Rationale |
-|-----------|---------|--------|-----------|
-| Existing instance customization | ✓ | - | Created in UI, no SDK setup needed |
-| New SDK project | - | ✓ | Verify with `now-sdk explain businessrule-api` |
-| Version control needed | - | ✓ | SDK files tracked in Git |
-| Type-safe business logic | - | ✓ | Verify module pattern with installed SDK docs |
-| Quick field validation | ✓ | - | No need for SDK complexity |
-| Team knows TypeScript | - | ✓ | Leverage team expertise |
-| Quick deployment | ✓ | - | Direct instance modification |
-
-## Best Practices (All Approaches)
-
-- **Prefer `filterCondition` over script guards** — the platform evaluates conditions before loading the script, which is more efficient
-- **Set `order`** — lower numbers run first; default is 100. Set explicitly when rules may interact
-- **Set `access`** — use `'public'` for cross-scope rules, `'package_private'` (default) for internal rules
-- Use IIFE wrapper for all Classic rules (JavaScript context isolation)
-- Check execution timing before using `current.update()`
-- Only modify `current` in Before rules without calling `update()`
-- Call `update()` explicitly in After rules
-- Refactor complex logic (>20 lines) into Script Includes
-- Test recursion prevention on sub-production first
-- Prevent recursion by checking if field actually changed
-- Handle all errors gracefully with try-catch
-- Log important operations with `gs.info()` and `gs.error()`
+```javascript
+if (current.priority === previous.priority) {
+    return;
+}
+```
 
 ## Key APIs
 
 | API | Purpose |
 |-----|---------|
-| current | GlideRecord object being processed |
-| previous | GlideRecord snapshot before changes |
-| gs | GlideSystem for logging and system operations |
-| g_scratchpad | Pass data to Display Business Rules |
-| current.setAbortAction() | Cancel database transaction |
-| current.setWorkflow() | Control workflow execution |
-
-## Detailed Patterns
-
-Choose the pattern that matches your implementation context:
-
-- **[CLASSIC.md](./CLASSIC.md)** — Instance-based business rules (JavaScript, UI-created rules)
-  - Field validation and auto-population
-  - Before/After/Async/Display execution
-  - Recursion prevention strategies
-  - Error handling and logging
-
-- Fluent SDK rules — use `now-sdk explain businessrule-api --format raw` and `now-sdk explain business-rule-guide --format raw`; route implementation to NowDev-AI-Fluent-Logic-Developer.
-
-- **[EXAMPLES.md](./EXAMPLES.md)** — Classic quick reference plus Fluent topic pointers
+| `current` / `previous` | Current record and prior snapshot |
+| `current.setAbortAction(true)` | Cancel the save transaction |
+| `current.isNewRecord()` | Detect insert context |
+| `current.update()` | Persist changes outside Before rules; guard recursion |
+| `gs.addErrorMessage()` / `gs.addInfoMessage()` | User-facing messages |
+| `gs.info()` / `gs.error()` | Operational logging |
+| `g_scratchpad` | Display-rule data passed to client scripts |
 
 ## Reference
 
-For complete execution matrix and advanced patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
+- Fluent SDK: `now-sdk explain businessrule-api --format raw` and `now-sdk explain business-rule-guide --format raw`.
+- Classic platform APIs: use https://www.servicenow.com/llms.txt as the primary source, and the ServiceNow MCP server if one is configured as a secondary source.

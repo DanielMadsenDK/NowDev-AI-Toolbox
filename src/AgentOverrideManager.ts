@@ -50,7 +50,7 @@ export function syncAgentOverride(
         return;
     }
 
-    const bundledContent = fs.readFileSync(bundledPath, 'utf-8');
+    const bundledContent = fs.readFileSync(bundledPath, 'utf-8').replace(/\r\n/g, '\n');
     const currentHash    = crypto.createHash('sha256').update(bundledContent).digest('hex');
     const currentMcpStr  = JSON.stringify([...selectedMcp].sort());
 

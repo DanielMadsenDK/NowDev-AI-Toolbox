@@ -8,89 +8,79 @@ last_verified: "2026-05-18"
 
 # Flow Designer Scripting
 
-> **Scope:** This skill covers **Classic FlowAPI** execution — running flows, subflows, and actions programmatically from server-side scripts using `sn_fd.FlowAPI`. For the **Fluent SDK** `wfa` automation API (declarative `Flow()`, `wfa.trigger()`, `wfa.action()`), use `now-sdk explain wfa-flow-guide --format raw` and the artifact-specific topic.
+Use for Classic FlowAPI execution: programmatically running existing flows, subflows, actions, and datastreams from server-side scripts with `sn_fd.FlowAPI`. For defining new flows as code in Fluent SDK projects, use `now-sdk explain wfa-flow-guide --format raw` and the artifact-specific Fluent WFA topic.
 
 ## Classic FlowAPI vs Fluent SDK WFA
 
 | Use Case | Approach |
 |----------|----------|
-| **Execute an existing flow** from a Business Rule or Script Include | Classic `sn_fd.FlowAPI` (this skill) |
-| **Define a new flow** as code in a Fluent SDK project | NowDev-AI-Fluent-Automation-Developer after `now-sdk explain wfa-flow-guide --format raw` |
-| Trigger a flow from a GlideAjax handler | Classic `sn_fd.FlowAPI` |
-| Event-driven / scheduled automation in a Fluent app | NowDev-AI-Fluent-Automation-Developer after installed SDK doc lookup |
+| Execute an existing flow from a Business Rule, Script Include, or scheduled job | Classic `sn_fd.FlowAPI` |
+| Execute an existing subflow or IntegrationHub action from code | Classic `sn_fd.FlowAPI` |
+| Define a new flow as code in an SDK project | Fluent WFA after `now-sdk explain wfa-flow-guide --format raw` |
+| Event-driven/scheduled automation in a Fluent app | Fluent WFA / Script Action docs via installed SDK lookup |
 
-For Fluent WFA API details, use `now-sdk explain wfa-flow-guide --format raw` and the artifact-specific topic. This skill covers Classic `sn_fd.FlowAPI` execution only.
+## Execution Mode Guardrails
 
-## Quick start
+| Mode | Use When | Guardrail |
+|------|----------|-----------|
+| `inForeground()` | Caller needs outputs immediately | Subject to timeout; check `wasSuccessful()` before outputs |
+| `inBackground()` | Long-running or non-blocking work | Caller cannot rely on immediate outputs |
+| `inDomain(domain)` | Domain-separated execution | Runs as System User in specified domain; respect data isolation |
 
-**Execute flows programmatically**:
+## Critical Guardrails
+
+- This skill executes existing flows; do not use it as guidance for defining new Fluent flows.
+- Always pass required inputs explicitly with `withInputs()`.
+- Always check `result.wasSuccessful()` before reading `getOutputs()`.
+- Use background execution for heavy work or flows expected to run longer than a few seconds.
+- Avoid launching flows from async Business Rules; use scheduled jobs or a deliberate background orchestration pattern instead.
+- Do not hardcode flow/action/subflow names when they vary by environment; use System Properties or configuration.
+- Capture `getContextId()` for troubleshooting and execution history correlation.
+- Handle exceptions and flow errors with sanitized `gs.error()` logging.
+- Validate inputs before execution, especially sys_ids and user-supplied values.
+- In domain-separated instances, be explicit about domain execution and access boundaries.
+
+## Quick Patterns
 
 ```javascript
-var inputs = {};
-inputs['sys_id'] = '57af7aec73d423002728660c4cf6a71c';
-
 var result = sn_fd.FlowAPI.getRunner()
     .flow('global.my_flow')
     .inForeground()
-    .withInputs(inputs)
+    .withInputs({ sys_id: current.getUniqueValue() })
     .run();
-
-var contextId = result.getContextId();
-var outputs = result.getOutputs();
+if (result.wasSuccessful()) {
+    var outputs = result.getOutputs();
+} else {
+    gs.error('Flow failed: ' + result.getErrorMessage());
+}
 ```
 
-**Execute actions**:
-
 ```javascript
-var result = sn_fd.FlowAPI.getRunner()
-    .action('global.markapproved')
-    .inForeground()
-    .inDomain('TOP/ACME')
-    .withInputs(inputs)
-    .run();
-```
-
-**Execute subflows**:
-
-```javascript
-var result = sn_fd.FlowAPI.getRunner()
+sn_fd.FlowAPI.getRunner()
     .subflow('my_app.process_request')
-    .withInputs(inputs)
+    .inBackground()
+    .withInputs({ request_id: current.getUniqueValue() })
     .run();
-
-var success = result.wasSuccessful();
 ```
 
-## Builder pattern
+## Builder Pattern
 
-1. **FlowAPI**: Creates a `getRunner()` builder
-2. **ScriptableFlowRunner**: Configure flow/action/subflow:
-   - `flow()`, `action()`, `subflow()`, or `datastream()`
-   - `withInputs()` - Pass parameters
-   - `inForeground()` or `inBackground()`
-   - `inDomain()` - For domain-separated instances
-3. **ScriptableFlowRunnerResult**: Inspect results:
-   - `getContextId()`, `getOutputs()`, `getDomainId()`
-   - `wasSuccessful()`, `getDate()`
-
-## Best practices
-
-- Use foreground execution for immediate results
-- Use background for long-running flows
-- Always check `wasSuccessful()` before accessing outputs
-- Domain execution runs as System User in that domain
-- Avoid async BR calls; use scheduled jobs instead
-- Pass all required inputs explicitly
-- Handle flow failures gracefully with error checking
+1. `sn_fd.FlowAPI.getRunner()` initializes the runner.
+2. Choose one: `flow()`, `subflow()`, `action()`, or `datastream()`.
+3. Set execution context with `inForeground()`, `inBackground()`, and optionally `inDomain()`.
+4. Pass inputs with `withInputs()`.
+5. Execute with `run()`.
+6. Inspect `ScriptableFlowRunnerResult`: `wasSuccessful()`, `getOutputs()`, `getContextId()`, `getDomainId()`, `getDate()`.
 
 ## Key APIs
 
 | API | Purpose |
 |-----|---------|
-| FlowAPI | Entry point; manages runner lifecycle |
-| ScriptableFlowRunner | Builder for flow execution |
-| ScriptableFlowRunnerResult | Result container and output handler |
+| `sn_fd.FlowAPI` | Entry point for programmatic flow execution |
+| `ScriptableFlowRunner` | Builder for flow/action/subflow/datastream execution |
+| `ScriptableFlowRunnerResult` | Result, outputs, context, and success metadata |
 
 ## Reference
 
-For complete API documentation and advanced patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
+- Fluent WFA flow definitions: `now-sdk explain wfa-flow-guide --format raw` and the artifact-specific installed SDK topic.
+- Classic FlowAPI, ScriptableFlowRunner, and Flow Designer execution APIs: use https://www.servicenow.com/llms.txt as the primary source, and the ServiceNow MCP server if one is configured as a secondary source.

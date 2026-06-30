@@ -10,8 +10,8 @@ import { showSdkExplainPanel } from './SdkExplainPanel';
 import { showSdkQueryPanel } from './SdkQueryPanel';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
 import { showInstanceBrowserPanel } from './InstanceBrowserPanel';
-import { InstanceClient } from './InstanceClient';
 import { spawnNpm, spawnSdk } from './SdkProcess';
+import { scanAuthAliases } from './AuthAliasScanner';
 import { mergeArtifactManifestContent } from './ArtifactStateManager';
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
@@ -441,7 +441,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             let fromValue: string | undefined;
             if (mode === 'fromInstance') {
-                const aliases = (new InstanceClient(context.secrets)).listAliases();
+                const aliases = scanAuthAliases();
                 if (aliases.length === 0) {
                     vscode.window.showErrorMessage('No auth aliases found. Add one via "SDK: Add Auth Alias" first.');
                     return;
@@ -973,23 +973,6 @@ export function activate(context: vscode.ExtensionContext) {
             showInstanceBrowserPanel(context, 'discover');
         }),
 
-        // Clear stored REST credentials for an auth alias
-        vscode.commands.registerCommand('nowdev-ai-toolbox.clearAliasCredentials', async (alias?: string) => {
-            const client = new InstanceClient(context.secrets);
-            let target = alias;
-            if (!target) {
-                const aliases = client.listAliases();
-                const pick = await vscode.window.showQuickPick(
-                    aliases.map(a => ({ label: a.alias, description: a.host })),
-                    { placeHolder: 'Forget REST credentials for which alias?' }
-                );
-                if (!pick) { return; }
-                target = pick.label;
-            }
-            await client.clearCredentials(target);
-            vscode.window.showInformationMessage(`Cleared stored REST credentials for "${target}".`);
-        }),
-
         // Move — transform global-scope metadata XML into local Fluent code
         vscode.commands.registerCommand('nowdev-ai-toolbox.sdkMove', async (args: { ids?: string[]; auth?: string } = {}) => {
             const cwd = getWorkspaceFolder();
@@ -1028,18 +1011,6 @@ export function activate(context: vscode.ExtensionContext) {
             welcomeProvider.setSdkCommandStatus('sync', transformOk, transformOk ? 'Sync completed' : 'Sync stopped: transform failed');
         })
     );
-    // Enable ask-chat-location so Copilot questions appear in the chat view
-    const askChatConfig = vscode.workspace.getConfiguration('workbench.commandPalette.experimental');
-    const askChatLocation = askChatConfig.get<string>('askChatLocation');
-    
-    if (askChatLocation !== 'chatView') {
-        askChatConfig.update('askChatLocation', 'chatView', vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Set workbench.commandPalette.experimental.askChatLocation to chatView');
-        }, (error: any) => {
-            console.error('Failed to set askChatLocation:', error);
-        });
-    }
-
     // Enable agentic browser tools (v1.110+)
     const browserConfig = vscode.workspace.getConfiguration('workbench.browser');
     const chatToolsEnabled = browserConfig.get<boolean>('enableChatTools');
@@ -1084,25 +1055,6 @@ export function activate(context: vscode.ExtensionContext) {
             console.log('Enabled github.copilot.chat.agent.backgroundTodoAgent.enabled');
         }, (error: any) => {
             console.error('Failed to enable backgroundTodoAgent:', error);
-        });
-    }
-
-    // Enable model details badge in agent responses (v1.119+) — shows model name and cost multiplier
-    if (todoAgentConfig.get<boolean>('modelDetails.enabled') !== true) {
-        todoAgentConfig.update('modelDetails.enabled', true, vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Enabled github.copilot.chat.agent.modelDetails.enabled');
-        }, (error: any) => {
-            console.error('Failed to enable modelDetails:', error);
-        });
-    }
-
-    // Enable stable symbol caching (v1.118+) — reduces latency for repeated skill/agent invocations
-    const cacheConfig = vscode.workspace.getConfiguration('chat.experimental');
-    if (cacheConfig.get<boolean>('symbolTools.cacheStable') !== true) {
-        cacheConfig.update('symbolTools.cacheStable', true, vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Enabled chat.experimental.symbolTools.cacheStable');
-        }, (error: any) => {
-            console.error('Failed to enable symbolTools cache:', error);
         });
     }
 

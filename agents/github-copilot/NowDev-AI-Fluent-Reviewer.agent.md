@@ -6,9 +6,13 @@ description: specialized agent for reviewing ServiceNow Fluent SDK artifacts (.n
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory']
 agents: []
 handoffs:
-  - label: Back to Reviewer
-    agent: NowDev-AI-Reviewer
+  - label: Back to Architect
+    agent: NowDev AI Agent
     prompt: Fluent code review completed. Returning results for next steps.
+    send: true
+  - label: Fix Issues — Fluent Developer
+    agent: NowDev-AI-Fluent-Developer
+    prompt: "Apply the fixes described in the Structured Findings Block produced by the last Fluent code review. Address every finding in priority order (Critical first). The Structured Findings Block from the review is included above in the conversation — read it to obtain the exact file paths, line numbers, categories, and recommended fixes before writing any code."
     send: true
 ---
 {{PROFILE_INSTRUCTIONS}}
@@ -23,7 +27,7 @@ handoffs:
 6. Review each file against the installed SDK documentation, NowDev guardrails, and actual dependency source, covering correctness, security, performance, maintainability, and API/schema fit as separate perspectives
 7. **Dependency Validation**: Read `.vscode/nowdev-ai-config.json`, read `artifactState.path` if available, and cross-reference dependencies — verify that method signatures, table names, and field names used by dependent artifacts match the actual exports of their dependencies
 8. Generate structured feedback
-9. Emit the **Structured Findings Block** (Section 9) as a JSON code fence — this block is required regardless of status so the reviewer router can offer fix delegation to the user
+9. Emit the **Structured Findings Block** (Section 9) as a JSON code fence — this block is required regardless of status so the **Fix Issues — Fluent Developer** handoff can offer fix delegation to the user
 </workflow>
 
 <stopping_rules>
@@ -137,7 +141,7 @@ Follow `agents/skills/servicenow-artifact-state/SKILL.md` for dependency validat
 
 ### 9. **Structured Findings Block:**
 
-Always emit this block at the very end of your response, even when status is PASS (use an empty `findings` array). The reviewer router reads this block to offer fix delegation to the user.
+Always emit this block at the very end of your response, even when status is PASS (use an empty `findings` array). The **Fix Issues — Fluent Developer** handoff reads this block to offer fix delegation to the user.
 
 ```json
 {

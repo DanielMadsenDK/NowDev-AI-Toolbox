@@ -1,0 +1,19 @@
+# Normalize line endings to LF for all text files so the extension's
+# frontmatter parsers and managed-hash stamping behave identically on
+# Windows, macOS, and Linux checkouts.
+* text=auto eol=lf
+
+# Explicitly treat the bundled agent/skill/prompt content and source as LF.
+*.md       text eol=lf
+*.ts       text eol=lf
+*.js       text eol=lf
+*.json     text eol=lf
+*.agent.md text eol=lf
+
+# Binary assets must not be normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.vsix binary

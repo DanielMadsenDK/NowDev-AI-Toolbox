@@ -44,15 +44,6 @@ export const DEFAULT_ALL_DOC_SOURCES: AllDocSources = {
     classicScripting: { sourceType: 'none',     llmsUrl: 'https://www.servicenow.com/llms.txt',                    mcpLibraryHint: '' },
 };
 
-export interface DevOpsConfig {
-    /** Whether the DevOps integration agent is enabled */
-    enabled: boolean;
-    /** MCP server name to inject into the DevOps agent's tools list */
-    mcpServer: string;
-    /** Resolved custom instructions text to inject into the agent body */
-    customInstructions: string;
-}
-
 export interface GuidelineArticleRef {
     sysId: string;
     number?: string;
@@ -66,6 +57,22 @@ export interface GuidelinesConfig {
     instanceAlias?: string;
     selectedArticles: GuidelineArticleRef[];
     lastSynced?: string;
+}
+
+/**
+ * Work-item / DevOps integration (Azure DevOps, Jira, etc.). The workflow is
+ * driven entirely by an MCP server and folded into the orchestrator — there is
+ * no dedicated agent. When enabled, the chosen MCP server's tools are injected
+ * into the orchestrator and a task-tracking mandate is added to its body so it
+ * proactively reads task details, posts progress comments, and updates status.
+ */
+export interface DevOpsConfig {
+    /** Whether the work-item integration workflow is enabled */
+    enabled: boolean;
+    /** MCP server name providing work-item tools, injected into the orchestrator */
+    mcpServer: string;
+    /** Resolved custom instructions text describing task structure, naming, and status values */
+    customInstructions: string;
 }
 
 export const DEFAULT_DEVOPS_CONFIG: DevOpsConfig = {
@@ -86,6 +93,7 @@ export interface WorkspaceAgentSyncConfig {
     agentOverrides: Record<string, AgentOverride>;
     allDocSources: AllDocSources;
     autoUpdate: boolean;
+    /** Work-item / DevOps integration driven by an MCP server, folded into the orchestrator. */
     devopsConfig?: DevOpsConfig;
     /** Agent names suppressed by the active profile — not written and hidden from the Agents tab. */
     profileSuppressedAgents?: ReadonlySet<string>;
@@ -106,14 +114,15 @@ const PROMPTS_OUT      = path.join('.github', 'prompts');
 const HASH_TAG         = '# nowdev-hash:';
 const MANAGED_TAG      = '# nowdev-managed: true';
 
-const DEVOPS_AGENT_NAME = 'NowDev-AI-DevOps';
+/** The orchestrator agent that carries the work-item integration workflow. */
+const ORCHESTRATOR_AGENT_NAME = 'NowDev AI Agent';
 
 /** Agents that are always written and cannot be disabled by the user. */
 export const LOCKED_AGENT_NAMES: ReadonlySet<string> = new Set([
     'NowDev AI Agent',
     'NowDev-AI-Refinement',
-    'NowDev-AI-Reviewer',
-    'NowDev-AI-Release-Expert',
+    'NowDev-AI-Fluent-Reviewer',
+    'NowDev-AI-Fluent-Release',
     'NowDev-AI-Assistant',
 ]);
 
@@ -123,14 +132,6 @@ export const LOCKED_AGENT_NAMES: ReadonlySet<string> = new Set([
  * without disabling the others would silently break coordinator delegation.
  */
 export const AGENT_BUNDLES: Readonly<Record<string, readonly string[]>> = {
-    'Classic Development': [
-        'NowDev-AI-Classic-Developer',
-        'NowDev-AI-Script-Developer',
-        'NowDev-AI-BusinessRule-Developer',
-        'NowDev-AI-Client-Developer',
-        'NowDev-AI-Classic-Reviewer',
-        'NowDev-AI-Classic-Release',
-    ],
     'Fluent Development': [
         'NowDev-AI-Fluent-Developer',
         'NowDev-AI-Fluent-Schema-Developer',
@@ -142,7 +143,6 @@ export const AGENT_BUNDLES: Readonly<Record<string, readonly string[]>> = {
         'NowDev-AI-Fluent-Release',
     ],
     'AI Studio': [
-        'NowDev-AI-AI-Studio-Developer',
         'NowDev-AI-AI-Agent-Developer',
         'NowDev-AI-NowAssist-Developer',
     ],
@@ -197,13 +197,11 @@ export function syncAllAgents(
     // Build the set of disabled agent names up-front so every written file
     // can have them removed from its own agents: list.
     // Profile suppression takes absolute priority; locked agents can be suppressed by a profile.
-    // The DevOps agent is treated as disabled unless devopsConfig.enabled === true.
     const disabledAgentNames = new Set<string>(
         manifests
             .filter(m => {
                 if (profileSuppressed.has(m.name)) { return true; }
                 if (LOCKED_AGENT_NAMES.has(m.name)) { return false; }
-                if (m.name === DEVOPS_AGENT_NAME) { return !devops.enabled; }
                 return cfg.agentOverrides[m.name]?.enabled === false;
             })
             .map(m => m.name)
@@ -217,12 +215,12 @@ export function syncAllAgents(
 
         if (!fs.existsSync(srcPath)) { continue; }
 
-        const isDevOpsAgent = manifest.name === DEVOPS_AGENT_NAME;
         const override      = cfg.agentOverrides[manifest.name];
+        const isOrchestrator = manifest.name === ORCHESTRATOR_AGENT_NAME;
         // Profile suppression overrides the locked-agent guarantee.
         const enabled       = !profileSuppressed.has(manifest.name) && (
                               LOCKED_AGENT_NAMES.has(manifest.name) ||
-                              (isDevOpsAgent ? devops.enabled : (override?.enabled ?? true)));
+                              (override?.enabled ?? true));
         const disabledTools = new Set(override?.disabledTools ?? []);
 
         // Disabled agents: remove any existing file, do not write a new one
@@ -233,12 +231,14 @@ export function syncAllAgents(
 
         // MCP tool entries only for top-level (user-invocable) agents — sub-agents
         // receive context from the orchestrator, they don't need direct MCP access.
-        // Exception: DevOps agent gets its own dedicated MCP server entry.
         let mcpTools: string[] = manifest.userInvocable
             ? cfg.mcpIntegrations.flatMap(s => getMcpToolEntries(s, cfg.mcpIntegrationConfigs?.[s]))
             : [];
 
-        if (isDevOpsAgent && devops.mcpServer) {
+        // Work-item integration: inject the configured MCP server's tools into the
+        // orchestrator so it can read/update tasks even if that server is not also
+        // selected in the general MCP list.
+        if (isOrchestrator && devops.enabled && devops.mcpServer) {
             for (const entry of getMcpToolEntries(devops.mcpServer, cfg.mcpIntegrationConfigs?.[devops.mcpServer])) {
                 if (!mcpTools.includes(entry)) { mcpTools = [...mcpTools, entry]; }
             }
@@ -278,7 +278,7 @@ export function syncAllAgents(
             effectiveTools.push('agent');
         }
 
-        const bundledContent = fs.readFileSync(srcPath, 'utf-8');
+        const bundledContent = fs.readFileSync(srcPath, 'utf-8').replace(/\r\n/g, '\n');
 
         // Build a stable hash that captures all inputs that affect the output
         const stateKey = JSON.stringify({
@@ -289,7 +289,7 @@ export function syncAllAgents(
             disabledAgents: [...disabledAgentNames].sort(),
             allDocSources: cfg.allDocSources,
             mcpIntegrationConfigs: cfg.mcpIntegrationConfigs,
-            devopsConfig:  isDevOpsAgent ? devops : undefined,
+            devopsConfig:  isOrchestrator ? devops : undefined,
             activeProfileId: cfg.activeProfileId ?? '',
             profileInstructions: cfg.profileInstructions ?? '',
             customInstructions: cfg.customInstructions ?? '',
@@ -313,8 +313,7 @@ export function syncAllAgents(
             combinedHash,
             override?.model,
             cfg.allDocSources,
-            isDevOpsAgent ? devops : undefined,
-            devops,
+            isOrchestrator ? devops : undefined,
             cfg.profileInstructions,
             cfg.customInstructions,
             cfg.agentGuidelines,
@@ -377,8 +376,7 @@ function buildContent(
     hash: string,
     model: string | string[] | undefined,
     allDocSources: AllDocSources,
-    devopsAgentConfig?: DevOpsConfig,
-    orchestratorDevopsConfig?: DevOpsConfig,
+    devopsConfig?: DevOpsConfig,
     profileInstructions?: string,
     customInstructions?: string,
     agentGuidelines?: string,
@@ -396,32 +394,8 @@ function buildContent(
         content = setFrontmatterField(content, 'agents', formatInlineArray(names));
     }
 
-    // Substitute DevOps agent body tokens ({{DEVOPS_CUSTOM_INSTRUCTIONS}})
-    if (devopsAgentConfig) {
-        const instructions = devopsAgentConfig.customInstructions.trim()
-            ? devopsAgentConfig.customInstructions.trim()
-            : '_No custom workflow instructions configured. Use your best judgement based on the available MCP tools._';
-        content = content.replace(/\{\{DEVOPS_CUSTOM_INSTRUCTIONS\}\}/g, instructions);
-    }
-
-    // Substitute orchestrator preamble token ({{DEVOPS_PREAMBLE}})
-    if (orchestratorDevopsConfig?.enabled) {
-        const preamble = `## DevOps Integration Mandate
-
-**This workspace has a DevOps/project management integration configured.** Follow these rules for every full-project request:
-
-1. **Before starting any full-project request** — delegate to \`NowDev-AI-DevOps\` first. Pass the task ID, work item reference, or description the user provided. The DevOps agent will return structured task details (title, description, acceptance criteria, current status). Treat these details as the authoritative source of truth for what needs to be built.
-2. **After each major sub-agent completes its artifact** — delegate to \`NowDev-AI-DevOps\` to post a progress comment on the task in the project management system.
-3. **After all development is complete** — delegate to \`NowDev-AI-DevOps\` to update the task status to done and add a completion comment summarizing what was built.
-
-If the user does not provide a task reference, ask them for one before proceeding. If they confirm there is no task to link, proceed with normal orchestration and skip DevOps delegation.
-
-`;
-        content = content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n/g, preamble);
-    } else {
-        // DevOps not configured — remove the token entirely
-        content = content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n/g, '');
-    }
+    // Substitute the work-item integration mandate token ({{DEVOPS_PREAMBLE}}).
+    content = applyDevOpsPreambleToken(content, devopsConfig);
 
     // Substitute always-present Fluent SDK explain instructions
     content = applyFluentSdkExplainToken(content);
@@ -501,7 +475,7 @@ function buildWorkspacePrompts(): Array<{ filename: string; content: string }> {
                 "name: 'nowdev-review'",
                 "description: 'Review current NowDev artifacts against the workspace artifact state.'",
                 "argument-hint: '<optional focus area>'",
-                "agent: 'NowDev-AI-Reviewer'",
+                "agent: 'NowDev-AI-Fluent-Reviewer'",
                 '---',
                 '',
                 'Review the current workspace changes and artifact state. Read `.vscode/nowdev-ai-config.json`, then read `artifactState.path` and the source files referenced by each artifact.',
@@ -543,7 +517,7 @@ function normalizeModelList(model: string | string[] | undefined): string[] {
 }
 
 function setFrontmatterField(content: string, key: string, renderedValue: string): string {
-    const match = content.match(/^---\n([\s\S]*?)\n---/);
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (!match) { return content; }
 
     const frontmatter = match[1];
@@ -659,6 +633,39 @@ For general ServiceNow platform knowledge that is not Fluent-specific (admin/con
 function applyFluentSdkExplainToken(content: string): string {
     if (!content.includes('{{FLUENT_SDK_EXPLAIN}}')) { return content; }
     return content.replace(/\{\{FLUENT_SDK_EXPLAIN\}\}\n?/g, FLUENT_SDK_EXPLAIN_BLOCK + '\n\n');
+}
+
+/**
+ * Substitutes the {{DEVOPS_PREAMBLE}} orchestrator token with a work-item
+ * integration mandate when a work-item MCP server is configured and enabled.
+ * When disabled (or for any agent that does not carry the token) the token is
+ * simply removed. The workflow is driven entirely through the configured MCP
+ * server — no dedicated agent is involved.
+ */
+function applyDevOpsPreambleToken(content: string, devops?: DevOpsConfig): string {
+    if (!content.includes('{{DEVOPS_PREAMBLE}}')) { return content; }
+
+    if (!devops?.enabled || !devops.mcpServer) {
+        return content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n?/g, '');
+    }
+
+    const customInstructions = devops.customInstructions.trim()
+        ? `\n**Team work-item conventions:**\n\n${devops.customInstructions.trim()}\n`
+        : '';
+
+    const preamble = `## Work Item Integration Mandate
+
+**This workspace has a work-item / project-management integration configured via the \`${devops.mcpServer}\` MCP server.** Use its tools directly (you have them in your tool list). Follow these rules for every full-project request:
+
+1. **Before starting any full-project request** — call the \`${devops.mcpServer}\` tools to read the referenced task, work item, or user story. Pass the task ID or reference the user provided. Treat the returned details (title, description, acceptance criteria, current status) as the authoritative source of truth for what needs to be built.
+2. **After each major sub-agent completes its artifact** — use the \`${devops.mcpServer}\` tools to post a progress comment on the work item.
+3. **After all development is complete** — use the \`${devops.mcpServer}\` tools to update the work item status to done and add a completion comment summarizing what was built.
+
+If the user does not provide a task reference, ask them for one before proceeding. If they confirm there is no work item to link, proceed with normal orchestration and skip the work-item updates.
+${customInstructions}
+`;
+
+    return content.replace(/\{\{DEVOPS_PREAMBLE\}\}\n?/g, preamble + '\n');
 }
 
 /**

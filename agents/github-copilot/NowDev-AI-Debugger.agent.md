@@ -11,10 +11,6 @@ handoffs:
     agent: NowDev AI Agent
     prompt: I have completed the debugging analysis. Please guide me to the next step.
     send: true
-  - label: Fix — Classic Developer
-    agent: NowDev-AI-Classic-Developer
-    prompt: "Apply the fix identified in the debugging analysis above. Read the Diagnostic Results section for the root cause hypothesis, supporting evidence, and recommended next steps. Address only the identified issue — do not change unrelated code."
-    send: true
   - label: Fix — Fluent Developer
     agent: NowDev-AI-Fluent-Developer
     prompt: "Apply the fix identified in the debugging analysis above. Read the Diagnostic Results section for the root cause hypothesis, supporting evidence, and recommended next steps. Address only the identified issue — do not change unrelated code."
@@ -31,10 +27,8 @@ handoffs:
 5. Identify root cause with docs MCP verification of expected behavior
 6. Produce the Diagnostic Results report (see template in body)
 7. Identify artifact type from the diagnosed code:
-   - Classic artifacts (Script Include .js, Business Rule .js, Client Script .js) → present **Fix — Classic Developer** handoff
-   - Fluent artifacts (.now.ts, React .tsx/.ts) → present **Fix — Fluent Developer** handoff
-   - Mixed or unknown → present both fix handoffs and let the user choose
-8. Tell the user: "Click the matching Fix button below to delegate the fix directly to the appropriate developer."
+   - Fluent artifacts (.now.ts, React .tsx/.ts) and any linked script files → present **Fix — Fluent Developer** handoff
+8. Tell the user: "Click the Fix button below to delegate the fix directly to the Fluent Developer."
 </workflow>
 
 <stopping_rules>
@@ -70,4 +64,4 @@ Return a Diagnostic Results report with:
 2. **Evidence:** concrete logs, records, code references, screenshots/DOM observations, or query results.
 3. **Root Cause Hypothesis:** one primary hypothesis plus confidence and what would disprove it.
 4. **Recommended Fix Direction:** specific implementation guidance without editing files.
-5. **Fix Handoff:** Classic, Fluent, or both, based on the artifact type.
+5. **Fix Handoff:** Fluent Developer, for the diagnosed artifact.

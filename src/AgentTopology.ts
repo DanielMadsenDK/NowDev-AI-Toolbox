@@ -7,7 +7,7 @@ export interface AgentNode {
 }
 
 /**
- * Static agent hierarchy matching the agents registered in package.json.
+ * Static agent hierarchy matching the bundled agents in agents/github-copilot/.
  * Update this when agents are added or removed.
  */
 export const AGENT_TREE: AgentNode = {
@@ -31,39 +31,10 @@ export const AGENT_TREE: AgentNode = {
             children: [],
         },
         {
-            id: 'NowDev-AI-Classic-Developer',
-            shortName: 'Classic Developer',
-            role: 'coordinator',
-            description: 'Coordinates all Classic ServiceNow scripting',
-            children: [
-                {
-                    id: 'NowDev-AI-Script-Developer',
-                    shortName: 'Script Developer',
-                    role: 'developer',
-                    description: 'Script Includes (.js)',
-                    children: [],
-                },
-                {
-                    id: 'NowDev-AI-BusinessRule-Developer',
-                    shortName: 'Business Rule Dev',
-                    role: 'developer',
-                    description: 'Business Rules (.js)',
-                    children: [],
-                },
-                {
-                    id: 'NowDev-AI-Client-Developer',
-                    shortName: 'Client Developer',
-                    role: 'developer',
-                    description: 'Client Scripts (.js)',
-                    children: [],
-                },
-            ],
-        },
-        {
             id: 'NowDev-AI-Fluent-Developer',
             shortName: 'Fluent Developer',
             role: 'coordinator',
-            description: 'Coordinates Fluent SDK metadata and React apps',
+            description: 'Coordinates Fluent SDK metadata, React apps, and AI Studio artifacts',
             children: [
                 {
                     id: 'NowDev-AI-Fluent-Schema-Developer',
@@ -94,33 +65,25 @@ export const AGENT_TREE: AgentNode = {
                     children: [],
                 },
                 {
+                    id: 'NowDev-AI-AI-Agent-Developer',
+                    shortName: 'AI Agent Developer',
+                    role: 'developer',
+                    description: 'AiAgent, AiAgenticWorkflow (.now.ts)',
+                    children: [],
+                },
+                {
+                    id: 'NowDev-AI-NowAssist-Developer',
+                    shortName: 'NowAssist Developer',
+                    role: 'developer',
+                    description: 'NowAssistSkillConfig (.now.ts)',
+                    children: [],
+                },
+                {
                     id: 'NowDev-AI-ATF-Developer',
                     shortName: 'ATF Developer',
                     role: 'developer',
                     description: 'ATF Test files (.now.ts Test)',
                     children: [],
-                },
-                {
-                    id: 'NowDev-AI-AI-Studio-Developer',
-                    shortName: 'AI Studio Developer',
-                    role: 'coordinator',
-                    description: 'Coordinates AI Agent and NowAssist artifacts',
-                    children: [
-                        {
-                            id: 'NowDev-AI-AI-Agent-Developer',
-                            shortName: 'AI Agent Developer',
-                            role: 'developer',
-                            description: 'AiAgent, AiAgenticWorkflow (.now.ts)',
-                            children: [],
-                        },
-                        {
-                            id: 'NowDev-AI-NowAssist-Developer',
-                            shortName: 'NowAssist Developer',
-                            role: 'developer',
-                            description: 'NowAssistSkillConfig (.now.ts)',
-                            children: [],
-                        },
-                    ],
                 },
             ],
         },
@@ -132,62 +95,25 @@ export const AGENT_TREE: AgentNode = {
             children: [],
         },
         {
+            id: 'NowDev-AI-Fluent-Reviewer',
+            shortName: 'Fluent Reviewer',
+            role: 'reviewer',
+            description: 'Reviews .now.ts Fluent artifacts',
+            children: [],
+        },
+        {
+            id: 'NowDev-AI-Fluent-Release',
+            shortName: 'Fluent Release',
+            role: 'release',
+            description: 'now-sdk build & install',
+            children: [],
+        },
+        {
             id: 'NowDev-AI-Pipeline-Expert',
             shortName: 'Pipeline Expert',
             role: 'release',
             description: 'CI/CD pipeline generation and release workflow automation',
             children: [],
-        },
-        {
-            id: 'NowDev-AI-DevOps',
-            shortName: 'DevOps',
-            role: 'support',
-            description: 'Project management integration and task status coordination',
-            children: [],
-        },
-        {
-            id: 'NowDev-AI-Reviewer',
-            shortName: 'Reviewer',
-            role: 'reviewer',
-            description: 'Routes code review to Classic or Fluent reviewer',
-            children: [
-                {
-                    id: 'NowDev-AI-Classic-Reviewer',
-                    shortName: 'Classic Reviewer',
-                    role: 'reviewer',
-                    description: 'Reviews .js Classic artifacts',
-                    children: [],
-                },
-                {
-                    id: 'NowDev-AI-Fluent-Reviewer',
-                    shortName: 'Fluent Reviewer',
-                    role: 'reviewer',
-                    description: 'Reviews .now.ts Fluent artifacts',
-                    children: [],
-                },
-            ],
-        },
-        {
-            id: 'NowDev-AI-Release-Expert',
-            shortName: 'Release Expert',
-            role: 'release',
-            description: 'Routes deployment to Classic XML or Fluent SDK',
-            children: [
-                {
-                    id: 'NowDev-AI-Classic-Release',
-                    shortName: 'Classic Release',
-                    role: 'release',
-                    description: 'XML Update Set packaging',
-                    children: [],
-                },
-                {
-                    id: 'NowDev-AI-Fluent-Release',
-                    shortName: 'Fluent Release',
-                    role: 'release',
-                    description: 'now-sdk build & install',
-                    children: [],
-                },
-            ],
         },
     ],
 };

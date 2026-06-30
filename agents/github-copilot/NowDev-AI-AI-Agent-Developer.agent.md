@@ -7,8 +7,8 @@ argument-hint: "The AI Agent requirements — describe the agent's role, what to
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 agents: []
 handoffs:
-  - label: Back to AI Studio Developer
-    agent: NowDev-AI-AI-Studio-Developer
+  - label: Back to Fluent Developer
+    agent: NowDev-AI-Fluent-Developer
     prompt: AI Agent/Workflow implementation completed. Returning created files.
     send: true
 ---

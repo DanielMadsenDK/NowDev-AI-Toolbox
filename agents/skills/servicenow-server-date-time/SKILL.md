@@ -8,102 +8,67 @@ last_verified: "2026-05-18"
 
 # Server Date & Time
 
-## Quick start
+Use for server-side date arithmetic, timezone conversions, duration calculations, business schedules, and SLA windows with ServiceNow date/time APIs.
 
-**GlideDateTime** (core API):
+## API Selection
+
+| Need | Use | Guardrail |
+|------|-----|-----------|
+| Timestamp with timezone | `GlideDateTime` | Prefer over JavaScript `Date` |
+| Date only | `GlideDate` | Do not store time-sensitive values in date-only fields |
+| Time only | `GlideTime` | Use only when no date context is needed |
+| Durations | `GlideDuration` | Match duration field semantics |
+| Business hours / holidays | `GlideSchedule` | Load schedules from `cmn_schedule`; do not hardcode calendars |
+| Recurrence | `GlideMultiRecurrence` / schedule APIs | Verify current API docs before implementation |
+
+## Critical Guardrails
+
+- Always prefer `GlideDateTime` over JavaScript `Date`; it integrates with platform timezone, locale, database, and DST handling.
+- Store dates in UTC/internal values; format with display methods only for users.
+- Use `GlideSchedule` for business-time/SLA calculations so holidays, work hours, and timezone rules are honored.
+- Test calculations across DST boundaries and user timezones.
+- Match field granularity: Date, DateTime, Time, or Duration.
+- Cache `new GlideDateTime()` outside loops when comparing many records.
+- Use `getNumericValue()` / documented difference methods for arithmetic; avoid raw string math.
+- Validate input format before constructing date/time objects.
+- Avoid hardcoded timezone assumptions; use user/session/system timezone intentionally.
+- For scoped apps, prefer `new GlideDateTime().getDisplayValue()` over blocked `gs.nowDateTime()` patterns.
+
+## Quick Patterns
 
 ```javascript
-// Current time
 var now = new GlideDateTime();
-gs.info(now.getDisplayValue()); // 2026-02-06 14:30:45
+var due = new GlideDateTime(now);
+due.addDays(7);
+```
 
-// Add/subtract time
-var future = new GlideDateTime();
-future.addDays(7);
-future.addHours(2);
-
-// Compare dates
-var start = new GlideDateTime('2026-02-01');
-var end = new GlideDateTime('2026-02-28');
+```javascript
+var start = new GlideDateTime('2026-02-01 09:00:00');
+var end = new GlideDateTime('2026-02-02 17:00:00');
 var diff = GlideDateTime.getDifference(start, end);
-gs.info(diff.getDisplayValue()); // Shows duration
+gs.info(diff.getDisplayValue());
 ```
 
-**GlideDate** (date only, no time):
-
 ```javascript
-var today = new GlideDate();
-gs.info(today.getDisplayValue()); // 2026-02-06
-
-var nextMonth = new GlideDate('2026-03-06');
-```
-
-**GlideDuration** (time spans):
-
-```javascript
-var duration = new GlideDuration('0 08:30:00'); // 8 hours 30 minutes (days HH:mm:ss)
-gs.info(duration.getDisplayValue()); // 08:30:00
-```
-
-**Schedule operations**:
-
-```javascript
-// Constructor takes no args; load() takes a schedule sys_id
 var schedule = new GlideSchedule();
-schedule.load('08fcd0830a0a0b2600079f56b1adb9ae'); // sys_id from cmn_schedule
-schedule.setTimeZone('UTC');
-var isAvailable = schedule.isInSchedule(new GlideDateTime());
+schedule.load('schedule_sys_id');
+schedule.setTimeZone(gs.getUser().getTimeZoneID());
+var inSchedule = schedule.isInSchedule(new GlideDateTime());
 ```
-
-**Recurring schedules**:
-
-```javascript
-var recurring = new GlideMultiRecurrence();
-// Configure based on sys_trigger table fields
-// Returns array of GlideDateTime objects for next occurrences
-```
-
-## Utilities
-
-**DateTimeUtils** (script include):
-
-```javascript
-// Various utility functions
-var utils = new DateTimeUtils();
-var nextWeek = utils.addDays(now, 7);
-```
-
-**DurationCalculator** (script include):
-
-```javascript
-var calc = new DurationCalculator();
-var dueDate = calc.calculateDueDate(startDate, duration);
-```
-
-## Best practices
-
-| Practice | Why it matters |
-|----------|----------------|
-| Use GlideDateTime, not JavaScript `Date` | JS Date ignores instance timezone settings and DST; GlideDateTime handles both automatically |
-| Store dates in UTC; format for display only | Prevents timezone-shifted data when records move between instances or exports |
-| Use GlideSchedule for business hours | Ensures SLA calculations respect holidays and working hours defined on the instance |
-| Use GlideDuration for time spans | Enables arithmetic with ServiceNow duration fields directly |
-| Test calculations across timezones | DST transitions can shift results by an hour; verify with users in different regions |
-| Match granularity to the use case (Date vs DateTime vs Time) | Storing time in a Date-only field silently discards the time component |
 
 ## Key APIs
 
 | API | Purpose |
 |-----|---------|
-| GlideDateTime | Date and time with timezone support |
-| GlideDate | Date only, no time component |
-| GlideDuration | Time spans and durations |
-| GlideTime | Time only, no date |
-| GlideSchedule | Business hour calculations |
-| GlideMultiRecurrence | Recurring schedule occurrences |
+| `GlideDateTime` | Date/time with timezone support |
+| `GlideDate` | Date-only values |
+| `GlideTime` | Time-only values |
+| `GlideDuration` | Time spans and duration fields |
+| `GlideSchedule` | Business hours and calendar-aware calculations |
+| `GlideTimeZone` | Timezone offsets/metadata |
+| `GlideLocale` | Locale formatting metadata |
+| `GlideMultiRecurrence` | Recurring schedule occurrences |
 
 ## Reference
 
-For working code examples covering date arithmetic, duration calculations, schedule queries, and timezone formatting, see [EXAMPLES.md](./EXAMPLES.md)
-
-For timezone handling, DST considerations, and advanced patterns, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
+Classic GlideDateTime, GlideDate, GlideDuration, GlideSchedule, timezone, and scheduling APIs: use https://www.servicenow.com/llms.txt as the primary source, and the ServiceNow MCP server if one is configured as a secondary source.

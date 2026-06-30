@@ -68,7 +68,7 @@ Frontmatter must make invocation boundaries explicit:
 
 Delegation prompts should be narrow and complete. The parent agent passes discovered facts, project style, scope/app context, environment capabilities, owned files/artifacts, dependency outputs, validation expectations, and the exact expected return format. Downstream agents should not redo broad discovery already performed by the parent.
 
-For review work, prefer independent perspectives where useful: correctness, security, performance, architecture/maintainability, and ServiceNow API compliance. Run Classic and Fluent review streams in parallel for mixed artifact sets, then preserve each specialist's Structured Findings Block when synthesizing.
+For review work, prefer independent perspectives where useful: correctness, security, performance, architecture/maintainability, and ServiceNow API compliance. Preserve the reviewer's Structured Findings Block when synthesizing.
 
 Validate bundled agent changes before publishing:
 
@@ -107,7 +107,7 @@ Agents should spend context only on information that changes the next decision o
 
 - Include `{{PRODUCT_DOCS_CONTEXT}}` only in agents that verify ServiceNow platform behavior or release-specific APIs.
 - Include `{{FLUENT_SDK_EXPLAIN}}` in Fluent agents that need SDK signatures, metadata APIs, or build/deploy behavior. Add `{{SDK_DOCS_CONTEXT}}` only as supplemental context when `now-sdk explain` does not cover the question.
-- Include `{{CLASSIC_SCRIPTING_DOCS}}` only in Classic scripting agents and reviewers that need Glide/API verification.
+- Include `{{CLASSIC_SCRIPTING_DOCS}}` only in Fluent agents and reviewers that need Glide/platform API verification for script bodies embedded in Fluent metadata.
 - Router-only agents should usually omit documentation tokens; they classify and delegate, they do not verify APIs.
 - Live instance query guidance belongs only with agents that can execute terminal commands and are expected to resolve instance facts.
 
@@ -146,7 +146,7 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - Do not delete specialist agents just to reduce visible complexity if they still encode useful ownership boundaries or handoff targets.
 - When a specialist mostly repeats shared rules, simplify the prompt and point to this file plus the relevant skill docs.
 
-### Development Agents (Script, BusinessRule, Client, Fluent)
+### Development Agents (Fluent specialists)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
 - **Search:** `search`, `web`
@@ -154,17 +154,9 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - **Tracking:** `todo`
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
 - **Handoff:** Include `handoffs` with "Back to Architect" label pointing to `NowDev AI Agent`
-- **Browser:** None — exception: `NowDev-AI-Client-Developer` may include `browser/readPage` and `browser/screenshotPage` (read-only, shared session only) for form inspection during development. It does NOT have `browser/openBrowserPage` — the orchestrator must open the browser first.
+- **Browser:** None — Fluent development specialists do not interact with the instance browser; the orchestrator and Debugger handle instance inspection.
 
-### Reviewer Router (NowDev-AI-Reviewer)
-- **Read:** `read/readFile`
-- **Search:** `search`
-- **Tracking:** `todo`
-- **Routing:** `agent`
-- **NO write tools**, **NO browser tools**, **NO memory tools** (router only — delegates all review work to specialists)
-- **Handoff:** Include handoff back to NowDev AI Agent
-
-### Reviewer Specialists (NowDev-AI-Fluent-Reviewer, NowDev-AI-Classic-Reviewer)
+### Reviewer Specialist (NowDev-AI-Fluent-Reviewer)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
 - **Search:** `search`, `web`
 - **Knowledge:** Use doc tokens in `<documentation>` block
@@ -172,7 +164,7 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - **Memory:** optional legacy context only. Dependency validation uses the workspace-backed artifact state in `agents/skills/servicenow-artifact-state/SKILL.md`.
 - **NO write tools** (reviewers only analyze, never modify)
 - **NO browser tools** (no instance interaction)
-- **Handoff:** Include handoff back to NowDev-AI-Reviewer
+- **Handoff:** Include a "Back to Architect" handoff to `NowDev AI Agent`, plus a "Fix Issues — Fluent Developer" handoff to `NowDev-AI-Fluent-Developer`
 
 ### Debugger Agent (NowDev-AI-Debugger)
 - **User Interaction:** `vscode/askQuestions` (for Login Verification Checkpoint and clarifying questions)
@@ -184,12 +176,12 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - **Browser (Read-Only & Diagnostic):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/handleDialog`, `browser/runPlaywrightCode` (for diagnostics only; no interactive tools like clickElement, typeInPage, hoverElement, dragElement)
 - **Handoff:** Include handoff back to NowDev AI Agent
 
-### Release Agent (NowDev-AI-Release-Expert)
+### Release Agent (NowDev-AI-Fluent-Release)
 - **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
-- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles` (for XML files)
 - **Search:** `search`, `web`
 - **Tracking:** `todo`
-- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/killTerminal`, `execute/createAndRunTask` (for `now-sdk build` and `now-sdk install`)
+- **NO write tools** (deploys via the SDK; never edits application source)
 - **Handoff:** Include handoff back to NowDev AI Agent
 
 ### Refinement Agent (NowDev-AI-Refinement)
@@ -307,7 +299,6 @@ The NowDev AI Toolbox extension writes `.vscode/nowdev-ai-config.json` in the wo
 {
   "_comment": "Auto-generated by NowDev AI Toolbox. Agents read this file for project context.",
   "instanceUrl": "https://dev342079.service-now.com/",
-  "preferredDevelopmentStyle": "fluent",
   "fluentApp": {
     "scope": "x_1118332_userpuls",
     "scopeId": "d3bdfeeaccba4178b19f95980f87fb23",
@@ -367,7 +358,7 @@ Scanned by the extension on startup. Only tools that are both installed and user
 
 ## Canonical: File Output Guidelines by Agent Type
 
-### Development Agents (Script, BusinessRule, Client, Fluent)
+### Development Agents (Fluent specialists)
 
 **Default behavior for new implementations:** Create JavaScript (.js) files automatically without user confirmation.
 
@@ -478,7 +469,7 @@ When creating a new agent (human or AI):
 
 The NowDev AI Agent system uses a multi-level agent hierarchy (up to 4 levels deep). GitHub Copilot's `chat.subagents.allowInvocationsFromSubagents` setting **must be enabled** for this to work.
 
-**Without this setting, Level 1 coordinators (Classic-Developer, Fluent-Developer) cannot invoke their Level 2 specialists, and the entire hierarchy silently fails.**
+**Without this setting, Level 1 coordinators (Fluent-Developer) cannot invoke their Level 2 specialists, and the entire hierarchy silently fails.**
 
 Add this to your VS Code `settings.json`:
 
@@ -504,19 +495,19 @@ Use `agents/skills/servicenow-artifact-state/SKILL.md` as the canonical source f
 
 ## Canonical: Reviewer Fix Delegation Pattern
 
-This pattern closes the governance loop: **generate → review → fix → re-review**. Reviewer specialists output a machine-parseable findings block; the reviewer router uses it to offer one-click fix delegation to the appropriate developer specialist.
+This pattern closes the governance loop: **generate → review → fix → re-review**. The Fluent reviewer outputs a machine-parseable findings block and exposes a one-click fix-delegation handoff to the Fluent developer.
 
 ### How It Works
 
-1. **Reviewer specialist** (Classic or Fluent) completes its review and emits a **Structured Findings Block** as a JSON code fence at the end of its response (Section 9 of the output format).
-2. **Reviewer router** (`NowDev-AI-Reviewer`) reads the block and — if `review_status` is not PASS — presents a fix delegation summary and instructs the user to click the "Fix Issues" handoff button.
-3. **User clicks the handoff** (one-approved action). The router invokes the appropriate developer specialist with the full structured findings as context.
-4. **Developer specialist** applies all fixes in priority order (Critical first) using the JSON block for precise targeting.
+1. **`NowDev-AI-Fluent-Reviewer`** completes its review and emits a **Structured Findings Block** as a JSON code fence at the end of its response (Section 9 of the output format).
+2. If `review_status` is not PASS, the reviewer presents a fix delegation summary and instructs the user to click the "Fix Issues — Fluent Developer" handoff button.
+3. **User clicks the handoff** (one-approved action). `NowDev-AI-Fluent-Developer` receives the full structured findings as context.
+4. **Fluent developer** applies all fixes in priority order (Critical first) using the JSON block for precise targeting.
 5. **Developer hands back** to the orchestrator. The orchestrator may then re-invoke the reviewer for a re-review of the changed files.
 
 ### Structured Findings JSON Schema
 
-Both `NowDev-AI-Classic-Reviewer` and `NowDev-AI-Fluent-Reviewer` MUST emit this block as the final section (Section 9) of every review response.
+`NowDev-AI-Fluent-Reviewer` MUST emit this block as the final section (Section 9) of every review response.
 
 ```json
 {
@@ -527,7 +518,7 @@ Both `NowDev-AI-Classic-Reviewer` and `NowDev-AI-Fluent-Reviewer` MUST emit this
       "id": "F001",
       "file": "<relative/path/to/file>",
       "line": 0,
-      "artifact_type": "<e.g. Script Include | Table | Flow | Business Rule | ...>",
+      "artifact_type": "<e.g. Table | Flow | ScriptInclude | UiPage | React | ...>",
       "category": "<Security | Performance | Correctness | Maintainability | Best Practice | Schema Mismatch | Deprecated Pattern>",
       "priority": "<Critical | High | Medium | Low>",
       "problem": "<one-sentence description of the deviation from best practice>",
@@ -541,32 +532,31 @@ Both `NowDev-AI-Classic-Reviewer` and `NowDev-AI-Fluent-Reviewer` MUST emit this
 
 - Emit one entry per finding; `id` values correspond to finding numbers in Section 3 (e.g. F001 = first Detailed Finding).
 - Use `[]` for `findings` when `review_status` is `PASS`.
-- Always include this block — even on PASS — so the router can reliably branch on `review_status`.
+- Always include this block — even on PASS — so the reviewer can reliably branch on `review_status`.
 
-### Handoff Buttons (Router Agent)
+### Handoff Buttons (Reviewer Agent)
 
-`NowDev-AI-Reviewer` includes two fix-delegation handoff buttons in its frontmatter:
+`NowDev-AI-Fluent-Reviewer` includes these handoff buttons in its frontmatter:
 
 | Button Label | Target Agent | When to Use |
 |---|---|---|
-| Fix Issues — Classic Developer | NowDev-AI-Classic-Developer | Classic-only or Classic portion of Mixed review |
-| Fix Issues — Fluent Developer | NowDev-AI-Fluent-Developer | Fluent-only or Fluent portion of Mixed review |
+| Back to Architect | NowDev AI Agent | Always — return control and findings to the orchestrator |
+| Fix Issues — Fluent Developer | NowDev-AI-Fluent-Developer | When `review_status` is REQUEST CHANGES or CRITICAL ISSUES |
 
-When the user clicks a fix button, the target developer receives the full conversation context (including the Structured Findings Block) and applies corrections in priority order.
+When the user clicks the fix button, `NowDev-AI-Fluent-Developer` receives the full conversation context (including the Structured Findings Block) and applies corrections in priority order.
 
-### Fix Delegation Rules (Router Workflow Step 6)
+### Fix Delegation Rules (Reviewer Workflow)
 
-After presenting the specialist's full findings:
+After presenting the full findings:
 
 1. If `review_status` is `REQUEST CHANGES` or `CRITICAL ISSUES`:
    - Count findings by priority level and state the total
-   - Identify the correct developer (Classic, Fluent, or both for Mixed)
-   - Tell the user to click the matching "Fix Issues" handoff button
+   - Tell the user to click the "Fix Issues — Fluent Developer" handoff button
 2. If `review_status` is `PASS`: confirm no fix delegation is needed and offer "Back to Architect"
 
 ### Governance Loop Completion
 
-After the developer specialist returns control to the orchestrator, the orchestrator SHOULD re-invoke `NowDev-AI-Reviewer` with the same file list to verify fixes. This closes the generate → review → fix → re-review loop.
+After `NowDev-AI-Fluent-Developer` returns control to the orchestrator, the orchestrator SHOULD re-invoke `NowDev-AI-Fluent-Reviewer` with the same file list to verify fixes. This closes the generate → review → fix → re-review loop.
 
 ---
 
@@ -583,12 +573,12 @@ Present the solution plan in chat during the Planning Phase using this structure
 ## ServiceNow Artifacts
 | Artifact | Type | Table | Purpose |
 |---|---|---|---|
-| {name} | Classic / Fluent | {sys_table or .now.ts} | {why it is needed} |
+| {name} | Fluent | {.now.ts} | {why it is needed} |
 
 ## Implementation Phases
 ### Phase 1: {Title}
 **Objective:** {Clear goal}
-**Sub-agent:** {NowDev-AI-Classic-Developer / NowDev-AI-Fluent-Developer}
+**Sub-agent:** {NowDev-AI-Fluent-Developer}
 **Acceptance Criteria:**
 - [ ] {Specific, testable criteria}
 

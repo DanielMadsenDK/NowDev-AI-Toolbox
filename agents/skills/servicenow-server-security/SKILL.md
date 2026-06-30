@@ -8,123 +8,66 @@ last_verified: "2026-05-18"
 
 # Server Security
 
-## Quick start
+Use for server-side cryptography, hashing, credential lifecycle, request signing, OAuth token handling, and secure data handling. For outbound HTTP flow implementation, use `servicenow-http-integrations`.
 
-**Data encryption** (KMF — preferred for new code):
+## Security API Selection
+
+| Need | Prefer | Avoid / Notes |
+|------|--------|---------------|
+| New cryptographic operations | KMF (`sn_kmf_ns.KMFCryptoOperation`) | Legacy `GlideEncrypter` for new work |
+| Message hashes | `GlideDigest` SHA-256+ methods | MD5/SHA-1 for sensitive data |
+| Password storage | Platform password APIs / credential records | Plaintext fields |
+| Request signing / HMAC | `RequestAuthAPI`, certificates, or documented HMAC support | Unverified hand-rolled crypto |
+| OAuth lifecycle | `sn_auth.GlideOAuthClient` with profiles | Hardcoded tokens |
+| Outbound API transport | `RESTMessageV2` with HTTPS and credentials | Inline credentials or disabled SSL validation |
+
+## Critical Guardrails
+
+- Never hardcode or log passwords, tokens, API keys, client secrets, private keys, or full card/secret values.
+- Use ServiceNow credential stores/providers or encrypted properties for secrets; centralize rotation and audit.
+- Use KMF for new encryption/key-management work; treat `GlideEncrypter` as legacy.
+- Use SHA-256 or stronger for sensitive hashing; do not use MD5 or SHA-1 for security-sensitive data.
+- Salt password hashes if custom hashing is unavoidable; prefer platform password handling where available.
+- Validate all external/user input before cryptographic or database operations.
+- Enforce ACLs and expose only allowed fields; never return entire records to clients.
+- Use HTTPS and validate SSL certificates in production; never disable certificate validation in production.
+- Rotate OAuth/API credentials and refresh tokens before expiration.
+- Use timing-safe comparisons where signature verification APIs support them.
+- Log sanitized security events for audit trails; include who/what/when, not secrets.
+- Apply least privilege to integration users and credentials.
+
+## Quick Patterns
 
 ```javascript
-// Constructor takes (cryptoModuleID, operationName)
+var digest = new GlideDigest();
+var hash = digest.getSHA256Hex('input_string');
+```
+
+```javascript
 var operation = new sn_kmf_ns.KMFCryptoOperation('global.my_crypto_module', 'SYMMETRIC_ENCRYPTION')
     .withData('sensitive_data');
-
 var encrypted = operation.doOperation();
 ```
 
-**Message digest** (hashing):
-
-```javascript
-// Constructor takes no parameters; use algorithm-specific methods
-var digest = new GlideDigest();
-var hash = digest.getSHA256Hex('input_string');
-```
-
-**Certificate operations**:
-
-```javascript
-var cert = new GlideCertificateEncryption();
-// sign(certificateID, alias, aliasPassword, dataToSign, algorithm)
-var signature = cert.sign('cert_sys_id', 'key_alias', 'alias_password', 'data_to_sign', 'SHA-256');
-
-// Generate HMAC for message authentication
-var mac = cert.generateMac(GlideStringUtil.base64Encode('secret_key'), 'HmacSHA256', 'data');
-```
-
-**Request signing** (AWS, OAuth, custom):
-
-```javascript
-var httpRequest = new sn_auth.HttpRequestData();
-httpRequest.setMethod('GET');
-httpRequest.setEndpoint('https://api.example.com/data');
-
-var credential = new sn_auth.AuthCredential();
-credential.setCredentialId('sys_id');
-
-var signedRequest = new sn_auth.RequestAuthAPI()
-    .generateAuth(credential, httpRequest);
-
-var authedData = signedRequest.getAuthorizedRequest();
-```
-
-**OAuth token management** (credential lifecycle — for HTTP flows, see `servicenow-http-integrations`):
-
 ```javascript
 var oAuthClient = new sn_auth.GlideOAuthClient();
-
-// Retrieve token using OAuth Requestor Profile and Entity Profile sys_ids
 var token = oAuthClient.getToken('requestor_profile_sys_id', 'entity_profile_sys_id');
 var accessToken = token.getAccessToken();
-var expiresIn = token.getExpiresIn();
-var refreshToken = token.getRefreshToken();
-
-// Or request token by client name and JSON credentials
-var params = {grant_type: 'password', username: 'integration_user', password: 'pwd'};
-var tokenResponse = oAuthClient.requestToken('MyOAuthClient', JSON.stringify(params));
-var newToken = tokenResponse.getToken();
 ```
 
-**Message digest** (hash generation):
-
-```javascript
-var digest = new GlideDigest();
-var hash = digest.getSHA256Hex('input_string');
-```
-
-## Security APIs
+## Key APIs
 
 | API | Purpose |
 |-----|---------|
-| GlideOAuthClient | OAuth token lifecycle |
-| RequestAuthAPI | Request signing for APIs |
-| AuthCredential | Credential management |
-| GlideCertificateEncryption | Certificate operations |
-| KMFCryptoOperation | Modern cryptography |
-| GlideDigest | Hash generation |
-| GlideEncrypter | Legacy encryption (deprecated) |
-
-## Best practices
-
-| Practice | Why it matters |
-|----------|----------------|
-| Use credentials stored in `discovery_credentials` | Centralises rotation and audit without touching code |
-| Never hardcode credentials or API keys | Hardcoded secrets end up in version control and logs |
-| Use KMF for new cryptographic operations | Platform-managed keys; older GlideEncrypter is deprecated |
-| Validate SSL certificates in production | Prevents man-in-the-middle attacks on outbound calls |
-| Rotate OAuth tokens before expiration | Prevents silent auth failures mid-transaction |
-| Use HMAC for message integrity | Detects tampering even when encryption is not required |
-| Test auth flows on sub-production first | Auth errors can lock accounts or exhaust token quotas |
-| Log security operations for audit trails | Required for compliance; helps debug failures |
-| Use HTTPS for all outbound requests | HTTP exposes credentials and data in transit |
-| Follow principle of least privilege | Compromise of a low-privilege credential limits blast radius |
-
-## Authentication patterns
-
-**Standard Credentials Provider**:
-
-```javascript
-var provider = new sn_cc.StandardCredentialsProvider();
-var credential = provider.getCredentialByID('credential_sys_id');
-```
-
-**Security Manager for ACLs**:
-
-```javascript
-var secMgr = GlideSecurityManager.get();
-var grInc = new GlideRecord('incident');
-var hasAccess = secMgr.hasRightsTo('record/incident/read', grInc);
-```
+| `sn_kmf_ns.KMFCryptoOperation` | Modern cryptographic operations |
+| `GlideDigest` | Hash generation |
+| `GlideCertificateEncryption` | Certificate signing/encryption operations |
+| `sn_auth.GlideOAuthClient` | OAuth token lifecycle |
+| `sn_auth.RequestAuthAPI` / `AuthCredential` | Request signing and credential-backed auth |
+| `sn_cc.StandardCredentialsProvider` | Credential retrieval |
+| `GlideSecurityManager` | Permission checks |
+| `GlideSecureRandomUtil` | Secure random token material |
 
 ## Reference
 
-For working code examples covering encryption, hashing, OAuth, and certificate operations, see [EXAMPLES.md](./EXAMPLES.md)
-
-For OAuth security patterns, encryption best practices, and injection prevention, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
+Classic platform security APIs, OAuth, credential, KMF, hashing, and certificate details: use https://www.servicenow.com/llms.txt as the primary source, and the ServiceNow MCP server if one is configured as a secondary source.

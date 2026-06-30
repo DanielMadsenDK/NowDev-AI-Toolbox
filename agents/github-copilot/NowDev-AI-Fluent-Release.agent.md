@@ -7,8 +7,8 @@ argument-hint: "Project root path, target auth alias (from now-sdk auth --list),
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 agents: []
 handoffs:
-  - label: Back to Release Expert
-    agent: NowDev-AI-Release-Expert
+  - label: Back to Architect
+    agent: NowDev AI Agent
     prompt: Fluent SDK deployment completed. Returning results for next steps.
     send: true
 ---
@@ -22,7 +22,7 @@ handoffs:
 4. If build succeeds, confirm the target auth alias with the user only when no alias was provided or multiple aliases are plausible
 5. Run now-sdk install --auth <alias> (or --reinstall if a clean deploy is needed)
 6. Verify deployment output — confirm metadata was pushed successfully
-7. Report results back to the Release Expert
+7. Report results back to the orchestrator
 </workflow>
 
 <stopping_rules>

@@ -42,7 +42,7 @@ export function loadAgentRegistry(extensionPath: string): AgentManifest[] {
             try {
                 const agentPath = resolveInside(agentsDir, file);
                 if (!agentPath) { continue; }
-                const content = fs.readFileSync(agentPath, 'utf-8');
+                const content = fs.readFileSync(agentPath, 'utf-8').replace(/\r\n/g, '\n');
                 const manifest = parseFrontmatter(file, content);
                 if (manifest) { manifests.push(manifest); }
             } catch { /* skip unreadable files */ }
@@ -59,7 +59,7 @@ function resolveInside(root: string, child: string): string | undefined {
 }
 
 function parseFrontmatter(filename: string, content: string): AgentManifest | null {
-    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (!fmMatch) { return null; }
     const fm = fmMatch[1];
     const parsed = parseYamlFrontmatter(fm);

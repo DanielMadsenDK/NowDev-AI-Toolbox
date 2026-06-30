@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.6.9",
+  "version": "0.7.0",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -25,7 +25,7 @@
     "onStartupFinished",
     "onLanguageModelChat:copilot"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -183,11 +183,6 @@
         "category": "NowDev AI"
       },
       {
-        "command": "nowdev-ai-toolbox.clearAliasCredentials",
-        "title": "SDK: Forget Stored REST Credentials",
-        "category": "NowDev AI"
-      },
-      {
         "command": "nowdev-ai-toolbox.sdkMove",
         "title": "SDK: Move Global Metadata",
         "category": "NowDev AI"
@@ -216,22 +211,6 @@
           "description": "ServiceNow instance URL (e.g. https://myinstance.service-now.com)",
           "order": 1
         },
-        "nowdev-ai-toolbox.preferredDevelopmentStyle": {
-          "type": "string",
-          "default": "auto",
-          "enum": [
-            "auto",
-            "classic",
-            "fluent"
-          ],
-          "enumDescriptions": [
-            "Let agents decide the best approach based on context",
-            "Prefer Classic development (Script Includes, Business Rules, Client Scripts)",
-            "Prefer Fluent SDK development (.now.ts TypeScript metadata)"
-          ],
-          "description": "Preferred ServiceNow development style when agents have a choice",
-          "order": 2
-        },
         "nowdev-ai-toolbox.customInstructionsFile": {
           "type": "string",
           "default": "",
@@ -255,30 +234,6 @@
           "default": [],
           "description": "List of tool keys that are manually force-enabled, even when auto-detection did not find them. Auto-detection is skipped for these tools at startup.",
           "order": 5
-        },
-        "nowdev-ai-toolbox.terminalShell": {
-          "type": "string",
-          "default": "auto",
-          "enum": [
-            "auto",
-            "powershell",
-            "pwsh",
-            "cmd",
-            "bash",
-            "sh",
-            "zsh"
-          ],
-          "enumDescriptions": [
-            "Auto: uses PowerShell on Windows, /bin/sh on Unix/macOS (recommended)",
-            "Windows PowerShell (powershell.exe)",
-            "PowerShell 7+ cross-platform (pwsh)",
-            "Windows Command Prompt (cmd.exe)",
-            "Bash",
-            "Bourne Shell",
-            "Z Shell"
-          ],
-          "description": "Shell used when running SDK CLI commands (explain, help, build, install, etc.) from the plugin UI.",
-          "order": 6
         },
         "nowdev-ai-toolbox.autoUpdateAgentOverrides": {
           "type": "boolean",
@@ -352,19 +307,21 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run validate:agents && npm run bundle",
+    "bundle": "node esbuild.js --production",
     "build": "npm run compile",
     "compile": "tsc -p ./",
     "validate:agents": "npm run compile && node out/AgentValidationCli.js",
-    "watch": "tsc -watch -p ./"
+    "watch": "node esbuild.js --watch",
+    "watch:tsc": "tsc -watch -p ./"
   },
   "devDependencies": {
     "@types/node": "^18.x",
     "@types/vscode": "^1.110.0",
+    "esbuild": "^0.28.1",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@servicenow/sdk": "^4.8.0",
     "yaml": "^2.9.0"
   }
 }

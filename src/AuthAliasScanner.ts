@@ -1,7 +1,5 @@
 import { spawnSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import { getShell } from './shellConfig';
+import { findNowSdkExecutable } from './SdkProcess';
 
 export interface AuthAlias {
     alias: string;
@@ -58,10 +56,10 @@ function collectAuthListOutputs(): string[] {
                 timeout: 30000,
                 encoding: 'utf-8',
                 // stdin must be closed: now-sdk hangs waiting for input on an open
-                // stdin pipe when run non-interactively (ETIMEDOUT). Forcing cmd via
-                // shell:true on Windows avoids the PowerShell hang.
+                // stdin pipe when run non-interactively (ETIMEDOUT). On Windows the
+                // shim is a .cmd that requires a shell (cmd) to execute.
                 stdio: ['ignore', 'pipe', 'pipe'],
-                shell: process.platform === 'win32' ? true : getShell(),
+                shell: process.platform === 'win32',
             });
             outputs.push(String(result.stdout ?? '') + String(result.stderr ?? ''));
         } catch (err: any) {
@@ -69,30 +67,6 @@ function collectAuthListOutputs(): string[] {
         }
     }
     return outputs;
-}
-
-/**
- * Locates the now-sdk shim on disk so it can be invoked by full path, bypassing
- * PATH issues in GUI-launched VS Code processes. Checks PATH dirs plus the npm
- * global prefix (%APPDATA%\npm) for now-sdk.cmd / .ps1.
- */
-function findNowSdkExecutable(): string | undefined {
-    const dirs: string[] = [];
-    const pathEnv = process.env.PATH || process.env.Path || '';
-    dirs.push(...pathEnv.split(path.delimiter).filter(Boolean));
-    if (process.env.APPDATA) { dirs.push(path.join(process.env.APPDATA, 'npm')); }
-    dirs.push('C:\\Program Files\\nodejs', 'C:\\Program Files (x86)\\nodejs');
-    const seen = new Set<string>();
-    for (const dir of dirs) {
-        const norm = path.normalize(dir);
-        if (seen.has(norm)) { continue; }
-        seen.add(norm);
-        for (const name of ['now-sdk.cmd', 'now-sdk.exe', 'now-sdk.bat']) {
-            const candidate = path.join(norm, name);
-            try { if (fs.existsSync(candidate)) { return candidate; } } catch { /* skip */ }
-        }
-    }
-    return undefined;
 }
 
 function parseAuthListOutput(raw: string): AuthAlias[] {

@@ -32,7 +32,6 @@ const WRITE_TOOLS = new Set([
 const NO_WRITE_AGENT_PATTERNS = [
     /Reviewer$/,
     /Debugger$/,
-    /Release-Expert$/,
     /Refinement$/,
 ];
 
@@ -236,7 +235,7 @@ function validateBundledSkills(extensionPath: string, issues: AgentValidationIss
             continue;
         }
 
-        const content = fs.readFileSync(skillPath, 'utf-8');
+        const content = fs.readFileSync(skillPath, 'utf-8').replace(/\r\n/g, '\n');
         const frontmatter = readSkillFrontmatter(content);
         if (!frontmatter) {
             issues.push({ severity: 'error', file: relativeFile, message: 'Skill is missing YAML frontmatter.' });
@@ -332,7 +331,7 @@ function toPackagePath(value: string): string {
 }
 
 function readSkillFrontmatter(content: string): Record<string, unknown> | null {
-    const match = content.match(/^---\n([\s\S]*?)\n---/);
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (!match) { return null; }
     try {
         const parsed = parseYaml(match[1]);

@@ -5,8 +5,8 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.6.9-blue)
-  ![VS Code](https://img.shields.io/badge/VS%20Code-1.120+-blue)
+  ![Version](https://img.shields.io/badge/version-0.7.0-blue)
+  ![VS Code](https://img.shields.io/badge/VS%20Code-1.124+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
   <br>
@@ -18,26 +18,27 @@
 
 NowDev AI Toolbox is a Visual Studio Code extension that provides specialized AI agents for ServiceNow development within GitHub Copilot Chat. Acting as a Lead Architect, the system orchestrates specialized sub-agents to plan, build, review, and deploy full-stack solutions.
 
-Developed using the **ServiceNow SDK** official documentation, the extension integrates ServiceNow Best Practice Skills directly into GitHub Copilot, ensuring generated code adheres to strict performance and security standards. It features an AI Orchestrator that breaks down requirements, visualizes architecture with Mermaid diagrams, and delegates tasks to specialized agents for scripting, business logic, and deployment.
+Developed using the **ServiceNow SDK** official documentation, the extension integrates ServiceNow Best Practice Skills directly into GitHub Copilot, ensuring generated code adheres to strict performance and security standards. It is built around the Fluent SDK: agents fetch authoritative API details on demand via `now-sdk explain` and read live instance data via `now-sdk query`, so the SDK does the heavy lifting and stays current without bundled documentation. An AI Orchestrator breaks down requirements, visualizes architecture with Mermaid diagrams, and delegates tasks to specialized agents for schema, logic, automation, UI, and deployment.
 
 ### Key Features
 
 *   **AI Orchestrator**: A master agent that breaks down requirements and delegates tasks to specialized sub-agents.
-*   **Built-in Agent Skills**: Automatically equips GitHub Copilot with verified knowledge of ServiceNow best practices.
-*   **Automated Governance**: Specialized reviewer agents inspect each artifact, dynamically selecting only the best-practice checks relevant to the artifact types actually present in the solution.
-*   **Multi-Tier Agent Architecture**: The orchestrator delegates to development agents, which hand off to specialized reviewer agents — agents calling agents — enabling deep, context-aware automation at every layer of the development workflow.
+*   **Built-in Agent Skills**: Automatically equips GitHub Copilot with verified knowledge of ServiceNow platform best practices.
+*   **Automated Governance**: A specialized reviewer agent inspects each artifact, dynamically selecting only the best-practice checks relevant to the artifact types actually present in the solution.
+*   **Multi-Tier Agent Architecture**: The orchestrator delegates to the Fluent Developer coordinator, which hands off to specialized sub-agents and the reviewer — agents calling agents — enabling deep, context-aware automation at every layer of the development workflow.
 *   **Interactive Workflow**: Uses interactive tools to clarify requirements and validate designs.
 *   **Live Instance Preview & Autonomous Verification**: Agents autonomously inspect your ServiceNow instance in real-time—capturing screenshots, reading form field state, validating form behavior, and detecting client-side issues without manual inspection. Perfect for post-deployment verification and debugging client-side problems.
-*   **Guided Copilot Setup**: The sidebar now highlights the Project tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
+*   **Guided Copilot Setup**: The sidebar highlights the Project tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
 *   **Dynamic Agent Management**: Enable or disable individual agents and their tools directly from the sidebar. Hit Resync to instantly update your workspace agent configuration. MCP server detection is automatic.
 *   **Agent Topology Viewer**: Visual panel that renders the full agent hierarchy as a colour-coded tree — see which agents are active and how they relate at a glance.
 *   **User Profiles**: Switch between Developer, Junior Developer, and Product Owner profiles. Each profile controls which agents are visible, adjusts communication tone, and (for Junior Developer) adds step-by-step educational commentary to every response — all without changing any configuration files.
-*   **Instance Browser**: Connect to your ServiceNow instance (credentials stored securely) to browse dependencies, discover related scripts and Knowledge articles, and prepare KB-backed agent guidelines from one unified panel.
+*   **Instance Browser**: Connect to your ServiceNow instance through your `now-sdk` auth alias to browse dependencies, discover related scripts and Knowledge articles, and prepare KB-backed agent guidelines from one unified panel — all powered by `now-sdk query`, with no separate credential store.
+*   **Work Item Integration**: Connect a project-management MCP server (Azure DevOps, Jira, etc.) and the orchestrator automatically reads the linked task before building, posts progress comments as each artifact completes, and updates work-item status on completion — driven entirely by the MCP server, no dedicated agent required.
 
 ## Installation & Usage
 
 ### Prerequisites
-- Visual Studio Code 1.122.0 or later
+- Visual Studio Code 1.124.0 or later
 - GitHub Copilot Chat extension
 - **Enable nested sub-agents** — add `"chat.subagents.allowInvocationsFromSubagents": true` to your VS Code `settings.json`. Without this setting, the multi-level agent hierarchy will not function (coordinators cannot invoke their specialists).
 
@@ -56,13 +57,27 @@ For Fluent SDK work, agents use `now-sdk explain --list <keyword>`, `now-sdk exp
 
 ### Connecting to Your ServiceNow Instance
 
-The extension can connect directly to a ServiceNow instance for the Instance Browser. Credentials are stored securely using VS Code's built-in secret storage.
+The Instance Browser connects to a ServiceNow instance through the ServiceNow SDK's own authentication. Credentials are managed entirely by `now-sdk` (stored in the SDK keychain) — the extension does not keep a separate credential store.
 
-1. Open the **NowDev AI Toolbox** sidebar.
-2. In the **Instance** row, enter your instance URL and click **Connect**.
-3. Once connected, use **Instance Browser** to browse records and add them to `now.config.json`, use **Discover** mode to find related scripts and Knowledge articles, or use **Guidelines** mode to locate KB articles that should inform agent behavior.
+1. Add an auth alias once with the SDK CLI:
+   ```bash
+   now-sdk auth --add
+   ```
+2. Open the **NowDev AI Toolbox** sidebar and select your auth alias.
+3. Use **Instance Browser** to browse records and add them to `now.config.json`, **Discover** mode to find related scripts and Knowledge articles, or **Guidelines** mode to locate KB articles that should inform agent behavior. All reads run through `now-sdk query --auth <alias>`.
 
-To clear stored credentials at any time: Command Palette → **NowDev AI: Clear Stored Credentials**.
+To rotate or remove credentials, manage the alias with `now-sdk auth` directly.
+
+### Work Item Integration (Azure DevOps, Jira, etc.)
+
+NowDev can drive your project-management tool through any MCP server, with no dedicated agent. When enabled, the orchestrator (NowDev AI Agent) reads the linked work item before building, posts a progress comment as each artifact completes, and updates the work item's status on completion.
+
+1. Install/add a project-management MCP server (e.g. an Azure DevOps or Jira MCP server) so it appears under **MCP Integrations** in the sidebar.
+2. In the NowDev AI Toolbox sidebar, open **Work Item Integration**, toggle it on, and pick that MCP server.
+3. (Optional) Browse to a `.md`/`.txt` file describing your team's task structure, naming conventions, and status values — this is injected into the orchestrator's work-item mandate.
+4. Start a full-project request and reference the task ID; the orchestrator handles the read/comment/status-update workflow automatically.
+
+The configuration is saved in `.vscode/nowdev-ai-config.json` under `devopsConfig`, so existing setups continue to work unchanged.
 
 ### Getting Started with Fluent SDK
 
@@ -182,11 +197,11 @@ Switch profiles from the NowDev AI Toolbox sidebar to instantly reshape how ever
 |---------|-------------|--------------|
 | **Developer** | Experienced ServiceNow developers | Full agent set, no restrictions |
 | **Junior Developer** | Developers learning ServiceNow | Same full agent set, but every response adds step-by-step explanations, term definitions, pitfall callouts, and follow-up learning suggestions |
-| **Product Owner** | Business stakeholders managing requirements | Development agents hidden; only discovery, refinement, and DevOps work-item agents visible; plain-language communication, no code |
+| **Product Owner** | Business stakeholders managing requirements | Development agents hidden; discovery, refinement, and (when a work-item MCP server is configured) work-item management visible; plain-language communication, no code |
 
 ## Specialized Agents
 
-The extension provides a hierarchical system of AI agents spanning three tiers. **Tier 1** agents are invoked directly by the orchestrator. **Tier 2** agents are coordinators and routers that delegate to **Tier 3** specialists. All tiers are wired automatically — you only ever interact with the Tier 1 agents.
+The extension provides a hierarchical system of AI agents spanning three tiers. **Tier 1** agents are invoked directly by the orchestrator. **Tier 2** is the Fluent Developer coordinator plus standalone support, review, and release agents. **Tier 3** agents are the Fluent specialists invoked by the coordinator. All tiers are wired automatically — you only ever interact with the Tier 1 agent.
 
 ### Tier 1 — Orchestrator
 
@@ -194,39 +209,29 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 |-------|-------------|
 | NowDev AI Agent | Lead Architect — triages requests, plans solutions, and coordinates all other agents |
 
-### Tier 2 — Domain Coordinators & Routers
+### Tier 2 — Coordinator, Support, Review & Release
 
 | Agent | Description | Routes To |
 |-------|-------------|-----------|
 | NowDev-AI-Assistant | Lightweight Q&A, brainstorming, and early discovery | — |
 | NowDev-AI-Refinement | User story refinement and feasibility validation before development | — |
-| NowDev-AI-Classic-Developer | Classic scripting coordinator — analyzes requirements and delegates to Classic sub-agents | Script, BusinessRule, Client developers |
-| NowDev-AI-Fluent-Developer | Fluent SDK coordinator — analyzes requirements and delegates to Fluent specialists | Schema, Logic, Automation, UI, AI Studio developers |
-| NowDev-AI-AI-Studio-Developer | AI Studio coordinator (SDK 4.4.0+) — routes based on whether request needs an AiAgent/AiAgenticWorkflow or a NowAssist Skill | AI Agent Developer, NowAssist Developer |
-| NowDev-AI-Reviewer | Review router — detects Classic vs Fluent and delegates to the right reviewer | Classic Reviewer, Fluent Reviewer |
-| NowDev-AI-Release-Expert | Release router — detects Classic vs Fluent and delegates to the right release agent | Classic Release, Fluent Release |
+| NowDev-AI-Fluent-Developer | Fluent SDK coordinator — analyzes requirements and delegates to Fluent specialists | Schema, Logic, Automation, UI, AI Agent, NowAssist, ATF developers |
+| NowDev-AI-Debugger | Debugging specialist — gathers symptoms, isolates root causes in server-side and client-side scripts, and produces a structured Diagnostic Results report before handing back to the Fluent Developer | Fluent-Developer |
+| NowDev-AI-Fluent-Reviewer | Reviews Fluent SDK artifacts against best practices and hands fixes back to the Fluent Developer | — |
+| NowDev-AI-Fluent-Release | Runs `now-sdk build` and `now-sdk install` for Fluent deployment | — |
 | NowDev-AI-Pipeline-Expert | CI/CD pipeline generator — creates GitHub Actions, Azure DevOps, and Jenkins pipeline YAML for Fluent SDK deployments; covers credential management, branch strategies, and multi-scope deployments | — |
-| NowDev-AI-DevOps | DevOps integration — CI/CD pipeline authoring, automated release coordination, and multi-environment deployment strategies | — |
-| NowDev-AI-Debugger | Debugging specialist — gathers symptoms, isolates root causes in server-side and client-side scripts, and produces a structured Diagnostic Results report before handing off to the relevant developer | Classic-Developer, Fluent-Developer |
 
-### Tier 3 — Specialists (internal, invoked by coordinators only)
+### Tier 3 — Fluent Specialists (internal, invoked by the Fluent Developer only)
 
 | Agent | Coordinator | Description |
 |-------|-------------|-------------|
-| NowDev-AI-Script-Developer | Classic-Developer | Server-side Script Includes and GlideAjax |
-| NowDev-AI-BusinessRule-Developer | Classic-Developer | Business Rules and database triggers |
-| NowDev-AI-Client-Developer | Classic-Developer | Client Scripts, UI Policies, and UI Actions |
 | NowDev-AI-Fluent-Schema-Developer | Fluent-Developer | Tables, Roles, ACLs, Properties, Menus, Cross-Scope Privileges, Form Layouts, Instance Scan Checks |
 | NowDev-AI-Fluent-Logic-Developer | Fluent-Developer | Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs, Scheduled Scripts |
 | NowDev-AI-Fluent-Automation-Developer | Fluent-Developer | Flows, Subflows, custom Action Definitions, custom Trigger Definitions |
 | NowDev-AI-Fluent-UI-Developer | Fluent-Developer | React UI Pages, Client Scripts, UI Policies, Service Catalog, Service Portal, Workspaces, Dashboards |
+| NowDev-AI-AI-Agent-Developer | Fluent-Developer | AiAgent definitions with tools, triggers, version management, and AiAgenticWorkflow team orchestration |
+| NowDev-AI-NowAssist-Developer | Fluent-Developer | NowAssistSkillConfig — tool graph, LLM prompts, security controls, and deployment settings |
 | NowDev-AI-ATF-Developer | Fluent-Developer | ATF Test() definitions covering form, REST, server-side, catalog, and navigation test steps |
-| NowDev-AI-AI-Agent-Developer | AI-Studio-Developer | AiAgent definitions with tools, triggers, version management, and AiAgenticWorkflow team orchestration |
-| NowDev-AI-NowAssist-Developer | AI-Studio-Developer | NowAssistSkillConfig — tool graph, LLM prompts, security controls, and deployment settings |
-| NowDev-AI-Classic-Reviewer | Reviewer | Reviews Classic scripts against best practices |
-| NowDev-AI-Fluent-Reviewer | Reviewer | Reviews Fluent SDK artifacts against best practices |
-| NowDev-AI-Classic-Release | Release-Expert | Generates XML Update Set files for Classic deployment |
-| NowDev-AI-Fluent-Release | Release-Expert | Runs `now-sdk build` and `now-sdk install` for Fluent deployment |
 
 ## Architecture
 
@@ -236,7 +241,7 @@ The extension integrates specialized AI agents directly into VS Code through Git
 - **Specialized Knowledge**: Deep expertise in specialized ServiceNow domains.
 - **Native Skills**: "Mounts" verified Best Practice documentation directly into the agent's context window.
 - **Orchestration**: Seamlessly hands off tasks between Planning, Development, Review, and Release agents.
-- **Three-Tier Agent Hierarchy**: The orchestrator delegates to domain coordinators (Classic Developer, Fluent Developer, Reviewer, Release Expert), which in turn delegate to focused specialists (Script Developer, Business Rule Developer, Classic Reviewer, Fluent Release, etc.). Each tier handles only its own concerns — you never need to pick the right specialist manually.
+- **Three-Tier Agent Hierarchy**: The orchestrator delegates to the Fluent Developer coordinator and standalone support/review/release agents, and the coordinator in turn delegates to focused Fluent specialists (Schema Developer, Logic Developer, UI Developer, etc.). Each tier handles only its own concerns — you never need to pick the right specialist manually.
 
 ## Code Examples
 
@@ -278,7 +283,7 @@ npm run validate:agents
 
 ## Included Examples & Attribution
 
-This project integrates code examples from the [ServiceNow SDK Examples Repository](https://github.com/servicenow/sdk-examples) (MIT License) directly into the agent skills. Each skill's `EXAMPLES.md` file contains working code examples demonstrating best practices.
+This project adapts code examples from the [ServiceNow SDK Examples Repository](https://github.com/servicenow/sdk-examples) (MIT License) within some of the agent skills. Where present, a skill's `EXAMPLES.md` file contains working code examples demonstrating best practices.
 
 For details on third-party licenses and attribution, see [THIRD_PARTY.md](THIRD_PARTY.md).
 

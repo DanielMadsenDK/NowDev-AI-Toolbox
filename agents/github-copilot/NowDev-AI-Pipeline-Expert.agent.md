@@ -7,8 +7,8 @@ argument-hint: "Project root path, target environments (dev/test/prod), CI platf
 tools: ['read/readFile', 'search', 'web', 'todo', 'edit/createFile', 'edit/editFiles', 'web/githubTextSearch']
 agents: []
 handoffs:
-  - label: Back to Release Expert
-    agent: NowDev-AI-Release-Expert
+  - label: Back to Architect
+    agent: NowDev AI Agent
     prompt: Pipeline configuration generated. Returning results for next steps.
     send: true
 ---
@@ -26,7 +26,7 @@ handoffs:
 8. If multiple scopes are detected in `now.config.json`, generate parallel jobs per scope using the `--scope` flag
 9. Document all required secrets and environment variables the user must configure in their CI platform
 10. If requested, generate a `BRANCHING-STRATEGY.md` explaining the chosen branch strategy
-11. Report all generated files and any configuration steps back to the Release Expert (or caller)
+11. Report all generated files and any configuration steps back to the orchestrator (or caller)
 </workflow>
 
 <stopping_rules>

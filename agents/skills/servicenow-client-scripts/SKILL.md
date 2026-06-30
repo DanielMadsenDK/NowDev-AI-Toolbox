@@ -9,142 +9,71 @@ last_verified: "2026-05-18"
 
 # ServiceNow Client Scripting
 
+Use for Classic/platform Client Script behavior, GlideAjax, `g_form`, and `g_scratchpad`. For Fluent SDK metadata, use `now-sdk explain clientscript-api --format raw` and `now-sdk explain client-script-guide --format raw`.
+
 ## Choosing Your Approach
 
-Client scripts exist in two distinct contexts. This skill covers Classic/platform behavior; Fluent SDK constructor shape must come from `now-sdk explain clientscript-api --format raw`.
+| Situation | Use | Rationale |
+|-----------|-----|-----------|
+| Static visibility/mandatory/read-only behavior | UI Policy | Faster, declarative, no script required |
+| Dynamic form behavior without server calls | `g_form` / UI Forms skill | Runtime field state or validation |
+| Browser-to-server lookup | GlideAjax | Async server communication |
+| Existing instance customization | Classic Client Script UI | Direct platform customization |
+| New SDK project / version-controlled metadata | Fluent SDK | Verify with `now-sdk explain clientscript-api --format raw` |
 
-### **Classic Client Scripts** (for existing instances)
-Use for direct ServiceNow instance customizations created in the Client Script UI.
+## Critical Guardrails
+
+| Rule | Reason |
+|------|--------|
+| Always use `getXMLAnswer()` or `getXML()` | Async; avoids browser blocking |
+| Never use `getXMLWait()` | Synchronous and forbidden |
+| Never use client-side `GlideRecord` | Browser-blocking/unsupported; use GlideAjax |
+| Avoid direct DOM or jQuery selectors | Breaks across Polaris, Workspace, mobile, and form layouts |
+| Always check `isLoading` in handlers | Prevents duplicate calls during form load |
+| Validate on the server too | Client validation is UX only, not security |
+
+## Performance and Security Guardrails
+
+- Prefer UI Policies for simple visibility, mandatory, read-only, clearing, related-list visibility, and static value changes.
+- Use `g_scratchpad` from Display Business Rules for small server-computed values needed on load; keep payloads lightweight.
+- Debounce rapid onChange events and cache form-lifetime lookup results.
+- Send minimal parameters to GlideAjax Script Includes; whitelist methods by `sysparm_name` and validate inputs server-side.
+- Use PascalCase Script Include names; wrong casing can break GlideAjax lookups.
+- Use `g_form.setValue('ref_field', sysId, displayValue)` when you already have display value.
+- Keep scripts focused; move complex server logic into Script Includes.
+- Do not embed credentials, API keys, or secrets in client scripts.
+- Test in classic forms, Workspace, mobile, and relevant catalog contexts.
+
+## Quick Pattern
 
 ```javascript
 function onChange(control, oldValue, newValue, isLoading) {
     if (isLoading || !newValue) return;
-
-    var ga = new GlideAjax('ScriptIncludeName');
-    ga.addParam('sysparm_name', 'methodName');
-    ga.addParam('sysparm_data', newValue);
-
+    var ga = new GlideAjax('IncidentUtils');
+    ga.addParam('sysparm_name', 'suggestGroup');
+    ga.addParam('sysparm_category', newValue);
     ga.getXMLAnswer(function(answer) {
-        g_form.setValue('target_field', answer);
+        if (answer) g_form.setValue('assignment_group', answer);
     });
 }
 ```
 
-### **Fluent SDK Client Scripts** (for SDK projects)
-Use `now-sdk explain clientscript-api --format raw` and `now-sdk explain client-script-guide --format raw`, then route implementation to NowDev-AI-Fluent-UI-Developer. Do not use local skill examples as SDK API reference.
-
-## Performance optimization
-
-**Use g_scratchpad** (server → client on load):
-
-```javascript
-// Display Business Rule (server):
-g_scratchpad.vip = true;
-
-// OnLoad script (client):
-if (g_scratchpad.vip) {
-    g_form.setLabelOf('priority', 'VIP Priority');
-}
-```
-
-**Avoid redundant calls**:
-
-```javascript
-// ✓ CORRECT: Check client logic first
-if (!isLoading && newValue) {
-    // Make server call
-}
-
-// Set display value to avoid round-trips
-g_form.setValue('ref_field', id, displayValue);
-```
-
-## Critical Rules (Both Approaches)
-
-| Rule | Reason |
-|------|--------|
-| Always use `getXMLAnswer()` | Async, prevents UI blocking |
-| Never use `getXMLWait()` | Synchronous, blocks browser |
-| Check `isLoading` flag | Prevents duplicate requests |
-| Use `g_form` API | Safe across all form layouts |
-| No direct DOM manipulation | Breaks on Polaris/Next Experience |
-| Use IIFE wrapper | Prevents global scope pollution |
-
-## Best Practices (All Approaches)
-
-- Check `isLoading` before making GlideAjax calls
-- Always use PascalCase for Script Include names
-- Use `setValue(field, id, displayValue)` to avoid queries
-- **Use UI Policies instead of client scripts when possible** — they load faster and don't require scripting for field visibility, read-only, mandatory, cleared, or static value changes. See [UI Policies](#ui-policies-vs-client-scripts) decision guide below.
-- Use client scripts only for **dynamic/conditional logic** that requires server communication, complex validation, or responsive behavior
-- Test with all form layouts (desktop, mobile, workspace)
-- Use g_scratchpad from Display Business Rules to avoid redundant calls
-- Handle errors gracefully with try-catch
-- Keep scripts focused; move complex logic to Script Includes
-
 ## UI Policies vs Client Scripts
 
-**Use UI Policies for:**
-- Controlling field visibility (show/hide)
-- Making fields read-only or editable
-- Marking fields as mandatory or optional
-- Clearing field values
-- Setting static field values
-- Controlling related list visibility
-- Static behavior based on conditions (encoded queries)
-- Performance-critical form behavior (faster load times)
-
-**Use Client Scripts for:**
-- Dynamic logic triggered by user actions (onChange, onLoad, onSubmit)
-- Server communication with GlideAjax
-- Complex conditional logic beyond simple field state
-- Cascading field updates
-- Custom validation with error messages
-- Form manipulation based on data from script includes
-- Responsive interactions (tooltips, confirmations, etc.)
-
-**Performance tip:** If you only need to conditionally show/hide fields or set mandatory flags based on a field value, **always prefer UI Policies over client scripts**. UI Policies are more efficient and don't require async callbacks.
-
-For Fluent UI Policy metadata, use `now-sdk explain uipolicy-api --format raw` and route implementation to NowDev-AI-Fluent-UI-Developer.
+Use UI Policies for show/hide, read-only, mandatory, clear values, static field values, related-list visibility, and declarative condition behavior. Use Client Scripts for dynamic user-triggered behavior, GlideAjax communication, complex validation, cascading updates, or custom messages. For Fluent UI Policy metadata, use `now-sdk explain uipolicy-api --format raw`.
 
 ## Key APIs
 
 | API | Purpose |
 |-----|---------|
-| GlideAjax | Async server communication |
-| g_form | Form field manipulation |
-| g_scratchpad | Server-to-client data passing |
-| g_user | Current user context |
-| GlideRecord | NEVER use client-side (blocks browser) |
-| GlideModal | Display modal dialogs |
-
-## Detailed Patterns
-
-Choose the pattern that matches your implementation context:
-
-- **[CLASSIC.md](./CLASSIC.md)** — Instance-based client scripts (JavaScript, UI-created)
-  - Form initialization and validation
-  - GlideAjax server communication
-  - Dynamic field visibility and cascading updates
-  - Event handling and listeners
-  - Reusable functions in global scope
-
-- Fluent SDK client scripts — use `now-sdk explain clientscript-api --format raw` and `now-sdk explain client-script-guide --format raw`; route implementation to NowDev-AI-Fluent-UI-Developer.
-
-- **[EXAMPLES.md](./EXAMPLES.md)** — Classic quick reference plus Fluent topic pointers
-
-## Decision Matrix: Which Approach to Use
-
-| Situation | Classic | Fluent | Rationale |
-|-----------|---------|--------|-----------|
-| Existing instance customization | ✓ | - | Created in UI, no SDK setup needed |
-| New SDK project | - | ✓ | Use .now.ts with TypeScript |
-| Version control needed | - | ✓ | SDK files tracked in Git |
-| Type-safe form logic | - | ✓ | TypeScript compiler catches errors |
-| Quick form enhancement | ✓ | - | No SDK complexity needed |
-| Team knows TypeScript | - | ✓ | Leverage team expertise |
-| GlideAjax calls needed | ✓ | ✓ | Both support async server calls |
+| `GlideAjax` | Async server communication |
+| `g_form` | Form field manipulation |
+| `g_scratchpad` | Server-to-client data passing |
+| `g_user` | Current user context |
+| `GlideModal` | Modal dialogs |
+| `onLoad` / `onChange` / `onSubmit` | Client script entry points |
 
 ## Reference
 
-For GlideAjax templates, g_scratchpad patterns, and detailed API reference, see [BEST_PRACTICES.md](./BEST_PRACTICES.md)
+- Fluent SDK: `now-sdk explain clientscript-api --format raw`, `now-sdk explain client-script-guide --format raw`, and `now-sdk explain uipolicy-api --format raw`.
+- Classic `g_form`, GlideAjax, and client scripting APIs: use https://www.servicenow.com/llms.txt as the primary source, and the ServiceNow MCP server if one is configured as a secondary source.

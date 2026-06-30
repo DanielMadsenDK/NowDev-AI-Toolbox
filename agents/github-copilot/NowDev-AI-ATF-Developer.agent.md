@@ -36,7 +36,7 @@ STOP if using hardcoded `sys_id` strings in test steps — use `Now.ref()` or fi
 STOP if referencing table names or field names not found in `artifacts.md` or the actual source files
 STOP if implementing application logic artifacts — those belong to Schema, Logic, Automation, or UI developers
 STOP if skipping Context Sync — test files MUST use actual artifact names, not assumed ones
-STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Reviewer can be invoked by the coordinator
+STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Fluent-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>

@@ -7,8 +7,8 @@ argument-hint: "The NowAssist skill requirements — describe what the skill sho
 tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
 agents: []
 handoffs:
-  - label: Back to AI Studio Developer
-    agent: NowDev-AI-AI-Studio-Developer
+  - label: Back to Fluent Developer
+    agent: NowDev-AI-Fluent-Developer
     prompt: NowAssist skill implementation completed. Returning created files.
     send: true
 ---

@@ -92,9 +92,6 @@
     document.getElementById('instanceUrl').addEventListener('input', (e) => {
         debounceUpdate('instanceUrl', e.target.value.trim());
     });
-    document.getElementById('devStyle').addEventListener('change', (e) => {
-        vscode.postMessage({ command: 'updateConfig', key: 'preferredDevelopmentStyle', value: e.target.value });
-    });
 
     // ── Setup tab: file picker ─────────────────────────────────────
     document.getElementById('browseFile').addEventListener('click', () => {
@@ -118,7 +115,7 @@
         vscode.postMessage({ command: 'rescanMcp' });
     });
 
-    // ── Setup tab: DevOps integration ──────────────────────────────
+    // ── Work Item Integration ──────────────────────────────────────
     document.getElementById('devopsEnabled').addEventListener('change', function () {
         var enabled = this.checked;
         document.getElementById('devopsConfig').classList.toggle('nd-hidden', !enabled);
@@ -541,14 +538,10 @@
 
     function updateSettings(settings, guidelinesConfig) {
         const urlInput = document.getElementById('instanceUrl');
-        const styleSelect = document.getElementById('devStyle');
         _wsState.hasInstanceUrl = !!(settings && settings.instanceUrl);
         _wsState.hasCustomInstructionsFile = !!(settings && settings.customInstructionsFile);
         if (document.activeElement !== urlInput) {
             urlInput.value = settings.instanceUrl || '';
-        }
-        if (document.activeElement !== styleSelect) {
-            styleSelect.value = settings.preferredStyle || 'auto';
         }
         const filePathEl = document.getElementById('filePath');
         const clearBtn = document.getElementById('clearFile');
@@ -769,9 +762,8 @@
             }
         });
 
-        // DevOps agent is managed via dedicated DevOps config UI — exclude from here
         var standalone = visible.filter(function (m) {
-            return !m.locked && !m.bundle && m.name !== 'NowDev-AI-DevOps';
+            return !m.locked && !m.bundle;
         }).sort(function (a, b) { return a.name.localeCompare(b.name); });
 
         var html = '';
@@ -1040,10 +1032,13 @@
         return Array.isArray(artifact.missingFiles) ? artifact.missingFiles.filter(Boolean) : [];
     }
 
-    // ── DevOps Integration rendering ───────────────────────────────
+    // ── Work Item Integration rendering ────────────────────────────
+
+    var _lastMcpServers = [];
 
     function updateDevopsSection(devopsConfig, servers) {
         var cfg = devopsConfig || { enabled: false, mcpServer: '', customInstructions: '' };
+        if (servers) { _lastMcpServers = servers; }
 
         var enabledCb = document.getElementById('devopsEnabled');
         var configDiv = document.getElementById('devopsConfig');
@@ -1058,7 +1053,7 @@
         if (serverSel) {
             var currentServer = cfg.mcpServer || '';
             var opts = '<option value="">(select a server)</option>';
-            var allServers = servers || [];
+            var allServers = _lastMcpServers || [];
             allServers.forEach(function (s) {
                 var sel = s.name === currentServer ? ' selected' : '';
                 opts += '<option value="' + esc(s.name) + '"' + sel + '>' + esc(s.name) + '</option>';

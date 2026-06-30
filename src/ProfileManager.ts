@@ -20,13 +20,6 @@ export interface ProfileDefinition {
      */
     mcpMethodOverrides?: Record<string, { mode: 'custom'; allowedMethods: string[] }>;
     /**
-     * When true, the DevOps agent is enabled for this profile as long as a
-     * DevOps MCP server has been configured — regardless of the global
-     * devopsConfig.enabled toggle. Useful for the PO profile where DevOps is
-     * the primary integration and should not require a separate manual enable.
-     */
-    devopsEnabledWhenConfigured?: boolean;
-    /**
      * Text injected at {{PROFILE_INSTRUCTIONS}} in every agent file.
      * Empty string = token is removed (developer profile default).
      */
@@ -50,7 +43,6 @@ export const BUILT_IN_PROFILES: ProfileDefinition[] = [
         label: 'Developer',
         description: 'Core ServiceNow development with advanced AI Studio and CI/CD specialists hidden until needed.',
         suppressedAgents: [
-            'NowDev-AI-AI-Studio-Developer',
             'NowDev-AI-AI-Agent-Developer',
             'NowDev-AI-NowAssist-Developer',
             'NowDev-AI-Pipeline-Expert',
@@ -69,7 +61,6 @@ export const BUILT_IN_PROFILES: ProfileDefinition[] = [
         label: 'Junior Developer',
         description: 'Core development with step-by-step educational explanations. Advanced AI Studio and CI/CD specialists are hidden.',
         suppressedAgents: [
-            'NowDev-AI-AI-Studio-Developer',
             'NowDev-AI-AI-Agent-Developer',
             'NowDev-AI-NowAssist-Developer',
             'NowDev-AI-Pipeline-Expert',
@@ -89,15 +80,9 @@ Produce full production-quality code — the explanations are additive, not a re
     {
         id: 'product-owner',
         label: 'Product Owner',
-        description: 'Work item management and requirement refinement only. No development agents. Plain-language communication.',
+        description: 'Requirement refinement, feasibility discussion, and work-item management (when a work-item MCP server is configured). No development agents. Plain-language communication.',
         suppressedAgents: [
             // Development bundles
-            'NowDev-AI-Classic-Developer',
-            'NowDev-AI-Script-Developer',
-            'NowDev-AI-BusinessRule-Developer',
-            'NowDev-AI-Client-Developer',
-            'NowDev-AI-Classic-Reviewer',
-            'NowDev-AI-Classic-Release',
             'NowDev-AI-Fluent-Developer',
             'NowDev-AI-Fluent-Schema-Developer',
             'NowDev-AI-Fluent-Logic-Developer',
@@ -106,25 +91,20 @@ Produce full production-quality code — the explanations are additive, not a re
             'NowDev-AI-ATF-Developer',
             'NowDev-AI-Fluent-Reviewer',
             'NowDev-AI-Fluent-Release',
-            'NowDev-AI-AI-Studio-Developer',
             'NowDev-AI-AI-Agent-Developer',
             'NowDev-AI-NowAssist-Developer',
             // Standalone agents not relevant for PO
             'NowDev-AI-Pipeline-Expert',
-            'NowDev-AI-Reviewer',
-            'NowDev-AI-Release-Expert',
             'NowDev-AI-Debugger',
-            // NowDev-AI-DevOps is intentionally NOT suppressed — the PO uses it for work items
         ],
-        devopsEnabledWhenConfigured: true,
         profileInstructions: `## Product Owner Communication Mode
 
 You are assisting a **Product Owner** — a business professional who manages requirements and tracks work without writing code. Follow these rules in every response:
 
 1. **Plain language only**: Never use technical jargon without an immediate plain-English explanation in parentheses (e.g. "a Business Rule — automation that runs automatically when a record is saved").
 2. **No code**: Do not show or reference implementation code. Describe what will happen in business terms.
-3. **Work item and requirement focus**: Your scope is limited to reviewing, creating, and tracking work items and requirements. For technical implementation questions, direct the PO to engage the development team.
-4. **Confirm before acting**: Before taking any action (creating a work item, updating status, etc.), summarize the request back in plain language and ask for confirmation.
+3. **Requirement & work-item focus**: Your scope is refining requirements, clarifying user stories, and — when a work-item integration is configured — reading and updating work items (task status, comments). For technical implementation questions, direct the PO to engage the development team.
+4. **Confirm before acting**: Before taking any action (e.g. updating a work item's status), summarize the request back in plain language and ask for confirmation.
 5. **Business-friendly status labels**: Use plain English ("In Progress", "Waiting for review", "Done") — never raw system values or technical state names.`,
     },
 ];
