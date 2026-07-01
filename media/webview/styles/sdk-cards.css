@@ -1,0 +1,291 @@
+/* ════════════════════════════════════════════════════════════════
+   SDK COMMAND CARDS
+   ════════════════════════════════════════════════════════════════ */
+.sdk-auth-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+    margin-bottom: var(--nd-sp-3);
+    padding: var(--nd-sp-2) var(--nd-sp-3);
+    background: var(--nd-bg-soft);
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-sm);
+}
+.sdk-auth-row select {
+    flex: 1;
+    padding: 4px 7px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+}
+.sdk-auth-row select:focus { border-color: var(--nd-accent); }
+
+.sdk-cmd-card {
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-md);
+    padding: var(--nd-sp-3);
+    margin-bottom: 6px;
+    background: var(--nd-bg-card);
+    transition: border-color 0.15s, background 0.15s;
+}
+.sdk-cmd-card:hover { border-color: var(--nd-border-strong); background: var(--nd-bg-soft); }
+
+.sdk-cmd-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nd-sp-2);
+}
+.sdk-cmd-info {
+    display: flex;
+    align-items: baseline;
+    gap: var(--nd-sp-2);
+    min-width: 0;
+}
+.sdk-cmd-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--nd-fg);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.sdk-cmd-tagline {
+    font-size: 10.5px;
+    color: var(--nd-fg-mute);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sdk-cmd-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-1);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Gear / options icon button */
+.sdk-opts-btn,
+.sdk-help-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: none;
+    color: var(--nd-fg-mute);
+    border: 1px solid transparent;
+    border-radius: var(--nd-r-sm);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.sdk-opts-btn:hover {
+    color: var(--nd-fg);
+    border-color: var(--nd-border);
+}
+
+/* Dim secondary action buttons (non-Run) to reduce visual noise */
+.sdk-cmd-actions .fix-btn:not(.sdk-run-btn) {
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.sdk-cmd-actions .fix-btn:not(.sdk-run-btn):hover {
+    opacity: 1;
+}
+.sdk-help-btn {
+    font-weight: 700;
+    color: var(--nd-accent);
+}
+.sdk-help-btn:hover {
+    background: var(--nd-accent);
+    color: var(--nd-accent-fg);
+    border-color: var(--nd-accent);
+}
+
+/* Collapsible options panel */
+.sdk-cmd-opts {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    padding: var(--nd-sp-2) 0 2px;
+    margin-top: var(--nd-sp-1);
+    border-top: 1px solid var(--nd-border-soft);
+}
+.sdk-cmd-opts.open { display: flex; }
+.sdk-opt {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--nd-fg);
+    cursor: pointer;
+}
+.sdk-opt input[type="checkbox"] {
+    width: 12px; height: 12px;
+    accent-color: var(--nd-accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.sdk-opt code {
+    font-family: var(--nd-font-mono);
+    font-size: 11px;
+    color: var(--vscode-symbolIcon-functionForeground, #dcdcaa);
+    background: var(--nd-bg-soft);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.sdk-opt-hint {
+    font-size: 10.5px;
+    color: var(--nd-fg-mute);
+    font-style: italic;
+}
+.sdk-opt-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+    font-size: 11px;
+}
+.sdk-opt-row select {
+    flex: 1;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+}
+
+.sdk-cmd-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    margin-top: 6px;
+    min-height: 13px;
+    transition: color 0.2s;
+    color: var(--nd-fg-mute);
+}
+.sdk-cmd-status.ok   { color: var(--nd-success); }
+.sdk-cmd-status.fail { color: var(--nd-danger); }
+.sdk-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--nd-r-pill);
+    font-size: 10px;
+    color: var(--vscode-button-foreground, #fff);
+    flex-shrink: 0;
+}
+.sdk-cmd-status.ok .sdk-status-badge { background: var(--nd-success); }
+.sdk-cmd-status.fail .sdk-status-badge { background: var(--nd-danger); }
+.sdk-status-time { color: var(--nd-fg-mute); }
+
+.sdk-quick-actions {
+    margin-bottom: var(--nd-sp-3);
+    padding: var(--nd-sp-3);
+    background: var(--nd-bg-card);
+    border: 1px solid var(--nd-border-strong);
+    border-radius: var(--nd-r-md);
+    box-shadow: var(--nd-shadow-1);
+}
+.sdk-deploy-btn {
+    width: 100%;
+    justify-content: center;
+    font-weight: 600;
+    background: rgba(129,181,161,0.12);
+    color: var(--nd-accent-hi);
+    border-color: rgba(129,181,161,0.35);
+}
+.sdk-deploy-btn:hover {
+    background: rgba(129,181,161,0.22);
+    color: var(--nd-accent-hi);
+    border-color: var(--nd-accent);
+}
+.sdk-sync-btn {
+    width: 100%;
+    justify-content: center;
+    font-weight: 600;
+    background: rgba(129,181,161,0.12);
+    color: var(--nd-accent-hi);
+    border-color: rgba(129,181,161,0.35);
+}
+.sdk-sync-btn:hover {
+    background: rgba(129,181,161,0.22);
+    color: var(--nd-accent-hi);
+    border-color: var(--nd-accent);
+}
+
+.sdk-explain-row {
+    display: flex;
+    gap: var(--nd-sp-2);
+    align-items: center;
+}
+.sdk-explain-row input {
+    flex: 1;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+}
+.sdk-explain-row input:focus { border-color: var(--nd-accent); }
+
+/* Query Instance section — field rows + styled select */
+.field-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--nd-sp-2);
+    margin-bottom: var(--nd-sp-2);
+}
+.field-row .field-label {
+    margin: 0;
+    color: var(--nd-fg-mute);
+    text-align: right;
+}
+.field-row input[type="text"],
+.field-row input[type="number"],
+.field-select {
+    width: 100%;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+}
+.field-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    padding-right: 26px;
+    cursor: pointer;
+}
+.field-row input[type="text"]:focus,
+.field-row input[type="number"]:focus,
+.field-select:focus { border-color: var(--nd-accent); }
+
+@media (max-width: 390px) {
+    .field-row {
+        grid-template-columns: 1fr;
+        gap: var(--nd-sp-1);
+    }
+    .field-row .field-label { text-align: left; }
+}
+

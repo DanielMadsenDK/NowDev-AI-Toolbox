@@ -1,0 +1,179 @@
+/* ════════════════════════════════════════════════════════════════════
+   NowDev AI Toolbox — Sidebar Webview Styles
+   Token-driven design system. Keep in sync with src/SharedPanelStyles.ts
+   so all surfaces (sidebar + editor panels) share one visual language.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+    color-scheme: dark light;
+
+    /* ── Brand ─────────────────────────────────────────────────── */
+    --nd-accent:        #81B5A1;
+    --nd-accent-hi:     #a8d4c4;
+    --nd-accent-lo:     #5a8a78;
+    --nd-accent-fg:     var(--vscode-button-foreground, #1a2a26);
+    --nd-highlight:     #CDDC39;
+
+    /* ── Surfaces ──────────────────────────────────────────────── */
+    --nd-bg:            var(--vscode-sideBar-background);
+    --nd-bg-soft:       var(--vscode-editorWidget-background, rgba(255,255,255,0.03));
+    --nd-bg-card:       var(--vscode-list-hoverBackground, rgba(255,255,255,0.025));
+    --nd-bg-elevated:   color-mix(in srgb, var(--vscode-sideBar-background) 86%, var(--nd-accent) 14%);
+    --nd-bg-code:       var(--vscode-textCodeBlock-background, rgba(255,255,255,0.04));
+    --nd-bg-input:      var(--vscode-input-background);
+
+    --nd-border:        var(--vscode-panel-border, var(--vscode-widget-border, rgba(255,255,255,0.10)));
+    --nd-border-soft:   var(--vscode-widget-border, rgba(255,255,255,0.06));
+    --nd-border-strong: rgba(129,181,161,0.45);
+
+    --nd-fg:            var(--vscode-foreground);
+    --nd-fg-mute:       var(--vscode-descriptionForeground);
+    --nd-fg-strong:     var(--vscode-foreground);
+
+    --nd-link:          var(--vscode-textLink-foreground, var(--nd-accent));
+    --nd-link-hi:       var(--vscode-textLink-activeForeground, var(--nd-accent-hi));
+
+    /* ── Status ────────────────────────────────────────────────── */
+    --nd-success:       var(--vscode-testing-iconPassed, #4ec98b);
+    --nd-warning:       var(--vscode-editorWarning-foreground, #e2b73b);
+    --nd-danger:        var(--vscode-testing-iconFailed, #f14c4c);
+    --nd-info:          var(--nd-accent);
+
+    /* ── Spacing (4-pt rhythm) ─────────────────────────────────── */
+    --nd-sp-1: 4px;
+    --nd-sp-2: 8px;
+    --nd-sp-3: 12px;
+    --nd-sp-4: 16px;
+    --nd-sp-5: 20px;
+    --nd-sp-6: 24px;
+    --nd-sp-7: 28px;
+    --nd-sp-8: 32px;
+
+    /* ── Radii ─────────────────────────────────────────────────── */
+    --nd-r-sm:  4px;
+    --nd-r-md:  6px;
+    --nd-r-lg: 10px;
+    --nd-r-pill: 999px;
+
+    /* ── Shadows ───────────────────────────────────────────────── */
+    --nd-shadow-1:    0 1px 2px rgba(0,0,0,0.18);
+    --nd-shadow-2:    0 4px 14px rgba(0,0,0,0.28);
+    --nd-shadow-glow: 0 0 0 1px rgba(129,181,161,0.25), 0 4px 18px rgba(129,181,161,0.18);
+
+    /* ── Type ──────────────────────────────────────────────────── */
+    --nd-font:      var(--vscode-font-family);
+    --nd-font-mono: var(--vscode-editor-font-family, monospace);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ════════════════════════════════════════════════════════════════ */
+.nd-hidden  { display: none !important; }
+.nd-mt-1    { margin-top:    var(--nd-sp-1); }
+.nd-mb-1    { margin-bottom: var(--nd-sp-1); }
+.nd-mt-2    { margin-top:    var(--nd-sp-2); }
+.nd-mb-2    { margin-bottom: var(--nd-sp-2); }
+.nd-mt-3    { margin-top:    var(--nd-sp-3); }
+.nd-mb-3    { margin-bottom: var(--nd-sp-3); }
+.nd-row     { display: flex; align-items: center; }
+.nd-row-gap-1 { display: flex; align-items: center; gap: var(--nd-sp-1); }
+.nd-row-gap-2 { display: flex; align-items: center; gap: var(--nd-sp-2); }
+
+/* Inline-flex button group used in section-title action slots */
+.nd-btn-group { display: flex; gap: var(--nd-sp-2); }
+
+/* Profile select row — select + gear button side by side */
+.profile-select-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+}
+.profile-select {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 9px;
+    font-size: 12px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+    cursor: pointer;
+}
+.profile-select:focus { border-color: var(--nd-accent); }
+/* Profile tone textarea — matches app font/color conventions */
+.profile-tone-textarea {
+    width: 100%;
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    padding: 6px 8px;
+    outline: none;
+}
+
+/* Sub-label within a section (used above MCP doc sources list) */
+.nd-section-sublabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--nd-fg);
+    margin-top: var(--nd-sp-3);
+    margin-bottom: var(--nd-sp-2);
+}
+
+/* Muted italic placeholder text (scanning, loading states) */
+.nd-placeholder { font-style: italic; color: var(--nd-fg-mute); }
+
+/* Side-by-side pair of sdk-cmd-cards */
+.sdk-cmd-pair {
+    display: flex;
+    gap: var(--nd-sp-2);
+}
+.sdk-cmd-pair .sdk-cmd-card { flex: 1; min-width: 0; }
+
+/* Compact inline-code inside field-desc / auth row */
+.sdk-auth-label {
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Small inline code — used in auth alias description */
+code.nd-code-sm { font-size: 10px; }
+
+/* sdk-cmd-tagline when used standalone (Sync/Move/Clean/Pack mini cards) */
+.sdk-cmd-tagline-mt { margin-top: 2px; }
+
+body {
+    font-family: var(--nd-font);
+    font-size: var(--vscode-font-size);
+    color: var(--nd-fg);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--nd-bg) 88%, var(--nd-accent) 12%) 0, var(--nd-bg) 220px),
+        var(--nd-bg);
+    padding: var(--nd-sp-3);
+    line-height: 1.5;
+}
+
+.nowdev-shell {
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--nd-accent) 72%, transparent);
+    outline-offset: 2px;
+}
+

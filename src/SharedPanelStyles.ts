@@ -4,7 +4,7 @@
  * Every panel (Agent Topology, SDK Explain, SDK Command Help) injects
  * this into its inline <style> block so all surfaces share one design language.
  *
- * Sidebar uses media/webview/styles.css — keep token sets in sync with that file.
+ * Sidebar uses media/webview/styles/*.css — keep token sets in sync with those files.
  */
 export function getSharedPanelStyles(): string {
     return `

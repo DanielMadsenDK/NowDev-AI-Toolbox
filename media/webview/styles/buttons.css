@@ -1,0 +1,101 @@
+/* ════════════════════════════════════════════════════════════════
+   BUTTONS — three semantic levels
+   ════════════════════════════════════════════════════════════════ */
+
+/* Primary CTA */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--nd-sp-2);
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--nd-font);
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: var(--nd-r-md);
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+}
+.btn-primary:hover { background: var(--vscode-button-hoverBackground); }
+.chat-picker-hint {
+    margin-top: var(--nd-sp-2);
+    font-size: 10.5px;
+    line-height: 1.4;
+    color: var(--nd-fg-mute);
+    text-align: center;
+}
+.chat-picker-hint strong {
+    color: var(--nd-fg);
+    font-weight: 600;
+}
+
+/* Secondary outline */
+.btn-secondary {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    background: transparent;
+    color: var(--nd-fg);
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-sm);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn-secondary:hover {
+    background: var(--nd-bg-soft);
+    border-color: var(--nd-accent);
+}
+
+/* Ghost / clear */
+.btn-clear {
+    padding: 2px 8px;
+    font-size: 12px;
+    background: none;
+    color: var(--nd-fg-mute);
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-sm);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s;
+}
+.btn-clear:hover {
+    color: var(--nd-danger);
+    border-color: var(--nd-danger);
+}
+
+/* Compact action button — used heavily in section headers and lists */
+.fix-btn {
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border: 1px solid var(--nd-border);
+    background: transparent;
+    color: var(--nd-fg);
+    border-radius: var(--nd-r-sm);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    line-height: 1.5;
+}
+.fix-btn:hover {
+    background: var(--nd-bg-soft);
+    border-color: var(--nd-accent);
+    color: var(--nd-fg-strong);
+}
+
+.fix-all-btn {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3px 10px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: 1px solid transparent;
+    border-radius: var(--nd-r-sm);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.fix-all-btn:hover { background: var(--vscode-button-hoverBackground); }
+

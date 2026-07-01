@@ -1,0 +1,194 @@
+/* ════════════════════════════════════════════════════════════════
+   MCP DOC SOURCE ROWS
+   ════════════════════════════════════════════════════════════════ */
+.mcp-doc-source-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+    padding: var(--nd-sp-2) 0;
+    border-bottom: 1px solid var(--nd-border-soft);
+}
+.mcp-doc-source-row:last-child { border-bottom: none; }
+.mcp-doc-source-info { flex: 1; min-width: 0; }
+.mcp-doc-source-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--nd-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mcp-doc-source-server {
+    font-size: 10.5px;
+    color: var(--nd-fg-mute);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mcp-doc-source-gear {
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 2px 6px;
+    background: none;
+    color: var(--nd-fg-mute);
+    border: 1px solid transparent;
+    border-radius: var(--nd-r-sm);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s;
+}
+.mcp-doc-source-gear:hover,
+.mcp-doc-source-gear.open {
+    color: var(--nd-fg);
+    border-color: var(--nd-border);
+}
+.mcp-doc-source-panel {
+    display: none;
+    padding: var(--nd-sp-2) var(--nd-sp-3);
+    background: var(--nd-bg-soft);
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-sm);
+    margin-bottom: var(--nd-sp-1);
+}
+.mcp-doc-source-panel.open { display: block; }
+.mcp-doc-source-panel .field-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nd-sp-2);
+    margin-bottom: 6px;
+}
+.mcp-doc-source-panel .field-row:last-child { margin-bottom: 0; }
+.mcp-doc-source-panel .field-row label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--nd-fg);
+    flex-shrink: 0;
+    width: 44px;
+}
+.mcp-doc-source-panel select,
+.mcp-doc-source-panel input[type="text"] {
+    flex: 1;
+    padding: 3px 7px;
+    font-size: 11px;
+    font-family: var(--nd-font);
+    background: var(--nd-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--nd-border));
+    border-radius: var(--nd-r-sm);
+    outline: none;
+}
+.mcp-doc-source-panel select:focus,
+.mcp-doc-source-panel input[type="text"]:focus { border-color: var(--nd-accent); }
+.mcp-doc-source-panel input[type="text"]:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DOCS TAB — radio mode selector
+   ════════════════════════════════════════════════════════════════ */
+.docs-mode-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nd-sp-2);
+}
+.docs-mode-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    line-height: 1.4;
+}
+.docs-mode-suboptions {
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--nd-sp-2);
+}
+.docs-mode-hint {
+    font-size: 11px;
+    color: var(--nd-fg-mute);
+    margin: 0 0 var(--nd-sp-1) 18px;
+    line-height: 1.5;
+}
+.docs-subfolder-hint {
+    margin-top: var(--nd-sp-2);
+}
+
+.docs-cancel-btn {
+    margin-left: var(--nd-sp-2);
+    vertical-align: middle;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   UTILITY
+   ════════════════════════════════════════════════════════════════ */
+.muted  { color: var(--nd-fg-mute); }
+.center { text-align: center; }
+
+@media (max-width: 390px) {
+    body { padding-left: var(--nd-sp-2); padding-right: var(--nd-sp-2); }
+    .header { align-items: flex-start; }
+    .tab-btn { min-width: max-content; }
+    .sdk-cmd-row,
+    .agent-card-title-row,
+    .profile-select-row,
+    .file-picker-row {
+        flex-wrap: wrap;
+    }
+    .sdk-cmd-info { flex-basis: 100%; }
+    .sdk-cmd-actions,
+    .nd-btn-group {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+body.vscode-high-contrast .header,
+body.vscode-high-contrast .tab-bar,
+body.vscode-high-contrast .home-profile-card,
+body.vscode-high-contrast .launch-card,
+body.vscode-high-contrast .sdk-cmd-card,
+body.vscode-high-contrast .agent-card,
+body.vscode-high-contrast .tool-row,
+body.vscode-high-contrast .file-picker,
+body.vscode-high-contrast .empty-state {
+    border-color: var(--vscode-contrastBorder, var(--nd-border));
+    box-shadow: none;
+}
+
+body.vscode-high-contrast .ws-dot,
+body.vscode-high-contrast .tool-status,
+body.vscode-high-contrast .status-dot,
+body.vscode-high-contrast .conn-dot,
+body.vscode-high-contrast .changes-dot {
+    outline: 1px solid var(--vscode-contrastBorder, currentColor);
+    outline-offset: 1px;
+}
+
+@media (forced-colors: active) {
+    .launch-primary,
+    .btn-primary,
+    .fix-all-btn,
+    .artifact-filter-btn.active,
+    .sdk-help-btn:hover {
+        border: 1px solid ButtonText;
+    }
+
+    .tool-toggle .slider,
+    .tool-toggle input:checked + .slider {
+        border-color: ButtonText;
+    }
+}
