@@ -344,6 +344,66 @@ h4.props-h {
     margin: var(--nd-sp-3) 0 var(--nd-sp-1);
 }
 
+/* Parameter type expression (e.g. Acl<keyof Tables, 'record' | 'processor' | string>) */
+.type-expr {
+    font-family: var(--nd-font-mono);
+    font-size: 12px;
+    color: var(--nd-fg-strong);
+    background: var(--nd-bg-code);
+    border-radius: var(--nd-r-sm);
+    padding: var(--nd-sp-2) var(--nd-sp-3);
+    margin: 2px 0 var(--nd-sp-1);
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.5;
+}
+.param-desc {
+    font-size: 12px;
+    color: var(--nd-fg-mute);
+    margin: 0 0 var(--nd-sp-2);
+}
+
+/* Discriminated-union condition labels (e.g. "When Type extends ...:", "Otherwise:") */
+.variant-cond {
+    display: inline-block;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--nd-accent-hi);
+    border-left: 2px solid var(--nd-accent);
+    padding: 2px var(--nd-sp-2);
+    margin: var(--nd-sp-3) 0 var(--nd-sp-1);
+}
+
+/* Markdown tables that appear inline in guide docs */
+table.nd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin: var(--nd-sp-2) 0 var(--nd-sp-4);
+    border: 1px solid var(--nd-border);
+    border-radius: var(--nd-r-md);
+    overflow: hidden;
+}
+table.nd-table th {
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--nd-fg-mute);
+    background: rgba(129,181,161,0.07);
+    padding: var(--nd-sp-2) var(--nd-sp-3);
+    border-bottom: 1px solid var(--nd-border);
+}
+table.nd-table td {
+    padding: var(--nd-sp-2) var(--nd-sp-3);
+    border-bottom: 1px solid var(--nd-border-soft);
+    color: var(--nd-fg);
+    vertical-align: top;
+}
+table.nd-table tbody tr:last-child td { border-bottom: none; }
+table.nd-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.025); }
+
 .file-label {
     display: inline-block;
     font-family: var(--nd-font-mono);

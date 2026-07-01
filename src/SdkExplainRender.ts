@@ -101,7 +101,9 @@ function tokenizeJs(src: string): string {
 }
 
 function highlightCode(raw: string, lang: string): string {
-    const l = lang.toLowerCase();
+    // Language info strings can carry extra words (e.g. "ts fluent", "typescript fluent") —
+    // only the first token identifies the language.
+    const l = lang.toLowerCase().split(/\s+/)[0];
     if (l === 'js' || l === 'javascript' || l === 'ts' || l === 'typescript') {
         return tokenizeJs(raw);
     }
@@ -119,6 +121,10 @@ export function esc(s: string): string {
 }
 
 function formatPropLine(line: string): string {
+    // Bare URL (e.g. the "See" section's reference links) — don't split on its colon
+    if (/^https?:\/\//.test(line)) {
+        return `<a href="${esc(line)}">${esc(line)}</a>`;
+    }
     // "$id (required): string | number"
     const m = line.match(/^(\S+)\s+\((required|optional)\):\s*(.*)$/);
     if (m) {
@@ -131,6 +137,23 @@ function formatPropLine(line: string): string {
         return `<span class="pname">${esc(kv[1])}</span><span class="ptype">: ${esc(kv[2])}</span>`;
     }
     return esc(line);
+}
+
+// Renders a parameter's own type expression (e.g. `Acl<keyof Tables, 'record' | 'processor' | string>`)
+// as a code-styled line, highlighting quoted union members so long enum lists read like code.
+function formatTypeExpr(line: string): string {
+    return esc(line).replace(/'[^']*'/g, m => `<span class="hl-str">${m}</span>`);
+}
+
+function isTableSeparatorRow(line: string): boolean {
+    return /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(line.trim());
+}
+
+function parseTableRow(line: string): string[] {
+    let s = line.trim();
+    if (s.startsWith('|')) { s = s.slice(1); }
+    if (s.endsWith('|')) { s = s.slice(0, -1); }
+    return s.split('|').map(c => c.trim());
 }
 
 export function convertToHtml(raw: string): string {
@@ -169,6 +192,8 @@ export function convertToHtml(raw: string): string {
     let inExamples = false;
     let inParams = false;
     let exampleExpectTitle = true;
+    // -1 = no active param context; 0 = next line is the param's type; 1 = next line is its description
+    let paramLineIndex = -1;
 
     while (i < lines.length) {
         const rawLine = lines[i];
@@ -191,6 +216,34 @@ export function convertToHtml(raw: string): string {
             continue;
         }
 
+        // ── Markdown table (leaks through verbatim from guide docs) ──
+        if (line.startsWith('|') && i < lines.length && isTableSeparatorRow(lines[i])) {
+            const headerCells = parseTableRow(line);
+            i++; // skip the "|---|---|" separator row
+            const rows: string[][] = [];
+            while (i < lines.length && lines[i].trim().startsWith('|')) {
+                rows.push(parseTableRow(lines[i]));
+                i++;
+            }
+            html += '<table class="nd-table"><thead><tr>'
+                + headerCells.map(c => `<th>${esc(c)}</th>`).join('')
+                + '</tr></thead><tbody>'
+                + rows.map(r => '<tr>' + r.map(c => `<td>${esc(c)}</td>`).join('') + '</tr>').join('')
+                + '</tbody></table>';
+            continue;
+        }
+
+        // ── Blockquote callout ──
+        if (line.startsWith('>')) {
+            const parts = [line.replace(/^>\s?/, '')];
+            while (i < lines.length && lines[i].trim().startsWith('>')) {
+                parts.push(lines[i].trim().replace(/^>\s?/, ''));
+                i++;
+            }
+            html += `<div class="nd-callout">${esc(parts.join(' '))}</div>`;
+            continue;
+        }
+
         // ── Function signature ──
         if (line.startsWith('Function:')) {
             const sig = line.slice('Function:'.length).trim();
@@ -200,7 +253,7 @@ export function convertToHtml(raw: string): string {
 
         // ── Section headings ──
         if (line === 'Parameters') {
-            inParams = true; inExamples = false;
+            inParams = true; inExamples = false; paramLineIndex = -1;
             html += `<h2 class="sec-h">Parameters</h2>`;
             continue;
         }
@@ -209,8 +262,21 @@ export function convertToHtml(raw: string): string {
             html += `<h2 class="sec-h">Examples</h2>`;
             continue;
         }
+        if (line === 'Signature' || line === 'Usage' || line === 'See') {
+            inParams = false; inExamples = false;
+            html += `<h2 class="sec-h">${esc(line)}</h2>`;
+            continue;
+        }
         if (line === 'Properties:') {
             html += `<h4 class="props-h">Properties</h4>`;
+            continue;
+        }
+        if (line === 'Variant Properties:') {
+            html += `<h4 class="props-h">Variant Properties</h4>`;
+            continue;
+        }
+        if (/^(When .+:|Otherwise:)$/.test(line)) {
+            html += `<div class="variant-cond">${esc(line)}</div>`;
             continue;
         }
 
@@ -222,14 +288,19 @@ export function convertToHtml(raw: string): string {
             while (i < lines.length) {
                 const lr = lines[i];
                 const lt = lr.trim();
-                if (!lt || lt.startsWith('```') || lt === 'Parameters' || lt === 'Examples') { break; }
+                if (!lt) { i++; continue; } // blank lines separate properties but don't end the list
+                if (lt.startsWith('```') || lt === 'Parameters' || lt === 'Examples'
+                    || lt === 'Properties:' || lt === 'Variant Properties:'
+                    || /^(When .+:|Otherwise:)$/.test(lt)) {
+                    break;
+                }
                 if (lt.startsWith('•')) {
                     i++;
                     const bulletIdx = lr.indexOf('•');
                     const content = lt.slice(1).trim();
                     const nested = bulletIdx > indent0;
                     listHtml += `<li${nested ? ' class="nested"' : ''}>${formatPropLine(content)}</li>`;
-                } else if (lr.match(/^ {2,}/) && lt) {
+                } else if (lr.match(/^ {2,}/)) {
                     i++;
                     // Append continuation to last <li>
                     listHtml = listHtml.slice(0, listHtml.lastIndexOf('</li>'));
@@ -261,16 +332,22 @@ export function convertToHtml(raw: string): string {
             continue;
         }
 
-        // ── Parameters section ──
+        // ── Parameters section: name → type → description, in fixed order ──
         if (inParams) {
-            // Parameter name: lowercase, no spaces, no colon
-            if (!line.includes(' ') && !line.includes(':') && /^[a-z]/.test(line)) {
-                html += `<div class="param-name">${esc(line)}</div>`;
+            if (paramLineIndex === 0) {
+                html += `<div class="type-expr">${formatTypeExpr(line)}</div>`;
+                paramLineIndex = 1;
                 continue;
             }
-            // Type name: starts with uppercase, no colon, short
-            if (!line.includes(':') && /^[A-Z]/.test(line) && line.length < 40) {
-                html += `<div class="type-name">${esc(line)}</div>`;
+            if (paramLineIndex === 1) {
+                html += `<p class="param-desc">${esc(line)}</p>`;
+                paramLineIndex = 2;
+                continue;
+            }
+            // Bare identifier with no active param context = a new top-level parameter name
+            if (/^[$a-zA-Z_][\w$]*$/.test(line)) {
+                html += `<div class="param-name">${esc(line)}</div>`;
+                paramLineIndex = 0;
                 continue;
             }
         }

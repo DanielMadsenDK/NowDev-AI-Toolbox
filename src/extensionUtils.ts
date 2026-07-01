@@ -53,9 +53,9 @@ export function checkInstanceReachability(
         if (!normalizedUrl.startsWith('http')) { normalizedUrl = 'https://' + normalizedUrl; }
         const start = Date.now();
         try {
-            const parsed = new URL(normalizedUrl + '/api/now/ping');
+            const parsed = new URL(normalizedUrl + '/login.do');
             const req = https.request(
-                { hostname: parsed.hostname, port: parsed.port || 443, path: '/api/now/ping', method: 'GET', timeout: 10000 },
+                { hostname: parsed.hostname, port: parsed.port || 443, path: '/login.do', method: 'GET', timeout: 10000 },
                 (res) => {
                     resolve({ reachable: true, statusCode: res.statusCode, responseTime: Date.now() - start });
                     res.resume();
