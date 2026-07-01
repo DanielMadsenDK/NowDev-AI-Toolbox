@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: specialized agent for reviewing ServiceNow Fluent SDK artifacts (.now.ts metadata, TypeScript modules, React components) against installed-version docs from now-sdk explain and NowDev guardrails
 argument-hint: "Explicit file paths to review plus optional focus areas, artifact types, or known risks from the implementation."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'vscode/memory']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalLastCommand, search, web, todo]
 agents: []
 handoffs:
   - label: Back to Architect

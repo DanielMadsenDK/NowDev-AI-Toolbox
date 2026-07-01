@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: always-invoked first step for all full-project requests — performs gap analysis to identify missing information, asks targeted questions when needed, validates ServiceNow feasibility via docs MCP or built-in knowledge, and produces a complete unambiguous implementation brief. Fast-paths immediately to the brief when the request is already complete and specific.
 argument-hint: "The original full-project request or user story that needs gap analysis, feasibility validation, and a refined implementation brief."
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'search', 'web', 'todo']
+tools: [vscode/memory, vscode/askQuestions, vscode/toolSearch, read/problems, read/readFile, read/viewImage, read/skill, search, web, todo]
 agents: []
 handoffs:
   - label: Handoff to Architect

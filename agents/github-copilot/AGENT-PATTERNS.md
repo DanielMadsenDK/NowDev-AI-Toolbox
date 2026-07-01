@@ -39,6 +39,8 @@ Agents should answer their own factual questions before asking the user. Ask the
 4. Product docs: use configured MCP/doc sources or ServiceNow product llms.txt for platform/product behavior not covered by SDK CLI.
 5. User questions: ask only when tool results are missing, conflicting, risky, or require human intent.
 
+For `now-sdk` CLI mechanics — flag discovery, the `--peek`/`--format raw` discipline, and the full command surface beyond `explain`/`query` — see `agents/skills/now-sdk/SKILL.md`.
+
 When invoking sub-agents, include the same clarification instruction and pass any discovered facts rather than asking downstream agents to rediscover them unnecessarily.
 
 ## Canonical: Parallel Sub-Agent Execution
@@ -134,7 +136,7 @@ Specialist `.agent.md` files should stay lean. Put reusable examples, long API n
 - Documentation pointers: `now-sdk explain`, `now-sdk query`, configured docs for supplemental context, relevant local guardrail skills, and exemplar file paths.
 - Output contract: what the caller receives, including changed files, validation results, warnings, and next handoff.
 
-Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape, reference `now-sdk explain <topic> --format raw`; for NowDev-specific guardrails, prefer references such as `agents/skills/servicenow-debugging/BEST_PRACTICES.md`, `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md`, and `agents/exemplars/` over duplicating the content in every specialist.
+Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape, reference `now-sdk explain <topic> --format raw`; for `now-sdk` CLI mechanics and the full command surface, reference `agents/skills/now-sdk/SKILL.md`; for NowDev-specific guardrails, prefer references such as `agents/skills/servicenow-debugging/BEST_PRACTICES.md`, `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md`, and `agents/exemplars/` over duplicating the content in every specialist.
 
 ## Canonical: Agent Consolidation Policy
 

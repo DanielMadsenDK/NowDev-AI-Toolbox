@@ -380,6 +380,9 @@
       },
       {
         "path": "./agents/skills/servicenow-instance-scan/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/now-sdk/SKILL.md"
       }
     ]
   },

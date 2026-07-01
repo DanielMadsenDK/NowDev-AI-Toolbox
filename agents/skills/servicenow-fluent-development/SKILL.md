@@ -11,17 +11,9 @@ Use this skill for NowDev workflow conventions around Fluent SDK projects. Do **
 
 ## Authoritative SDK Source
 
-Always use the installed SDK documentation first:
+For `now-sdk` command syntax, flags, and the `explain`/`query` discovery workflow, use `agents/skills/now-sdk/SKILL.md` — the canonical CLI reference. This skill does not duplicate that mechanics.
 
-```bash
-now-sdk explain --list <keyword>
-now-sdk explain <topic> --peek
-now-sdk explain <topic> --format raw
-```
-
-`now-sdk explain` is tied to the SDK version installed in the user's environment. It covers Fluent API reference topics such as `table-api`, `businessrule-api`, `scriptinclude-api`, `uipage-api`, `test-api`, and guide topics such as `now-include-guide`, `module-guide`, `script-include-guide`, `service-catalog-guide`, and `ci-integration`.
-
-If local guidance conflicts with `now-sdk explain`, the installed SDK documentation wins.
+Always verify current SDK API shape with `now-sdk explain <topic> --format raw` before writing or reviewing Fluent code. If local guidance conflicts with `now-sdk explain`, the installed SDK documentation wins.
 
 ## What This Skill Still Owns
 

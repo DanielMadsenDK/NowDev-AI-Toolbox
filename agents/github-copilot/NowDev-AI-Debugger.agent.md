@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: specialized agent for debugging ServiceNow scripts, logs, and performance issues
 argument-hint: "Description of the issue or error, relevant file paths, any error messages or stack traces, symptoms observed, and the artifact type involved (Script Include, Business Rule, Client Script, Fluent metadata, etc.)"
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/handleDialog', 'browser/runPlaywrightCode', 'web/githubTextSearch']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalLastCommand, read/getTaskOutput, search, web, browser, todo]
 agents: []
 handoffs:
   - label: Back to Architect

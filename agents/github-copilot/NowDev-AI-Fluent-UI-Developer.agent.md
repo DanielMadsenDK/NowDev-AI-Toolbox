@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for all user-facing artifacts — UI Pages (React), Client Scripts, UI Policies, UI Actions, Service Catalog, Service Portal, Workspaces, and Dashboards
 argument-hint: "The UI and user experience requirements from the implementation brief — forms, pages, catalogs, portals, and workspace features. Include table names, Script Include names (for GlideAjax calls), and role names already built by the Schema and Logic developers."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
 agents: []
 handoffs:
   - label: Back to Fluent Developer

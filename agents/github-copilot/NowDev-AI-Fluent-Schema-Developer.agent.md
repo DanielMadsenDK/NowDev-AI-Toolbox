@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for schema and configuration artifacts — Tables, table augments, Roles, ACLs, Data Policies, System Properties, Application Menus, Lists, Cross-Scope Privileges, Form layouts, Instance Scan checks, now.config.json, and other structural foundation metadata
 argument-hint: "The schema and structural requirements from the implementation brief — table definitions, access control requirements, roles needed, system properties, and navigation modules. The agent will implement all foundation .now.ts metadata."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
 agents: []
 handoffs:
   - label: Back to Fluent Developer

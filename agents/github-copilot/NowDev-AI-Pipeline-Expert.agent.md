@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: specialized agent for generating CI/CD pipeline configuration — creates GitHub Actions workflows and Azure DevOps pipelines for automated Fluent SDK deployments to ServiceNow environments; covers credential management, branch strategies, and multi-scope deployments
 argument-hint: "Project root path, target environments (dev/test/prod), CI platform (github-actions/azure-devops), branch strategy (branch-per-env/trunk), and list of scopes if multi-scope"
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/getTerminalOutput', 'execute/runInTerminal', 'web/githubTextSearch']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
 agents: []
 handoffs:
   - label: Back to Architect

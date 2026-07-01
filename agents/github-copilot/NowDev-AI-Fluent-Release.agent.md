@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: specialized agent for Fluent SDK deployment — runs now-sdk build and install, verifies build output, and guides the user through SDK-based deployment to a ServiceNow instance
 argument-hint: "Project root path, target auth alias (from now-sdk auth --list), and whether a clean reinstall (--reinstall) is needed"
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'search', 'web', 'todo', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalSelection, read/terminalLastCommand, search, web, todo]
 agents: []
 handoffs:
   - label: Back to Architect

@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK coordinator — analyzes the implementation brief, sequences work across Schema, Logic, Automation, and UI specialists, and reports back to the orchestrator
 argument-hint: "The refined implementation brief or feature description for what needs to be built — include the business requirements, user story, and any known ServiceNow context (existing tables, scope, instance details). The agent will determine the required Fluent artifacts and delegate to the right specialists."
-tools: ['read/readFile', 'search', 'web', 'todo', 'agent', 'web/githubRepo']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
 agents: ['NowDev-AI-Fluent-Schema-Developer', 'NowDev-AI-Fluent-Logic-Developer', 'NowDev-AI-Fluent-Automation-Developer', 'NowDev-AI-Fluent-UI-Developer', 'NowDev-AI-AI-Agent-Developer', 'NowDev-AI-NowAssist-Developer', 'NowDev-AI-ATF-Developer']
 handoffs:
   - label: Back to Architect

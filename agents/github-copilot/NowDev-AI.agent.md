@@ -3,7 +3,7 @@ name: NowDev AI Agent
 description: Agentic ServiceNow development orchestrated and delivered by multiple specialized AI agents
 argument-hint: "Describe the ServiceNow task, feature, debugging issue, review request, release, pipeline, or quick question to route through NowDev AI."
 agents: ['NowDev-AI-Assistant', 'NowDev-AI-Refinement', 'NowDev-AI-Fluent-Developer', 'NowDev-AI-Debugger', 'NowDev-AI-Fluent-Reviewer', 'NowDev-AI-Fluent-Release', 'NowDev-AI-Pipeline-Expert']
-tools: ['vscode/askQuestions', 'read/readFile', 'read/problems', 'read/terminalLastCommand', 'agent', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'vscode/resolveMemoryFileUri', 'execute/getTerminalOutput', 'execute/runInTerminal', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'browser/openBrowserPage', 'browser/readPage', 'browser/screenshotPage', 'browser/clickElement', 'browser/typeInPage', 'browser/hoverElement', 'browser/dragElement', 'browser/navigatePage', 'browser/handleDialog', 'browser/runPlaywrightCode']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, browser, todo]
 user-invocable: true
 ---
 {{PROFILE_INSTRUCTIONS}}

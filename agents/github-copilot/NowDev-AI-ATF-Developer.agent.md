@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: Fluent SDK specialist for generating ATF Test() definitions covering form, REST, server-side, catalog, and navigation test steps from session artifacts
 argument-hint: "Completed artifacts to test from the session artifact registry — e.g. 'Table: x_app_incident (fields: number, state, assigned_to), ScriptInclude: IncidentUtils (clientCallable: getActiveCount, reassign), REST: /api/x_app/v1/incidents, CatalogItem: Request New Laptop'. Include exact names and exports so tests reference real identifiers."
-tools: ['read/readFile', 'read/problems', 'read/terminalLastCommand', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'todo', 'vscode/memory', 'execute/getTerminalOutput', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal']
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
 agents: []
 handoffs:
   - label: Back to Fluent Developer
