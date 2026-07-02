@@ -161,10 +161,10 @@ export function renderProjectTab(): string {
 
             <div class="field">
                 <label for="instanceUrl">Instance URL</label>
-                <div class="field-desc">Used by agents for context (e.g. https://mydev.service-now.com)</div>
+                <div class="field-desc">Follows the default <code class="nd-code-sm">now-sdk</code> auth alias (SDK &amp; Instance tab). Used by agents for context.</div>
                 <div class="instance-url-row">
-                    <input type="text" id="instanceUrl" placeholder="https://instance.service-now.com" spellcheck="false">
-                    <button class="fix-btn" id="testConnection" title="Test reachability of the configured instance">Test</button>
+                    <input type="text" id="instanceUrl" placeholder="No default auth alias configured" spellcheck="false" readonly>
+                    <button class="fix-btn" id="testConnection" title="Test reachability of the instance">Test</button>
                 </div>
                 <div id="connectionStatus" class="connection-status" aria-live="polite"></div>
             </div>

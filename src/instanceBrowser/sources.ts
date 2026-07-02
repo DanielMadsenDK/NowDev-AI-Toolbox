@@ -41,7 +41,7 @@ export function unique(values: string[]): string[] {
     return values.filter((v, index, all) => v && all.indexOf(v) === index);
 }
 
-export function buildQuery(def: SourceDef, scope: string, terms: string[]): string {
+export function buildQuery(def: SourceDef, scope: string, terms: string[], extra: string[] = []): string {
     const filters: string[] = [];
     const cleaned = terms.map(t => String(t ?? '').trim().replace(/\^/g, '')).filter(Boolean);
     if (cleaned.length) {
@@ -53,6 +53,7 @@ export function buildQuery(def: SourceDef, scope: string, terms: string[]): stri
     }
     if (scope && scope !== '*') { filters.push(`sys_scope.scope=${scope}`); }
     if (def.baseQuery) { filters.push(def.baseQuery); }
+    filters.push(...extra);
     return filters.join('^');
 }
 

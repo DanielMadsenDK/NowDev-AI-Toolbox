@@ -37,6 +37,8 @@ interface SdkQueryOptions {
 interface SdkQueryEnvelope {
     ok: boolean;
     records?: Record<string, unknown>[];
+    hasMore?: boolean;
+    nextOffset?: number | null;
     error?: { message?: string };
 }
 
@@ -107,7 +109,7 @@ class InstanceBrowserController {
             sources: SOURCES.map(({ key, label, table, discover, guideline }) => ({ key, label, table, discover, guideline })),
         });
         this.sendCurrentDeps();
-        if (this.currentAlias) { void this.loadScopes(); }
+        if (this.currentAlias) { void this.loadScopes(); void this.loadKnowledgeBases(); }
     }
 
     setMode(mode: BrowserMode): void {
@@ -124,8 +126,23 @@ class InstanceBrowserController {
             case 'selectAlias':
                 this.currentAlias = msg.alias;
                 this.post({ type: 'aliasSelected', alias: this.currentAlias });
-                if (this.currentAlias) { await this.loadScopes(); }
+                if (this.currentAlias) { await Promise.all([this.loadScopes(), this.loadKnowledgeBases()]); }
                 return;
+            case 'rescanAliases': {
+                this.post({ type: 'busy', target: 'aliases', message: 'Rescanning auth aliases...' });
+                const aliases = scanAuthAliases(true);
+                if (!aliases.find(a => a.alias === this.currentAlias)) {
+                    this.currentAlias = aliases.find(a => a.isDefault)?.alias ?? aliases[0]?.alias;
+                }
+                this.post({ type: 'busy', target: 'aliases', message: '' });
+                this.post({
+                    type: 'aliases',
+                    aliases: aliases.map(a => ({ alias: a.alias, host: a.host, isDefault: a.isDefault })),
+                    currentAlias: this.currentAlias,
+                });
+                if (this.currentAlias) { await Promise.all([this.loadScopes(), this.loadKnowledgeBases()]); }
+                return;
+            }
             case 'selectPackage': {
                 const all = findNowConfigs();
                 this.currentPackage = all.find(p => p.configPath === msg.path) ?? all[0];
@@ -133,7 +150,7 @@ class InstanceBrowserController {
                 return;
             }
             case 'search':
-                await this.search(msg.source, msg.scope, msg.term, msg.offset ?? 0);
+                await this.search(msg.source, msg.scope, msg.term, msg.offset ?? 0, msg.kb);
                 return;
             case 'discover':
                 await this.discover(msg.sources, msg.scope, msg.keywords, msg.limit ?? 30);
@@ -177,7 +194,7 @@ class InstanceBrowserController {
         this.post({ type: 'busy', target: 'scopes', message: 'Loading scopes...' });
         let records: Record<string, unknown>[] = [];
         try {
-            records = await this.runQuery('sys_scope', {
+            records = await this.runQueryAll('sys_scope', {
                 fields: ['sys_id', 'name', 'scope'],
                 limit: 500,
                 query: 'scopeISNOTEMPTY^ORDERBYscope',
@@ -202,11 +219,39 @@ class InstanceBrowserController {
         this.post({ type: 'scopes', scopes });
     }
 
-    private async search(sourceKey: string, scope: string, term: string, offset: number): Promise<void> {
+    private async loadKnowledgeBases(): Promise<void> {
+        if (!this.currentAlias) { return; }
+        this.post({ type: 'busy', target: 'knowledgeBases', message: 'Loading knowledge bases...' });
+        let records: Record<string, unknown>[] = [];
+        try {
+            records = await this.runQueryAll('kb_knowledge_base', {
+                fields: ['sys_id', 'title'],
+                limit: 200,
+                query: 'active=true^ORDERBYtitle',
+            });
+        } catch (err: any) {
+            this.post({ type: 'busy', target: 'knowledgeBases', message: '' });
+            this.post({ type: 'error', message: `Failed to load knowledge bases with now-sdk query: ${err?.message ?? err}` });
+            return;
+        }
+        const knowledgeBases: { sys_id: string; title: string }[] = [];
+        for (const rec of records as any[]) {
+            const sysId = String(rec.sys_id ?? '').trim();
+            const title = String(rec.title ?? '').trim();
+            if (!sysId || !title) { continue; }
+            knowledgeBases.push({ sys_id: sysId, title });
+        }
+        knowledgeBases.unshift({ sys_id: '', title: 'All Knowledge Bases' });
+        this.post({ type: 'busy', target: 'knowledgeBases', message: '' });
+        this.post({ type: 'knowledgeBases', knowledgeBases });
+    }
+
+    private async search(sourceKey: string, scope: string, term: string, offset: number, kb?: string): Promise<void> {
         if (!this.currentAlias) { return; }
         const def = SOURCES.find(s => s.key === sourceKey);
         if (!def) { return; }
-        const query = buildQuery(def, scope, [term]);
+        const extra = kb ? [`kb_knowledge_base=${kb}`] : [];
+        const query = buildQuery(def, scope, [term], extra);
         const fields = unique(['sys_id', ...def.fields]);
         this.post({ type: 'busy', target: 'browse', message: `Searching ${def.label}...` });
         try {
@@ -341,14 +386,20 @@ class InstanceBrowserController {
         return workspaceFolder ? path.join(workspaceFolder, '.vscode', 'nowdev-ai-config.json') : undefined;
     }
 
-    private runQuery(table: string, options: SdkQueryOptions): Promise<Record<string, unknown>[]> {
+    private runQueryPage(table: string, options: SdkQueryOptions): Promise<{ records: Record<string, unknown>[]; hasMore: boolean; nextOffset: number | null }> {
         return new Promise((resolve, reject) => {
             if (!this.currentAlias) {
                 reject(new Error('No now-sdk auth alias selected.'));
                 return;
             }
-            const args = ['query', table, '-o', 'json', '--auth', this.currentAlias];
-            if (options.query) { args.push('--query', options.query); }
+            // --no-count skips the X-Total-Count header calculation for a faster
+            // response; we only ever use hasMore/nextOffset from the JSON envelope,
+            // which --no-count does not affect.
+            const args = ['query', table, '-o', 'json', '--auth', this.currentAlias, '--no-count'];
+            // now-sdk query requires --query even when there's no filter (an empty
+            // string is accepted; omitting the flag entirely errors with "Missing
+            // required argument: query").
+            args.push('--query', options.query ?? '');
             if (options.fields?.length) { args.push('--fields', options.fields.join(',')); }
             if (options.limit !== undefined) { args.push('--limit', String(options.limit)); }
             if (options.offset !== undefined && options.offset > 0) { args.push('--offset', String(options.offset)); }
@@ -373,12 +424,31 @@ class InstanceBrowserController {
                         reject(new Error(envelope.error?.message ?? 'now-sdk query returned ok:false'));
                         return;
                     }
-                    resolve(envelope.records ?? []);
+                    resolve({ records: envelope.records ?? [], hasMore: !!envelope.hasMore, nextOffset: envelope.nextOffset ?? null });
                 } catch (err: any) {
                     reject(new Error(`Could not parse now-sdk query output: ${err?.message ?? err}`));
                 }
             });
         });
+    }
+
+    private async runQuery(table: string, options: SdkQueryOptions): Promise<Record<string, unknown>[]> {
+        const { records } = await this.runQueryPage(table, options);
+        return records;
+    }
+
+    /** Loops on hasMore/nextOffset to collect every record, for dropdown-style "load it all" queries. */
+    private async runQueryAll(table: string, options: SdkQueryOptions, maxRecords = 2000): Promise<Record<string, unknown>[]> {
+        const pageSize = options.limit ?? 100;
+        let offset = options.offset ?? 0;
+        const all: Record<string, unknown>[] = [];
+        for (;;) {
+            const { records, hasMore, nextOffset } = await this.runQueryPage(table, { ...options, limit: pageSize, offset });
+            all.push(...records);
+            if (!hasMore || nextOffset === null || all.length >= maxRecords) { break; }
+            offset = nextOffset;
+        }
+        return all;
     }
 
     private readSavedGuidelines(): GuidelineArticleRef[] {

@@ -70,8 +70,11 @@ export function showSdkQueryPanel(
     const params: QueryParams = { table, query, fields, limit, displayValue, offset, page };
     panel.webview.html = loadingHtml(table);
 
-    const args = ['query', table, '-o', 'json'];
-    if (query)        { args.push('--query', query); }
+    const args = ['query', table, '-o', 'json', '--no-count'];
+    // now-sdk query requires --query even with no filter (an empty string is
+    // accepted; omitting the flag entirely errors with "Missing required
+    // argument: query").
+    args.push('--query', query ?? '');
     if (fields)       { args.push('--fields', fields); }
     if (limit)        { args.push('--limit', limit); }
     if (offset > 0)   { args.push('--offset', String(offset)); }

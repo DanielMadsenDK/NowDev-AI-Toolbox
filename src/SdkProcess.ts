@@ -40,22 +40,48 @@ export function findNowSdkExecutable(): string | undefined {
 }
 
 /**
- * Quotes a single token for a cmd.exe command line.
+ * Quotes a single token for a PowerShell command line (single-quoted string,
+ * with embedded single quotes doubled per PowerShell's escaping convention).
  *
- * On Windows the now-sdk/npm shims are `.cmd` files, so they must be spawned
- * through a shell (`shell:true`). Node does NOT quote the executable or arguments
- * when `shell:true` — it just joins them with spaces and hands the string to
- * cmd.exe. That breaks two ways:
- *   1. A path containing a space (a Windows username like "John Smith", or
- *      "C:\Program Files\nodejs\now-sdk.cmd") is split by cmd.exe, so the command
- *      is not found.
- *   2. cmd metacharacters in arguments are interpreted — notably the "^" used in
- *      ServiceNow encoded queries (active=true^ORDERBYname) is silently stripped.
- * Wrapping each token in double quotes (and doubling embedded quotes, the cmd.exe
- * convention) makes cmd.exe treat the token verbatim.
+ * On Windows the now-sdk/npm shims are `.cmd` files, which can't be spawned
+ * directly with `shell:false` (EINVAL on patched Node), so we invoke them via
+ * `powershell -Command`. PowerShell single-quoted strings treat "^", "$", and
+ * backticks as literal characters, so this preserves paths containing a space
+ * (a Windows username like "John Smith", or "C:\Program Files\nodejs\now-sdk.cmd").
+ *
+ * "^" needs separate handling — see quadrupleCaret.
+ *
+ * @param quadrupleCaret Quadruple any "^" in the token before quoting (see
+ * needsCaretQuadrupling for why).
  */
-export function quoteWindowsToken(token: string): string {
-    return '"' + String(token).replace(/"/g, '""') + '"';
+export function quotePowerShellToken(token: string, quadrupleCaret: boolean): string {
+    const value = quadrupleCaret ? String(token).replace(/\^/g, '^^^^') : String(token);
+    return "'" + value.replace(/'/g, "''") + "'";
+}
+
+/**
+ * Whether a Windows executable target is launched via an implicit cmd.exe
+ * layer (batch files), as opposed to a real .exe the OS launches directly.
+ *
+ * PowerShell's single-quoted strings pass "^" through to CreateProcess as a
+ * literal character. But .cmd/.bat files are batch scripts, and launching one
+ * always goes through cmd.exe — and npm's generated shims (like now-sdk.cmd)
+ * forward their arguments a *second* time via "%*" inside the script body,
+ * which cmd.exe re-parses again. Each of those two cmd.exe passes treats "^"
+ * as an escape character and collapses one level of doubling, so a literal
+ * "^" (used to AND-chain ServiceNow encoded queries, e.g.
+ * "active=true^ORDERBYname") must arrive as "^^^^" to survive both passes and
+ * reach the wrapped Node process as a single "^". Verified empirically
+ * against the real now-sdk.cmd shim — without this, any query with more than
+ * one condition (^) or an ORDERBY silently returns zero records instead of
+ * erroring, because cmd.exe strips the "^" rather than rejecting the query.
+ *
+ * A bare name with no extension (e.g. the "now-sdk" fallback in
+ * AuthAliasScanner) resolves through PATHEXT, which for an npm CLI always
+ * lands on the .cmd shim too — so only a literal ".exe" target is exempt.
+ */
+function needsCaretQuadrupling(executable: string): boolean {
+    return !/\.exe$/i.test(executable);
 }
 
 /**
@@ -63,10 +89,11 @@ export function quoteWindowsToken(token: string): string {
  * (`spawnSync`) invocations of a CLI shim.
  *
  * Windows: spawning a `.cmd` with `shell:false` throws EINVAL on patched Node, so
- * we must use cmd.exe (`shell:true`). Because Node performs no quoting in that mode,
- * we pre-build the full command line ourselves with every token quoted and pass it
- * as a single string (with an empty args array). This is the only reliable way to
- * survive paths/usernames containing spaces and to preserve "^" in encoded queries.
+ * we invoke it through PowerShell instead of relying on `shell:true` (which would
+ * delegate to cmd.exe via COMSPEC). We pre-build the full invocation ourselves with
+ * every token quoted and pass it as a single `-Command` argument to `powershell.exe`
+ * (a real executable, so `shell:false` is fine). This survives paths/usernames
+ * containing spaces and preserves "^" in encoded queries (see needsCaretQuadrupling).
  *
  * Unix: the shim is directly executable, so we pass argv untouched with `shell:false`.
  */
@@ -75,8 +102,9 @@ export function buildShellInvocation(
     args: string[]
 ): { command: string; args: string[]; shell: boolean } {
     if (isWindows) {
-        const commandLine = [executable, ...args].map(quoteWindowsToken).join(' ');
-        return { command: commandLine, args: [], shell: true };
+        const quadrupleCaret = needsCaretQuadrupling(executable);
+        const commandLine = '& ' + [executable, ...args].map(t => quotePowerShellToken(t, quadrupleCaret)).join(' ');
+        return { command: 'powershell', args: ['-NoProfile', '-NonInteractive', '-Command', commandLine], shell: false };
     }
     return { command: executable, args, shell: false };
 }

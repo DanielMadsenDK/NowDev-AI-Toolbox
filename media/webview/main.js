@@ -109,19 +109,6 @@
         });
     });
 
-    // ── Setup tab: config inputs with debounce ─────────────────────
-    let debounceTimers = {};
-    function debounceUpdate(key, value) {
-        clearTimeout(debounceTimers[key]);
-        debounceTimers[key] = setTimeout(() => {
-            vscode.postMessage({ command: 'updateConfig', key, value });
-        }, 600);
-    }
-
-    document.getElementById('instanceUrl').addEventListener('input', (e) => {
-        debounceUpdate('instanceUrl', e.target.value.trim());
-    });
-
     // ── Setup tab: file picker ─────────────────────────────────────
     document.getElementById('browseFile').addEventListener('click', () => {
         vscode.postMessage({ command: 'browseFile' });
@@ -570,9 +557,7 @@
         const urlInput = document.getElementById('instanceUrl');
         _wsState.hasInstanceUrl = !!(settings && settings.instanceUrl);
         _wsState.hasCustomInstructionsFile = !!(settings && settings.customInstructionsFile);
-        if (document.activeElement !== urlInput) {
-            urlInput.value = settings.instanceUrl || '';
-        }
+        urlInput.value = settings.instanceUrl || '';
         const filePathEl = document.getElementById('filePath');
         const clearBtn = document.getElementById('clearFile');
         if (settings.customInstructionsFile) {
@@ -1590,31 +1575,21 @@
             });
         }
 
-        if (!_wsState.hasInstanceUrl) {
-            steps.push({
-                tone: 'info',
-                title: 'Set your ServiceNow instance URL',
-                detail: 'Project-aware prompts and connection checks work better once the workspace knows which instance you are targeting.',
-                action: 'gotoProject',
-                label: 'Open Setup Tab',
-            });
-        } else if (_wsState.conn && !_wsState.conn.checking && !_wsState.conn.reachable) {
-            steps.push({
-                tone: 'warn',
-                title: 'Verify instance connectivity',
-                detail: 'The configured instance is currently unreachable' + (_wsState.conn.error ? ': ' + _wsState.conn.error + '.' : '.') + ' Recheck the URL or network path.',
-                action: 'gotoProject',
-                label: 'Review Connection',
-            });
-        }
-
         if (_wsState.authAliasesLoaded && _wsState.authAliasCount === 0) {
             steps.push({
                 tone: 'info',
                 title: 'Add an SDK auth alias',
-                detail: 'Most SDK workflows are faster once now-sdk has a saved auth alias for your instance.',
+                detail: 'Add a now-sdk auth alias so the extension knows which instance to target for connection checks, queries, and browsing.',
                 action: 'gotoSdk',
                 label: 'Open SDK & Instance Tab',
+            });
+        } else if (_wsState.hasInstanceUrl && _wsState.conn && !_wsState.conn.checking && !_wsState.conn.reachable) {
+            steps.push({
+                tone: 'warn',
+                title: 'Verify instance connectivity',
+                detail: 'The instance for your default auth alias is currently unreachable' + (_wsState.conn.error ? ': ' + _wsState.conn.error + '.' : '.') + ' Recheck the alias or network path.',
+                action: 'gotoProject',
+                label: 'Review Connection',
             });
         }
 

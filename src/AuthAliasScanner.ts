@@ -20,26 +20,64 @@ export interface AuthAlias {
  *         type = oauth
  *         default = Yes
  */
-export function scanAuthAliases(): AuthAlias[] {
+let cachedAliases: AuthAlias[] | undefined;
+
+/**
+ * Cached across the extension host session — the underlying scan spawns a
+ * process (and on Windows, PowerShell) and can take seconds. Every UI surface
+ * (Welcome tab, Instance Browser) shares this cache so only the first caller
+ * pays the scan cost; pass forceRefresh after credentials change.
+ */
+export function scanAuthAliases(forceRefresh = false): AuthAlias[] {
+    if (!forceRefresh && cachedAliases !== undefined) { return cachedAliases; }
+    let result: AuthAlias[] = [];
     for (const raw of collectAuthListOutputs()) {
         if (raw.includes('Listing all credentials') || /^\s*\*?\[.+\]\s*$/m.test(raw)) {
             const aliases = parseAuthListOutput(raw);
-            if (aliases.length > 0) { return aliases; }
+            if (aliases.length > 0) { result = aliases; break; }
         }
     }
-    return [];
+    cachedAliases = result;
+    return result;
+}
+
+function pickDefaultHost(aliases: AuthAlias[]): string {
+    return aliases.find(a => a.isDefault)?.host ?? aliases[0]?.host ?? '';
+}
+
+/**
+ * The instance URL for the alias `now-sdk` currently treats as default
+ * (`now-sdk auth --use <alias>`), falling back to the first alias if none is
+ * flagged default. This is the single source of truth for "the instance" —
+ * every view that needs an instance URL should derive it from here instead
+ * of asking the user to enter one separately. Triggers a scan (and its
+ * process-spawn cost) if the alias list hasn't been read yet this session;
+ * only call this from explicit user actions, not passive status refreshes —
+ * use getCachedDefaultInstanceHost() for those.
+ */
+export function getDefaultInstanceHost(): string {
+    return pickDefaultHost(scanAuthAliases());
+}
+
+/**
+ * Same as getDefaultInstanceHost(), but never triggers a scan — returns ''
+ * until some other surface (SDK tab, Instance Browser, a rescan) has
+ * populated the cache. Safe to call from frequent/passive status refreshes.
+ */
+export function getCachedDefaultInstanceHost(): string {
+    return cachedAliases ? pickDefaultHost(cachedAliases) : '';
 }
 
 /**
  * Runs `now-sdk auth --list` and yields stdout+stderr for each strategy.
  *
- * On Windows the now-sdk shim is a `.cmd`, so it must run through cmd.exe
- * (shell:true) with a closed stdin — an open stdin pipe hangs the CLI (ETIMEDOUT).
- * We resolve the shim by full path so detection survives a stripped PATH in
- * GUI-launched VS Code, then fall back to a bare `now-sdk` on PATH. The full path
- * (and the bare name) are routed through buildShellInvocation so they are quoted:
- * without quoting, a path containing a space (e.g. a username like "John Smith")
- * makes cmd.exe fail with "'C:\\Users\\John' is not recognized".
+ * On Windows the now-sdk shim is a `.cmd`, so it must run through PowerShell
+ * (`powershell -Command`) with a closed stdin — an open stdin pipe hangs the CLI
+ * (ETIMEDOUT). We resolve the shim by full path so detection survives a stripped
+ * PATH in GUI-launched VS Code, then fall back to a bare `now-sdk` on PATH. The full
+ * path (and the bare name) are routed through buildShellInvocation so they are
+ * quoted: without quoting, a path containing a space (e.g. a username like
+ * "John Smith") makes the shell fail to find the command.
  */
 function collectAuthListOutputs(): string[] {
     const outputs: string[] = [];
@@ -62,7 +100,7 @@ function collectAuthListOutputs(): string[] {
                 encoding: 'utf-8',
                 // stdin must be closed: now-sdk hangs waiting for input on an open
                 // stdin pipe when run non-interactively (ETIMEDOUT). On Windows the
-                // shim is a .cmd that requires a shell (cmd) to execute.
+                // shim is a .cmd that requires PowerShell to execute.
                 stdio: ['ignore', 'pipe', 'pipe'],
                 shell,
                 windowsHide: true,

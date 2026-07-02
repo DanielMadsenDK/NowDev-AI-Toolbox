@@ -7,6 +7,7 @@ import { spawnSdk } from '../SdkProcess';
 import { showSdkExplainPanel } from '../SdkExplainPanel';
 import { showSdkQueryPanel } from '../SdkQueryPanel';
 import { showInstanceBrowserPanel } from '../InstanceBrowserPanel';
+import { getDefaultInstanceHost } from '../AuthAliasScanner';
 import {
     getWorkspaceFolder,
     captureSdkOutput,
@@ -243,7 +244,10 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
                 // OAuth requires interactive stdin so the user can paste the authorization
                 // code from the browser. An Output Channel is read-only, so we open a
                 // real VS Code terminal instead.
-                const terminal = vscode.window.createTerminal({ name: 'NowDev: SDK Auth Add (OAuth)' });
+                const terminal = vscode.window.createTerminal({
+                    name: 'NowDev: SDK Auth Add (OAuth)',
+                    shellPath: process.platform === 'win32' ? 'powershell.exe' : undefined,
+                });
                 terminal.show();
                 terminal.sendText(`now-sdk ${cmdArgs.join(' ')}`);
                 const listener = vscode.window.onDidCloseTerminal(t => {
@@ -310,10 +314,10 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
 
         // Connection health check
         vscode.commands.registerCommand('nowdev-ai-toolbox.checkConnection', async () => {
-            const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
-            const instanceUrl = config.get<string>('instanceUrl', '');
+            const instanceUrl = getDefaultInstanceHost();
+            welcomeProvider.refreshStatus();
             if (!instanceUrl) {
-                vscode.window.showWarningMessage('No instance URL configured. Set it in the NowDev Setup tab first.');
+                vscode.window.showWarningMessage('No now-sdk auth alias configured. Add one in the NowDev SDK & Instance tab first.');
                 return;
             }
             welcomeProvider.setConnectionStatus({ checking: true, reachable: false, timestamp: new Date().toISOString() });

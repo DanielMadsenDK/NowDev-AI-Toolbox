@@ -8,7 +8,7 @@ import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
 import { syncAllAgents, syncWorkspaceInstructionsFile, syncWorkspacePromptFiles, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
 import { BUILT_IN_PROFILES, DEFAULT_PROFILE_ID, getProfileById, getEffectiveAgentConfig } from './ProfileManager';
 import { readArtifactStateFile, writeArtifactStateFile } from './ArtifactStateManager';
-import { scanAuthAliases, AuthAlias } from './AuthAliasScanner';
+import { scanAuthAliases, getCachedDefaultInstanceHost, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
 import { SdkCommandStatus, InstallInfoState, ConnectionState, CheckChangesState, AvailableAgentModel, PrerequisiteStatusKind, PrerequisiteStatus, RequiredSetting, InspectWithPolicy } from './welcome/welcomeTypes';
 import { normalizeModelOverride, resolveInside, isSafeRelativePath, capitalize, AUTO_ENABLE_MCP_PATTERNS } from './welcome/welcomeUtils';
@@ -54,7 +54,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     /** Re-scans auth aliases and pushes them to the webview. */
     public refreshAuthAliases(): void {
-        this._sendSdkData();
+        this._sendSdkData(true);
     }
 
     public setInstallInfo(state: InstallInfoState): void {
@@ -182,12 +182,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 case 'resetArtifactState':
                     await this._resetArtifactStateFile();
                     break;
-                case 'updateConfig': {
-                    const config = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
-                    await config.update(message.key, message.value, vscode.ConfigurationTarget.Global);
-                    this._updateStatus();
-                    break;
-                }
                 case 'browseFile': {
                     const uris = await vscode.window.showOpenDialog({
                         canSelectMany: false,
@@ -483,7 +477,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     showSdkCommandHelpPanel(message.cmd);
                     break;
                 case 'rescanAuthAliases':
-                    this._sendSdkData();
+                    this._sendSdkData(true);
                     break;
                 case 'checkConnection':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.checkConnection');
@@ -631,7 +625,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             }
         }
         const settings = {
-            instanceUrl: toolboxConfig.get<string>('instanceUrl', ''),
+            instanceUrl: getCachedDefaultInstanceHost(),
             customInstructionsFile,
         };
 
@@ -739,13 +733,16 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         return [...new Set(models.map(model => model.trim()).filter(Boolean))];
     }
 
-    private _sendSdkData(): void {
+    private _sendSdkData(forceRefresh = false): void {
         if (!this._view) { return; }
-        this._authAliases = scanAuthAliases();
+        this._authAliases = scanAuthAliases(forceRefresh);
         this._view.webview.postMessage({
             command: 'updateSdkData',
             authAliases: this._authAliases,
         });
+        // The Setup tab's Instance URL and connection-check steps derive from
+        // the default auth alias — refresh them now that the alias list changed.
+        this._updateStatus();
     }
 
     private _sendArtifacts() {
