@@ -12,19 +12,17 @@ export const sdkExecutable = 'now-sdk';
 const isWindows = process.platform === 'win32';
 
 /**
- * Locates the now-sdk shim on disk so it can be invoked by full path, bypassing
- * PATH issues in GUI-launched VS Code processes. Checks PATH dirs plus the npm
- * global prefix (%APPDATA%\npm) for now-sdk.cmd / .exe / .bat. Result is cached.
+ * Scans PATH + well-known npm/node install dirs for the first matching filename.
+ * Shared by findNowSdkExecutable/findNpmExecutable/findNodeExecutable so all three
+ * look in the same places (a stripped PATH in GUI-launched VS Code is common).
  */
-let cachedShim: string | null | undefined;
-export function findNowSdkExecutable(): string | undefined {
-    if (cachedShim !== undefined) { return cachedShim ?? undefined; }
+function findExecutableOnDisk(names: string[], cache: { value: string | null | undefined }): string | undefined {
+    if (cache.value !== undefined) { return cache.value ?? undefined; }
     const dirs: string[] = [];
     const pathEnv = process.env.PATH || process.env.Path || '';
     dirs.push(...pathEnv.split(path.delimiter).filter(Boolean));
     if (process.env.APPDATA) { dirs.push(path.join(process.env.APPDATA, 'npm')); }
     dirs.push('C:\\Program Files\\nodejs', 'C:\\Program Files (x86)\\nodejs');
-    const names = isWindows ? ['now-sdk.cmd', 'now-sdk.exe', 'now-sdk.bat'] : ['now-sdk'];
     const seen = new Set<string>();
     for (const dir of dirs) {
         const norm = path.normalize(dir);
@@ -32,49 +30,60 @@ export function findNowSdkExecutable(): string | undefined {
         seen.add(norm);
         for (const name of names) {
             const candidate = path.join(norm, name);
-            try { if (fs.existsSync(candidate)) { cachedShim = candidate; return candidate; } } catch { /* skip */ }
+            try { if (fs.existsSync(candidate)) { cache.value = candidate; return candidate; } } catch { /* skip */ }
         }
     }
-    cachedShim = null;
+    cache.value = null;
     return undefined;
 }
 
 /**
- * Quotes a single token for a PowerShell command line (single-quoted string,
- * with embedded single quotes doubled per PowerShell's escaping convention).
- *
- * On Windows the now-sdk/npm shims are `.cmd` files, which can't be spawned
- * directly with `shell:false` (EINVAL on patched Node), so we invoke them via
- * `powershell -Command`. PowerShell single-quoted strings treat "^", "$", and
- * backticks as literal characters, so this preserves paths containing a space
- * (a Windows username like "John Smith", or "C:\Program Files\nodejs\now-sdk.cmd").
- *
- * "^" needs separate handling — see quadrupleCaret.
- *
- * @param quadrupleCaret Quadruple any "^" in the token before quoting (see
- * needsCaretQuadrupling for why).
+ * Locates the now-sdk shim on disk so it can be invoked by full path, bypassing
+ * PATH issues in GUI-launched VS Code processes. Checks PATH dirs plus the npm
+ * global prefix (%APPDATA%\npm) for now-sdk.cmd / .exe / .bat. Result is cached.
  */
-export function quotePowerShellToken(token: string, quadrupleCaret: boolean): string {
+const sdkShimCache: { value: string | null | undefined } = { value: undefined };
+export function findNowSdkExecutable(): string | undefined {
+    const names = isWindows ? ['now-sdk.cmd', 'now-sdk.exe', 'now-sdk.bat'] : ['now-sdk'];
+    return findExecutableOnDisk(names, sdkShimCache);
+}
+
+/** Locates the npm shim (npm.cmd on Windows) the same way as findNowSdkExecutable. */
+const npmShimCache: { value: string | null | undefined } = { value: undefined };
+export function findNpmExecutable(): string | undefined {
+    const names = isWindows ? ['npm.cmd'] : ['npm'];
+    return findExecutableOnDisk(names, npmShimCache);
+}
+
+/** Locates node.exe the same way as findNowSdkExecutable. */
+const nodeExeCache: { value: string | null | undefined } = { value: undefined };
+export function findNodeExecutable(): string | undefined {
+    const names = isWindows ? ['node.exe'] : ['node'];
+    return findExecutableOnDisk(names, nodeExeCache);
+}
+
+/**
+ * Quotes a single token for a cmd.exe command line (double-quoted, embedded
+ * quotes doubled) and, for .cmd/.bat targets, quadruples any "^" so it survives
+ * the shim's own internal argument forwarding (see needsCaretQuadrupling).
+ */
+export function quoteWindowsToken(token: string, quadrupleCaret: boolean): string {
     const value = quadrupleCaret ? String(token).replace(/\^/g, '^^^^') : String(token);
-    return "'" + value.replace(/'/g, "''") + "'";
+    return '"' + value.replace(/"/g, '""') + '"';
 }
 
 /**
  * Whether a Windows executable target is launched via an implicit cmd.exe
  * layer (batch files), as opposed to a real .exe the OS launches directly.
  *
- * PowerShell's single-quoted strings pass "^" through to CreateProcess as a
- * literal character. But .cmd/.bat files are batch scripts, and launching one
- * always goes through cmd.exe — and npm's generated shims (like now-sdk.cmd)
- * forward their arguments a *second* time via "%*" inside the script body,
- * which cmd.exe re-parses again. Each of those two cmd.exe passes treats "^"
- * as an escape character and collapses one level of doubling, so a literal
- * "^" (used to AND-chain ServiceNow encoded queries, e.g.
+ * npm's generated shims (like now-sdk.cmd) forward their arguments a *second*
+ * time via "%*" inside the script body, and cmd.exe re-parses that. Each cmd.exe
+ * pass treats "^" as an escape character and collapses one level of doubling, so
+ * a literal "^" (used to AND-chain ServiceNow encoded queries, e.g.
  * "active=true^ORDERBYname") must arrive as "^^^^" to survive both passes and
- * reach the wrapped Node process as a single "^". Verified empirically
- * against the real now-sdk.cmd shim — without this, any query with more than
- * one condition (^) or an ORDERBY silently returns zero records instead of
- * erroring, because cmd.exe strips the "^" rather than rejecting the query.
+ * reach the wrapped Node process as a single "^" — otherwise cmd.exe silently
+ * strips it and any query with more than one condition (or an ORDERBY) returns
+ * zero records instead of erroring.
  *
  * A bare name with no extension (e.g. the "now-sdk" fallback in
  * AuthAliasScanner) resolves through PATHEXT, which for an npm CLI always
@@ -85,15 +94,88 @@ function needsCaretQuadrupling(executable: string): boolean {
 }
 
 /**
+ * Reads a batch (.cmd) shim generated by npm and resolves the real node.exe +
+ * .js entry point it ultimately runs, so we can invoke Node directly instead of
+ * going through a shell. npm's shims (now-sdk.cmd, npm.cmd, etc.) all share the
+ * same basic shape: a handful of `SET "NAME=value"` lines (using %~dp0/%dp0% —
+ * the shim's own directory — for paths) followed by one final line that invokes
+ * `"%SOME_NODE_VAR%" "%SOME_JS_VAR%" %*`.
+ *
+ * This is a best-effort static parse (not a batch interpreter): it takes the
+ * *first* SET for each variable name, which matches the true value in both
+ * shipped shims (now-sdk.cmd's IF/ELSE picks node.exe-next-to-the-shim first;
+ * npm.cmd's prefix-detection FOR/IF loop only overrides its variable *after*
+ * the default we read). Returns undefined if the shim can't be parsed or the
+ * resolved files don't actually exist on disk, so callers can fall back to the
+ * cmd.exe strategy instead.
+ */
+export function resolveDirectNodeInvocation(shimPath: string): { nodeExe: string; scriptPath: string } | undefined {
+    try {
+        if (!/\.(cmd|bat)$/i.test(shimPath) || !fs.existsSync(shimPath)) { return undefined; }
+        const content = fs.readFileSync(shimPath, 'utf-8');
+        const shimDir = path.dirname(shimPath) + path.sep;
+
+        // Every npm-generated shim picks node.exe via "IF EXIST %dp0%\node.exe" and
+        // falls back to a bare "node" resolved on PATH otherwise. We replicate that
+        // check directly instead of trusting whichever SET line appears first in the
+        // script text (the two shims disagree on which branch is textually first).
+        const adjacentNode = path.join(shimDir, 'node.exe');
+        const nodeExe = fs.existsSync(adjacentNode) ? adjacentNode : findNodeExecutable();
+        if (!nodeExe) { return undefined; }
+
+        const vars = new Map<string, string>();
+        const setRe = /^\s*SET\s+"?([A-Za-z_][A-Za-z0-9_]*)=([^"]*)"?\s*$/i;
+        for (const line of content.split(/\r?\n/)) {
+            const m = line.match(setRe);
+            if (m && !vars.has(m[1].toUpperCase())) {
+                vars.set(m[1].toUpperCase(), m[2]);
+            }
+        }
+
+        const substitute = (token: string): string => {
+            let value = token;
+            for (let i = 0; i < 5; i++) {
+                const before = value;
+                value = value.replace(/%~dp0/gi, shimDir).replace(/%dp0%/gi, shimDir);
+                value = value.replace(/%([A-Za-z_][A-Za-z0-9_]*)%/g, (whole, name: string) => {
+                    return vars.get(name.toUpperCase()) ?? whole;
+                });
+                if (value === before) { break; }
+            }
+            return value;
+        };
+
+        // The final line of the shim invokes "<node ref>" "<js entry>" %* — we only
+        // need the second (js entry) token; the node executable is resolved above.
+        const execLine = content.split(/\r?\n/).reverse().find(l => l.includes('%*'));
+        if (!execLine) { return undefined; }
+        const tokens = [...execLine.matchAll(/"([^"]*)"/g)].map(m => substitute(m[1]));
+        if (tokens.length < 2) { return undefined; }
+
+        const scriptPath = path.normalize(tokens[1]);
+        if (!fs.existsSync(scriptPath)) { return undefined; }
+
+        return { nodeExe: path.normalize(nodeExe), scriptPath };
+    } catch {
+        return undefined;
+    }
+}
+
+/**
  * Builds the (command, args, shell) tuple used for both async (`spawn`) and sync
  * (`spawnSync`) invocations of a CLI shim.
  *
- * Windows: spawning a `.cmd` with `shell:false` throws EINVAL on patched Node, so
- * we invoke it through PowerShell instead of relying on `shell:true` (which would
- * delegate to cmd.exe via COMSPEC). We pre-build the full invocation ourselves with
- * every token quoted and pass it as a single `-Command` argument to `powershell.exe`
- * (a real executable, so `shell:false` is fine). This survives paths/usernames
- * containing spaces and preserves "^" in encoded queries (see needsCaretQuadrupling).
+ * Windows: the now-sdk/npm shims are `.cmd` files. Rather than going through a
+ * shell to run them (cmd.exe and PowerShell can both be disabled by Group
+ * Policy — WDAC/AppLocker/software restriction policies commonly block either
+ * or both), we parse the shim to find the real node.exe + .js entry point it
+ * wraps and invoke Node directly with shell:false. A native executable launch
+ * isn't a "script host", so it works even when both shells are locked down, and
+ * it needs no quoting at all since argv is passed as a real array.
+ *
+ * If the shim can't be resolved this way (unusual install layout, or a bare
+ * name with no discoverable shim file), fall back to cmd.exe (`shell:true`),
+ * which is what this extension used before script-host restrictions came up.
  *
  * Unix: the shim is directly executable, so we pass argv untouched with `shell:false`.
  */
@@ -102,9 +184,13 @@ export function buildShellInvocation(
     args: string[]
 ): { command: string; args: string[]; shell: boolean } {
     if (isWindows) {
+        const direct = resolveDirectNodeInvocation(executable);
+        if (direct) {
+            return { command: direct.nodeExe, args: [direct.scriptPath, ...args], shell: false };
+        }
         const quadrupleCaret = needsCaretQuadrupling(executable);
-        const commandLine = '& ' + [executable, ...args].map(t => quotePowerShellToken(t, quadrupleCaret)).join(' ');
-        return { command: 'powershell', args: ['-NoProfile', '-NonInteractive', '-Command', commandLine], shell: false };
+        const commandLine = [executable, ...args].map(t => quoteWindowsToken(t, quadrupleCaret)).join(' ');
+        return { command: commandLine, args: [], shell: true };
     }
     return { command: executable, args, shell: false };
 }
@@ -133,9 +219,10 @@ export function spawnSdk(args: string[], options: SdkProcessOptions = {}): cp.Ch
 }
 
 export function spawnNpm(args: string[], options: SdkProcessOptions = {}): cp.ChildProcessWithoutNullStreams {
-    // npm ships as npm.cmd on Windows; spawning a .cmd requires a shell on
-    // patched Node (shell:false throws EINVAL). Unix npm is directly executable.
-    const executable = isWindows ? 'npm.cmd' : 'npm';
+    // npm ships as npm.cmd on Windows; resolve the full shim path (mirrors
+    // resolveSdkExecutable) so buildShellInvocation can parse it for direct
+    // node invocation. Unix npm is directly executable.
+    const executable = isWindows ? (findNpmExecutable() ?? 'npm.cmd') : 'npm';
     const { command, args: spawnArgs, shell } = buildShellInvocation(executable, args);
     const proc = cp.spawn(command, spawnArgs, {
         cwd: options.cwd,

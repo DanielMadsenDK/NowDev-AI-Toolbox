@@ -182,9 +182,7 @@ function detectNpmGlobalPackage(pkgName: string): { version: string } | null {
 function detectShell(): string {
     try {
         if (process.platform === 'win32') {
-            // The extension always shells out via PowerShell on Windows (see
-            // ToolScanner/SdkProcess), regardless of the user's COMSPEC setting.
-            return 'powershell.exe';
+            return process.env.COMSPEC || 'cmd.exe';
         }
         return process.env.SHELL || '/bin/sh';
     } catch {
@@ -199,17 +197,25 @@ async function tryExec(command: string, timeoutMs = 4000): Promise<string | null
     }
 
     // On Windows, the extension process may have a different PATH than an interactive
-    // PowerShell session (e.g. npm global bin dir added via user profile).
-    // Try progressively broader PowerShell invocations as fallbacks.
+    // shell session (e.g. npm global bin dir added via user profile). Try progressively
+    // broader shell invocations as fallbacks — cmd.exe first, since Group Policy /
+    // AppLocker setups that restrict PowerShell scripting often leave cmd.exe usable
+    // (and vice versa), so trying both maximizes the chance one of them works.
     if (process.platform === 'win32') {
-        // Attempt 1: PowerShell resolves .cmd/.bat extensions and uses system PATH,
+        // Attempt 1: cmd.exe resolves .cmd/.bat extensions and uses system PATH.
+        const cmdResult = await execFileAndCapture(process.env.COMSPEC || 'cmd.exe', ['/d', '/s', '/c', command], timeoutMs);
+        if (cmdResult !== null) {
+            return cmdResult;
+        }
+
+        // Attempt 2: PowerShell resolves .cmd/.bat extensions and uses system PATH,
         // and loads npm-global PATH entries from the user profile.
         const psResult = await execFileAndCapture('powershell', ['-NoProfile', '-Command', `& { ${command} }`], timeoutMs);
         if (psResult !== null) {
             return psResult;
         }
 
-        // Attempt 2: Explicitly prepend the npm global bin directory (%APPDATA%\npm) to
+        // Attempt 3: Explicitly prepend the npm global bin directory (%APPDATA%\npm) to
         // PATH before running via PowerShell.
         const appdata = process.env.APPDATA || '';
         if (appdata) {

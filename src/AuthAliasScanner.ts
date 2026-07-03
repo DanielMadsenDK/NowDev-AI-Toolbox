@@ -24,7 +24,7 @@ let cachedAliases: AuthAlias[] | undefined;
 
 /**
  * Cached across the extension host session — the underlying scan spawns a
- * process (and on Windows, PowerShell) and can take seconds. Every UI surface
+ * process and can take seconds. Every UI surface
  * (Welcome tab, Instance Browser) shares this cache so only the first caller
  * pays the scan cost; pass forceRefresh after credentials change.
  */
@@ -71,13 +71,14 @@ export function getCachedDefaultInstanceHost(): string {
 /**
  * Runs `now-sdk auth --list` and yields stdout+stderr for each strategy.
  *
- * On Windows the now-sdk shim is a `.cmd`, so it must run through PowerShell
- * (`powershell -Command`) with a closed stdin — an open stdin pipe hangs the CLI
- * (ETIMEDOUT). We resolve the shim by full path so detection survives a stripped
- * PATH in GUI-launched VS Code, then fall back to a bare `now-sdk` on PATH. The full
- * path (and the bare name) are routed through buildShellInvocation so they are
- * quoted: without quoting, a path containing a space (e.g. a username like
- * "John Smith") makes the shell fail to find the command.
+ * On Windows, buildShellInvocation resolves the now-sdk `.cmd` shim to the real
+ * node.exe + .js entry point it wraps and invokes Node directly (no cmd.exe or
+ * PowerShell involved), so this works even when script hosts are locked down by
+ * Group Policy. Stdin must still be closed — an open stdin pipe hangs the CLI
+ * (ETIMEDOUT) regardless of invocation strategy. We resolve the shim by full path
+ * so detection survives a stripped PATH in GUI-launched VS Code, then fall back to
+ * a bare `now-sdk` on PATH (buildShellInvocation falls back to a quoted cmd.exe
+ * invocation in that case, since there's no shim file to parse).
  */
 function collectAuthListOutputs(): string[] {
     const outputs: string[] = [];
@@ -99,8 +100,7 @@ function collectAuthListOutputs(): string[] {
                 timeout: 30000,
                 encoding: 'utf-8',
                 // stdin must be closed: now-sdk hangs waiting for input on an open
-                // stdin pipe when run non-interactively (ETIMEDOUT). On Windows the
-                // shim is a .cmd that requires PowerShell to execute.
+                // stdin pipe when run non-interactively (ETIMEDOUT).
                 stdio: ['ignore', 'pipe', 'pipe'],
                 shell,
                 windowsHide: true,

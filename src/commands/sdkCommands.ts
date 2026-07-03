@@ -243,10 +243,11 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
             if (typePick.label === 'oauth') {
                 // OAuth requires interactive stdin so the user can paste the authorization
                 // code from the browser. An Output Channel is read-only, so we open a
-                // real VS Code terminal instead.
+                // real VS Code terminal instead. Don't override shellPath — use the
+                // user's own configured default integrated-terminal profile rather than
+                // forcing a specific shell that may be restricted by Group Policy.
                 const terminal = vscode.window.createTerminal({
                     name: 'NowDev: SDK Auth Add (OAuth)',
-                    shellPath: process.platform === 'win32' ? 'powershell.exe' : undefined,
                 });
                 terminal.show();
                 terminal.sendText(`now-sdk ${cmdArgs.join(' ')}`);
