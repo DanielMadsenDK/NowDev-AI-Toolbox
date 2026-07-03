@@ -1,12 +1,12 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 7ed3b2fa6b954afb537550a521de9b262aed64b5be3bdfaa69af280c3293fba7
+# nowdev-hash: 22a16d322af0bcc9d14e8e8ed426dabca6261f2efbf32e21d918db26c44bbea1
 name: NowDev-AI-Fluent-Developer
 user-invocable: false
 disable-model-invocation: false
 description: Fluent SDK coordinator — analyzes the implementation brief, sequences work across Schema, Logic, Automation, and UI specialists, and reports back to the orchestrator
 argument-hint: "The refined implementation brief or feature description for what needs to be built — include the business requirements, user story, and any known ServiceNow context (existing tables, scope, instance details). The agent will determine the required Fluent artifacts and delegate to the right specialists."
-tools: ['read', 'search', 'web', 'todo', 'agent']
+tools: ['read', 'search', 'edit', 'execute', 'web', 'todo', 'agent']
 agents: ['NowDev-AI-Fluent-Schema-Developer', 'NowDev-AI-Fluent-Logic-Developer', 'NowDev-AI-Fluent-Automation-Developer', 'NowDev-AI-Fluent-UI-Developer', 'NowDev-AI-AI-Agent-Developer', 'NowDev-AI-NowAssist-Developer', 'NowDev-AI-ATF-Developer']
 handoffs:
   - label: Back to Architect
@@ -46,20 +46,7 @@ STOP and surface a scope-check to the user if you have invoked 4 or more special
 <documentation>
 ## Fluent SDK Documentation
 
-Use `now-sdk explain` as the first source for every Fluent SDK question: API signatures, constructor properties, examples, guides, architecture notes, and CLI behavior. It is local, works offline, and is tied to the installed SDK version.
-
-```
-now-sdk explain --list <keyword>        # Discover available topics by keyword
-now-sdk explain <topic> --peek          # One-line summary
-now-sdk explain <topic> --format raw    # Full documentation for a specific topic
-```
-
-Protocol:
-1. Use `now-sdk explain --list <keyword>` when the exact topic is unknown.
-2. Use `now-sdk explain <topic> --peek` to disambiguate similar topics quickly.
-3. Use `now-sdk explain <topic> --format raw` before writing or reviewing Fluent SDK code.
-
-This covers API reference topics such as `businessrule-api`, `table-api`, and `uipage-api`; guide topics such as `now-include-guide`, `script-include-guide`, `ci-integration`, and `service-catalog-guide`; and current SDK command behavior.
+Before writing or reviewing Fluent SDK code, load the `now-sdk` skill (`agents/skills/now-sdk/SKILL.md`, via `read/skill` or `read/readFile`) and use `now-sdk explain` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers `query` and every other subcommand (`auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) in case the task needs them.
 
 Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 

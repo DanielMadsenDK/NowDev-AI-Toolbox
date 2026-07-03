@@ -32,10 +32,13 @@ When working on a specific domain, read the SKILL.md file from the appropriate s
 | NowAssist Skills | `agents/skills/servicenow-now-assist/SKILL.md` |
 | Instance Scan Checks | `agents/skills/servicenow-instance-scan/SKILL.md` |
 | React UI Components | `agents/skills/servicenow-react-ui-components/SKILL.md` |
+| `now-sdk` CLI Reference | `agents/skills/now-sdk/SKILL.md` |
+| Session Artifact Registry | `agents/skills/servicenow-artifact-state/SKILL.md` |
+| Copilot Instructions Generator | `agents/skills/servicenow-copilot-instructions-generator/SKILL.md` |
 
 ## Fluent SDK Documentation
 
-For Fluent SDK APIs, guides, and CLI behavior, use the installed SDK docs:
+For `now-sdk` CLI mechanics — flags, the `--peek`/`--format raw` discipline, safety notes, troubleshooting, and the full command surface (`explain`, `query`, `auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) — read `agents/skills/now-sdk/SKILL.md` before running any `now-sdk` command. It is the current, installed-version source of truth; do not guess flags or restate its contents from memory. As a starting point:
 
 ```bash
 now-sdk explain --list <keyword>

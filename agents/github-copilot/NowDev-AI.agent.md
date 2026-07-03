@@ -104,6 +104,7 @@ MANDATORY USER APPROVAL GATES — stop and wait for explicit confirmation at:
 </stopping_rules>
 
 <documentation>
+{{FLUENT_SDK_EXPLAIN}}
 Use {{GENERAL_DOCS}} for library resolution and general ServiceNow reference
 MANDATORY: Verify plans, clarify requirements, validate architecture, answer user questions
 When creating or editing agent files, read `agents/github-copilot/AGENT-PATTERNS.md` for canonical shared patterns (tool sets, Login Verification Checkpoint, File Output Guidelines).

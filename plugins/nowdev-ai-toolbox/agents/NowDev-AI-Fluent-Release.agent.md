@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: e46222b106ec9460259e61df65156ea0f5686a5cac95773075ce0b8d38ddb274
+# nowdev-hash: 86db3d91029ae961f64460c707fef17874c23646dd79cec4388fa581544ecb0d
 name: NowDev-AI-Fluent-Release
 user-invocable: false
 disable-model-invocation: false
@@ -36,20 +36,7 @@ STOP if modifying any application code files — this agent deploys only
 <documentation>
 ## Fluent SDK Documentation
 
-Use `now-sdk explain` as the first source for every Fluent SDK question: API signatures, constructor properties, examples, guides, architecture notes, and CLI behavior. It is local, works offline, and is tied to the installed SDK version.
-
-```
-now-sdk explain --list <keyword>        # Discover available topics by keyword
-now-sdk explain <topic> --peek          # One-line summary
-now-sdk explain <topic> --format raw    # Full documentation for a specific topic
-```
-
-Protocol:
-1. Use `now-sdk explain --list <keyword>` when the exact topic is unknown.
-2. Use `now-sdk explain <topic> --peek` to disambiguate similar topics quickly.
-3. Use `now-sdk explain <topic> --format raw` before writing or reviewing Fluent SDK code.
-
-This covers API reference topics such as `businessrule-api`, `table-api`, and `uipage-api`; guide topics such as `now-include-guide`, `script-include-guide`, `ci-integration`, and `service-catalog-guide`; and current SDK command behavior.
+Before writing or reviewing Fluent SDK code, load the `now-sdk` skill (`agents/skills/now-sdk/SKILL.md`, via `read/skill` or `read/readFile`) and use `now-sdk explain` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers `query` and every other subcommand (`auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) in case the task needs them.
 
 Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 
@@ -140,29 +127,6 @@ now-sdk build && now-sdk install --auth <alias>
 | Rollback | Redeploy previous source | Back-out Update Set |
 | Dependencies | `package.json` | Manual tracking |
 
-## Querying the Live Instance
+## now-sdk CLI Reference
 
-Use `now-sdk query` to resolve instance-specific data without asking the user:
-
-```
-# Resolve a record's sys_id
-now-sdk query sys_user_role --query 'name=admin' --fields 'sys_id,name' -o json
-
-# Inspect table schema / available columns
-now-sdk query sys_dictionary --query 'name=incident^elementISNOTEMPTY' \
-  --fields 'element,column_label,internal_type,reference' -o json
-
-# Check whether a record already exists
-now-sdk query sys_script --query 'name=My Rule^collection=incident' \
-  --fields 'sys_id,name' -o json
-
-# Read a sys_property value
-now-sdk query sys_properties --query 'name=glide.email.smtp.server' \
-  --fields 'name,value' -o json
-
-# Paginate large result sets (use nextOffset from previous response)
-now-sdk query incident --query 'active=true' --limit 20 --offset 40 -o json
-```
-
-Response envelope: `{ ok, records[], hasMore, nextOffset }`
-Use `--fields` to narrow output to only what you need. Use `hasMore` and `nextOffset` to paginate.
+Before running any `now-sdk` command, load the `now-sdk` skill (`agents/skills/now-sdk/SKILL.md`, via `read/skill` or `read/readFile`) for current CLI mechanics — flags, the `--peek`/`--format raw` discipline, and safety notes. It covers every subcommand: `explain` (SDK/API docs), `query` (live instance data — sys_ids, schema, property values, existing records, without asking the user), `auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, and `pack`. Never guess a flag or restate CLI syntax from memory — the skill reflects the installed SDK version.

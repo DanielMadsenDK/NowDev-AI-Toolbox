@@ -38,6 +38,7 @@ STOP if about to execute or recommend a tool/runtime not listed in `environment.
 </stopping_rules>
 
 <documentation>
+{{FLUENT_SDK_EXPLAIN}}
 Use {{GENERAL_DOCS}} for expected vs actual behavior, logging mechanisms, and diagnostic procedures
 Verify expected behavior before proposing solutions
 Consult the servicenow-debugging skill for Playwright diagnostic code patterns (field state, GlideAjax timing, hidden fields, console errors)

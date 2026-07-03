@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 71af7e72163809e7ff01cdb91722f31e626e094a34de83ca08a81141ff62ccfb
+# nowdev-hash: c079a5cdb5e987fad8c59f299b2a3020fc6c776f646a7676e179fd6b814062f6
 name: NowDev-AI-NowAssist-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -39,20 +39,7 @@ STOP if implementing AiAgent or AiAgenticWorkflow — those belong to NowDev-AI-
 <documentation>
 ## Fluent SDK Documentation
 
-Use `now-sdk explain` as the first source for every Fluent SDK question: API signatures, constructor properties, examples, guides, architecture notes, and CLI behavior. It is local, works offline, and is tied to the installed SDK version.
-
-```
-now-sdk explain --list <keyword>        # Discover available topics by keyword
-now-sdk explain <topic> --peek          # One-line summary
-now-sdk explain <topic> --format raw    # Full documentation for a specific topic
-```
-
-Protocol:
-1. Use `now-sdk explain --list <keyword>` when the exact topic is unknown.
-2. Use `now-sdk explain <topic> --peek` to disambiguate similar topics quickly.
-3. Use `now-sdk explain <topic> --format raw` before writing or reviewing Fluent SDK code.
-
-This covers API reference topics such as `businessrule-api`, `table-api`, and `uipage-api`; guide topics such as `now-include-guide`, `script-include-guide`, `ci-integration`, and `service-catalog-guide`; and current SDK command behavior.
+Before writing or reviewing Fluent SDK code, load the `now-sdk` skill (`agents/skills/now-sdk/SKILL.md`, via `read/skill` or `read/readFile`) and use `now-sdk explain` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers `query` and every other subcommand (`auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) in case the task needs them.
 
 Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 

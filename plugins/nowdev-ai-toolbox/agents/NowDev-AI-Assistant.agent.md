@@ -1,12 +1,12 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 82cfceda7356f16eb6e1cd6dd205092317b77ec3b9ade991ffcd554c7c5f4e92
+# nowdev-hash: aa410c9a4f0db599db868b2097c164f923ba7960de473b9f2bb83e5ac612cb44
 name: NowDev-AI-Assistant
 user-invocable: false
 disable-model-invocation: false
 description: lightweight assistant for single questions, brainstorming, quick browser exploration, and early discovery before full project orchestration
 argument-hint: "The user's original question, brainstorming topic, or exploration task — pass verbatim without restructuring"
-tools: ['read', 'search', 'execute', 'web']
+tools: ['read', 'search', 'execute', 'web', 'todo']
 agents: []
 handoffs:
   - label: Escalate to Architect

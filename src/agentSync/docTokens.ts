@@ -24,61 +24,24 @@ export function buildDocServerWildcards(sources: AllDocSources): string[] {
 }
 
 /**
- * Always-present block appended to every agent file.
- * Agents at all stages — design, planning, implementation, refinement — can query
- * the live instance for context (sys_ids, schema, property values, existing records)
- * without having to ask the user.
+ * Always-present block appended to every agent file that can run terminal commands.
+ * Points at the now-sdk skill instead of restating its contents, so the CLI
+ * mechanics (flags, safety notes, full command surface) can't drift out of sync
+ * with agents/skills/now-sdk/SKILL.md.
  */
 export const SDK_QUERY_BLOCK =
-`## Querying the Live Instance
+`## now-sdk CLI Reference
 
-Use \`now-sdk query\` to resolve instance-specific data without asking the user:
-
-\`\`\`
-# Resolve a record's sys_id
-now-sdk query sys_user_role --query 'name=admin' --fields 'sys_id,name' -o json
-
-# Inspect table schema / available columns
-now-sdk query sys_dictionary --query 'name=incident^elementISNOTEMPTY' \\
-  --fields 'element,column_label,internal_type,reference' -o json
-
-# Check whether a record already exists
-now-sdk query sys_script --query 'name=My Rule^collection=incident' \\
-  --fields 'sys_id,name' -o json
-
-# Read a sys_property value
-now-sdk query sys_properties --query 'name=glide.email.smtp.server' \\
-  --fields 'name,value' -o json
-
-# Paginate large result sets (use nextOffset from previous response)
-now-sdk query incident --query 'active=true' --limit 20 --offset 40 -o json
-\`\`\`
-
-Response envelope: \`{ ok, records[], hasMore, nextOffset }\`
-Use \`--fields\` to narrow output to only what you need. Use \`hasMore\` and \`nextOffset\` to paginate.`;
+Before running any \`now-sdk\` command, load the \`now-sdk\` skill (\`agents/skills/now-sdk/SKILL.md\`, via \`read/skill\` or \`read/readFile\`) for current CLI mechanics — flags, the \`--peek\`/\`--format raw\` discipline, and safety notes. It covers every subcommand: \`explain\` (SDK/API docs), \`query\` (live instance data — sys_ids, schema, property values, existing records, without asking the user), \`auth\`, \`init\`, \`download\`, \`build\`, \`install\`, \`dependencies\`, \`transform\`, \`clean\`, and \`pack\`. Never guess a flag or restate CLI syntax from memory — the skill reflects the installed SDK version.`;
 
 /**
  * Always-present block injected into Fluent SDK agent files via {{FLUENT_SDK_EXPLAIN}}.
- * Not configurable — now-sdk is the installed-version source of truth for Fluent SDK docs.
- * Covers API reference, guides, examples, and SDK CLI behavior.
+ * Points at the now-sdk skill instead of restating its contents — see SDK_QUERY_BLOCK.
  */
 export const FLUENT_SDK_EXPLAIN_BLOCK =
 `## Fluent SDK Documentation
 
-Use \`now-sdk explain\` as the first source for every Fluent SDK question: API signatures, constructor properties, examples, guides, architecture notes, and CLI behavior. It is local, works offline, and is tied to the installed SDK version.
-
-\`\`\`
-now-sdk explain --list <keyword>        # Discover available topics by keyword
-now-sdk explain <topic> --peek          # One-line summary
-now-sdk explain <topic> --format raw    # Full documentation for a specific topic
-\`\`\`
-
-Protocol:
-1. Use \`now-sdk explain --list <keyword>\` when the exact topic is unknown.
-2. Use \`now-sdk explain <topic> --peek\` to disambiguate similar topics quickly.
-3. Use \`now-sdk explain <topic> --format raw\` before writing or reviewing Fluent SDK code.
-
-This covers API reference topics such as \`businessrule-api\`, \`table-api\`, and \`uipage-api\`; guide topics such as \`now-include-guide\`, \`script-include-guide\`, \`ci-integration\`, and \`service-catalog-guide\`; and current SDK command behavior.
+Before writing or reviewing Fluent SDK code, load the \`now-sdk\` skill (\`agents/skills/now-sdk/SKILL.md\`, via \`read/skill\` or \`read/readFile\`) and use \`now-sdk explain\` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers \`query\` and every other subcommand (\`auth\`, \`init\`, \`download\`, \`build\`, \`install\`, \`dependencies\`, \`transform\`, \`clean\`, \`pack\`) in case the task needs them.
 
 Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 

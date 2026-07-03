@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 68ee359b9eff249905b72a93d79f3279c8b3ed03ab7904335d5a8ad679f87344
+# nowdev-hash: 1467ae284fae8663271abfd05c594392159a0ded1ec054bad93fc7b09fae4fa8
 name: NowDev AI Agent
 description: Agentic ServiceNow development orchestrated and delivered by multiple specialized AI agents
 argument-hint: "Describe the ServiceNow task, feature, debugging issue, review request, release, pipeline, or quick question to route through NowDev AI."
@@ -93,6 +93,14 @@ MANDATORY USER APPROVAL GATES — stop and wait for explicit confirmation at:
 </stopping_rules>
 
 <documentation>
+## Fluent SDK Documentation
+
+Before writing or reviewing Fluent SDK code, load the `now-sdk` skill (`agents/skills/now-sdk/SKILL.md`, via `read/skill` or `read/readFile`) and use `now-sdk explain` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers `query` and every other subcommand (`auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) in case the task needs them.
+
+Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
+
+For general ServiceNow platform knowledge that is not Fluent-specific (admin/config, best practices across the platform), use the configured product docs source.
+
 Use https://www.servicenow.com/llms.txt — prefer this for current, authoritative content; fall back to built-in skills only if unavailable (bundled docs may not reflect the latest SDK or platform changes) for library resolution and general ServiceNow reference
 MANDATORY: Verify plans, clarify requirements, validate architecture, answer user questions
 When creating or editing agent files, read `agents/github-copilot/AGENT-PATTERNS.md` for canonical shared patterns (tool sets, Login Verification Checkpoint, File Output Guidelines).

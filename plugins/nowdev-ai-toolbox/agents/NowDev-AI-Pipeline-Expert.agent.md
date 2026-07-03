@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: dfed0dbf2946a74bf22f8043f768b6bf0af7a8a5c81e4833518d71615cddbbd2
+# nowdev-hash: bf1b715afcb299996af4f92d838a09fe5ed0daf05c9fd47680a605216f21875f
 name: NowDev-AI-Pipeline-Expert
 user-invocable: false
 disable-model-invocation: false
@@ -60,29 +60,6 @@ You generate CI/CD configuration for ServiceNow Fluent SDK projects. Keep the pr
 
 Return generated file paths, required secrets/variables, environment-gate setup steps, scope matrix/dependency order, and any warnings. Do not modify application source files.
 
-## Querying the Live Instance
+## now-sdk CLI Reference
 
-Use `now-sdk query` to resolve instance-specific data without asking the user:
-
-```
-# Resolve a record's sys_id
-now-sdk query sys_user_role --query 'name=admin' --fields 'sys_id,name' -o json
-
-# Inspect table schema / available columns
-now-sdk query sys_dictionary --query 'name=incident^elementISNOTEMPTY' \
-  --fields 'element,column_label,internal_type,reference' -o json
-
-# Check whether a record already exists
-now-sdk query sys_script --query 'name=My Rule^collection=incident' \
-  --fields 'sys_id,name' -o json
-
-# Read a sys_property value
-now-sdk query sys_properties --query 'name=glide.email.smtp.server' \
-  --fields 'name,value' -o json
-
-# Paginate large result sets (use nextOffset from previous response)
-now-sdk query incident --query 'active=true' --limit 20 --offset 40 -o json
-```
-
-Response envelope: `{ ok, records[], hasMore, nextOffset }`
-Use `--fields` to narrow output to only what you need. Use `hasMore` and `nextOffset` to paginate.
+Before running any `now-sdk` command, load the `now-sdk` skill (`agents/skills/now-sdk/SKILL.md`, via `read/skill` or `read/readFile`) for current CLI mechanics — flags, the `--peek`/`--format raw` discipline, and safety notes. It covers every subcommand: `explain` (SDK/API docs), `query` (live instance data — sys_ids, schema, property values, existing records, without asking the user), `auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, and `pack`. Never guess a flag or restate CLI syntax from memory — the skill reflects the installed SDK version.

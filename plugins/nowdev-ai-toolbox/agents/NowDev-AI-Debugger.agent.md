@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 5b682ea346742faf6eb160aeaac3747aba5739897418bed167eba7e73fc93637
+# nowdev-hash: 510cb8e5cfd7685bd984ffebc3821671d62d894d094737f6ccf69e55515b85c8
 name: NowDev-AI-Debugger
 user-invocable: false
 disable-model-invocation: false
@@ -38,6 +38,14 @@ STOP if about to execute or recommend a tool/runtime not listed in `environment.
 </stopping_rules>
 
 <documentation>
+## Fluent SDK Documentation
+
+Before writing or reviewing Fluent SDK code, load the `now-sdk` skill (`agents/skills/now-sdk/SKILL.md`, via `read/skill` or `read/readFile`) and use `now-sdk explain` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers `query` and every other subcommand (`auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) in case the task needs them.
+
+Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
+
+For general ServiceNow platform knowledge that is not Fluent-specific (admin/config, best practices across the platform), use the configured product docs source.
+
 Use https://www.servicenow.com/llms.txt — prefer this for current, authoritative content; fall back to built-in skills only if unavailable (bundled docs may not reflect the latest SDK or platform changes) for expected vs actual behavior, logging mechanisms, and diagnostic procedures
 Verify expected behavior before proposing solutions
 Consult the servicenow-debugging skill for Playwright diagnostic code patterns (field state, GlideAjax timing, hidden fields, console errors)
