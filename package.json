@@ -322,16 +322,16 @@
     },
     "chatSkills": [
       {
-        "path": "./agents/skills/servicenow-fluent-development/SKILL.md"
+        "path": "./agents/skills/nowdev-ai-toolbox-fluent-development/SKILL.md"
       },
       {
-        "path": "./agents/skills/servicenow-react-ui-components/SKILL.md"
+        "path": "./agents/skills/nowdev-ai-toolbox-react-ui-components/SKILL.md"
       },
       {
-        "path": "./agents/skills/servicenow-sdk/SKILL.md"
+        "path": "./agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md"
       },
       {
-        "path": "./agents/skills/servicenow-release-notes/SKILL.md"
+        "path": "./agents/skills/nowdev-ai-toolbox-release-notes/SKILL.md"
       }
     ]
   },

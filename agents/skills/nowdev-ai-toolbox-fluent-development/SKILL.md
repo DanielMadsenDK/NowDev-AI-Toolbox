@@ -1,5 +1,5 @@
 ---
-name: servicenow-fluent-development
+name: nowdev-ai-toolbox-fluent-development
 context: fork
 user-invocable: false
 description: Navigation and NowDev-specific guardrails for ServiceNow Fluent SDK development. Use when a task involves Fluent `.now.ts` metadata, SDK project layout, NowDev agent handoffs, or local patterns that are not covered by `now-sdk explain`.

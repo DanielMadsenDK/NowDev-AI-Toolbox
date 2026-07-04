@@ -1,5 +1,5 @@
 ---
-name: servicenow-sdk
+name: nowdev-ai-toolbox-servicenow-sdk
 context: fork
 user-invocable: false
 description: Canonical reference for running the now-sdk CLI directly — covers explain (SDK/API documentation lookup), query (live instance data), and every other subcommand (auth, init, download, build, install, dependencies, transform, clean, pack). Use whenever an agent needs to invoke now-sdk, verify a Fluent SDK API shape, look up live instance data (sys_ids, table schema, roles, scopes, choices, ACLs), or run a build/deploy command. For NowDev-specific routing and project conventions, use servicenow-fluent-development instead.
