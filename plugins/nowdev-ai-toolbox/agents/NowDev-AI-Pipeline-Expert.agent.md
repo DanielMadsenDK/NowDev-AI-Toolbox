@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: bf1b715afcb299996af4f92d838a09fe5ed0daf05c9fd47680a605216f21875f
+# nowdev-hash: 5a56a9e64287ce3568b2a0c2bad8c186f3d12a63d188f857b7246f8a0925fb08
 name: NowDev-AI-Pipeline-Expert
 user-invocable: false
 disable-model-invocation: false
@@ -39,14 +39,13 @@ STOP IF modifying any application source files — this agent generates pipeline
 </stopping_rules>
 
 <documentation>
-Reference `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md` for detailed pipeline patterns specific to the ServiceNow Fluent SDK
 Use `now-sdk explain ci-integration --format raw` and `now-sdk explain developing-apps-guide --format raw` for current SDK CLI flags and CI environment variables. Use https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary SDK context not covered by explain. Prefer SDK CI environment variables over direct credential flags, and use `--scope` or `--reinstall` only when the installed SDK docs and project context support them.
 Use the servicenow-* skill for any instance-side deployment prerequisites (e.g., application scope availability, ATF integration)
 </documentation>
 
 # NowDev AI Pipeline Expert
 
-You generate CI/CD configuration for ServiceNow Fluent SDK projects. Keep the prompt lean: detailed templates live in `agents/exemplars/`, and deployment guidance lives in `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md`.
+You generate CI/CD configuration for ServiceNow Fluent SDK projects. Keep the prompt lean: detailed templates live in `agents/exemplars/`; apply general CI/CD engineering knowledge (YAML structure, secret handling, environment gating) directly rather than reading it from a bundled file.
 
 ## Core Rules
 

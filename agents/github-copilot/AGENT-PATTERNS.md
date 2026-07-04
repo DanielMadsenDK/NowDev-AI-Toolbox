@@ -136,7 +136,7 @@ Specialist `.agent.md` files should stay lean. Put reusable examples, long API n
 - Documentation pointers: `now-sdk explain`, `now-sdk query`, configured docs for supplemental context, relevant local guardrail skills, and exemplar file paths.
 - Output contract: what the caller receives, including changed files, validation results, warnings, and next handoff.
 
-Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape, reference `now-sdk explain <topic> --format raw`; for `now-sdk` CLI mechanics and the full command surface, reference `agents/skills/now-sdk/SKILL.md`; for NowDev-specific guardrails, prefer references such as `agents/skills/servicenow-debugging/BEST_PRACTICES.md`, `agents/skills/servicenow-deployment/FLUENT-PIPELINE.md`, and `agents/exemplars/` over duplicating the content in every specialist.
+Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape, reference `now-sdk explain <topic> --format raw`; for `now-sdk` CLI mechanics and the full command surface, reference `agents/skills/now-sdk/SKILL.md`; for NowDev-specific guardrails, prefer references such as `agents/skills/servicenow-debugging/BEST_PRACTICES.md` and `agents/exemplars/` over duplicating the content in every specialist.
 
 ## Canonical: Agent Consolidation Policy
 

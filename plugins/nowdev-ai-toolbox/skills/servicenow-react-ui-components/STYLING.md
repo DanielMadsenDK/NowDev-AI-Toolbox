@@ -1,113 +1,16 @@
-# Styling ServiceNow React UI — CSS Modules & Horizon Design Tokens
+# Styling ServiceNow React UI — Horizon Design Tokens
 
 This file covers:
-- CSS Modules in ServiceNow Fluent React apps
 - Horizon Design System (HDS) CSS custom properties (design tokens)
 - Building custom components that match the platform aesthetic
 - When to use tokens vs plain CSS
-- CSS bundling via `now.prebuild.mjs`
 
-For general Rollup/prebuild configuration and CSS stylesheet imports see
-[`agents/skills/servicenow-fluent-development/THIRD-PARTY-LIBRARIES.md`](../../servicenow-fluent-development/THIRD-PARTY-LIBRARIES.md).
-
----
-
-## 1. CSS Modules in UiPage Apps
-
-### How CSS Modules work
-
-CSS Modules scope class names to the component that imports them. The build pipeline converts
-`styles.myClass` into a unique hashed class name (e.g. `myClass_abc123`) so styles never leak
-between components.
-
-`servicenowFrontEndPlugins` from `@servicenow/isomorphic-rollup` already handles CSS Modules.
-**No extra plugins are needed** — just name your file `*.module.css` and import it.
-
-### TypeScript declaration
-
-Add a declaration for `*.module.css` in `src/client/global.d.ts` so TypeScript understands the
-default export:
-
-```ts
-// src/client/global.d.ts
-declare module '*.module.css' {
-  const classes: { readonly [key: string]: string };
-  export default classes;
-}
-```
-
-### Using a CSS Module in a component
-
-```tsx
-// src/client/components/StatusBadge.tsx
-import React from 'react';
-import styles from './StatusBadge.module.css';
-
-interface StatusBadgeProps {
-  label: string;
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
-}
-
-export function StatusBadge({ label, status }: StatusBadgeProps) {
-  return (
-    <span className={`${styles.badge} ${styles[status]}`}>
-      {label}
-    </span>
-  );
-}
-```
-
-```css
-/* src/client/components/StatusBadge.module.css */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--now-space--2) var(--now-space--8);
-  border-radius: var(--now-border-radius--md);
-  font-size: var(--now-font-size--sm);
-  font-weight: var(--now-font-weight--bold);
-  font-family: var(--now-font-family--primary);
-}
-
-.open {
-  color: var(--now-color_text--primary);
-  background-color: var(--now-color--neutral-2);
-}
-
-.in-progress {
-  color: var(--now-color--info-9);
-  background-color: var(--now-color--info-2);
-}
-
-.resolved {
-  color: var(--now-color--positive-9);
-  background-color: var(--now-color--positive-2);
-}
-
-.closed {
-  color: var(--now-color--neutral-8);
-  background-color: var(--now-color--neutral-3);
-}
-```
-
-### Combining multiple CSS Module classes
-
-```tsx
-// Conditional class application
-import styles from './Panel.module.css';
-
-function Panel({ elevated, compact }: { elevated?: boolean; compact?: boolean }) {
-  const classNames = [
-    styles.panel,
-    elevated && styles.elevated,
-    compact && styles.compact,
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  return <div className={classNames}>...</div>;
-}
-```
+For the current CSS/build model (whether CSS Modules, plain stylesheets, or another mechanism is
+supported), fetch `now-sdk explain ui-page-patterns-guide --format raw` first — this has changed
+between SDK versions and is authoritative over anything below. Some `.module.css` filenames used
+as illustrative examples in this file assume CSS Modules support; if the installed SDK's build
+model doesn't support them, use the same class names and token values in a plain `.css` file
+imported directly instead — only the import mechanism changes, not the tokens or values.
 
 ---
 
@@ -554,79 +457,10 @@ function Dashboard() {
 
 ---
 
-## 5. CSS Bundling in `now.prebuild.mjs`
+## 5. CSS Bundling and Build Configuration
 
-`servicenowFrontEndPlugins` handles **all CSS automatically** — both plain stylesheet imports and
-CSS Modules. No additional configuration is needed.
-
-```js
-// now.prebuild.mjs  (no CSS-specific additions required)
-import { servicenowFrontEndPlugins, rollup, glob } from '@servicenow/isomorphic-rollup';
-
-export default async ({ rootDir, config, fs, path, logger, registerExplicitId }) => {
-  const clientDir = path.join(rootDir, config.clientDir);
-
-  const htmlFiles = await glob(path.join(clientDir, '**', '*.html'), { fs });
-  if (!htmlFiles.length) {
-    logger.warn(`No HTML files found in ${clientDir}, skipping UI build.`);
-    return;
-  }
-
-  const staticContentDir = path.join(rootDir, config.staticContentDir);
-  fs.rmSync(staticContentDir, { recursive: true, force: true });
-
-  const rollupBundle = await rollup({
-    fs,
-    input: path.join(clientDir, '**', '*.html'),
-    plugins: servicenowFrontEndPlugins({
-      scope: config.scope,
-      rootDir: clientDir,
-      registerExplicitId,
-      // No CSS-specific options needed — CSS Modules are handled automatically
-    }),
-    onwarn(warning, warn) {
-      warn(warning);
-    },
-  });
-
-  await rollupBundle.write({
-    dir: staticContentDir,
-    sourcemap: true,
-  });
-};
-```
-
-### CSS output file
-
-The bundler outputs CSS as a **separate `.css` asset file** alongside the JavaScript bundle
-(e.g. `static/main.css`). You must reference it in `index.html` so the browser loads it.
-
-Use the SDK's static resource tag, which resolves the correct URL at runtime:
-
-```html
-<!-- src/client/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <sdk:static-resource path="main.css" type="stylesheet" />
-</head>
-<body>
-  <div id="root"></div>
-  <sdk:static-resource path="main.js" type="script" />
-</body>
-</html>
-```
-
-Or as a plain `<link>` tag if you know the output filename:
-
-```html
-<link rel="stylesheet" href="<sdk:static-resource path='main.css' />" />
-```
-
-> **If you skip linking the CSS file**, HDS component styles and all CSS Module class names will
-> be missing from the rendered page — components will render unstyled.
-
-For the full Rollup configuration guide including third-party library stylesheets, warning
-suppression, and TypeScript globals, see
-[`agents/skills/servicenow-fluent-development/THIRD-PARTY-LIBRARIES.md`](../../servicenow-fluent-development/THIRD-PARTY-LIBRARIES.md).
+Do not hand-write bundler config (Rollup, `now.prebuild.mjs`, or otherwise) for CSS output without
+first checking the current build model — `now-sdk explain ui-page-patterns-guide --format raw`
+documents exactly what the installed SDK's build system handles automatically versus what it
+forbids agents from configuring manually, and this is the authoritative source for CSS file
+placement, linking, and bundling behavior.

@@ -304,7 +304,7 @@ Load the relevant reference file for detailed props, examples, and patterns:
 | Input, Textarea, Select, Typeahead, Checkbox, Toggle, RadioButtons, DateTime | [INPUT-COMPONENTS.md](./INPUT-COMPONENTS.md) |
 | Alert, Loader, ProgressBar, Tooltip, Heading, Badge, HighlightedValue, LabelValue, Avatar, Icon, Breadcrumbs, TemplateMessage | [FEEDBACK-DISPLAY-COMPONENTS.md](./FEEDBACK-DISPLAY-COMPONENTS.md) |
 | Full import list and event pattern cheatsheet | [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md) |
-| CSS Modules setup, Horizon design tokens, custom component styling, theming | [STYLING.md](./STYLING.md) |
-| **Horizon Design System theming:** token categories, color roles, layout patterns, controls, dark mode | [ui-page-theming-guide.md](./ui-page-theming-guide.md) |
-| **UI Page patterns:** dirty state management, field extraction, service layer, CSS constraints, build system | [ui-page-patterns-guide.md](./ui-page-patterns-guide.md) |
+| Horizon design tokens, custom component styling, theming | [STYLING.md](./STYLING.md) |
+| **Horizon Design System theming:** token categories, color roles, layout patterns, controls, dark mode | `now-sdk explain ui-page-theming-guide --format raw` |
+| **UI Page patterns:** dirty state management, field extraction, service layer, CSS constraints, build system | `now-sdk explain ui-page-patterns-guide --format raw` |
 | Complete working examples (form, list, dashboard, styled components, modal) | [EXAMPLES.md](./EXAMPLES.md) |

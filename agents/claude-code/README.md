@@ -38,7 +38,6 @@ Skills are located in `agents/skills/` with the following domains:
 | `servicenow-script-server-logic` | Script Includes and server utilities |
 | `servicenow-manipulate-data` | GlideRecord, GlideQuery, GlideAggregate |
 | `servicenow-flow-designer` | Classic FlowAPI execution |
-| `servicenow-deployment` | Update Sets and pipeline deployment |
 | `servicenow-http-integrations` | Outbound REST/SOAP calls |
 | `servicenow-server-date-time` | Date arithmetic and scheduling |
 | `servicenow-server-security` | Cryptographic operations and credentials |

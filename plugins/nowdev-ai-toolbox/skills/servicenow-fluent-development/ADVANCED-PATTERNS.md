@@ -28,6 +28,6 @@ Use local examples only when they describe NowDev workflow boundaries or project
 ## Guardrails
 
 - Prefer first-class SDK APIs over raw `Record()` when the installed SDK provides them.
-- Treat `$override` as an escape hatch; use [OVERRIDE-GUIDE.md](./OVERRIDE-GUIDE.md) for review policy.
+- Treat `$override` as an escape hatch; use `now-sdk explain override-guide --format raw` for review policy and gotchas.
 - Validate live table names, field names, roles, sys_ids, and plugin availability with workspace or instance facts before finalizing metadata.
 - Keep advanced work in the correct specialist boundary so Schema, Logic, Automation, UI, and AI artifacts do not overwrite each other.

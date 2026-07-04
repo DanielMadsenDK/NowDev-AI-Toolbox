@@ -28,12 +28,17 @@ Use these only after fetching the relevant SDK topic with `now-sdk explain <topi
 
 | Need | Local Reference |
 |---|---|
-| Script Include bridges and module/string-only decision support | [MODULE-GUIDE.md](./MODULE-GUIDE.md) |
-| GlideAjax/REST service layering for React UI Pages | [CLIENT-SERVER-PATTERNS.md](./CLIENT-SERVER-PATTERNS.md) |
-| Third-party React dependencies, Rollup prebuild, CSS bundling | [THIRD-PARTY-LIBRARIES.md](./THIRD-PARTY-LIBRARIES.md) |
-| `$override` risk policy and review checklist | [OVERRIDE-GUIDE.md](./OVERRIDE-GUIDE.md) |
 | Build/runtime troubleshooting workflow | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) |
 | Advanced NowDev patterns that are not pure SDK reference | [ADVANCED-PATTERNS.md](./ADVANCED-PATTERNS.md) |
+
+The following used to be local files but are now fully covered by the installed SDK's own docs — fetch these `explain` topics directly instead:
+
+| Need | SDK Topic |
+|---|---|
+| JavaScript modules, module/string-only decision support | `now-sdk explain module-guide --format raw` |
+| Script Include bridges (module-to-Script Include pattern) | `now-sdk explain script-include-guide --format raw` |
+| `$override` risk policy and gotchas | `now-sdk explain override-guide --format raw` |
+| React UI Page build model, dirty state, service layer, CSS constraints | `now-sdk explain ui-page-patterns-guide --format raw` |
 
 ## Agent Routing
 

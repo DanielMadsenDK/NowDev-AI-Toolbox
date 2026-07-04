@@ -23,7 +23,6 @@ When working on a specific domain, read the SKILL.md file from the appropriate s
 | Script Includes / Server Logic | `agents/skills/servicenow-script-server-logic/SKILL.md` |
 | Data Manipulation (GlideRecord) | `agents/skills/servicenow-manipulate-data/SKILL.md` |
 | Flow Designer (Classic) | `agents/skills/servicenow-flow-designer/SKILL.md` |
-| Deployment & Update Sets | `agents/skills/servicenow-deployment/SKILL.md` |
 | HTTP Integrations (REST/SOAP) | `agents/skills/servicenow-http-integrations/SKILL.md` |
 | Date/Time Operations | `agents/skills/servicenow-server-date-time/SKILL.md` |
 | Security & Encryption | `agents/skills/servicenow-server-security/SKILL.md` |
