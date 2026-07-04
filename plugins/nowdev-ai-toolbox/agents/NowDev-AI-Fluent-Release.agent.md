@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 86db3d91029ae961f64460c707fef17874c23646dd79cec4388fa581544ecb0d
+# nowdev-hash: 61ba34d427c32ed75ecd64b24fe982e3a8423c549322edd0891b45b65814836b
 name: NowDev-AI-Fluent-Release
 user-invocable: false
 disable-model-invocation: false
@@ -19,7 +19,7 @@ handoffs:
 1. Verify the project has now.config.json and a valid scope/version
 2. Clarify from tools first: read `.vscode/nowdev-ai-config.json`, run/inspect `now-sdk auth --list` context for aliases, and use `now-sdk explain ci-integration` or `developing-apps-guide` for deployment details before asking the user
 3. Run now-sdk build and check for TypeScript or schema errors
-4. If build succeeds, confirm the target auth alias with the user only when no alias was provided or multiple aliases are plausible
+4. If build succeeds, confirm the target auth alias with the user only when no alias was provided or when more than one alias is returned by `now-sdk auth --list` and none matches the project scope name in `now.config.json`
 5. Run now-sdk install --auth <alias> (or --reinstall if a clean deploy is needed)
 6. Verify deployment output — confirm metadata was pushed successfully
 7. Report results back to the orchestrator
@@ -27,8 +27,9 @@ handoffs:
 
 <stopping_rules>
 STOP IMMEDIATELY if the environment capabilities passed by the orchestrator do not include `now-sdk` in `availableTools` — inform the user that the ServiceNow SDK must be installed before Fluent build/deploy is possible
-STOP if now-sdk build fails — report errors and ask the orchestrator to re-invoke the developer agent to fix them before retrying
-STOP if no auth alias is available — guide the user to run now-sdk auth add before proceeding
+STOP if now-sdk build fails — report errors and ask the orchestrator to re-invoke `NowDev-AI-Fluent-Developer` to fix them before retrying
+STOP if no auth alias is available — guide the user to run now-sdk auth add before proceeding. If the environment is non-interactive (e.g., no terminal input is possible), also inform the user that a service account alias can be pre-configured via environment variables as documented under the `ci-integration` topic (`now-sdk explain ci-integration --format raw`), and stop without further action.
+STOP if `now-sdk install` fails — report the exact error output and the alias used to the orchestrator. Do not retry automatically. Ask the user whether to attempt `--reinstall` or to abort.
 STOP if attempting to use Update Sets for a Fluent SDK project — this is never correct
 STOP if modifying any application code files — this agent deploys only
 </stopping_rules>
@@ -101,11 +102,18 @@ If `now-sdk build` fails:
 - Ask the orchestrator to re-invoke `NowDev-AI-Fluent-Developer` with the error as context
 - Do **not** attempt to fix code yourself
 
+## Install Error Handling
+
+If `now-sdk install` fails:
+- Report the exact error output and the alias used to the orchestrator
+- Do not retry automatically
+- Ask the user whether to attempt `--reinstall` or to abort
+
 ## Post-Deployment Verification
 
 After a successful install:
 1. Confirm the scope appears in ServiceNow Studio
-2. Verify key records exist (navigate to the target tables in the instance)
+2. Verify key records exist by checking the tables referenced in the project's `.now.ts` files (e.g., the scoped application record in `sys_app` and at least one representative metadata record). If specific tables are unknown, ask the user which records to validate.
 3. Run ATF tests if available
 
 ## Rollback

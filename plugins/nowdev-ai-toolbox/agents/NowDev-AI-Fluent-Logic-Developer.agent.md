@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 27ab6e2712cc3d6736e7262bd6ed8424b44099ae3cdbe152dc5205a86bed607d
+# nowdev-hash: ef321c6f9d037dc6ef0d70ddc8e905c5a924a465c0d72fa9152918f940590efa
 name: NowDev-AI-Fluent-Logic-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -17,20 +17,21 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer. If only `memoryLocation` exists, treat it as optional legacy context.
-2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for Fluent APIs, and use `now-sdk query` for live table/field/role/sys_id facts before asking the user
-2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact table structures and field types
-3. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
-4. Analyze the requirements and identify all server-side logic artifacts needed
-5. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
-6. Verify APIs using `now-sdk explain <topic> --format raw`; use https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary context not covered by explain
-7. Implement .now.ts metadata files and linked .js server scripts in dependency order
-8. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
-9. Emit a final `Artifact Manifest` JSON block with accurate exports (class/method names, REST paths)
-10. Return created file list to the coordinator
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain <topic> --format raw` for Fluent APIs, and use `now-sdk query` for live table/field/role/sys_id facts before asking the user
+3. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact table structures and field types
+4. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
+5. Analyze the requirements and identify all server-side logic artifacts needed
+6. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
+7. Verify APIs using `now-sdk explain <topic> --format raw`; use https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only when `now-sdk explain <topic> --format raw` returns no output or explicitly states the topic is unsupported.
+8. Implement .now.ts metadata files and linked .js server scripts in dependency order
+9. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
+10. Emit a final `Artifact Manifest` JSON block with accurate exports (class/method names, REST paths)
+11. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
 STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with `now-sdk explain <topic> --format raw`
+STOP if `now-sdk explain` returns an error or no output — report the failure to the user and request manual documentation before proceeding.
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if using deprecated `script\`\`` tagged template literals — use `Now.include('./file.js')`
 STOP if writing `current.update()` or `current.insert()` inside a Business Rule script
@@ -63,7 +64,7 @@ Key topics for logic artifacts (use `now-sdk explain <topic> --format raw`):
   - agents/exemplars/fluent-script-include.now.ts — canonical ScriptInclude shape
   - agents/exemplars/fluent-business-rule.now.ts — canonical BusinessRule shape
 
-  - https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary SDK context not covered by `now-sdk explain`
+  - https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only when `now-sdk explain <topic> --format raw` returns no output or explicitly states the topic is unsupported
   - the servicenow-* skill for Classic API validity in script content (GlideRecord, gs.*, etc.)
 </documentation>
 

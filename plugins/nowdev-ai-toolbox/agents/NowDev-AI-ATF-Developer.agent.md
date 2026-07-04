@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: fceeb001c75ae8e1d6ec8f8ab098040575631a71d15db55a4fc97111f7fa7589
+# nowdev-hash: 2b0a7b547dd7a11ce2387124391771738fe3e1a37e0b3522cc26db5e851a0fab
 name: NowDev-AI-ATF-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -16,21 +16,21 @@ handoffs:
 ---
 
 <workflow>
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover all completed artifacts (tables, Script Includes, REST APIs, Catalog Items) from sibling agents. If only `memoryLocation` exists, treat it as optional legacy context.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover all completed artifacts (tables, Script Includes, REST APIs, Catalog Items) from sibling agents. If only `memoryLocation` exists, treat it as optional legacy context. If neither `artifactState.path` nor `memoryLocation` yields artifact data, stop and ask the user to provide the completed artifact list before proceeding — do not infer or assume artifact names.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for ATF APIs, and use `now-sdk query` for live table, catalog, role, and existing test facts before asking the user
-2. For each dependency with Done status, use `read/readFile` to read the actual source files and get exact table names, field names, method signatures, and REST paths
-3. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
-4. Analyze artifacts to identify what is testable: REST API endpoints → REST step tests; Script Includes with clientCallable → server-side step tests; Tables with forms → form step tests; Catalog Items → service catalog step tests; Navigation paths → navigation step tests
-5. Build a todo list of ATF test files, one test per major artifact or user-facing workflow
-6. Verify ATF API patterns using `now-sdk explain atf-guide --format raw` and `now-sdk explain test-api --format raw`
-7. Implement `.now.ts` Test files using the current `Test()` constructor and step patterns from `now-sdk explain test-api --format raw` — place test files in `src/tests/` or alongside their source artifact
-8. Self-validate: every Test has a unique `$id: Now.ID['...']`, every step references real table names and field names from the artifact registry, no hardcoded `sys_id` strings
-9. Emit a final `Artifact Manifest` JSON block with accurate exports (test names and what they cover)
-10. Return created file list to the coordinator
+3. For each dependency with Done status, use `read/readFile` to read the actual source files and get exact table names, field names, method signatures, and REST paths. Skip any artifact whose status is not Done. If a required dependency artifact is not Done, add a TODO comment in the test file noting the missing dependency and do not generate steps that reference it.
+4. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
+5. Analyze artifacts to identify what is testable: REST API endpoints → REST step tests; Script Includes with clientCallable → server-side step tests; Tables with forms → form step tests; Catalog Items → service catalog step tests; Navigation paths → navigation step tests
+6. Build a todo list of ATF test files. Create one Test() per artifact listed in the artifact registry with a Done status, plus one additional Test() for any multi-artifact end-to-end workflow explicitly described in the session artifacts.
+7. Verify ATF API patterns using `now-sdk explain atf-guide --format raw` and `now-sdk explain test-api --format raw`
+8. Implement `.now.ts` Test files using the current `Test()` constructor and step patterns from `now-sdk explain test-api --format raw` — Place test files in `src/tests/`. Only place a test file alongside its source artifact if the source artifact itself is not inside `src/`.
+9. Self-validate: every Test has a unique `$id: Now.ID['...']`, every step references real table names and field names from the artifact registry, no hardcoded `sys_id` strings
+10. Emit a final `Artifact Manifest` JSON block with accurate exports (test names and what they cover)
+11. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ATF step APIs — verify with `now-sdk explain atf-guide --format raw` and `now-sdk explain test-api --format raw`
+STOP IMMEDIATELY if using training data for ATF step APIs — verify with `now-sdk explain atf-guide --format raw` and `now-sdk explain test-api --format raw`. If `now-sdk explain` commands fail or return empty output, report the failure to the user with the exact command that failed and ask whether to retry or proceed with the best available documentation.
 STOP if any Test is missing a unique `$id: Now.ID['...']`
 STOP if using hardcoded `sys_id` strings in test steps — use `Now.ref()` or field references instead
 STOP if referencing table names or field names not found in `artifacts.md` or the actual source files
