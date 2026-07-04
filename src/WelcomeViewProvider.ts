@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as https from 'https';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
@@ -13,6 +12,8 @@ import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
 import { SdkCommandStatus, InstallInfoState, ConnectionState, CheckChangesState, AvailableAgentModel, PrerequisiteStatusKind, PrerequisiteStatus, RequiredSetting, InspectWithPolicy } from './welcome/welcomeTypes';
 import { normalizeModelOverride, resolveInside, isSafeRelativePath, capitalize, AUTO_ENABLE_MCP_PATTERNS } from './welcome/welcomeUtils';
 import { buildWelcomeHtml } from './welcome/welcomeHtml';
+import { githubGetJson, githubGetRaw, getDocsSyncTime, setDocsSyncTime } from './welcome/githubDocs';
+import { readNowConfig, resolveArtifactStatePath, writeNowDevConfigFile, writeConnectionStatusToConfig, FluentAppInfo } from './welcome/configFile';
 
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
@@ -881,7 +882,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             // Sync agents whenever config changes
             this._syncWorkspaceAgents();
 
-            const resolvedPath = this._resolveArtifactStatePath(workspaceFolders[0].uri.fsPath, config);
+            const resolvedPath = resolveArtifactStatePath(workspaceFolders[0].uri.fsPath, config);
             if (!resolvedPath) { return; }
 
             // Only re-setup if the path actually changed
@@ -983,37 +984,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _fetchDocsReleasesFromGitHub(): Promise<void> {
-        return new Promise((resolve) => {
-            const options = {
-                hostname: 'api.github.com',
-                path: '/repos/ServiceNow/ServiceNowDocs/branches?per_page=100',
-                headers: {
-                    'User-Agent': 'NowDev-AI-Toolbox',
-                    'Accept': 'application/vnd.github+json',
-                },
-            };
-            const req = https.get(options, (res) => {
-                let data = '';
-                res.on('data', (chunk: string) => { data += chunk; });
-                res.on('end', () => {
-                    try {
-                        const branches = JSON.parse(data) as Array<{ name: string }>;
-                        if (!Array.isArray(branches)) { resolve(); return; }
-                        const releases = branches
-                            .map(b => b.name)
-                            .filter(n => n && n !== 'main' && n !== 'HEAD' && !/^v\d/.test(n))
-                            .sort((a, b) => b.localeCompare(a));
-                        if (releases.length > 0) {
-                            this._docsReleases = releases;
-                            if (this._view) { this._updateStatus(); }
-                        }
-                    } catch { /* ignore parse errors — keep hardcoded list */ }
-                    resolve();
-                });
-            });
-            req.on('error', () => resolve()); // silent fallback
-            req.end();
-        });
+        try {
+            const branches = await githubGetJson<Array<{ name: string }>>('/repos/ServiceNow/ServiceNowDocs/branches?per_page=100');
+            if (!Array.isArray(branches)) { return; }
+            const releases = branches
+                .map(b => b.name)
+                .filter(n => n && n !== 'main' && n !== 'HEAD' && !/^v\d/.test(n))
+                .sort((a, b) => b.localeCompare(a));
+            if (releases.length > 0) {
+                this._docsReleases = releases;
+                if (this._view) { this._updateStatus(); }
+            }
+        } catch { /* silent fallback — keep hardcoded list */ }
     }
 
     private async _downloadServiceNowDocs(): Promise<void> {
@@ -1034,7 +1016,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
         try {
             // Fetch the git tree for the selected branch
-            const tree = await this._githubGet<{ tree: Array<{ type: string; path: string }> }>(
+            const tree = await githubGetJson<{ tree: Array<{ type: string; path: string }> }>(
                 `/repos/ServiceNow/ServiceNowDocs/git/trees/${encodeURIComponent(release)}?recursive=1`
             );
 
@@ -1050,7 +1032,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 if (this._abortDownload) { break; }
                 const batch = mdFiles.slice(i, i + batchSize);
                 await Promise.all(batch.map(async (item) => {
-                    const raw = await this._rawGithubGet(
+                    const raw = await githubGetRaw(
                         `/ServiceNow/ServiceNowDocs/${encodeURIComponent(release)}/${item.path}`
                     );
                     const dest = resolveInside(destPath, item.path);
@@ -1070,7 +1052,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
             // Also try to fetch llms.txt from root of branch
             try {
-                const llmsTxt = await this._rawGithubGet(
+                const llmsTxt = await githubGetRaw(
                     `/ServiceNow/ServiceNowDocs/${encodeURIComponent(release)}/llms.txt`
                 );
                 fs.writeFileSync(path.join(destPath, 'llms.txt'), llmsTxt, 'utf-8');
@@ -1088,46 +1070,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _githubGet<T>(apiPath: string): Promise<T> {
-        return new Promise((resolve, reject) => {
-            const options = {
-                hostname: 'api.github.com',
-                path: apiPath,
-                headers: {
-                    'User-Agent': 'NowDev-AI-Toolbox',
-                    'Accept': 'application/vnd.github+json',
-                },
-            };
-            const req = https.get(options, (res) => {
-                let data = '';
-                res.on('data', (chunk: string) => { data += chunk; });
-                res.on('end', () => {
-                    try { resolve(JSON.parse(data) as T); }
-                    catch (e) { reject(e); }
-                });
-            });
-            req.on('error', reject);
-            req.end();
-        });
-    }
-
-    private _rawGithubGet(rawPath: string): Promise<string> {
-        return new Promise((resolve, reject) => {
-            const options = {
-                hostname: 'raw.githubusercontent.com',
-                path: rawPath,
-                headers: { 'User-Agent': 'NowDev-AI-Toolbox' },
-            };
-            const req = https.get(options, (res) => {
-                let data = '';
-                res.on('data', (chunk: string) => { data += chunk; });
-                res.on('end', () => resolve(data));
-            });
-            req.on('error', reject);
-            req.end();
-        });
-    }
-
     private _getDocsGlobalPath(): string {
         return vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('docsLocalPath', '').trim();
     }
@@ -1139,28 +1081,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     private _getDocsSyncTime(release: string): string {
-        const base = this._getDocsGlobalPath();
-        if (!base || !release) { return ''; }
-        const syncFile = path.join(base, '.nowdev-sync.json');
-        try {
-            if (!fs.existsSync(syncFile)) { return ''; }
-            const map = JSON.parse(fs.readFileSync(syncFile, 'utf-8')) as Record<string, string>;
-            return map[release] ?? '';
-        } catch { return ''; }
+        return getDocsSyncTime(this._getDocsGlobalPath(), release);
     }
 
     private _setDocsSyncTime(release: string, time: string): void {
-        const base = this._getDocsGlobalPath();
-        if (!base || !release) { return; }
-        const syncFile = path.join(base, '.nowdev-sync.json');
-        let map: Record<string, string> = {};
-        try {
-            if (fs.existsSync(syncFile)) {
-                map = JSON.parse(fs.readFileSync(syncFile, 'utf-8')) as Record<string, string>;
-            }
-        } catch { /* start fresh */ }
-        map[release] = time;
-        try { fs.writeFileSync(syncFile, JSON.stringify(map, null, 2) + '\n', 'utf-8'); } catch { /* ignore */ }
+        setDocsSyncTime(this._getDocsGlobalPath(), release, time);
     }
 
     private _setupArtifactWatcher(resolvedPath: string): void {
@@ -1190,230 +1115,47 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         this._artifactFilePath = null;
     }
 
-    private _resolveArtifactStatePath(workspaceRoot: string, config: Record<string, unknown>): string | undefined {
-        const artifactState = config.artifactState as { path?: unknown } | undefined;
-        if (artifactState && typeof artifactState.path === 'string') {
-            return resolveInside(workspaceRoot, artifactState.path);
-        }
-
-        if (typeof config.artifactStateLocation === 'string') {
-            return this._resolveArtifactLocation(workspaceRoot, config.artifactStateLocation);
-        }
-
-        if (typeof config.memoryLocation === 'string') {
-            return this._resolveArtifactLocation(workspaceRoot, config.memoryLocation);
-        }
-
-        return undefined;
-    }
-
-    private _resolveArtifactLocation(workspaceRoot: string, location: string): string | undefined {
-        if (/^[a-z][a-z0-9+.-]*:/i.test(location)) {
-            try { return vscode.Uri.parse(location).fsPath; } catch { return undefined; }
-        }
-        return resolveInside(workspaceRoot, location);
-    }
-
-    private _ensureArtifactStateFile(workspaceRoot: string): { relativePath: string; absolutePath: string } {
-        const relativePath = '.vscode/nowdev-ai-session/artifacts.json';
-        const absolutePath = resolveInside(workspaceRoot, relativePath)!;
-        if (!fs.existsSync(absolutePath)) {
-            fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-            const initialState = {
-                version: 1,
-                sessionId: '',
-                artifacts: [],
-                updatedAt: new Date().toISOString(),
-            };
-            fs.writeFileSync(absolutePath, JSON.stringify(initialState, null, 2) + '\n', 'utf-8');
-        }
-        return { relativePath, absolutePath };
-    }
-
     // ── Config helpers ─────────────────────────────────────────────
 
-    private _readNowConfig(): { scope: string; scopeId: string; name: string; scopePrefix: string; numericScopeId: string } | null {
+    private _readNowConfig(): FluentAppInfo | null {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return null; }
-
-        const configPath = path.join(workspaceFolders[0].uri.fsPath, 'now.config.json');
-        try {
-            if (!fs.existsSync(configPath)) { return null; }
-            const raw = fs.readFileSync(configPath, 'utf-8');
-            const config = JSON.parse(raw);
-            if (!config.scope) { return null; }
-
-            let scopePrefix = '';
-            let numericScopeId = '';
-            const scopeMatch = config.scope.match(/^(\w+?)_(\d+)_/);
-            if (scopeMatch) {
-                scopePrefix = scopeMatch[1];
-                numericScopeId = scopeMatch[2];
-            }
-
-            return {
-                scope: config.scope || '',
-                scopeId: config.scopeId || '',
-                name: config.name || '',
-                scopePrefix,
-                numericScopeId,
-            };
-        } catch (err) {
-            console.error('Failed to read now.config.json:', err);
-            return null;
-        }
+        return readNowConfig(workspaceFolders[0].uri.fsPath);
     }
 
     private _writeConfigFile(
         settings: { instanceUrl: string; customInstructionsFile: string },
         customInstructionsContent: string,
-        fluentApp: { scope: string; scopeId: string; name: string; scopePrefix: string; numericScopeId: string } | null
+        fluentApp: FluentAppInfo | null
     ) {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
 
-        const vscodePath = path.join(workspaceFolders[0].uri.fsPath, '.vscode');
-        const artifactState = this._ensureArtifactStateFile(workspaceFolders[0].uri.fsPath);
-        const configPath = path.join(vscodePath, 'nowdev-ai-config.json');
+        const artifactAbsolutePath = writeNowDevConfigFile(workspaceFolders[0].uri.fsPath, {
+            settings,
+            customInstructionsContent,
+            fluentApp,
+            environmentInfo: this._environmentInfo,
+            selectedMcp: this._selectedMcp,
+            mcpUserDismissed: this._mcpUserDismissed,
+            mcpIntegrationConfigs: this._mcpIntegrationConfigs,
+            allDocSources: this._allDocSources,
+            devopsConfig: this._devopsConfig,
+            guidelinesConfig: this._guidelinesConfig,
+            agentOverrides: this._agentOverrides,
+            activeProfileId: this._activeProfileId,
+            profileInstructionsOverrides: this._profileInstructionsOverrides,
+        });
 
-        const configData: Record<string, unknown> = {
-            _comment: 'Auto-generated by NowDev AI Toolbox. Agents read this file for project context. Do not edit manually.',
-            instanceUrl: settings.instanceUrl,
-            artifactState: {
-                version: 1,
-                storage: 'workspace',
-                path: artifactState.relativePath,
-            },
-        };
-
-        if (fluentApp) {
-            configData.fluentApp = {
-                scope: fluentApp.scope,
-                scopeId: fluentApp.scopeId,
-                name: fluentApp.name,
-                scopePrefix: fluentApp.scopePrefix,
-                numericScopeId: fluentApp.numericScopeId,
-            };
-        }
-
-        if (customInstructionsContent) {
-            configData.customInstructions = customInstructionsContent;
-        }
-
-        if (this._environmentInfo) {
-            const env = this._environmentInfo;
-            const enabledTools: Record<string, { version: string; label: string; description: string }> = {};
-            for (const [key, tool] of Object.entries(env.tools)) {
-                if (tool.enabled && (tool.available || tool.manualOverride)) {
-                    enabledTools[key] = {
-                        version: tool.version,
-                        label: tool.label,
-                        description: tool.description,
-                    };
-                }
-            }
-            configData.environment = {
-                os: env.os,
-                osVersion: env.osVersion,
-                arch: env.arch,
-                shell: env.shell,
-                availableTools: enabledTools,
-            };
-        }
-
-        // MCP server selection
-        configData.mcpIntegrations = this._selectedMcp;
-
-        // Servers the user explicitly disabled — preserved so auto-enable doesn't re-add them
-        if (this._mcpUserDismissed.length > 0) {
-            configData.mcpUserDismissed = this._mcpUserDismissed;
-        }
-
-        // Per-MCP-server access configs
-        if (Object.keys(this._mcpIntegrationConfigs).length > 0) {
-            configData.mcpIntegrationConfigs = this._mcpIntegrationConfigs;
-        }
-
-        // Unified documentation sources (localPath and lastSynced are derived at runtime, not persisted)
-        configData.allDocSources = {
-            ...this._allDocSources,
-            productDocs: {
-                ...this._allDocSources.productDocs,
-                localPath: undefined,
-                lastSynced: undefined,
-            },
-        };
-
-        // Work-item / DevOps integration config
-        configData.devopsConfig = this._devopsConfig;
-
-        // Instance-backed agent guidelines
-        if (this._guidelinesConfig.enabled || this._guidelinesConfig.selectedArticles.length > 0) {
-            configData.guidelines = this._guidelinesConfig;
-        }
-
-        // Per-agent overrides
-        if (Object.keys(this._agentOverrides).length > 0) {
-            configData.agentOverrides = this._agentOverrides;
-        }
-
-        // Active user profile
-        configData.activeProfile = this._activeProfileId;
-
-        // Profile instruction overrides — only written when the user has customized at least one profile.
-        // Built-in defaults are never written here so user customizations survive extension upgrades.
-        if (Object.keys(this._profileInstructionsOverrides).length > 0) {
-            configData.profileInstructionsOverrides = this._profileInstructionsOverrides;
-        }
-
-        // Reserved for future user-defined custom profiles
-        configData.customProfiles = [];
-
-        // Preserve agent-written fields (e.g. memoryLocation) that should not be overwritten
-        try {
-            if (fs.existsSync(configPath)) {
-                const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-                if (existing.memoryLocation) {
-                    configData.memoryLocation = existing.memoryLocation;
-                }
-                if (existing.artifactState && typeof existing.artifactState === 'object') {
-                    configData.artifactState = { ...existing.artifactState as Record<string, unknown>, ...configData.artifactState as Record<string, unknown> };
-                }
-                if (existing.guidelines && !configData.guidelines) {
-                    configData.guidelines = existing.guidelines;
-                }
-            }
-        } catch { /* ignore parse errors */ }
-
-        try {
-            if (!fs.existsSync(vscodePath)) {
-                fs.mkdirSync(vscodePath, { recursive: true });
-            }
-            fs.writeFileSync(configPath, JSON.stringify(configData, null, 2) + '\n', 'utf-8');
-            if (this._artifactFilePath !== artifactState.absolutePath) {
-                this._setupArtifactWatcher(artifactState.absolutePath);
-            }
-        } catch (err) {
-            console.error('Failed to write nowdev-ai-config.json:', err);
+        if (artifactAbsolutePath && this._artifactFilePath !== artifactAbsolutePath) {
+            this._setupArtifactWatcher(artifactAbsolutePath);
         }
     }
 
     private _writeConnectionStatusToConfig(state: ConnectionState): void {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
-        const configPath = path.join(workspaceFolders[0].uri.fsPath, '.vscode', 'nowdev-ai-config.json');
-        try {
-            if (!fs.existsSync(configPath)) { return; }
-            const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-            existing.instanceConnection = {
-                reachable: state.reachable,
-                statusCode: state.statusCode,
-                responseTime: state.responseTime,
-                error: state.error,
-                checkedAt: state.timestamp,
-            };
-            fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n', 'utf-8');
-        } catch { /* ignore */ }
+        writeConnectionStatusToConfig(workspaceFolders[0].uri.fsPath, state);
     }
 
     private _getRequiredSettings(): Record<string, RequiredSetting> {

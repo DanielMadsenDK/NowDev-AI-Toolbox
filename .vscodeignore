@@ -8,8 +8,11 @@ node_modules/**
 .gitattributes
 tsconfig.json
 esbuild.js
-vsc-extension-quickstart.md
-migrate_agents.py
 *.vsix
 **/*.map
 plugins/**
+scripts/**
+build/**
+.claude/**
+**/workspace/**
+*.skill

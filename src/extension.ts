@@ -180,8 +180,8 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
 
-    // Agents are now registered via package.json chatAgents contribution
-    // No additional installation logic needed
+    // Agents are delivered as generated .github/agents/*.agent.md files, synced
+    // by WorkspaceAgentManager via the welcome view — no registration step here.
 
 }
 

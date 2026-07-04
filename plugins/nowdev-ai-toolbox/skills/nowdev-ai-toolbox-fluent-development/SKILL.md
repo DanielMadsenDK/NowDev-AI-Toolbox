@@ -11,7 +11,7 @@ Use this skill for NowDev workflow conventions around Fluent SDK projects. Do **
 
 ## Authoritative SDK Source
 
-For `now-sdk` command syntax, flags, and the `explain`/`query` discovery workflow, use `agents/skills/now-sdk/SKILL.md` — the canonical CLI reference. This skill does not duplicate that mechanics.
+For `now-sdk` command syntax, flags, and the `explain`/`query` discovery workflow, use `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` — the canonical CLI reference. This skill does not duplicate that mechanics.
 
 Always verify current SDK API shape with `now-sdk explain <topic> --format raw` before writing or reviewing Fluent code. If local guidance conflicts with `now-sdk explain`, the installed SDK documentation wins.
 
@@ -48,7 +48,8 @@ The following used to be local files but are now fully covered by the installed 
 | Business Rules, Script Includes, Script Actions, REST APIs, Email Notifications, SLAs, Scheduled Scripts | NowDev-AI-Fluent-Logic-Developer |
 | Flows, Subflows, custom actions/triggers, Playbooks | NowDev-AI-Fluent-Automation-Developer |
 | UI Pages, React client code, Client Scripts, UI Policies, UI Actions, Catalog, Portal, Workspaces, Dashboards | NowDev-AI-Fluent-UI-Developer |
-| AiAgent, AiAgenticWorkflow, NowAssistSkillConfig | NowDev-AI-AI-Studio-Developer |
+| AiAgent, AiAgenticWorkflow | NowDev-AI-AI-Agent-Developer |
+| NowAssistSkillConfig | NowDev-AI-NowAssist-Developer |
 | Automated Test Framework `Test()` definitions | NowDev-AI-ATF-Developer |
 | SDK build/install/release | NowDev-AI-Fluent-Release |
 | Code review | NowDev-AI-Fluent-Reviewer |

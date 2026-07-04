@@ -12,7 +12,7 @@ The skills in `agents/skills/` are format-agnostic markdown and work for both Gi
 
 The `CLAUDE.md` file in this directory serves as the main instructions file. Claude Code will automatically load it when working in this repository.
 
-`CLAUDE.md` references skill files by path (e.g. `agents/skills/now-sdk/SKILL.md`) instead of duplicating their content, so the `agents/skills/` directory must travel alongside it — copying or symlinking `CLAUDE.md` alone will leave those references dangling.
+`CLAUDE.md` references skill files by path (e.g. `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`) instead of duplicating their content, so the `agents/skills/` directory must travel alongside it — copying or symlinking `CLAUDE.md` alone will leave those references dangling.
 
 For use in other repositories, copy or symlink both `CLAUDE.md` and `agents/skills/` into your project root:
 
@@ -32,27 +32,16 @@ Skills are located in `agents/skills/` with the following domains:
 
 | Skill | Domain |
 |-------|--------|
-| `servicenow-fluent-development` | Fluent SDK (.now.ts) metadata and modules |
-| `servicenow-business-rules` | Server-side database triggers |
-| `servicenow-client-scripts` | Browser-side form scripts |
-| `servicenow-script-server-logic` | Script Includes and server utilities |
-| `servicenow-manipulate-data` | GlideRecord, GlideQuery, GlideAggregate |
-| `servicenow-flow-designer` | Classic FlowAPI execution |
-| `servicenow-http-integrations` | Outbound REST/SOAP calls |
-| `servicenow-server-date-time` | Date arithmetic and scheduling |
-| `servicenow-server-security` | Cryptographic operations and credentials |
-| `servicenow-ui-forms` | g_form API field state manipulation |
-| `servicenow-ai-agent-studio` | AI Agent definitions and workflows |
-| `servicenow-now-assist` | NowAssist Skill configurations |
-| `servicenow-instance-scan` | Instance Scan check definitions |
-| `servicenow-react-ui-components` | @servicenow/react-components (Horizon) |
-| `now-sdk` | `now-sdk` CLI reference — `explain`, `query`, and every other subcommand |
-| `servicenow-artifact-state` | Workspace-backed session artifact registry |
-| `servicenow-copilot-instructions-generator` | Generating/updating project-specific Copilot instructions |
+| `nowdev-ai-toolbox-fluent-development` | Fluent workflow conventions and NowDev-specific guardrails |
+| `nowdev-ai-toolbox-servicenow-sdk` | `now-sdk` CLI reference — `explain`, `query`, and every other subcommand |
+| `nowdev-ai-toolbox-react-ui-components` | @servicenow/react-components (Horizon) |
+| `nowdev-ai-toolbox-release-notes` | Retrieving ServiceNow release notes |
+
+Earlier releases bundled per-domain platform skills (business rules, client scripts, GlideRecord, and so on). Those were removed in favor of `now-sdk explain`, which documents the installed SDK version directly — use it for all Fluent SDK API reference.
 
 ### 3. Reference documentation
 
-For `now-sdk` CLI mechanics — flags, the `--peek`/`--format raw` discipline, safety notes, and the full command surface — read `agents/skills/now-sdk/SKILL.md` before running any `now-sdk` command; it reflects the SDK installed in the target workspace and should not be restated from memory. As a starting point:
+For `now-sdk` CLI mechanics — flags, the `--peek`/`--format raw` discipline, safety notes, and the full command surface — read `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` before running any `now-sdk` command; it reflects the SDK installed in the target workspace and should not be restated from memory. As a starting point:
 
 ```bash
 now-sdk explain --list <keyword>
@@ -68,6 +57,6 @@ When working on ServiceNow development tasks, Claude Code will:
 
 1. Read the relevant skill SKILL.md for the domain
 2. Follow the patterns and best practices documented
-3. Read `agents/skills/now-sdk/SKILL.md` for Fluent SDK API and CLI accuracy
+3. Read `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` for Fluent SDK API and CLI accuracy
 4. Use JavaScript modules as the preferred server-side pattern (for function-accepting APIs)
 5. Use `Now.include()` for string-only APIs (ClientScript, ScriptInclude, etc.)

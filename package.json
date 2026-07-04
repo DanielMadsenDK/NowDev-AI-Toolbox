@@ -342,6 +342,8 @@
     "build:plugin": "node scripts/build-plugin.mjs",
     "compile": "tsc -p ./",
     "validate:agents": "npm run compile && node out/AgentValidationCli.js",
+    "test": "npm run compile && node --test \"out/test/*.test.js\"",
+    "lint": "eslint src",
     "watch": "node esbuild.js --watch",
     "watch:tsc": "tsc -watch -p ./"
   },
@@ -349,7 +351,9 @@
     "@types/node": "^18.x",
     "@types/vscode": "^1.110.0",
     "esbuild": "^0.28.1",
-    "typescript": "^5.3.3"
+    "eslint": "^10.6.0",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.62.1"
   },
   "dependencies": {
     "yaml": "^2.9.0"

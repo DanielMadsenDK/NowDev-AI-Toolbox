@@ -86,7 +86,7 @@ export function showSdkQueryPanel(
     proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
     proc.stderr.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
     proc.on('close', (code: number | null) => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+         
         const p = panel!;
         const raw = stdout.trim();
         const combinedOutput = [stderr.trim(), raw].filter(Boolean).join('\n');
@@ -117,7 +117,7 @@ export function showSdkQueryPanel(
         p.webview.html = renderHtml(params, envelope);
     });
     proc.on('error', () => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+         
         panel!.webview.html = errorHtml('Failed to run now-sdk. Make sure it is installed and accessible.');
     });
 }
@@ -268,7 +268,7 @@ ${records.length === 0 ? '<div class="loading">No records found.</div>' : ''}
 // ── Table renderer ─────────────────────────────────────────────────────────────
 
 function renderTable(columns: string[], records: Record<string, unknown>[]): string {
-    const headers = columns.map((c, i) =>
+    const headers = columns.map(c =>
         `<th>${esc(c)}</th>`
     ).join('');
     const rows = records.map(r => {

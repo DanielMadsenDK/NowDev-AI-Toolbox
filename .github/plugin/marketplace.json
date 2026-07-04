@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Marketplace for the NowDev AI Toolbox — agentic ServiceNow development for the GitHub Copilot CLI and desktop app.",
-    "version": "0.7.1"
+    "version": "0.7.4"
   },
   "plugins": [
     {
       "name": "nowdev-ai-toolbox",
       "description": "Agentic ServiceNow development orchestrated by the NowDev AI Agent, delegating to specialized ServiceNow agents and skills.",
-      "version": "0.7.1",
+      "version": "0.7.4",
       "source": "./plugins/nowdev-ai-toolbox"
     }
   ]

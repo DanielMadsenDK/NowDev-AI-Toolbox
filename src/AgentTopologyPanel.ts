@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { AgentManifest } from './AgentRegistry';
 import { AgentOverride } from './WorkspaceAgentManager';
-import { getSharedPanelStyles } from './SharedPanelStyles';
 import { css } from './AgentTopologyStyles';
 
 let _panel: vscode.WebviewPanel | undefined;

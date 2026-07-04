@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 export interface ParsedArtifact {
     id?: string;
     name: string;
@@ -70,8 +73,6 @@ function normalizeFileList(record: ArtifactStateRecord): string[] {
 }
 
 function findMissingFiles(workspaceRoot: string, files: string[]): string[] {
-    const fs = require('fs') as typeof import('fs');
-    const path = require('path') as typeof import('path');
     return files.filter(file => {
         const resolved = path.resolve(workspaceRoot, file);
         const root = path.resolve(workspaceRoot);

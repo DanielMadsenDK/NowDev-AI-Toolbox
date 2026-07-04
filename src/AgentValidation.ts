@@ -56,8 +56,69 @@ export function validateAgents(extensionPath: string): AgentValidationResult {
     validateSubagentDepth(manifests, manifestsByName, issues);
     validateTopology(manifests, issues);
     validateBundledSkills(extensionPath, issues);
+    validateContentReferences(extensionPath, manifests, issues);
 
     return { issues, agentCount: manifests.length };
+}
+
+// Directories whose markdown/TS content ships to users (directly or via the
+// sync/plugin renderers) and must therefore only reference things that exist.
+const CONTENT_SCAN_DIRS = [
+    'agents',
+    path.join('src', 'agentSync'),
+];
+const CONTENT_SCAN_EXTENSIONS = new Set(['.md', '.ts']);
+const SKILL_PATH_PATTERN = /agents\/skills\/[A-Za-z0-9._-]+\/[A-Za-z0-9._\/-]*\.md/g;
+const AGENT_NAME_PATTERN = /NowDev-AI(?:-[A-Za-z]+)+/g;
+const AGENT_NAME_ALLOWLIST = new Set(['NowDev-AI-Toolbox']);
+
+/**
+ * Guards shipped content against reference rot: every `agents/skills/...` path
+ * cited in bundled markdown or the token blocks must resolve to a real file,
+ * and every `NowDev-AI-*` agent name must match a bundled agent.
+ */
+function validateContentReferences(extensionPath: string, manifests: AgentManifest[], issues: AgentValidationIssue[]): void {
+    const knownAgentIds = new Set<string>();
+    for (const manifest of manifests) {
+        knownAgentIds.add(manifest.name);
+        knownAgentIds.add(manifest.filename.replace(/\.agent\.md$/, ''));
+    }
+
+    for (const dir of CONTENT_SCAN_DIRS) {
+        const absoluteDir = path.join(extensionPath, dir);
+        if (!fs.existsSync(absoluteDir)) { continue; }
+        for (const file of listContentFiles(absoluteDir)) {
+            const relativeFile = toPackagePath(path.relative(extensionPath, file));
+            const content = fs.readFileSync(file, 'utf-8');
+
+            for (const match of content.matchAll(SKILL_PATH_PATTERN)) {
+                if (!fs.existsSync(path.join(extensionPath, match[0]))) {
+                    issues.push({ severity: 'error', file: relativeFile, message: `Reference to missing skill file: ${match[0]}.` });
+                }
+            }
+
+            for (const match of content.matchAll(AGENT_NAME_PATTERN)) {
+                const name = match[0];
+                if (!AGENT_NAME_ALLOWLIST.has(name) && !knownAgentIds.has(name)) {
+                    issues.push({ severity: 'error', file: relativeFile, message: `Reference to unknown agent: ${name}.` });
+                }
+            }
+        }
+    }
+}
+
+function listContentFiles(dir: string): string[] {
+    const files: string[] = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            if (entry.name === 'node_modules' || entry.name === 'workspace') { continue; }
+            files.push(...listContentFiles(fullPath));
+        } else if (CONTENT_SCAN_EXTENSIONS.has(path.extname(entry.name))) {
+            files.push(fullPath);
+        }
+    }
+    return files;
 }
 
 function validateModernAgentMetadata(manifest: AgentManifest, issues: AgentValidationIssue[]): void {

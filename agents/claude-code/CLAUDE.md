@@ -17,27 +17,16 @@ When working on a specific domain, read the SKILL.md file from the appropriate s
 
 | Domain | Skill Path |
 |--------|-----------|
-| Fluent SDK development | `agents/skills/servicenow-fluent-development/SKILL.md` |
-| Business Rules | `agents/skills/servicenow-business-rules/SKILL.md` |
-| Client Scripts | `agents/skills/servicenow-client-scripts/SKILL.md` |
-| Script Includes / Server Logic | `agents/skills/servicenow-script-server-logic/SKILL.md` |
-| Data Manipulation (GlideRecord) | `agents/skills/servicenow-manipulate-data/SKILL.md` |
-| Flow Designer (Classic) | `agents/skills/servicenow-flow-designer/SKILL.md` |
-| HTTP Integrations (REST/SOAP) | `agents/skills/servicenow-http-integrations/SKILL.md` |
-| Date/Time Operations | `agents/skills/servicenow-server-date-time/SKILL.md` |
-| Security & Encryption | `agents/skills/servicenow-server-security/SKILL.md` |
-| UI Forms (g_form) | `agents/skills/servicenow-ui-forms/SKILL.md` |
-| AI Agent Studio | `agents/skills/servicenow-ai-agent-studio/SKILL.md` |
-| NowAssist Skills | `agents/skills/servicenow-now-assist/SKILL.md` |
-| Instance Scan Checks | `agents/skills/servicenow-instance-scan/SKILL.md` |
-| React UI Components | `agents/skills/servicenow-react-ui-components/SKILL.md` |
-| `now-sdk` CLI Reference | `agents/skills/now-sdk/SKILL.md` |
-| Session Artifact Registry | `agents/skills/servicenow-artifact-state/SKILL.md` |
-| Copilot Instructions Generator | `agents/skills/servicenow-copilot-instructions-generator/SKILL.md` |
+| Fluent workflow conventions & NowDev guardrails | `agents/skills/nowdev-ai-toolbox-fluent-development/SKILL.md` |
+| `now-sdk` CLI Reference | `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` |
+| React UI Components (Horizon) | `agents/skills/nowdev-ai-toolbox-react-ui-components/SKILL.md` |
+| ServiceNow Release Notes | `agents/skills/nowdev-ai-toolbox-release-notes/SKILL.md` |
+
+For everything these skills do not cover (Business Rules, Client Scripts, GlideRecord, Flow Designer, security, date/time, AI Agent Studio, NowAssist, and other API reference), use `now-sdk explain` — it documents the installed SDK version and always wins over restated knowledge.
 
 ## Fluent SDK Documentation
 
-For `now-sdk` CLI mechanics — flags, the `--peek`/`--format raw` discipline, safety notes, troubleshooting, and the full command surface (`explain`, `query`, `auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) — read `agents/skills/now-sdk/SKILL.md` before running any `now-sdk` command. It is the current, installed-version source of truth; do not guess flags or restate its contents from memory. As a starting point:
+For `now-sdk` CLI mechanics — flags, the `--peek`/`--format raw` discipline, safety notes, troubleshooting, and the full command surface (`explain`, `query`, `auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) — read `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` before running any `now-sdk` command. It is the current, installed-version source of truth; do not guess flags or restate its contents from memory. As a starting point:
 
 ```bash
 now-sdk explain --list <keyword>

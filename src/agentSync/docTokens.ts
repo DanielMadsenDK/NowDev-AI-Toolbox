@@ -27,12 +27,12 @@ export function buildDocServerWildcards(sources: AllDocSources): string[] {
  * Always-present block appended to every agent file that can run terminal commands.
  * Points at the now-sdk skill instead of restating its contents, so the CLI
  * mechanics (flags, safety notes, full command surface) can't drift out of sync
- * with agents/skills/now-sdk/SKILL.md.
+ * with agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md.
  */
 export const SDK_QUERY_BLOCK =
 `## now-sdk CLI Reference
 
-Before running any \`now-sdk\` command, load the \`now-sdk\` skill (\`agents/skills/now-sdk/SKILL.md\`, via \`read/skill\` or \`read/readFile\`) for current CLI mechanics — flags, the \`--peek\`/\`--format raw\` discipline, and safety notes. It covers every subcommand: \`explain\` (SDK/API docs), \`query\` (live instance data — sys_ids, schema, property values, existing records, without asking the user), \`auth\`, \`init\`, \`download\`, \`build\`, \`install\`, \`dependencies\`, \`transform\`, \`clean\`, and \`pack\`. Never guess a flag or restate CLI syntax from memory — the skill reflects the installed SDK version.`;
+Before running any \`now-sdk\` command, load the \`nowdev-ai-toolbox-servicenow-sdk\` skill (\`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md\`, via \`read/skill\` or \`read/readFile\`) for current CLI mechanics — flags, the \`--peek\`/\`--format raw\` discipline, and safety notes. It covers every subcommand: \`explain\` (SDK/API docs), \`query\` (live instance data — sys_ids, schema, property values, existing records, without asking the user), \`auth\`, \`init\`, \`download\`, \`build\`, \`install\`, \`dependencies\`, \`transform\`, \`clean\`, and \`pack\`. Never guess a flag or restate CLI syntax from memory — the skill reflects the installed SDK version.`;
 
 /**
  * Always-present block injected into Fluent SDK agent files via {{FLUENT_SDK_EXPLAIN}}.
@@ -41,7 +41,7 @@ Before running any \`now-sdk\` command, load the \`now-sdk\` skill (\`agents/ski
 export const FLUENT_SDK_EXPLAIN_BLOCK =
 `## Fluent SDK Documentation
 
-Before writing or reviewing Fluent SDK code, load the \`now-sdk\` skill (\`agents/skills/now-sdk/SKILL.md\`, via \`read/skill\` or \`read/readFile\`) and use \`now-sdk explain\` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers \`query\` and every other subcommand (\`auth\`, \`init\`, \`download\`, \`build\`, \`install\`, \`dependencies\`, \`transform\`, \`clean\`, \`pack\`) in case the task needs them.
+Before writing or reviewing Fluent SDK code, load the \`nowdev-ai-toolbox-servicenow-sdk\` skill (\`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md\`, via \`read/skill\` or \`read/readFile\`) and use \`now-sdk explain\` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers \`query\` and every other subcommand (\`auth\`, \`init\`, \`download\`, \`build\`, \`install\`, \`dependencies\`, \`transform\`, \`clean\`, \`pack\`) in case the task needs them.
 
 Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 

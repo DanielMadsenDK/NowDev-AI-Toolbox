@@ -108,23 +108,18 @@ Cloud agent prompts use plain Markdown — no XML blocks needed.
 NowDev AI Agent (orchestrator, user-invocable: true)
 ├── NowDev-AI-Assistant (support)
 ├── NowDev-AI-Refinement (support)
-├── NowDev-AI-Classic-Developer (coordinator)
-│   ├── NowDev-AI-Script-Developer
-│   ├── NowDev-AI-BusinessRule-Developer
-│   └── NowDev-AI-Client-Developer
 ├── NowDev-AI-Fluent-Developer (coordinator)
 │   ├── NowDev-AI-Fluent-Schema-Developer
 │   ├── NowDev-AI-Fluent-Logic-Developer
 │   ├── NowDev-AI-Fluent-Automation-Developer
 │   ├── NowDev-AI-Fluent-UI-Developer
-│   └── NowDev-AI-AI-Studio-Developer
-├── NowDev-AI-Reviewer (router)
-│   ├── NowDev-AI-Classic-Reviewer
-│   └── NowDev-AI-Fluent-Reviewer
+│   ├── NowDev-AI-AI-Agent-Developer
+│   ├── NowDev-AI-NowAssist-Developer
+│   └── NowDev-AI-ATF-Developer
 ├── NowDev-AI-Debugger
-└── NowDev-AI-Release-Expert (router)
-    ├── NowDev-AI-Classic-Release
-    └── NowDev-AI-Fluent-Release
+├── NowDev-AI-Fluent-Reviewer
+├── NowDev-AI-Fluent-Release
+└── NowDev-AI-Pipeline-Expert
 ```
 
 ## Read Before Writing

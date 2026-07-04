@@ -31,7 +31,7 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 *   **Guided Copilot Setup**: The sidebar highlights the Project tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
 *   **Dynamic Agent Management**: Enable or disable individual agents and their tools directly from the sidebar. Hit Resync to instantly update your workspace agent configuration. MCP server detection is automatic.
 *   **Agent Topology Viewer**: Visual panel that renders the full agent hierarchy as a colour-coded tree — see which agents are active and how they relate at a glance.
-*   **User Profiles**: Switch between Developer, Junior Developer, and Product Owner profiles. Each profile controls which agents are visible, adjusts communication tone, and (for Junior Developer) adds step-by-step educational commentary to every response — all without changing any configuration files.
+*   **User Profiles**: Switch between Developer, Advanced Developer, Junior Developer, and Product Owner profiles. Each profile controls which agents are visible, adjusts communication tone, and (for Junior Developer) adds step-by-step educational commentary to every response — all without changing any configuration files.
 *   **Instance Browser**: Connect to your ServiceNow instance through your `now-sdk` auth alias to browse dependencies, discover related scripts and Knowledge articles, and prepare KB-backed agent guidelines from one unified panel — all powered by `now-sdk query`, with no separate credential store.
 *   **Work Item Integration**: Connect a project-management MCP server (Azure DevOps, Jira, etc.) and the orchestrator automatically reads the linked task before building, posts progress comments as each artifact completes, and updates work-item status on completion — driven entirely by the MCP server, no dedicated agent required.
 
@@ -159,7 +159,7 @@ Teams can keep coding standards, review rules, and release policies in ServiceNo
 
 ### Project Copilot Instructions
 
-For repository-wide Copilot behavior, create `.github/copilot-instructions.md`. NowDev includes the `servicenow-copilot-instructions-generator` skill to inspect a ServiceNow workspace and draft project-specific instructions from detected facts such as Fluent vs Classic style, scope prefix, artifact folders, naming patterns, validation commands, and forbidden patterns.
+For repository-wide Copilot behavior, create `.github/copilot-instructions.md`. The NowDev AI Agent can inspect a ServiceNow workspace and draft project-specific instructions from detected facts such as Fluent vs Classic style, scope prefix, artifact folders, naming patterns, validation commands, and forbidden patterns.
 
 Ask the NowDev AI Agent to generate Copilot instructions for the current project when:
 - The workspace has no `.github/copilot-instructions.md`
@@ -195,8 +195,9 @@ Switch profiles from the NowDev AI Toolbox sidebar to instantly reshape how ever
 
 | Profile | Who it's for | What changes |
 |---------|-------------|--------------|
-| **Developer** | Experienced ServiceNow developers | Full agent set, no restrictions |
-| **Junior Developer** | Developers learning ServiceNow | Same full agent set, but every response adds step-by-step explanations, term definitions, pitfall callouts, and follow-up learning suggestions |
+| **Developer** (default) | Experienced ServiceNow developers | Core development agent set; the AI Agent Studio, NowAssist, and Pipeline specialists are hidden |
+| **Advanced Developer** | Developers using the full platform surface | Every agent enabled, including AI Agent Studio, NowAssist, and Pipeline specialists |
+| **Junior Developer** | Developers learning ServiceNow | Same agent set as Developer, but every response adds step-by-step explanations, term definitions, pitfall callouts, and follow-up learning suggestions |
 | **Product Owner** | Business stakeholders managing requirements | Development agents hidden; discovery, refinement, and (when a work-item MCP server is configured) work-item management visible; plain-language communication, no code |
 
 ## Specialized Agents
