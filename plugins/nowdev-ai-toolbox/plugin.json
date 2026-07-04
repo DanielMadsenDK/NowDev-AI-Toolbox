@@ -1,7 +1,7 @@
 {
   "name": "nowdev-ai-toolbox",
   "description": "Agentic ServiceNow development for the GitHub Copilot CLI and desktop app. Select the NowDev AI Agent orchestrator and let it delegate to specialized ServiceNow agents and skills.",
-  "version": "0.7.2",
+  "version": "0.7.4",
   "author": {
     "name": "Daniel Aagren Seehartrai Madsen",
     "url": "https://github.com/DanielMadsenDK"
