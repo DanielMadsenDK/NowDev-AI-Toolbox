@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 263b347506f4efff9765da4d87e3967907cc8dd0d4fff9ac8edbb455fc13f0cb
+# nowdev-hash: fceeb001c75ae8e1d6ec8f8ab098040575631a71d15db55a4fc97111f7fa7589
 name: NowDev-AI-ATF-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -126,4 +126,4 @@ Capture step output with `output.variableName` syntax and pass to subsequent ste
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before test generation, read dependency source files for exact test targets, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before test generation, read dependency source files for exact test targets, and end with a final `Artifact Manifest` JSON block.

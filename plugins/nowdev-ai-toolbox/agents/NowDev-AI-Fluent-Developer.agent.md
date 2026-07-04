@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 22a16d322af0bcc9d14e8e8ed426dabca6261f2efbf32e21d918db26c44bbea1
+# nowdev-hash: e45bcc83a8c1956c02f2b223ee64f7bad44f7a96fb0e6a32b73ac74ed9bf1e4b
 name: NowDev-AI-Fluent-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -93,7 +93,7 @@ As each specialist returns, collect its file list. After all specialists complet
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Before delegation, read the workspace artifact state path and pass it to each specialist. After each specialist returns, parse its final `Artifact Manifest` block and carry exact files, exports, and dependency ids into dependent delegation prompts.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Before delegation, read the workspace artifact state path and pass it to each specialist. After each specialist returns, parse its final `Artifact Manifest` block and carry exact files, exports, and dependency ids into dependent delegation prompts.
 
 ### Fluent App Scope Context
 

@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: b7395cbbb68514fccc5e5401ca4065dba46ca7180494a90a8eb2435e62e78339
+# nowdev-hash: aa21589531e93dc668ba3b56ba20a63247caaf0097092d966316fc4474e19d3e
 name: NowDev-AI-Fluent-Reviewer
 user-invocable: false
 disable-model-invocation: false
@@ -138,7 +138,7 @@ List each artifact type found and which skill reference was consulted for it.
 Complete list of files reviewed.
 
 ### 7. **Dependency Validation:**
-Follow `agents/skills/servicenow-artifact-state/SKILL.md` for dependency validation:
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry") for dependency validation:
 - Cross-reference each artifact's `dependsOn` entries with registry exports and actual dependency source files
 - Flag mismatches (wrong method name, missing parameters, referencing a non-existent table/field) as **Critical** findings
 - Flag any artifact still showing `in_progress` status — it may have incomplete exports

@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 8275c15dbf58df4cfa3e690dde0b3fea02d3f5c36df62bee72a99c433718cbb1
+# nowdev-hash: 8c69229d4b874be442e9ad6ae20668bd3d54307f687191bfeea96f9a9f594d24
 name: NowDev-AI-AI-Agent-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -50,7 +50,7 @@ Key topics for AI Agent artifacts (use `now-sdk explain <topic> --format raw`):
   - AI Agents: `aiagent-api`, `building-ai-agents-guide`
   - Agentic Workflows: `aiagenticworkflow-api`
 
-Use the servicenow-ai-agent-studio skill only for NowDev routing and guardrails. Fetch current AiAgent, AiAgenticWorkflow, tool, trigger, access-control, and enum details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
+Fetch current AiAgent, AiAgenticWorkflow, tool, trigger, access-control, and enum details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
 
   - https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary AI Agent SDK context not covered by `now-sdk explain`
   - the servicenow-* skill for Classic API validity in script content
@@ -76,4 +76,4 @@ When multiple AI Studio artifacts are needed:
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact agent tool dependencies, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact agent tool dependencies, and end with a final `Artifact Manifest` JSON block.

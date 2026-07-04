@@ -51,7 +51,7 @@ user-invocable: true
 
 1. **Triage request intent** using the indicators above.
 2. **For `lightweight` requests:** Use #tool:agent to invoke `NowDev-AI-Assistant` directly with the user's question as context. Return synthesized results without further orchestration — do not proceed to steps 3-11.
-   **For `project AI customization` requests:** Use the `servicenow-copilot-instructions-generator` skill to inspect the project and create or update `.github/copilot-instructions.md`. If the user also wants NowDev agents to receive the same standards, use the existing custom instructions flow (`nowdev-ai-toolbox.customInstructionsFile` and `.vscode/nowdev-ai-config.json`) rather than creating a second injection path. Return changed files and detected assumptions — do not proceed to full-project implementation orchestration.
+   **For `project AI customization` requests:** Inspect the project (`now.config.json`, `package.json`, existing artifacts, any existing `.github/copilot-instructions.md`) to detect Fluent vs Classic style, scope, naming conventions, and forbidden patterns, then create or update `.github/copilot-instructions.md` with concise, project-specific conventions. If the user also wants NowDev agents to receive the same standards, use the existing custom instructions flow (`nowdev-ai-toolbox.customInstructionsFile` and `.vscode/nowdev-ai-config.json`) rather than creating a second injection path. Return changed files and detected assumptions — do not proceed to full-project implementation orchestration.
 {{#agent:NowDev-AI-Debugger}}
    **For `debugging` requests:** Use #tool:agent to invoke `NowDev-AI-Debugger` directly with the error description, file paths, and context. Return its diagnostic report to the user — do not proceed to steps 3-11.
 {{/agent:NowDev-AI-Debugger}}
@@ -79,7 +79,7 @@ user-invocable: true
 
 <stopping_rules>
 STOP and delegate to `NowDev-AI-Assistant` IMMEDIATELY if request matches lightweight indicators (single question, brainstorming, quick exploration) — do not proceed with full orchestration
-STOP and use the `servicenow-copilot-instructions-generator` skill IMMEDIATELY if request matches project AI customization indicators — do not proceed with full ServiceNow implementation orchestration
+STOP and inspect the project to create or update `.github/copilot-instructions.md` IMMEDIATELY if request matches project AI customization indicators — do not proceed with full ServiceNow implementation orchestration
 {{#agent:NowDev-AI-Debugger}}
 STOP and delegate to `NowDev-AI-Debugger` IMMEDIATELY if request matches debugging indicators (runtime errors, log analysis, systematic diagnosis) — do not proceed with full orchestration
 {{/agent:NowDev-AI-Debugger}}
@@ -194,7 +194,7 @@ Use the plan template from `agents/github-copilot/AGENT-PATTERNS.md#plan-format`
 
 **MANDATORY for full-project sessions.** Before delegating to any development sub-agent, read `.vscode/nowdev-ai-config.json`, resolve `artifactState.path`, and use the workspace-backed artifact state file so sub-agents can discover each other's outputs. The `memory` tool is optional legacy context only.
 
-See `agents/skills/servicenow-artifact-state/SKILL.md` for the full registry format, lifecycle, dependency validation rules, context-compaction recovery behavior, and `Artifact Manifest` protocol.
+See "Canonical: Session Artifact Registry" in `agents/github-copilot/AGENT-PATTERNS.md` for the full registry format, lifecycle, dependency validation rules, context-compaction recovery behavior, and `Artifact Manifest` protocol.
 
 ## Todo List Management
 

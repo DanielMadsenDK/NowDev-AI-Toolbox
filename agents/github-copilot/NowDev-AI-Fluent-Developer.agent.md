@@ -90,7 +90,7 @@ As each specialist returns, collect its file list. After all specialists complet
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Before delegation, read the workspace artifact state path and pass it to each specialist. After each specialist returns, parse its final `Artifact Manifest` block and carry exact files, exports, and dependency ids into dependent delegation prompts.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Before delegation, read the workspace artifact state path and pass it to each specialist. After each specialist returns, parse its final `Artifact Manifest` block and carry exact files, exports, and dependency ids into dependent delegation prompts.
 
 ### Fluent App Scope Context
 

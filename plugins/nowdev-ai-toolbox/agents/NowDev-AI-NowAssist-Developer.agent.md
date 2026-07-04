@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: c079a5cdb5e987fad8c59f299b2a3020fc6c776f646a7676e179fd6b814062f6
+# nowdev-hash: a914f835aac263dddd3d2615d7fdd4f7ed714ae450bd12815f1e76d102ec1cda
 name: NowDev-AI-NowAssist-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -49,7 +49,7 @@ For general ServiceNow platform knowledge that is not Fluent-specific (admin/con
 Key topics for NowAssist artifacts (use `now-sdk explain <topic> --format raw`):
   - NowAssist Skill Config: `now-sdk explain --list nowassist` to discover available topics
 
-Use the servicenow-now-assist skill only for NowDev routing and guardrails. Fetch current NowAssistSkillConfig, input/output, tool graph, provider, prompt versioning, security, and deployment-surface details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
+Fetch current NowAssistSkillConfig, input/output, tool graph, provider, prompt versioning, security, and deployment-surface details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
 
   - https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary NowAssist SDK context not covered by `now-sdk explain`
   - the servicenow-* skill for Classic API validity in script content
@@ -67,4 +67,4 @@ You are a specialist in **ServiceNow NowAssist Skill configurations**. You imple
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact Now Assist skill/tool dependencies, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact Now Assist skill/tool dependencies, and end with a final `Artifact Manifest` JSON block.

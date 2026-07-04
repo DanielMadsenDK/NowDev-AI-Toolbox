@@ -119,4 +119,4 @@ Capture step output with `output.variableName` syntax and pass to subsequent ste
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before test generation, read dependency source files for exact test targets, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before test generation, read dependency source files for exact test targets, and end with a final `Artifact Manifest` JSON block.

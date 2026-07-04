@@ -42,7 +42,7 @@ STOP if implementing AiAgent or AiAgenticWorkflow — those belong to NowDev-AI-
 Key topics for NowAssist artifacts (use `now-sdk explain <topic> --format raw`):
   - NowAssist Skill Config: `now-sdk explain --list nowassist` to discover available topics
 
-Use the servicenow-now-assist skill only for NowDev routing and guardrails. Fetch current NowAssistSkillConfig, input/output, tool graph, provider, prompt versioning, security, and deployment-surface details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
+Fetch current NowAssistSkillConfig, input/output, tool graph, provider, prompt versioning, security, and deployment-surface details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
 
   - {{SDK_DOCS_CONTEXT}} only for supplementary NowAssist SDK context not covered by `now-sdk explain`
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
@@ -60,4 +60,4 @@ You are a specialist in **ServiceNow NowAssist Skill configurations**. You imple
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact Now Assist skill/tool dependencies, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact Now Assist skill/tool dependencies, and end with a final `Artifact Manifest` JSON block.

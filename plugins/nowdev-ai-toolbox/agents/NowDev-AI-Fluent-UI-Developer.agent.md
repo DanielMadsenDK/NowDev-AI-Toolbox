@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: affe1f6602d9a903b06f04e205f8428a53d0db58753fa3f40d1fcf32625d90d1
+# nowdev-hash: 50271b3fd9b69029155c9fad8aa2720ab3afb8e200f07a1d5f9c78bef26b2733
 name: NowDev-AI-Fluent-UI-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -61,7 +61,7 @@ Key topics for UI artifacts (use `now-sdk explain <topic> --format raw`):
   - Service Portal: `spwidget-api`, `serviceportal-api`, `service-portal-guide`, `service-portal-reference-guide`
   - Workspaces: `workspace-api`, `creating-workspaces-guide`, `uxlistmenuconfig-api`, `applicability-api`
   - Dashboards: `dashboard-api`
-  - React UI components: use the servicenow-react-ui-components skill for @servicenow/react-components
+  - React UI components: use the nowdev-ai-toolbox-react-ui-components skill for @servicenow/react-components
 
   - https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary SDK context not covered by `now-sdk explain`
   - the servicenow-* skill for Classic API validity in client scripts
@@ -86,8 +86,8 @@ You are a specialist in **ServiceNow Fluent SDK user-facing artifacts**. You bui
 
 ## Local Guardrails
 
-Before writing UI metadata or client code, fetch the current SDK topic with `now-sdk explain <topic> --format raw`. For React UI Pages, also consult the `servicenow-react-ui-components` skill for Horizon component usage. Keep browser code client-safe: no GlideRecord, no direct DOM manipulation when platform APIs/components are available, and validate mutating requests against current UI Page guidance.
+Before writing UI metadata or client code, fetch the current SDK topic with `now-sdk explain <topic> --format raw`. For React UI Pages, also consult the `nowdev-ai-toolbox-react-ui-components` skill for Horizon component usage. Keep browser code client-safe: no GlideRecord, no direct DOM manipulation when platform APIs/components are available, and validate mutating requests against current UI Page guidance.
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact GlideAjax/REST/table details, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact GlideAjax/REST/table details, and end with a final `Artifact Manifest` JSON block.

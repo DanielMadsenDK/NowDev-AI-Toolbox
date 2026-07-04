@@ -131,7 +131,7 @@ List each artifact type found and which skill reference was consulted for it.
 Complete list of files reviewed.
 
 ### 7. **Dependency Validation:**
-Follow `agents/skills/servicenow-artifact-state/SKILL.md` for dependency validation:
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry") for dependency validation:
 - Cross-reference each artifact's `dependsOn` entries with registry exports and actual dependency source files
 - Flag mismatches (wrong method name, missing parameters, referencing a non-existent table/field) as **Critical** findings
 - Flag any artifact still showing `in_progress` status — it may have incomplete exports

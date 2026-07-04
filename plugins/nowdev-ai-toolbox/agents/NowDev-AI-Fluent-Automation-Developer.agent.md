@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 6d09f08b2d7c3506f40d44fa6239ff33f584070b4b3512e589997cea764d31d4
+# nowdev-hash: 2055e8220979d24fd402bfaf2debfe779026e9fb0799533189281711455e3ac7
 name: NowDev-AI-Fluent-Automation-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -83,4 +83,4 @@ You are a specialist in **ServiceNow Fluent SDK workflow automation**. You imple
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact table and Script Include details, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact table and Script Include details, and end with a final `Artifact Manifest` JSON block.

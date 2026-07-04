@@ -54,7 +54,7 @@ Key topics for UI artifacts (use `now-sdk explain <topic> --format raw`):
   - Service Portal: `spwidget-api`, `serviceportal-api`, `service-portal-guide`, `service-portal-reference-guide`
   - Workspaces: `workspace-api`, `creating-workspaces-guide`, `uxlistmenuconfig-api`, `applicability-api`
   - Dashboards: `dashboard-api`
-  - React UI components: use the servicenow-react-ui-components skill for @servicenow/react-components
+  - React UI components: use the nowdev-ai-toolbox-react-ui-components skill for @servicenow/react-components
 
   - {{SDK_DOCS_CONTEXT}} only for supplementary SDK context not covered by `now-sdk explain`
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in client scripts
@@ -79,8 +79,8 @@ You are a specialist in **ServiceNow Fluent SDK user-facing artifacts**. You bui
 
 ## Local Guardrails
 
-Before writing UI metadata or client code, fetch the current SDK topic with `now-sdk explain <topic> --format raw`. For React UI Pages, also consult the `servicenow-react-ui-components` skill for Horizon component usage. Keep browser code client-safe: no GlideRecord, no direct DOM manipulation when platform APIs/components are available, and validate mutating requests against current UI Page guidance.
+Before writing UI metadata or client code, fetch the current SDK topic with `now-sdk explain <topic> --format raw`. For React UI Pages, also consult the `nowdev-ai-toolbox-react-ui-components` skill for Horizon component usage. Keep browser code client-safe: no GlideRecord, no direct DOM manipulation when platform APIs/components are available, and validate mutating requests against current UI Page guidance.
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact GlideAjax/REST/table details, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact GlideAjax/REST/table details, and end with a final `Artifact Manifest` JSON block.

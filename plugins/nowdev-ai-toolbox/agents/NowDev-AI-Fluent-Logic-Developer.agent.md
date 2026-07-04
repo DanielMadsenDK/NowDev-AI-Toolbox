@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 9d0ec8f388ca6f72d184e2f304bcd9487fd6752d957b295a60a931758f7bec23
+# nowdev-hash: 27ab6e2712cc3d6736e7262bd6ed8424b44099ae3cdbe152dc5205a86bed607d
 name: NowDev-AI-Fluent-Logic-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -97,4 +97,4 @@ When multiple artifacts are needed:
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact table and method signatures, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact table and method signatures, and end with a final `Artifact Manifest` JSON block.

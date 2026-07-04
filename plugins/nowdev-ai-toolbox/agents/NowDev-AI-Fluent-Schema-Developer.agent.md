@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 9fbd233f7577eedb50f4cc77dca3fc86d798ec785c241f1c158794e085cc019f
+# nowdev-hash: 2974ee1e02b96d5d75f26deb70bbf899dacd5f4234808c21259e9392ad13d01c
 name: NowDev-AI-Fluent-Schema-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -92,7 +92,7 @@ You are a specialist in **ServiceNow Fluent SDK schema and configuration artifac
 | Application menus & modules | `ApplicationMenu()`, `Record()` on `sys_app_module` | `now-sdk explain applicationmenu-api` |
 | List views | `List()` | `now-sdk explain list-api` |
 | Form layouts | `Form()` | `now-sdk explain form-api` |
-| Instance scan checks | `ColumnTypeCheck()`, `LinterCheck()`, `ScriptOnlyCheck()`, `TableCheck()` | servicenow-instance-scan skill |
+| Instance scan checks | `ColumnTypeCheck()`, `LinterCheck()`, `ScriptOnlyCheck()`, `TableCheck()` | `now-sdk explain instance-scan-guide` |
 | User preferences | `UserPreference()` | `now-sdk explain userpreference-api` |
 | Static file attachments | `SysAttachment()` | `now-sdk explain sysattachment-api` |
 | Import sets & transform maps | `ImportSet()` | `now-sdk explain importset-api` |
@@ -114,4 +114,4 @@ Before writing schema metadata, fetch the current SDK topic with `now-sdk explai
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, export exact table/field/role names, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, export exact table/field/role names, and end with a final `Artifact Manifest` JSON block.

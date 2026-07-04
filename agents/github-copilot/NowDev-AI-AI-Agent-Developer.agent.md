@@ -43,7 +43,7 @@ Key topics for AI Agent artifacts (use `now-sdk explain <topic> --format raw`):
   - AI Agents: `aiagent-api`, `building-ai-agents-guide`
   - Agentic Workflows: `aiagenticworkflow-api`
 
-Use the servicenow-ai-agent-studio skill only for NowDev routing and guardrails. Fetch current AiAgent, AiAgenticWorkflow, tool, trigger, access-control, and enum details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
+Fetch current AiAgent, AiAgenticWorkflow, tool, trigger, access-control, and enum details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
 
   - {{SDK_DOCS_CONTEXT}} only for supplementary AI Agent SDK context not covered by `now-sdk explain`
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
@@ -69,4 +69,4 @@ When multiple AI Studio artifacts are needed:
 
 ## Session Artifact Registry
 
-Follow `agents/skills/servicenow-artifact-state/SKILL.md`. Read the workspace artifact state before implementation, read dependency source files for exact agent tool dependencies, and end with a final `Artifact Manifest` JSON block.
+Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact agent tool dependencies, and end with a final `Artifact Manifest` JSON block.

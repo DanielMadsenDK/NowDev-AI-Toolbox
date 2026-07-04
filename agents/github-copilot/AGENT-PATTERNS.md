@@ -39,7 +39,7 @@ Agents should answer their own factual questions before asking the user. Ask the
 4. Product docs: use configured MCP/doc sources or ServiceNow product llms.txt for platform/product behavior not covered by SDK CLI.
 5. User questions: ask only when tool results are missing, conflicting, risky, or require human intent.
 
-For `now-sdk` CLI mechanics — flag discovery, the `--peek`/`--format raw` discipline, and the full command surface beyond `explain`/`query` — see `agents/skills/now-sdk/SKILL.md`.
+For `now-sdk` CLI mechanics — flag discovery, the `--peek`/`--format raw` discipline, and the full command surface beyond `explain`/`query` — see `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`.
 
 When invoking sub-agents, include the same clarification instruction and pass any discovered facts rather than asking downstream agents to rediscover them unnecessarily.
 
@@ -136,7 +136,7 @@ Specialist `.agent.md` files should stay lean. Put reusable examples, long API n
 - Documentation pointers: `now-sdk explain`, `now-sdk query`, configured docs for supplemental context, relevant local guardrail skills, and exemplar file paths.
 - Output contract: what the caller receives, including changed files, validation results, warnings, and next handoff.
 
-Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape, reference `now-sdk explain <topic> --format raw`; for `now-sdk` CLI mechanics and the full command surface, reference `agents/skills/now-sdk/SKILL.md`; for NowDev-specific guardrails, prefer references such as `agents/skills/servicenow-debugging/BEST_PRACTICES.md` and `agents/exemplars/` over duplicating the content in every specialist.
+Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape, reference `now-sdk explain <topic> --format raw`; for `now-sdk` CLI mechanics and the full command surface, reference `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`; for NowDev-specific guardrails, prefer `agents/exemplars/` over duplicating the content in every specialist.
 
 ## Canonical: Agent Consolidation Policy
 
@@ -163,7 +163,7 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - **Search:** `search`, `web`
 - **Knowledge:** Use doc tokens in `<documentation>` block
 - **Tracking:** `todo`
-- **Memory:** optional legacy context only. Dependency validation uses the workspace-backed artifact state in `agents/skills/servicenow-artifact-state/SKILL.md`.
+- **Memory:** optional legacy context only. Dependency validation uses the workspace-backed artifact state described in "Canonical: Session Artifact Registry" below.
 - **NO write tools** (reviewers only analyze, never modify)
 - **NO browser tools** (no instance interaction)
 - **Handoff:** Include a "Back to Architect" handoff to `NowDev AI Agent`, plus a "Fix Issues — Fluent Developer" handoff to `NowDev-AI-Fluent-Developer`
@@ -204,7 +204,7 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - **Search:** `search`, `web`
 - **Knowledge:** Use `{{FLUENT_SDK_EXPLAIN}}` and `{{SDK_DOCS_CONTEXT}}` in `<documentation>` block to verify ATF step APIs
 - **Tracking:** `todo`
-- **Memory:** optional legacy context only. Artifact tracking uses the workspace-backed protocol in `agents/skills/servicenow-artifact-state/SKILL.md`.
+- **Memory:** optional legacy context only. Artifact tracking uses the workspace-backed protocol described in "Canonical: Session Artifact Registry" below.
 - **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask` (for `now-sdk build` validation)
 - **Handoff:** Include handoff back to `NowDev-AI-Fluent-Developer`
 - **Invoked when:** Logic and Schema artifacts are complete and testable artifacts (REST APIs, Script Includes, Tables, Catalog Items) were generated in the session
@@ -491,7 +491,48 @@ When multiple sub-agents work on the same project, they run in **isolated contex
 
 The **Session Artifact Registry** is a workspace-backed JSON state file advertised from `.vscode/nowdev-ai-config.json` under `artifactState.path`. The VS Code `memory` tool is optional legacy context only — never the source of truth.
 
-Use `agents/skills/servicenow-artifact-state/SKILL.md` as the canonical source for the registry format, context sync protocol, final `Artifact Manifest` JSON block, coordinator responsibilities, reviewer dependency validation, and context-compaction recovery. Keep agent prompts brief and reference that skill instead of copying the schema into every agent.
+This section is the canonical source for the registry format, context sync protocol, final `Artifact Manifest` JSON block, coordinator responsibilities, reviewer dependency validation, and context-compaction recovery. Keep agent prompts brief and reference this section instead of copying the schema into every agent.
+
+**Source of truth:** Read `.vscode/nowdev-ai-config.json` first, then use `artifactState.path` to locate the registry. The default path is `.vscode/nowdev-ai-session/artifacts.json`. Memory is optional legacy context only — do not require `/memories/session/artifacts.md`, `vscode/memory`, or memory URI resolution for artifact tracking, because memory may be preview, unavailable, or disabled by policy.
+
+**Agent responsibilities before implementation or dependent review:**
+1. Read `.vscode/nowdev-ai-config.json`.
+2. Read the artifact state file at `artifactState.path` when it exists.
+3. If only `memoryLocation` exists, treat it as read-only legacy context.
+4. For every dependency, read the actual source files listed by that artifact before trusting method names, class names, table names, field names, roles, REST paths, or test names.
+5. Do not manually edit memory tables or perform markdown table surgery.
+
+**Agent responsibilities after implementation:**
+1. List every created or modified artifact.
+2. Include relative file paths for every file touched.
+3. Include exports that downstream agents can safely consume.
+4. Include dependency artifact ids in `dependsOn`.
+5. End the response with an `Artifact Manifest` JSON block.
+
+**Artifact Manifest format:**
+
+```json
+{
+  "artifacts": [
+    {
+      "id": "<stable artifact id>",
+      "name": "<artifact name>",
+      "type": "<artifact type>",
+      "files": ["<relative/path>"],
+      "ownerAgent": "<agent name>",
+      "exports": ["<class names, method signatures, table names, field names, roles, REST paths, or test names>"],
+      "status": "done",
+      "dependsOn": ["<dependency artifact ids>"]
+    }
+  ]
+}
+```
+
+**Coordinator responsibilities:** Before delegating to the first specialist, coordinators must read the artifact state path and pass it to each specialist. After each specialist returns, coordinators must parse the final `Artifact Manifest` block and carry exact files, exports, and dependency ids into later delegation prompts. When delegating dependent work, tell the specialist to read the artifact state and then read the actual dependency source files before using an export.
+
+**Reviewer responsibilities:** Reviewers must cross-reference `dependsOn` entries with the artifact exports and the actual source code. Flag wrong method names, missing parameters, missing fields, stale `in_progress` dependencies, or calls to non-existent exports as findings.
+
+**Context compaction recovery:** After compaction or resumptions, re-read `.vscode/nowdev-ai-config.json`, the artifact state file, and dependency source files. Do not rely on compressed chat memory for artifact names, signatures, or dependencies.
 
 ---
 
