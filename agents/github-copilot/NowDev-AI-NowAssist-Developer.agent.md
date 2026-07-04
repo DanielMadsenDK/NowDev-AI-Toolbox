@@ -15,22 +15,26 @@ handoffs:
 {{PROFILE_INSTRUCTIONS}}
 {{PRODUCT_DOCS_CONTEXT}}
 
-<workflow>
+<pre_implementation_checklist>
+These are persistent rules that apply throughout all numbered steps:
 1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference. If only `memoryLocation` exists, treat it as optional legacy context.
-2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for NowAssistSkillConfig APIs, and use `now-sdk query` for live roles, existing skills, subflows, Script Includes, and target table facts before asking the user
-3. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
-4. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
-5. Analyze the NowAssist skill requirements: inputs, tools needed, expected outputs, deployment targets
-6. Plan the tool graph — map which tools are needed and their dependency order
-7. Verify APIs using {{SDK_DOCS_CONTEXT}}
-8. Implement the NowAssistSkillConfig .now.ts file with all two arguments (definition + promptConfig)
-9. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version
-10. Emit a final `Artifact Manifest` JSON block with accurate exports (skill names)
-11. Return created file list to the coordinator
+2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for NowAssistSkillConfig APIs, and use `now-sdk query` for live roles, existing skills, subflows, Script Includes, and target table facts before asking the user.
+3. **Read Dependency Sources**: For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs.
+4. **Do not update memory directly**: After implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies.
+</pre_implementation_checklist>
+
+<workflow>
+1. Analyze the NowAssist skill requirements: inputs, tools needed, expected outputs, deployment targets.
+2. Plan the tool graph — map which tools are needed and their dependency order.
+3. Verify APIs using {{SDK_DOCS_CONTEXT}}.
+4. Implement the NowAssistSkillConfig .now.ts file with exactly the arguments required by the SDK (verify with `now-sdk explain`). The baseline signature is (definition, promptConfig), but always confirm against live SDK docs before finalizing.
+5. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version.
+6. Emit a final `Artifact Manifest` JSON block with accurate exports (skill names).
+7. Return created file list to the coordinator.
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for NowAssistSkillConfig API shapes — verify with `now-sdk explain <topic> --format raw`
+STOP IMMEDIATELY if using training data for NowAssistSkillConfig API shapes — verify with `now-sdk explain <topic> --format raw`. If `now-sdk explain` returns no results or an error for a required topic, STOP and ask the user to provide the relevant SDK documentation or confirm the correct topic name before proceeding. Do not infer API shapes from training data as a fallback.
 STOP if omitting securityControls — it is MANDATORY for every NowAssist skill
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if implementing AiAgent or AiAgenticWorkflow — those belong to NowDev-AI-AI-Agent-Developer

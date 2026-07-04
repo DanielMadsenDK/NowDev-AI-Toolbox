@@ -12,9 +12,21 @@ This skill owns `now-sdk` CLI command syntax and flag discipline. It does **not*
 
 `now-sdk` is a real CLI tool, already installed. Call it directly — never wrap it in `npx` and never assume it must be installed first.
 
+## Resolving the command
+
+Enterprise environments frequently disable `npx` so IT retains control over what executes on developer machines. This skill exists so agents respect that: `now-sdk` is called directly, from an existing install, every time.
+
+If `now-sdk` isn't recognized when called directly, check in this order before telling the user anything is missing:
+
+1. `now-sdk --version` — global install, already on PATH.
+2. `./node_modules/.bin/now-sdk` (POSIX) or `.\node_modules\.bin\now-sdk.cmd` (Windows) — local project install.
+3. In a workspace/monorepo layout, the binary may live under a nested package's own `node_modules/.bin` rather than the repo root — check there too if the above don't resolve.
+
+If none of these resolve it, **stop and tell the user** the SDK isn't installed or isn't resolvable from this location. Never fall back to `npx`, `npm exec`, `pnpm dlx`, or a global install command to "make it work" — that silently reintroduces the exact behavior this skill exists to avoid, and may violate the environment's install policy. If the user explicitly asks how to install `now-sdk`, you may describe the appropriate install method for their environment (e.g. `npm install -g now-sdk` or a workspace-local install), but do not run the install command yourself without explicit user confirmation. The no-fallback rule applies to autonomous invocation, not to user-directed installation guidance.
+
 ## Getting oriented
 
-The first time in a session you need `now-sdk`, run:
+Before invoking any subcommand for the first time in a conversation, run `now-sdk --help` to enumerate available subcommands. You do not need to repeat this if you have already done so earlier in the same conversation:
 
 ```bash
 now-sdk --help
@@ -30,7 +42,7 @@ Never guess a flag name. Flags differ per subcommand and guessing produces silen
 
 ## Documentation lookup (`explain`)
 
-`now-sdk explain` displays installed SDK documentation for a topic. Never open a full topic before previewing it — full topics can be long and burn context for no reason.
+`now-sdk explain` displays installed SDK documentation for a topic and runs entirely offline against the locally installed SDK — no network call, no proxy concerns. Never open a full topic before previewing it — full topics can be long and burn context for no reason.
 
 Discovery sequence:
 
@@ -51,6 +63,8 @@ Troubleshooting:
 
 ## Live instance queries (`query`)
 
+`query` is **read-only** — it never mutates instance data regardless of flags. Treat it as safe to call liberally for grounding: confirming an artifact doesn't already exist, checking real ACL/role state before a schema change, or pulling real reference data. Don't ask the user for permission before running it.
+
 ```bash
 now-sdk query <table> -q '<encoded-query>' -o json
 ```
@@ -64,8 +78,17 @@ now-sdk explain query --format raw
 now-sdk explain encoded-query-guide --format raw
 ```
 
-- Other flags worth knowing exist (confirm exact names with `now-sdk query --help` before use): `--limit`, `--offset`, `-f`/`--fields`, `--display-value`, `--no-count`, `--timeout`, `--view`, `--query-category`, `--query-no-domain`, `-a`/`--auth` (named credential alias).
-- If `query` isn't recognized, same version-check guidance as `explain` above.
+**Keep every exploratory query small by default.** Instance tables can hold millions of rows; an unbounded query dumped into context wastes tokens and can silently exceed limits.
+- Default to a small `--limit` (start around 10–25 rows) unless the user has explicitly asked for a full export or count.
+- Use `-f`/`--fields` to request only the columns you actually need — don't pull every column on a table to read one value.
+- If you need a total count rather than the rows themselves, check whether a count-only mode exists via `now-sdk query --help` before pulling full rows just to count them.
+
+**Be deliberate about which instance you're hitting.** If more than one auth alias is configured, always pass `-a`/`--auth <alias>` explicitly — never rely on an unstated default. If it's ambiguous which instance the user means (e.g. dev vs. test vs. prod), ask before querying, since the result will inform a decision.
+
+**Be careful with what the result contains.** Some tables can return personally identifiable information, credentials, or other sensitive data (e.g. user records, HR cases, discovery credentials). Don't paste large sets of raw sensitive rows into a chat response — summarize, aggregate, or redact instead, and only show verbatim rows the user specifically asked to see.
+
+- Other flags worth knowing exist (confirm exact names with `now-sdk query --help` before use): `--offset`, `--display-value`, `--no-count`, `--timeout`, `--view`, `--query-category`, `--query-no-domain`.
+- If `query` isn't recognized, don't jump straight to a version conclusion — first rule out a connectivity problem (see "Troubleshooting: connectivity vs. installation" below), since `query` needs to reach the instance and `explain` does not.
 
 ## Other commands
 
@@ -89,6 +112,17 @@ Two commands in this CLI have irreversible or credential-affecting side effects 
 
 - `now-sdk install --reinstall` / `-r` uninstalls and reinstalls the app on the instance; any instance-only metadata not present locally is lost.
 - `now-sdk auth --delete` removes a stored credential alias.
+
+`query`, `explain`, and their `--list`/`--peek` variants never write to anything and don't need this level of caution.
+
+## Troubleshooting: connectivity vs. installation
+
+`explain` runs entirely offline against the locally installed SDK, so a failure there is always a resolution or version problem — never a network problem.
+
+`query`, `auth`, `install`, `download`, and `dependencies` all need to reach the ServiceNow instance itself. When one of these fails, distinguish the cause before concluding anything:
+
+- **Command not recognized at all** (shell reports "command not found" or similar) — a resolution problem. See "Resolving the command" above.
+- **Command is recognized but the call fails, times out, or returns an auth/connection error** — a connectivity or credentials problem, not a version problem. This is common in environments with a corporate proxy or SSL inspection — exactly the kind of environment that also disables `npx`. Don't assume the SDK is outdated in this case; check the alias with `now-sdk auth --list` and ask the user to confirm network access to the instance before troubleshooting further.
 
 ## If a command or flag isn't recognized
 
