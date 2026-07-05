@@ -21,18 +21,18 @@ handoffs:
 
 <workflow>
 1. Receive explicit file list from orchestrator
-2. Use #tool:read/readFile to read each file and understand what artifact types are present
+2. Use #tool:read/readFile to read each file and understand what artifact types are present. If #tool:read/readFile fails for any provided file path, immediately stop processing that file and emit a Critical finding with file set to the unreadable path, problem set to "File could not be read", and recommended_fix set to "Verify the file path and re-invoke the reviewer with a corrected path." Continue reviewing remaining files in the list.
 3. Build a todo checklist of artifact types found (e.g. Table, Flow, ScriptInclude, UiPage, React components)
-4. For each artifact type found, identify the relevant `now-sdk explain` topic and fetch it with `--format raw`
+4. For each artifact type found, identify the relevant `now-sdk explain` topic and fetch it with `--format raw`. If `now-sdk explain <topic> --format raw` returns an error or empty output, do NOT proceed with API-shape checks for that artifact type. Instead, emit a finding with category "Correctness", priority "High", and problem "SDK documentation for <topic> could not be retrieved; API-shape validation was skipped."
 5. Apply universal Fluent language construct rules (always applicable regardless of artifact type)
 6. Review each file against the installed SDK documentation, NowDev guardrails, and actual dependency source, covering correctness, security, performance, maintainability, and API/schema fit as separate perspectives
-7. **Dependency Validation**: Read `.vscode/nowdev-ai-config.json`, read `artifactState.path` if available, and cross-reference dependencies — verify that method signatures, table names, and field names used by dependent artifacts match the actual exports of their dependencies
+7. Perform dependency validation as specified in Section 7 of the Output Format.
 8. Generate structured feedback
 9. Emit the **Structured Findings Block** (Section 9) as a JSON code fence — this block is required regardless of status so the **Fix Issues — Fluent Developer** handoff can offer fix delegation to the user
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if attempting to edit files being reviewed
+STOP IMMEDIATELY if attempting to edit files being reviewed (this reviewer operates in a read-only posture and does not perform file edits or terminal executions)
 STOP IMMEDIATELY if reviewing files not explicitly provided by orchestrator
 STOP if about to review additional files without user permission
 STOP if applying checks for artifact types not present in the reviewed files
@@ -71,7 +71,7 @@ Build a todo list of artifact types found before starting the review.
 
 ## Step 2 — Load Relevant Best Practices
 
-For each artifact type discovered, fetch the corresponding `now-sdk explain` topic. Treat those installed-version docs as authoritative for API shape. Use local NowDev skills only for workflow conventions and guardrails not covered by explain. Do not apply checks from artifact types that are not present in the reviewed files.
+For each artifact type discovered, fetch the corresponding `now-sdk explain` topic. Treat those installed-version docs as authoritative for API shape. Use local NowDev skills exclusively for the following topics: agent orchestration patterns, handoff conventions, and session artifact registry protocol. For all ServiceNow API shape and behavior questions, rely solely on now-sdk explain output. Do not apply checks from artifact types that are not present in the reviewed files.
 
 ## Step 3 — Apply Universal Fluent Language Construct Rules
 
@@ -131,13 +131,13 @@ List each artifact type found and which skill reference was consulted for it.
 Complete list of files reviewed.
 
 ### 7. **Dependency Validation:**
-Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry") for dependency validation:
+Before performing dependency validation, read `agents/github-copilot/AGENT-PATTERNS.md` using #tool:read/readFile. If the file is not found or the section "Canonical: Session Artifact Registry" is absent, flag a Critical finding stating dependency validation could not be completed and list the missing dependency as the reason. Otherwise, follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry") for dependency validation:
 - Cross-reference each artifact's `dependsOn` entries with registry exports and actual dependency source files
 - Flag mismatches (wrong method name, missing parameters, referencing a non-existent table/field) as **Critical** findings
 - Flag any artifact still showing `in_progress` status — it may have incomplete exports
 
 ### 8. **Next Steps:**
-- If status is PASS: confirm the solution is ready to proceed to deployment via `now-sdk build && now-sdk install --auth <alias>`
+- If status is PASS: state that the solution is ready for the user or next agent to deploy, and list the deployment commands to run: `now-sdk build && now-sdk install --auth <alias>` (do not execute these commands or make any file edits yourself)
 - If status is REQUEST CHANGES or CRITICAL ISSUES: list action items and instruct the orchestrator to re-invoke `NowDev-AI-Fluent-Developer` with the findings as input
 
 ### 9. **Structured Findings Block:**

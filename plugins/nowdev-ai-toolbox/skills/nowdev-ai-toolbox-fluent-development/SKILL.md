@@ -13,7 +13,9 @@ Use this skill for NowDev workflow conventions around Fluent SDK projects. Do **
 
 For `now-sdk` command syntax, flags, and the `explain`/`query` discovery workflow, use `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` — the canonical CLI reference. This skill does not duplicate that mechanics.
 
-Always verify current SDK API shape with `now-sdk explain <topic> --format raw` before writing or reviewing Fluent code. If local guidance conflicts with `now-sdk explain`, the installed SDK documentation wins.
+Always verify current SDK API shape with `now-sdk explain <topic> --format raw` before writing or reviewing Fluent code. Installed SDK documentation always takes absolute precedence and is the sole authority on all SDK APIs; local pattern files or prior knowledge do not apply to SDK API syntax or shapes.
+
+If `now-sdk explain` is unavailable or returns an error, halt and inform the user that SDK verification is required before proceeding. Do not fall back to local pattern docs or prior knowledge as a substitute for current SDK shape.
 
 ## What This Skill Still Owns
 
@@ -24,12 +26,12 @@ Always verify current SDK API shape with `now-sdk explain <topic> --format raw` 
 
 ## Local Pattern Docs
 
-Use these only after fetching the relevant SDK topic with `now-sdk explain <topic> --format raw`:
+Use these local docs ONLY for workflows and patterns not covered by the SDK. Always prioritize the SDK `explain` guides, and consult these files only for the specific non-API topics they cover:
 
 | Need | Local Reference |
 |---|---|
 | Build/runtime troubleshooting workflow | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) |
-| Advanced NowDev patterns that are not pure SDK reference | [ADVANCED-PATTERNS.md](./ADVANCED-PATTERNS.md) |
+| Multi-agent handoff sequencing, artifact naming conventions, and NowDev-specific anti-patterns not addressable by SDK explain topics | [ADVANCED-PATTERNS.md](./ADVANCED-PATTERNS.md) |
 
 The following used to be local files but are now fully covered by the installed SDK's own docs — fetch these `explain` topics directly instead:
 
@@ -60,7 +62,7 @@ The following used to be local files but are now fully covered by the installed 
 - Use actual workspace facts: `now.config.json`, `.vscode/nowdev-ai-config.json`, generated schema types, and session artifact state.
 - Own metadata references should use exported constants such as `table.name` or `record.$id`; use `Now.ref()` for metadata outside the current application.
 - Use `Now.include()` for files only where the current SDK topic says the property accepts string content or file inclusion.
-- For module-vs-string decisions, verify `now-sdk explain now-include-guide --format raw`, `now-sdk explain module-guide --format raw`, and the artifact-specific API topic.
+- For module-vs-string decisions, first check the artifact-specific API topic; if unresolved, check `now-sdk explain module-guide --format raw`; use `now-sdk explain now-include-guide --format raw` only to confirm file-inclusion syntax. The artifact-specific topic takes precedence over the general guides.
 - Run the narrowest available validation after edits, usually `now-sdk build` for Fluent app changes.
 
 ## Project Layout Convention

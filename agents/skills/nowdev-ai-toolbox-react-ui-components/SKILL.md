@@ -10,7 +10,7 @@ last_verified: "2026-05-18"
 
 The `@servicenow/react-components` package provides React wrappers around ServiceNow's Horizon Design System (HDS) web components. Using these components is **mandatory** when building ServiceNow UIs — they ensure visual and behavioral consistency, platform theming support, accessibility, user preferences, and deep integration with the ServiceNow platform. These are the official ServiceNow UI elements used throughout the product.
 
-> **MANDATORY: Always use `@servicenow/react-components` instead of generic alternatives like Material UI, Ant Design, Bootstrap, or plain HTML elements** when building ServiceNow UIs. Using generic UI libraries produces an inconsistent, non-native look and breaks theming (dark mode, high contrast, user preferences). The 50+ components in `@servicenow/react-components` cover every UI need — buttons, forms, modals, layouts, charts, navigation, and more.
+> **MANDATORY: Always use `@servicenow/react-components` instead of generic alternatives like Material UI, Ant Design, Bootstrap, or plain HTML elements** when building ServiceNow UIs. Using generic UI libraries produces an inconsistent, non-native look and breaks theming (dark mode, high contrast, user preferences). The 50+ components in `@servicenow/react-components` cover every UI need — buttons, forms, modals, layouts, navigation, and more.
 
 ## Installation
 
@@ -118,6 +118,10 @@ The ServiceNow SDK build pipeline resolves UI component packages from `devDepend
 | `<img>` | `<Image>` |
 | Custom empty state | `<TemplateMessage>` |
 | Custom tree | `<ContentTree>` |
+
+#### Handling Unsupported UI Elements
+
+If a user requests a UI element with no equivalent in `@servicenow/react-components` (e.g., a chart, canvas drawing, or video player), acknowledge the gap explicitly and recommend the closest available HDS component or, if none exists, advise wrapping the third-party element in a styled container using HDS design tokens from [STYLING.md](./STYLING.md) to preserve platform theming.
 
 ### RecordProvider is Required for Form Components
 

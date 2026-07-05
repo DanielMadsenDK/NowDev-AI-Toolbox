@@ -30,6 +30,8 @@ Construct the URL for the root index of the target release:
 
 Retrieve this root file to discover the layout and locate specific features or products requested by the user.
 
+When the user requests a cross-release comparison, repeat Steps 1–3 for each release independently, then in Step 4 present a side-by-side summary table of additions, changes, and removals for the requested product across those releases.
+
 ### Step 2: Search the Root Index for Relevant Sub-pages
 Since the root index contains links to specific markdown files, search the fetched index file for the product or category in question. Most files follow this suffix naming pattern:
 `https://raw.githubusercontent.com/ServiceNow/ServiceNowDocs/[RELEASE]/markdown/release-notes/[product-slug]-rn.md` or `[product-slug]-rn-landing.md`

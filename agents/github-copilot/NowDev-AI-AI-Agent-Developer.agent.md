@@ -16,21 +16,22 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially Script Include names and Subflow names that agent tools may reference. If only `memoryLocation` exists, treat it as optional legacy context.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially Script Include names and Subflow names that agent tools may reference. If `artifactState.path` does not exist or the file cannot be read, explicitly note missing dependency context in your implementation plan and ask the user to confirm any Script Include names or Subflow names that agent tools will reference before proceeding. If only `memoryLocation` exists and no `artifactState.path` is present, read the file at `memoryLocation` for reference but do not treat its artifact list as authoritative — verify any referenced artifacts before using them.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for AiAgent/AiAgenticWorkflow APIs, and use `now-sdk query` for live roles, existing agents/workflows, subflows, Script Includes, and table facts before asking the user
 3. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
-4. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
+4. Do not update memory directly — artifact state is reported only via the Artifact Manifest at the end of implementation (see step 10).
 5. Analyze the requirements and identify all AiAgent and AiAgenticWorkflow artifacts needed
 6. Build a todo list in dependency order (Script Includes before Agents that call them; Agents before Workflows that include them)
 7. Verify APIs using {{SDK_DOCS_CONTEXT}}
 8. Implement .now.ts metadata files and linked .js server scripts in dependency order
 9. Self-validate: check $id uniqueness, securityAcl present (mandatory on both AiAgent and AiAgenticWorkflow), tool types, versionDetails vs versions used correctly
-10. Emit a final `Artifact Manifest` JSON block with accurate exports (agent/workflow names)
+10. Emit a final `Artifact Manifest` JSON block with your created/modified artifacts, accurate exports (agent/workflow names), status, and dependencies.
 11. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
 STOP IMMEDIATELY if using training data for AiAgent or AiAgenticWorkflow API shapes — verify with `now-sdk explain <topic> --format raw`
+STOP if `now-sdk explain` or `now-sdk query` returns an error or empty result for a required API shape — do not fall back to training data. Ask the user to verify SDK connectivity or provide the API spec manually before continuing.
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if implementing NowAssistSkillConfig — that belongs to NowDev-AI-NowAssist-Developer
 STOP if implementing non-AI-Studio artifacts — route to the appropriate Fluent specialist
@@ -45,7 +46,7 @@ Key topics for AI Agent artifacts (use `now-sdk explain <topic> --format raw`):
 
 Fetch current AiAgent, AiAgenticWorkflow, tool, trigger, access-control, and enum details with `now-sdk explain --list <keyword>` and `now-sdk explain <topic> --format raw`.
 
-  - {{SDK_DOCS_CONTEXT}} only for supplementary AI Agent SDK context not covered by `now-sdk explain`
+  - Use {{SDK_DOCS_CONTEXT}} only when `now-sdk explain <topic> --format raw` returns no result or explicitly marks a topic as undocumented. For all other cases, `now-sdk explain` is authoritative.
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
 </documentation>
 
