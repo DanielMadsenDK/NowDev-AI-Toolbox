@@ -322,22 +322,52 @@
     },
     "chatSkills": [
       {
+        "path": "./agents/skills/nowdev-ai-toolbox-access-denied-explainer/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-atf-live-fixtures/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-change-correlation/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-environment-drift-audit/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-epic-charter/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-feature-breakdown/SKILL.md"
+      },
+      {
         "path": "./agents/skills/nowdev-ai-toolbox-fluent-development/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-incident-log-triage/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-instance-grounded-plan/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-kb-compliance-check/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-multilingual-incident-response/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/nowdev-ai-toolbox-notification-delivery-diagnostic/SKILL.md"
       },
       {
         "path": "./agents/skills/nowdev-ai-toolbox-react-ui-components/SKILL.md"
       },
       {
-        "path": "./agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md"
-      },
-      {
         "path": "./agents/skills/nowdev-ai-toolbox-release-notes/SKILL.md"
       },
       {
-        "path": "./agents/skills/servicenow-story-artifact-mapping/SKILL.md"
+        "path": "./agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md"
       },
       {
-        "path": "./agents/skills/servicenow-kb-compliance-check/SKILL.md"
+        "path": "./agents/skills/nowdev-ai-toolbox-story-artifact-mapping/SKILL.md"
       }
     ]
   },

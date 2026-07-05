@@ -1,5 +1,5 @@
 ---
-name: servicenow-story-artifact-mapping
+name: nowdev-ai-toolbox-story-artifact-mapping
 context: fork
 user-invocable: false
 description: Technical breakdown skill for mapping Features into developer-facing User Stories with ServiceNow Fluent artifacts. This skill explicitly triggers whenever a user references a Feature or Story ID (e.g., FEAT-123, US-456) and asks to plan, draft, map, outline, or implement it, or when they ask to "update traceability", "record what was built", "sync build artifacts to Jira/Azure DevOps", or "conclude development on Story X" after completing a build. It reads the local Session Artifact Registry to append actual build files, status, and test coverage to the User Stories. Keep this developer-facing mapping skill extremely focused on Fluent artifact generation and traceability.

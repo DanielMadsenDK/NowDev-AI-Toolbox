@@ -1,0 +1,29 @@
+{
+  "skill_name": "nowdev-ai-toolbox-multilingual-incident-response",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "draft a response to this incident INC0009009 which got assigned to me about network VPN dropouts. Write an update for the customer/requester in Danish, referencing relevant KB solutions.",
+      "expected_output": "An incident response update drafted fully in Danish, translating all Markdown headers natively, searching the instance for VPN articles, and formatting the response according to the template with an explicit manual application warning.",
+      "files": [],
+      "expectations": [
+        "The output contains a draft customer-facing update entirely in Danish, including natively translated headers such as '# Udkast til Kundevendt Opdatering' or similar.",
+        "The output lists relevant KB reference citations with KB numbers or sys_id references.",
+        "The response contains an explicit checklist/reminder warning in Danish stating that manual application is required.",
+        "Programmatic system identifiers and table names such as incident and kb_knowledge remain in English/original technical form."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Reply to this ticket in Spanish: INC0009005 has a short_description of email authentication failing. Query the instance, run bilingual Spanish/English KB searches, find similar incident precedent, and draft the update for the customer.",
+      "expected_output": "A customer update drafted entirely in Spanish, translating all headers natively, including KB references found on instance, and an explicit manual application safeguard warning.",
+      "files": [],
+      "expectations": [
+        "The output contains a draft customer-facing update entirely in Spanish, with natively translated section headers.",
+        "The response lists KB citations with titles, KB Number, or sys_id.",
+        "The output contains an explicit reminder in Spanish that the draft must be manually posted to the ServiceNow record.",
+        "Technical fields/table names (incident, short_description, kb_knowledge) are kept in their English/technical form."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "skill_name": "nowdev-ai-toolbox-change-correlation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our incident integration started failing after yesterday's sprint deployment. Can we check what changed recently on the live instance 'PDI' for the current scope x_1118332_testes_0?",
+      "expected_output": "A highly detailed live change correlation report querying the sys_update_xml table from PDI for scope x_1118332_testes_0 over the regression window (since yesterday/last 24 hours), grouping updates by type, highlighting incident-related changes as top suspects, and providing recommended verification steps.",
+      "files": [],
+      "expectations": [
+        "The report is structured in Markdown using the specified template sections.",
+        "The timeline table represents updates chronologically and categorizes them with risk annotations.",
+        "The query is executed against the sys_update_xml table with proper filters for sys_updated_on and scope.",
+        "The top suspects section highlights incident table elements and offers actionable verification suggestions."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "det plejede at virke, men i dag fejler rettighederne på change-tabellen. Er der nogen der har ødelagt noget for nylig på vores PDI?",
+      "expected_output": "A live change correlation report written entirely in Danish, translating standard headers (e.g. into 'Tidslinje over ændringer', 'Prime Misstænkte', 'Foreslåede Verificationstrin') but keeping ServiceNow tables (sys_update_xml, sys_security_acl), field names (sys_updated_on, sys_updated_by), and sys_ids in English, with prioritized emphasis on ACL and security modifications touching the change table.",
+      "files": [],
+      "expectations": [
+        "The entire communication, verdict summary, and section headers are rendered perfectly in Danish.",
+        "Technical entity names like sys_update_xml, sys_security_acl, and field names like sys_updated_on are preserved in technical English form.",
+        "The timeline prioritizes security and ACL alterations as High Risk since the user highlighted privileges/permissions ('rettighederne').",
+        "The top suspects section connects recent updates specifically with the change table."
+      ]
+    }
+  ]
+}

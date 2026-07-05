@@ -1,0 +1,30 @@
+{
+  "skill_name": "nowdev-ai-toolbox-access-denied-explainer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I can't edit the 'short_description' field on the 'incident' table as user 'Problem Manager' (sys_id: d3dbbf173b331300ad3cc9bb34efc466). Can you explain exactly why, audit the matching ACLs, and trace my roles?",
+      "expected_output": "A detailed Access Diagnostic Report in Markdown format identifying that the user 'Problem Manager' with direct/inherited roles is evaluated against the write ACLs on incident.short_description and fail because the user does not have the necessary write/itil/admin roles required by the matching security rules.",
+      "files": [],
+      "expectations": [
+        "The response begins with the structured 'Access Diagnostic Report' header structure.",
+        "The report includes a 'Security Audit Summary' indicating that write access is denied on incident.short_description.",
+        "The response details an evaluation trace showing table-level and field-level write ACL checks.",
+        "The diagnostic report retrieves and lists the user's active/group-inherited roles (e.g., knowledge_manager).",
+        "The final section lists concrete recommended actions, such as granting a role or modifying the named ACL with sys_id."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "A user with only the 'itil' role is getting an 'access denied' error when trying to read rows from the 'sys_properties' table on our PDI setup. Can you explain why standard read operations on sys_properties are failing for them?",
+      "expected_output": "A detailed Access Diagnostic Report in Markdown format auditing sys_properties read ACL permissions, explaining that read permissions on sys_properties are restricted to admin/security admin roles and why the 'itil' role is insufficient.",
+      "files": [],
+      "expectations": [
+        "The response utilizes the standardized 'Access Diagnostic Report' markdown layout.",
+        "The report identifies that the user has only 'itil' role.",
+        "The evaluation trace queries sys_security_acl and indicates that sys_properties read operations require administrative rights.",
+        "The recommendations suggest granting a proper administrative role or modifying the specific ACL rule safely."
+      ]
+    }
+  ]
+}

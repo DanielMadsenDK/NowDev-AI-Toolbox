@@ -1,0 +1,29 @@
+{
+  "skill_name": "nowdev-ai-toolbox-incident-log-triage",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Help, my custom flow isn't running properly! Users are complaining that when they submit a catalog request, nothing happens. Something is broken on the live instance since like 30 minutes ago, can you troubleshoot this incident?",
+      "expected_output": "A comprehensive triage report and diagnostic breakdown that queries syslog and sys_flow_context, correlates findings by time proximity, ranks root-cause hypotheses, and suggests transitioning to specialized tools or Flow Designer / Debugger.",
+      "files": [],
+      "expectations": [
+        "The report contains an Overall Verdict status banner reflecting the failure severity.",
+        "The report lists findings dynamically queried from sys_flow_context and syslog tables.",
+        "The report ranks root-cause hypotheses based on timestamp correlation and error logs.",
+        "The report recommends next steps, including handoff to specialised skills or the Debugger."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Hola, los clientes no están recibiendo los correos de confirmación en producción desde hace un par de horas. ¿Por qué no funciona? ¿Podrías realizar un diagnóstico para ver qué hay mal con la instancia?",
+      "expected_output": "A fully translated, Spanish-language incident triage report querying sys_email and sys_email_log. The section headers and prose are in Spanish, while ServiceNow table and field names remain in their original technical English form.",
+      "files": [],
+      "expectations": [
+        "The entire triage report and response are written in natural Spanish.",
+        "The report headings are translated to Spanish equivalents such as Veredicto Global, Hipótesis ordenadas, etc.",
+        "The technical system terms (sys_email, sys_email_log, syslog, sys_id, etc.) remain in English technical form.",
+        "The report suggests next steps, such as hand-off to the mail delivery diagnostic skill."
+      ]
+    }
+  ]
+}

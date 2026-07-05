@@ -1,0 +1,29 @@
+{
+  "skill_name": "nowdev-ai-toolbox-notification-delivery-diagnostic",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our user 'Fred Luddy' (sys_id: 5137153cc611227c000bd1d109b678c3) didn't receive an email notification for the assignment of Incident INC0000055. Can you diagnose why Fred didn't get that notification? Check our PDI instance.",
+      "expected_output": "A detailed Notification Delivery Trace Report in Markdown structure, showing the event was generated, the notification rule evaluated, but Fred's sys_user record or cmn_notif_device preference was set to disable/inactive, explaining why email generation was skipped.",
+      "files": [],
+      "expectations": [
+        "The response includes a structured Delivery Pipeline Trace table mapping Stages 1 to 5.",
+        "The overall verdict and pipeline status are clearly identified (e.g., Event fired but delivery blocked, or user preference disabled).",
+        "The report indicates that active read-only queries were run against sysevent, sysevent_email_action, sys_email, and sys_user/cmn_notif_device using now-sdk query.",
+        "The output lists a detailed Root Cause Analysis and actionable Recommended Fix (e.g. enabling notifications on the user profile or setting up a primary device)."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "For user 'David Loo', why wasn't he notified when he updated Incident INC0009001? He claims the system event 'incident.commented' fired, but no email record was created for him in sys_email on the PDI instance.",
+      "expected_output": "The diagnostic identifies that the 'incident.commented' event fired and reached the event runner, but email generation failed because David updated the incident himself and 'send_self' (Send to event creator) is false/unchecked on the notification rule.",
+      "files": [],
+      "expectations": [
+        "The trace correctly evaluates and marks Stage 1 (Event Fired) as PASS and Stage 3 (Email Generated) as FAIL.",
+        "The response explicitly identifies that the 'send_self' field being false on the notification 'sysevent_email_action' is the likely cause of suppression.",
+        "Query actions against sysevent, sysevent_email_action, and sys_email are detailed.",
+        "The recommended fix advises checking or setting 'send_self' to true on the Incident Commented notification to allow creators to receive their own updates."
+      ]
+    }
+  ]
+}
