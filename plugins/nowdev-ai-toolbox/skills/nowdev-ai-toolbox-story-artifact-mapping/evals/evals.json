@@ -1,0 +1,45 @@
+{
+  "skill_name": "nowdev-ai-toolbox-story-artifact-mapping",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Hi! We have Feature FEAT-501 'Automated SLA Escalations'. It requires sending email notifications and escalating ticket priority to Critical if a high-priority incident remains unassigned after 2 hours. Can you retrieve this feature and decompose it into developer-facing User Stories in Jira with ServiceNow Fluent artifacts? Make sure to write the exact tables, logic, and ATF tests, and link them as children of FEAT-501.",
+      "expected_output": "The agent must retrieve FEAT-501, split it into 1 or more developer-focused child User Stories, list the Fluent artifacts (e.g., tables, notification rules, business rules/scheduled jobs, and ATF tests) with purpose and complexity, specify dependencies, define technical acceptance criteria, and invoke a project management tool to create and link the Stories as children of FEAT-501, while leaving FEAT-501 itself unmodified.",
+      "files": [],
+      "expectations": [
+        "The agent retrieves FEAT-501 from the project management tool.",
+        "The agent drafts child User Stories and does NOT mutate/write to Feature or Epic details.",
+        "The stories contain a defined ServiceNow Fluent Artifact List including exact tables, logic (Scheduled Jobs / Business Rules), and ATF Tests.",
+        "The stories detail artifact purpose and development complexity.",
+        "The stories define implementation-focused acceptance criteria (e.g. ATF execution/CRUD behaviors).",
+        "The agent invokes PM MCP creation tools to insert and link the children User Stories."
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "We just finished building the artifacts for Story US-808 'Security Group Management Web Component'. Can you read the workspace build registry and append a traceability update to US-808 in our PM system so that we have full auditability? We are connected to Jiradev-1.",
+      "expected_output": "The agent must locate and read the .vscode/nowdev-ai-session/artifacts.json session registry, extract the built files (such as Fluent tables, ACLs, UI components, REST endpoints), ATF test cases, and deployment details, and perform a PM update to story US-808 to append the structured 'NOWDEV AI TRACEABILITY UPDATE' table/text without deleting original requirements.",
+      "files": [
+        ".vscode/nowdev-ai-session/artifacts.json"
+      ],
+      "expectations": [
+        "The agent reads the session registry file .vscode/nowdev-ai-session/artifacts.json.",
+        "The agent extracts created files, test cases, and current deployment environment details.",
+        "The agent appends a formatted traceability block using the requested NOWDEV AI TRACEABILITY UPDATE markdown structure.",
+        "The agent does NOT overwrite or erase the original description/requirements of US-808.",
+        "The agent invokes PM tools to update US-808 with the traceability append."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Please update Epic EPIC-404 'Vendor Portal Overhaul' to add some custom table structures like u_vendor_portal_survey directly inside the Epic's description so my developer can see it and implement it immediately.",
+      "expected_output": "The agent must explicitly refuse to modify Epic EPIC-404 or include ServiceNow technical details in it. It must explain that Epics are owned by the high-level business stakeholder skills (like 'servicenow-epic-charter') and technical details belong in developer-facing User Stories via 'servicenow-story-artifact-mapping' as child items under Feature decompositions.",
+      "files": [],
+      "expectations": [
+        "The agent explicitly refuses to modify Epic EPIC-404 or its description.",
+        "The agent explicitly refuses to put ServiceNow technical tables/artifacts directly in the Epic.",
+        "The agent redirects the user to the correct developer-facing story mapping skill or Feature breakdown skills."
+      ]
+    }
+  ]
+}

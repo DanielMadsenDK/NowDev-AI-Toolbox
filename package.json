@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -332,6 +332,12 @@
       },
       {
         "path": "./agents/skills/nowdev-ai-toolbox-release-notes/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/servicenow-story-artifact-mapping/SKILL.md"
+      },
+      {
+        "path": "./agents/skills/servicenow-kb-compliance-check/SKILL.md"
       }
     ]
   },

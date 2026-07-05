@@ -1,0 +1,53 @@
+{
+  "skill_name": "nowdev-ai-toolbox-atf-live-fixtures",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We need to write an ATF test that creates an incident with a realistic caller and assignment group. Please run a read-only query on our 'PDI' instance to fetch 1 active incident, extract its fields (sys_id, short_description, caller_id, assignment_group, priority), then generate a safe, scrubbed JS mock fixture object. Redact any potentially sensitive information (names, emails, company specifics) into generic test values, but preserve the valid sys_id references.",
+      "expected_output": "A secure JS fixture object for an incident table record, fully scrubbed of PII (e.g. caller_id named 'Mock User' or similar, description genericized), while keeping exact valid sys_ids for assignment_group and caller_id acquired from the 'PDI' instance via now-sdk query.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "Valid-JS-Structure",
+          "text": "The mock incident fixture is output as a valid JavaScript variable/object containing fields extracted from a queried record."
+        },
+        {
+          "name": "Live-Instance-Reference-Integrity",
+          "text": "The output mock object preserves the valid 32-character hexadecimal sys_id values returned from the instance (such as sys_id, caller_id, or assignment_group)."
+        },
+        {
+          "name": "Meticulous-PII-Redaction",
+          "text": "No live/real user names or real employee emails retrieved from the instance are written into the final mock fixture code."
+        },
+        {
+          "name": "Read-Only-Query",
+          "text": "The agent performs the operation by executing a read-only `now-sdk query` command on the 'PDI' instance."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our QA team is authoring tests for user profiles. Query the 'PDI' instance for 2 active records in the 'sys_user' table who have an email address populated. Provide a safely-redacted Javascript array of user fixtures containing their first name, last name, email, user_name, and sys_id. Ensure NO actual user names or real email addresses are committed to code.",
+      "expected_output": "A secure Javascript array containing 2 user profile object fixtures, each with completely redacted/mocked name, email, and user_name fields, while keeping the valid 32-character hexadecimal sys_id values returned by now-sdk query to maintain reference integrity in the tests.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "Valid-JS-Array",
+          "text": "The output file mock_users_fixtures.js contains a valid JavaScript array with exactly 2 objects."
+        },
+        {
+          "name": "Complete-User-Fields",
+          "text": "The objects inside the fixture array correctly include first_name, last_name, email, user_name, and sys_id fields."
+        },
+        {
+          "name": "Meticulous-PII-Redaction",
+          "text": "All real user names, user_names, and actual emails retrieved from the PDI are fully cleaned and replaced with safe, mock placeholders in the @example.com domain."
+        },
+        {
+          "name": "Valid-Reference-SysIds",
+          "text": "The user fixture records preserve valid 32-character hexadecimal sys_id strings sourced directly from the instance query."
+        }
+      ]
+    }
+  ]
+}

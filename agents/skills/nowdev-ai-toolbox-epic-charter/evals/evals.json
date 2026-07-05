@@ -1,0 +1,57 @@
+{
+  "skill_name": "nowdev-ai-toolbox-epic-charter",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our leadership wants to implement a unified employee onboarding experience. Right now, HR, IT, and Facilities all do their own thing, leading to massive delays and lost productivity for new hires. The business value here is reducing onboarding lease-to-productivity time from 15 days to under 3 days, and we want to target a full rollout by the end of Q4 this year. The main executive sponsor is VP of Employee Success, Sarah Jenkins, and HR Manager Bob Smith will be the Product Owner. We expect it to benefit all 12,000 employees. Let's create an epic for this in our connected project management tool.",
+      "expected_output": "The output must draft an Epic using the required Markdown template containing the problem statement, business value, metrics, target timeframe (Q4), stakeholders (Sarah Jenkins, Bob Smith, 12,000 employees). The agent must call a project management MCP tool (like jira.create_issue or azure_devops.create_work_item) to create an Epic. The output must strictly avoid any ServiceNow technical mentions (like specific u_ tables) and must not contain or create any Features or stories.",
+      "files": [],
+      "expectations": [
+        "The output drafts an Epic using the correct template with Problem Statement, Business Value & Success Metrics, Target Timeframe, and Key Stakeholders.",
+        "The output lists VP of Employee Success, Sarah Jenkins as Business Sponsor and HR Manager Bob Smith as Product Owner.",
+        "The Epic contains a success metric targeting reducing lease-to-productivity time to under 3 days (or from 15 to 3 days).",
+        "The output does NOT contain or create any Features or User Stories.",
+        "The output does NOT reference any specific ServiceNow technical artifacts (tables, business rules, client scripts, etc.)."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We have an existing Epic for the 'Unified Employee Onboarding' (Jira ID: PROJ-101). Please update this Epic to clarify that the target timeframe is now pushed to Q1 next year instead of Q1 this year, and add HR Director Jane Doe as an additional business sponsor. Also, could you go ahead and decompose this into some Features or User Stories, and maybe list what ServiceNow tables we will need, like u_onboarding_request?",
+      "expected_output": "The output must update the existing Epic PROJ-101 using the connected project management tool API. It must update the timeframe to Q1 next year and add Jane Doe as a business sponsor. Crucially, the agent must explicitly refuse to decompose the Epic into Features/Stories and refuse to reference ServiceNow tables, explaining that feature decomposition is the job of the 'servicenow-feature-breakdown' skill, and user stories / ServiceNow tasks are handled by the developer-facing story/artifact skill.",
+      "files": [],
+      "expectations": [
+        "The agent updates the Epic PROJ-101 in the project management tool (e.g. via update_issue or update_work_item).",
+        "The draft updates the target timeframe to Q1 of next year and includes Jane Doe as a sponsor.",
+        "The agent explicitly refuses to decompose the Epic into Features or Stories.",
+        "The agent explains that feature decomposition is the job of 'servicenow-feature-breakdown'.",
+        "The agent explicitly refuses to reference ServiceNow technical tables or files (like u_onboarding_request)."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to set up a new initiative for a Customer Service Modernization. Our customers are complaining about our response times for support tickets (averaging 34 hours!). We want to build a modern customer-facing portal to let them register issues, track status, and search the knowledge base. The goal is to bring average response time under 4 hours and boost CSAT to 92%. VP of Customer Relations Mark Stone is the Sponsor, and Customer Service Lead Alice Zhao is the Product Owner. Let's target Q2 2027. Create an epic for this. Do not write any technical details yet.",
+      "expected_output": "The output must draft an Epic using the required Markdown template containing the problem statement (tickets average 34 hours, support portal), business value & KPIs (response time under 4 hours, CSAT 92%), timeframe (Q2 2027), and stakeholders (Mark Stone, Alice Zhao). The agent must call a project management MCP tool to create the Epic and strictly avoid any Features/Stories decomposition or technical ServiceNow details.",
+      "files": [],
+      "expectations": [
+        "The output drafts an Epic using the correct template with Problem Statement, Business Value & Success Metrics, Target Timeframe, and Key Stakeholders.",
+        "The output lists VP of Customer Relations Mark Stone as Business Sponsor and Customer Service Lead Alice Zhao as Product Owner.",
+        "The Epic contains success metrics of bringing response time under 4 hours and boosting CSAT to 92%.",
+        "The output does NOT contain or create any Features or Stories.",
+        "The output does NOT reference any specific ServiceNow technical elements (tables, scripts, flows)."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Vores direktør vil gerne have et nyt system til håndtering af udlæg og rejsegodtgørelse. I dag er det en manuel proces med Excel-ark, som medfører fejl og forsinket udbetaling til medarbejderne. Vi vil gerne reducere procestiden fra 14 dage til 2 dage. Projektet skal rulles ud i Q3 2026. Finansdirektør Niels Poulsen er sponsor, og regnskabschef Hanne Jensen er produktansvarlig. Opret en epic for dette initiativ i Jira.",
+      "expected_output": "The output must draft the Epic in Danish. Standardized headers like Problem Statement must be translated (e.g., Problemformulering, Forretningsværdi, etc.). Niles Poulsen must be listed as Sponsor and Hanne Jensen as Product Owner. Target dynamic timeframe must be Q3 2026.",
+      "files": [],
+      "expectations": [
+        "The output drafts the Epic in Danish (including Danish headings like 'Problemformulering' or 'Forretningsværdi').",
+        "The output lists Niels Poulsen as sponsor and Hanne Jensen as Product Owner (or and regnskabschef Hanne Jensen as produktansvarlig).",
+        "The Epic contains success metrics targeting a reduction in processing time from 14 days to 2 days.",
+        "The output does NOT contain or create any Features or Stories.",
+        "The output does NOT reference any specific ServiceNow technical tables or components."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "skill_name": "nowdev-ai-toolbox-environment-drift-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Compare our environments to make sure prod matches dev. Use the alias 'PDI' for both environments (e.g., dev=PDI, prod=PDI) to ensure that the audit correctly detects that the environments are perfectly synced, returning a clean bill of health (no drift detected) for scope testestsdf (which uses scope name x_1118332_testes_0).",
+      "expected_output": "A detailed drift report comparing PDI with PDI, showing no differences found across tables, with all categories (High, Medium, Low risk) having 0 changes and a green overall verdict.",
+      "files": [],
+      "expectations": [
+        "The report is in Markdown layout with explicit safety warnings and risk-based groupings.",
+        "The overall verdict is prominently marked as SAFE TO DEPLOY or equivalent green health indication.",
+        "The report lists successfully evaluated system objects including Business Rules, ACLs, and Properties.",
+        "The report identifies 0 differences/changes since identical aliases were audited."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Can you verify the deployment safety of our application? We want to audit configuration drift between our dev instance 'PDI' and our staging instance 'STAGE' for global/app tables in the 'x_1118332_testes_0' scope. Let me know if STAGE is not configured and how we can proceed.",
+      "expected_output": "The agent identifies that STAGE is not a configured alias in 'now-sdk auth --list', logs/communicates this error cleanly, queries other available components from PDI, and outlines steps to authenticate the STAGE environment.",
+      "files": [],
+      "expectations": [
+        "The response explicitly identifies that the STAGE alias/credentials are not configured.",
+        "The output lists the exact setup commands (now-sdk auth --add) required to bootstrap the STAGE alias.",
+        "The response successfully recovers by running baseline scans against the PDI dev environment.",
+        "The baseline PDI scan lists the 2 custom roles found (user and admin) under scope x_1118332_testes_0."
+      ]
+    }
+  ]
+}

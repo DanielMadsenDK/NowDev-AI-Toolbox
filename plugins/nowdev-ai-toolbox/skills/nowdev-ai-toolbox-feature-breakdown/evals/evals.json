@@ -1,0 +1,23 @@
+{
+  "skill_name": "nowdev-ai-toolbox-feature-breakdown",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Hi! I need to break down Epic EPIC-101 into features. It is about implementing ServiceNow Customer Service Management Case Auto-Assignment so customer queries get routed to the right assignment group automatically based on their product category or region. What features do you recommend to deliver this value incrementally in our project tracking tool?",
+      "expected_output": "The agent retrieves EPIC-101, proposes a set of 2-4 business-centric Features with outcomes, acceptance criteria, and relative sizing (S/M/L) in plain English without mentioning database tables, scripts, or flows, and asks for confirmation to create them.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "Can you look up Epic EPIC-202 'Hardware Asset Recovery Portal' and break it down? Also, please tell me exactly what database tables, business rules, and client scripts I need to write in ServiceNow to implement this automated recovery feature.",
+      "expected_output": "The agent identifies the Epic, lists business Features, but explicitly declines to provide technical ServiceNow-specific designs like tables, business rules, or client scripts, stating that is the developer-facing skill's job and naming 'servicenow-instance-grounded-plan'.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We have an epic EPIC-303 to add multi-factor authentication for external vendor partners logging into our system. Can you retrieve the epic and suggest a feature-level breakdown for it? Keep it focused on the business outcomes since I need to present this to our steering committee.",
+      "expected_output": "The agent proposes a feature breakdown of EPIC-303, demonstrating a clear focus on partner outcomes, business acceptance criteria, S/M/L sizing, and NO ServiceNow technical details.",
+      "files": []
+    }
+  ]
+}

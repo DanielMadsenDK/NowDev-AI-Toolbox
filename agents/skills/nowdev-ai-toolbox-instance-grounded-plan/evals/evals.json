@@ -1,0 +1,23 @@
+{
+  "skill_name": "nowdev-ai-toolbox-instance-grounded-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I want to build a developer access request application. Developers currently have to ask on Slack. We want to formalize this using a ServiceNow custom table named \"Developer Access Request\" to store requests. The application should track the requested role (e.g. delegated_developer or admin), the reason, the manager approval status, and the Platform Owner approval status. Can you help me plan what tables, roles, flows, and scripts would be needed, and make sure we check what already exists?",
+      "expected_output": "A technical implementation plan verifying delegated_developer/admin roles, citing their sys_ids, planning a new table for access request tracking, a manager approval flow, and flagging which parts are new vs. reused.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "We need to integrate our Incident management workflow with our external team communications. Specifically, whenever a Category \"software\" Incident has its state changed to \"Resolved\", we want to trigger an outbound webhook call via REST to notify external engineers. Walk me through an implementation plan to set this up, including how you verified fields/choice values (like Category or State) on the Incident table and if any outbound REST messages or Business Rules exist.",
+      "expected_output": "An integration implementation plan verifying field names and choices on incident table, showing queries on sys_dictionary, incident state choices, and sys_rest_message, detailing the BR or Flow needed and if it is NEW versus REUSING existing elements.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Can you create an implementation plan for a new data privacy manager feature? If a user has the role 'privacy_officer', they and only they should be allowed to view sensitive data privacy profiling records (which we will store in a table called 'x_privacy_profile'). Before planning, check what exists on the system around 'privacy' or existing tables with similar prefixes, and check whether a 'privacy_officer' role already exists or if we need to create it. We need a safe data segregation plan.",
+      "expected_output": "A technical plan that checks sys_user_role for privacy_officer, sys_db_object for x_privacy_profile, and designs proper ACLs/roles citing existing/new objects.",
+      "files": []
+    }
+  ]
+}
