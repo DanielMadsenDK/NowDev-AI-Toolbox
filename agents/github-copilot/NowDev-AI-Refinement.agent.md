@@ -13,6 +13,7 @@ handoffs:
     send: true
 ---
 {{PROFILE_INSTRUCTIONS}}
+{{DEVOPS_PREAMBLE}}
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>

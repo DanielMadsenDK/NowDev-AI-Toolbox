@@ -10,6 +10,18 @@ export const MANAGED_TAG      = '# nowdev-managed: true';
 /** The orchestrator agent that carries the work-item integration workflow. */
 export const ORCHESTRATOR_AGENT_NAME = 'NowDev AI Agent';
 
+/**
+ * Agents that receive direct access to the configured Work Item Integration
+ * MCP server (tool wildcard + Work Item Integration Mandate preamble) when
+ * that integration is enabled. Every other agent relies on context relayed
+ * by the orchestrator instead of calling the MCP server directly.
+ */
+export const WORK_ITEM_MCP_AGENT_NAMES: ReadonlySet<string> = new Set([
+    ORCHESTRATOR_AGENT_NAME,
+    'NowDev-AI-Refinement',
+    'NowDev-AI-Assistant',
+]);
+
 /** Agents that are always written and cannot be disabled by the user. */
 export const LOCKED_AGENT_NAMES: ReadonlySet<string> = new Set([
     'NowDev AI Agent',

@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import { AgentManifest } from './AgentRegistry';
 
 import { WorkspaceAgentSyncConfig, AllDocSources, DevOpsConfig, DEFAULT_DEVOPS_CONFIG } from './agentSync/types';
-import { AGENTS_SRC, AGENTS_OUT, INSTRUCTIONS_OUT, PROMPTS_OUT, HASH_TAG, MANAGED_TAG, ORCHESTRATOR_AGENT_NAME, LOCKED_AGENT_NAMES } from './agentSync/agentBundles';
+import { AGENTS_SRC, AGENTS_OUT, INSTRUCTIONS_OUT, PROMPTS_OUT, HASH_TAG, MANAGED_TAG, ORCHESTRATOR_AGENT_NAME, LOCKED_AGENT_NAMES, WORK_ITEM_MCP_AGENT_NAMES } from './agentSync/agentBundles';
 import { setFrontmatterField, formatInlineArray, applyFrontmatterModel, normalizeModelList, readTag } from './agentSync/frontmatter';
 import { getMcpToolEntries, buildDocServerWildcards, applyDevOpsPreambleToken, applyFluentSdkExplainToken, applyAllDocSourceTokens, applyProfileInstructionsToken, applyAgentConditionals, SDK_QUERY_BLOCK } from './agentSync/docTokens';
 import { buildWorkspaceInstructionsContent, buildWorkspacePrompts } from './agentSync/instructionsContent';
@@ -68,6 +68,7 @@ export function syncAllAgents(
 
         const override      = cfg.agentOverrides[manifest.name];
         const isOrchestrator = manifest.name === ORCHESTRATOR_AGENT_NAME;
+        const isWorkItemAware = WORK_ITEM_MCP_AGENT_NAMES.has(manifest.name);
         // Profile suppression overrides the locked-agent guarantee.
         const enabled       = !profileSuppressed.has(manifest.name) && (
                               LOCKED_AGENT_NAMES.has(manifest.name) ||
@@ -87,9 +88,10 @@ export function syncAllAgents(
             : [];
 
         // Work-item integration: inject the configured MCP server's tools into the
-        // orchestrator so it can read/update tasks even if that server is not also
-        // selected in the general MCP list.
-        if (isOrchestrator && devops.enabled && devops.mcpServer) {
+        // agents that need direct access (orchestrator, Refinement, Assistant) so
+        // they can read/update tasks even if that server is not also selected in
+        // the general MCP list.
+        if (isWorkItemAware && devops.enabled && devops.mcpServer) {
             for (const entry of getMcpToolEntries(devops.mcpServer, cfg.mcpIntegrationConfigs?.[devops.mcpServer])) {
                 if (!mcpTools.includes(entry)) { mcpTools = [...mcpTools, entry]; }
             }
@@ -140,7 +142,7 @@ export function syncAllAgents(
             disabledAgents: [...disabledAgentNames].sort(),
             allDocSources: cfg.allDocSources,
             mcpIntegrationConfigs: cfg.mcpIntegrationConfigs,
-            devopsConfig:  isOrchestrator ? devops : undefined,
+            devopsConfig:  isWorkItemAware ? devops : undefined,
             activeProfileId: cfg.activeProfileId ?? '',
             profileInstructions: cfg.profileInstructions ?? '',
             customInstructions: cfg.customInstructions ?? '',
@@ -164,7 +166,7 @@ export function syncAllAgents(
             combinedHash,
             override?.model,
             cfg.allDocSources,
-            isOrchestrator ? devops : undefined,
+            isWorkItemAware ? devops : undefined,
             cfg.profileInstructions,
             cfg.customInstructions,
             cfg.agentGuidelines,

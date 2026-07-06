@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 4af462ead180fda826e1d341608c4df123ece14aa36e888bb01cb0d74d673f9a
+# nowdev-hash: 48dd8ab2870c6671e91e88a1540a9a20a61a710bf62740305d0fdba8ebff0ef3
 name: NowDev-AI-Assistant
 user-invocable: false
 disable-model-invocation: false

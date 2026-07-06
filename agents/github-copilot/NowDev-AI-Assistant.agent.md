@@ -13,6 +13,7 @@ handoffs:
     send: true
 ---
 {{PROFILE_INSTRUCTIONS}}
+{{DEVOPS_PREAMBLE}}
 {{PRODUCT_DOCS_CONTEXT}}
 If either placeholder above appears as a literal string rather than substituted content, proceed without it and do not reference or repeat the placeholder text in responses.
 
