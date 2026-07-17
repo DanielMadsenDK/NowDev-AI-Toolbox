@@ -1,14 +1,7 @@
 ---
 name: nowdev-ai-toolbox-incident-log-triage
-context: fork
-user-invocable: false
+user-invocable: true
 description: Symptom-first root-cause triage when something in the live ServiceNow instance is broken or erroring and the user has no known file/script to point at. Make sure to use this skill whenever the user mentions "something is broken", "getting an error when I...", "why isn't X working", "something's wrong with the instance", "troubleshoot this incident/problem", "log triage", "instance triage", "integration error", or refers to any unexpected UI/session crash, background job exception, flow execution failure, or email delivery issue on the live instance. Strictly uses read-only queries with 'now-sdk query' across syslog, sys_email, sys_email_log, ecc_queue, sys_trigger, and sys_flow_context.
----
-
-# ServiceNow Live Instance Incident Log Triage
-
-This skill governs the systematic, symptom-first root-cause triage of failures or errors occurring on a live ServiceNow instance when the user has no predefined file or script to debug. It is distinct from `NowDev-AI-Debugger`, which starts from a known, open workspace artifact.
-
 ---
 
 ## 🗺️ Core Principles

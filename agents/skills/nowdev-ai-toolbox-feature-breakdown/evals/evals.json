@@ -10,7 +10,7 @@
     {
       "id": 1,
       "prompt": "Can you look up Epic EPIC-202 'Hardware Asset Recovery Portal' and break it down? Also, please tell me exactly what database tables, business rules, and client scripts I need to write in ServiceNow to implement this automated recovery feature.",
-      "expected_output": "The agent identifies the Epic, lists business Features, but explicitly declines to provide technical ServiceNow-specific designs like tables, business rules, or client scripts, stating that is the developer-facing skill's job and naming 'servicenow-instance-grounded-plan'.",
+      "expected_output": "The agent identifies the Epic, lists business Features, but explicitly declines to provide technical ServiceNow-specific designs like tables, business rules, or client scripts, stating that is the developer-facing skill's job and naming 'nowdev-ai-toolbox-instance-grounded-plan'.",
       "files": []
     },
     {

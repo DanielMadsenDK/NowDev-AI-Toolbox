@@ -1,7 +1,7 @@
 ---
 name: nowdev-ai-toolbox-kb-compliance-check
-context: fork
-user-invocable: false
+user-invocable: true
+disable-model-invocation: true
 description: 'Review and cross-check generated ServiceNow artifacts and code against relevant connected instance Knowledge Base articles for organizational guidelines, development standards, and forbidden patterns. Use this skill when the user asks "does this follow our documented guidelines?", "check compliance", "verify against our KB standards", "audit against KB", or during a code review when checking compliance of any ServiceNow scripts, tables, flows, or other elements.'
 ---
 
@@ -24,7 +24,7 @@ This skill guides the process of finding and cross-checking generated or propose
   - **DO NOT** create, mutate, update, or delete any records on the ServiceNow instance.
   - **DO NOT** run `now-sdk install`, `now-sdk build`, or change any local metadata files.
   - **ONLY** use `now-sdk query` to retrieve existing KB articles and verify schema/conventions.
-- **Language Alignment & Multilingual Support:** Always communicate with the user, formulate feedback, and write the final audit reports in the **exact language used by the user** in their active prompt or conversation context (e.g., if the user poses questions or requests the audit in Danish, the compliance summary, findings, and remediation advice must be delivered in Danish). Keep programmatic system identifiers (like table names, API paths, or code files) in their technical form, but wrap prose and analysis in the user's language.
+- **Language Alignment & Multilingual Support:** Always communicate with the user, formulate feedback, and write the final audit reports in the **exact language used by the user** in their active prompt or conversation context, detected dynamically rather than assumed. Keep programmatic system identifiers (like table names, API paths, or code files) in their technical form, but wrap prose and analysis in the user's language.
 
 ---
 
@@ -34,10 +34,10 @@ This skill guides the process of finding and cross-checking generated or propose
 Analyze the code, metadata representation, or implementation plan currently under review in the workspace. Extract:
 1. **Artifact Type:** (e.g., Table, Field, Business Rule, Client Script, Flow, Script Include, REST Integration, Widget, UI Policy).
 2. **Key Terms:** Name of the artifact, table name involved, system properties used, or key technology (e.g., `GlideRecord`, `RESTMessageV2`, `GlideAjax`, `async`, `x_scope`).
-3. **Multilingual Search Keywords:** Adapt keywords based on both English (standard standard platform terms) and the user's detected local language (e.g., Danish). Since KB articles on the instance may be written in either language, prepare search queries that look for both equivalents:
-   - General development standards: English (`"development standards"`, `"coding standards"`, `"naming conventions"`, `"forbidden patterns"`) and Danish / Localized equivalents (`"udviklingsstandarder"`, `"kodestandarder"`, `"navngivningskonventioner"`, `"forbudte mønstre"`).
-   - Business Rules: English (`"business rule"`, `"scripting guidelines"`, `"recursive business rules"`) and Localized equivalents (`"forretningsregel"`, `"scripting retningslinjer"`, `"rekursive forretningsregler"`).
-   - Client scripts: English (`"client script"`, `"GlideAjax"`, `"browser performance"`) and Localized equivalents (`"klientscript"`, `"browser ydeevne"`).
+3. **Multilingual Search Keywords:** Detect the user's active language dynamically from their prompt — do not assume or hardcode any specific non-English language. Since KB articles on the instance may be written in English or the detected local language, prepare search queries that look for both equivalents:
+   - General development standards: English (`"development standards"`, `"coding standards"`, `"naming conventions"`, `"forbidden patterns"`) and the detected-language equivalents (translate these same terms into the user's active language).
+   - Business Rules: English (`"business rule"`, `"scripting guidelines"`, `"recursive business rules"`) and the detected-language equivalents.
+   - Client scripts: English (`"client script"`, `"GlideAjax"`, `"browser performance"`) and the detected-language equivalents.
 
 ### Step 2: Query the Knowledge Base (`kb_knowledge`)
 Search the `kb_knowledge` table on the connected instance via `now-sdk query`.
@@ -46,11 +46,11 @@ Since standard ServiceNow search might be keyword-based, use an encoded query (`
 **Recommended Query Pattern:**
 Run `now-sdk query kb_knowledge -q "<query>"` with options `-f "number,short_description,text,sys_id" -o json --limit 10`.
 
-Construct an encoded query using `LIKE` or keywords that targets **both English and the localized language components** to ensure comprehensive discovery. For example:
+Construct an encoded query using `LIKE` or keywords that targets **both English and the detected local-language components** to ensure comprehensive discovery. For example:
 - Check for general development standards:
-  `now-sdk query kb_knowledge -q "short_descriptionLIKEdevelopment standards^ORtextLIKEdevelopment standards^ORshort_descriptionLIKEcoding standards^ORtextLIKEcoding standards^ORshort_descriptionLIKEudviklingsstandarder^ORtextLIKEudviklingsstandarder^ORshort_descriptionLIKEkodestandarder^ORtextLIKEkodestandarder" -f "number,short_description,text,sys_id" -o json --limit 5`
+  `now-sdk query kb_knowledge -q "short_descriptionLIKEdevelopment standards^ORtextLIKEdevelopment standards^ORshort_descriptionLIKEcoding standards^ORtextLIKEcoding standards^ORshort_descriptionLIKE[LocalizedTerm1]^ORtextLIKE[LocalizedTerm1]^ORshort_descriptionLIKE[LocalizedTerm2]^ORtextLIKE[LocalizedTerm2]" -f "number,short_description,text,sys_id" -o json --limit 5`
 - Check for specific artifact rules (e.g., Business Rules):
-  `now-sdk query kb_knowledge -q "short_descriptionLIKEbusiness rule^ORtextLIKEbusiness rule^ORshort_descriptionLIKEforretningsregel^ORtextLIKEforretningsregel^ORshort_descriptionLIKEscripting^ORtextLIKEscripting" -f "number,short_description,text,sys_id" -o json --limit 5`
+  `now-sdk query kb_knowledge -q "short_descriptionLIKEbusiness rule^ORtextLIKEbusiness rule^ORshort_descriptionLIKE[LocalizedTerm]^ORtextLIKE[LocalizedTerm]^ORshort_descriptionLIKEscripting^ORtextLIKEscripting" -f "number,short_description,text,sys_id" -o json --limit 5`
 
 Ensure all query parameters are correctly single-quoted for the terminal shell, avoiding terminal parsing errors.
 

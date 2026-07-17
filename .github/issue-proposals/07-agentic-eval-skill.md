@@ -83,7 +83,7 @@ Max iterations: 5
 - Should be optionally invokable at the end of any development task
 - Should be triggered automatically for Critical/High-priority artifacts
 - The orchestrator should offer "Run quality loop?" at the end of full-project implementations
-- Should integrate with the existing Session Artifact Registry
+- Should integrate with the existing cross-agent "Files Touched" handoff convention
 
 ## References
 

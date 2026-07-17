@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: ef321c6f9d037dc6ef0d70ddc8e905c5a924a465c0d72fa9152918f940590efa
+# nowdev-hash: a896605162608292fc6241f22e6c7ac34c91b29284a724625914fb5b66b146bf
 name: NowDev-AI-Fluent-Logic-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -16,16 +16,16 @@ handoffs:
 ---
 
 <workflow>
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer. If only `memoryLocation` exists, treat it as optional legacy context.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer. If only `memoryLocation` exists, treat it as optional legacy context.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain <topic> --format raw` for Fluent APIs, and use `now-sdk query` for live table/field/role/sys_id facts before asking the user
-3. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact table structures and field types
-4. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
+3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact table structures and field types
+4. Do not update memory directly; after implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts
 5. Analyze the requirements and identify all server-side logic artifacts needed
 6. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
 7. Verify APIs using `now-sdk explain <topic> --format raw`; use https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only when `now-sdk explain <topic> --format raw` returns no output or explicitly states the topic is unsupported.
 8. Implement .now.ts metadata files and linked .js server scripts in dependency order
 9. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
-10. Emit a final `Artifact Manifest` JSON block with accurate exports (class/method names, REST paths)
+10. End with a "Files Touched" list with accurate exports (class/method names, REST paths)
 11. Return created file list to the coordinator
 </workflow>
 
@@ -96,6 +96,6 @@ When multiple artifacts are needed:
 6. **SLAs and Email Notifications** — reference tables and conditions; largely independent
 7. **Scheduled Scripts** — independent; reference only tables and Script Includes
 
-## Session Artifact Registry
+## Cross-Agent File Handoff
 
-Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact table and method signatures, and end with a final `Artifact Manifest` JSON block.
+Follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff"). Read any carried-forward "Files Touched" list before implementation, read dependency source files for exact table and method signatures, and end with your own "Files Touched" list.

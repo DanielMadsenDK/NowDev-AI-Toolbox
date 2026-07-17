@@ -1,7 +1,6 @@
 ---
 name: nowdev-ai-toolbox-multilingual-incident-response
-context: fork
-user-invocable: false
+user-invocable: true
 description: 'Draft customer/end-user-facing incident updates and KB-linked replies in the user''s target language. ALWAYS use this skill whenever the user asks to "draft a response to this incident", "write an update for the customer/requester", "reply to this ticket in [language]", or "close this incident with a customer-facing note", even if they do not explicitly ask for multilingual support or KB integration.'
 ---
 
@@ -21,7 +20,7 @@ This skill coordinates drafting of customer/end-user-facing incident replies, up
 
 ### B. Language Alignment / Multilingual Support
 - **Detect Target Language:** Identify the user's active/requested language dynamically from the active prompt or context (e.g., Danish, French, Spanish, German). If not specified, default to the language of the user's conversation prompt.
-- **Full Structural Translation:** The draft customer-facing update, KB citations list, optional internal work note, and application reminders must be written **entirely in the target language**. This includes translating section headers, structural labels, and metadata keys natively (e.g., if Danish, translate `# Draft Customer-Facing Update` to `# Udkast til klientsvar`, `## Relevant KB references` to `## Relevante KB-artikler`, etc.).
+- **Full Structural Translation:** The draft customer-facing update, KB citations list, optional internal work note, and application reminders must be written **entirely in the target language**. This includes translating section headers, structural labels, and metadata keys natively (e.g., `# Draft Customer-Facing Update` and `## Relevant KB References` must be translated into the target language too, not left in English).
 - **Retain Programmatic Integrity:** Keep system-specific technical identifiers, table names (e.g., `incident`, `kb_knowledge`), field names (e.g., `short_description`, `sys_id`), state names (`Resolved`), and programmatic code snippets in their original technical/English form to ensure accuracy during implementation/reference.
 
 ---
@@ -38,7 +37,7 @@ This skill coordinates drafting of customer/end-user-facing incident replies, up
 ### Step 2: Extract Key Concepts & Construct Bilingual Query
 Extract the main issue topic from the retrieved incident `short_description` and `description` (e.g., "VPN login authentication failure"). To ensure successful discovery of knowledge articles regardless of the language they were written in, construct a bilingual query expansion pattern mirroring the exact approach from `kb-compliance-check`:
 1. **Identify English Key Terms:** (e.g., `"VPN"`, `"authentication"`, `"login failure"`).
-2. **Translate to Target Language equivalents:** (e.g., in Spanish: `"autenticación"`, `"fallo de inicio de sesión"`; in Danish: `"godkendelse"`, `"loginfejl"`).
+2. **Translate to Target Language equivalents:** (e.g., in Spanish: `"autenticación"`, `"fallo de inicio de sesión"`; in French: `"authentification"`, `"échec de connexion"`).
 3. **Assemble Bilingual Encoded Query:** Join all English and Target Language terms under an `OR` (`^OR`) clause to search the Knowledge Base (`kb_knowledge`).
 
 ### Step 3: Query the Knowledge Base (`kb_knowledge`)
@@ -65,22 +64,22 @@ Perform a keyword-based similar-incident fallback query on the `incident` table 
 *All sections, titles, keys, and descriptions below must be translated into the user's active/requested language. The English placeholders below denote the structure to be translated.*
 
 ```markdown
-# [Translated Title: e.g. Udkast til Kundevendt Opdatering / BorgerSvar]
+# [Translated Title, e.g. "Draft Customer-Facing Update" rendered in the target language]
 
-## [Translated Customer Update Header: e.g. Kundevendt Svar]
+## [Translated Customer Update Header]
 [A clear, professional, empathetic response addressed directly to the customer or end-requester. Write this fully in the target language, explaining the resolution or update clearly. Cite any KB article solutions natively.]
 
-## [Translated Relevant KB Reference Header: e.g. Relevante Vidensartikler]
+## [Translated Relevant KB Reference Header]
 - **[KB Number]** - [KB Article Short Description / Title]
   - **Sys ID:** `[kb_sys_id]`
   - **Summary of solution (Translated):** [Brief summary of why this article applies to the ticket, translated natively.]
 
-## [Translated Internal Work Note Header (Optional): e.g. Intern Arbejdsnote]
+## [Translated Internal Work Note Header (Optional)]
 [A summary note designed for other service desk analysts, explaining technical investigations, standard incident resolution codes, or precedent references used. Write this fully in the target language.]
 
 ---
 
-⚠️ **[Translated Safeguard Header: e.g. VIGTIGT: Manuel Handling Påkrævet]**
+⚠️ **[Translated Safeguard Header, e.g. "Important: Manual Action Required" rendered in the target language]**
 *This draft response was generated in read-only mode. You or an authorized workflow pipeline must manually copy and paste these drafts into the respective incident and work notes fields on the ServiceNow portal.*
 ```
 

@@ -16,16 +16,16 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially table names and Script Include class names from Schema and Logic developers. If only `memoryLocation` exists, treat it as optional legacy context.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially table names and Script Include class names from Schema and Logic developers. If only `memoryLocation` exists, treat it as optional legacy context.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for Flow/Playbook APIs, and use `now-sdk query` for live table, subflow, action, and role facts before asking the user
-2. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names and method signatures
-3. Do not update memory directly; after implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies
+2. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names and method signatures
+3. Do not update memory directly; after implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts
 4. Analyze the requirements and identify all flow and automation artifacts needed
 5. Build a todo list: triggers → flows/subflows → custom actions/triggers if needed
 6. Verify wfa API, trigger types, built-in actions, and FDTransform usage via {{SDK_DOCS_CONTEXT}}
 7. Implement .now.ts flow files and any linked inline scripts
 8. Self-validate: unique $id for every wfa.trigger/action/flowLogic call, TemplateValue() on field values, assignSubflowOutputs called when outputs declared
-9. Emit a final `Artifact Manifest` JSON block with accurate exports (subflow/action names)
+9. End with a "Files Touched" list with accurate exports (subflow/action names)
 10. Return created file list to the coordinator
 </workflow>
 
@@ -74,6 +74,6 @@ You are a specialist in **ServiceNow Fluent SDK workflow automation**. You imple
 2. **`SubflowDefinition`** — reusable subflows that Flows may call
 3. **`Flow`** — top-level orchestration flows, built last
 
-## Session Artifact Registry
+## Cross-Agent File Handoff
 
-Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact table and Script Include details, and end with a final `Artifact Manifest` JSON block.
+Follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff"). Read any carried-forward "Files Touched" list before implementation, read dependency source files for exact table and Script Include details, and end with your own "Files Touched" list.

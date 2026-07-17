@@ -5,21 +5,19 @@ import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
 import { syncAllAgents, syncWorkspaceInstructionsFile, syncWorkspacePromptFiles, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
-import { BUILT_IN_PROFILES, DEFAULT_PROFILE_ID, getProfileById, getEffectiveAgentConfig } from './ProfileManager';
-import { readArtifactStateFile, writeArtifactStateFile } from './ArtifactStateManager';
+import { DEFAULT_PROFILE_ID, getProfileById, getAllProfiles, normalizeCustomProfiles, getEffectiveAgentConfig, ProfileDefinition } from './ProfileManager';
 import { scanAuthAliases, getCachedDefaultInstanceHost, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
 import { SdkCommandStatus, InstallInfoState, ConnectionState, CheckChangesState, AvailableAgentModel, PrerequisiteStatusKind, PrerequisiteStatus, RequiredSetting, InspectWithPolicy } from './welcome/welcomeTypes';
 import { normalizeModelOverride, resolveInside, isSafeRelativePath, capitalize, AUTO_ENABLE_MCP_PATTERNS } from './welcome/welcomeUtils';
 import { buildWelcomeHtml } from './welcome/welcomeHtml';
 import { githubGetJson, githubGetRaw, getDocsSyncTime, setDocsSyncTime } from './welcome/githubDocs';
-import { readNowConfig, resolveArtifactStatePath, writeNowDevConfigFile, writeConnectionStatusToConfig, FluentAppInfo } from './welcome/configFile';
+import { readNowConfig, writeNowDevConfigFile, writeConnectionStatusToConfig, FluentAppInfo } from './welcome/configFile';
 
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
     private _view?: vscode.WebviewView;
     private _environmentInfo: EnvironmentInfo | null = null;
-    private _artifactFilePath: string | null = null;
     private _sdkStatus: Record<string, SdkCommandStatus | null> = {};
     private _authAliases: AuthAlias[] = [];
     private _initializedTabs = new Set<string>();
@@ -37,6 +35,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _guidelinesConfig: GuidelinesConfig = { enabled: false, selectedArticles: [] };
     private _activeProfileId: string = DEFAULT_PROFILE_ID;
     private _profileInstructionsOverrides: Record<string, string> = {};
+    private _customProfiles: ProfileDefinition[] = [];
     private _docsReleases: string[] = [...SERVICENOW_RELEASES];
     private _docsDownloadStatus: { loading: boolean; downloaded?: number; total?: number; error?: string; cancelled?: boolean } = { loading: false };
     private _policyBlockedSettings = new Set<string>();
@@ -45,7 +44,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _agentSyncTimer: NodeJS.Timeout | undefined;
     private _chatModelListener?: vscode.Disposable;
 
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(private readonly _extensionUri: vscode.Uri, private readonly _extensionId: string) {}
 
     /** Called by extension.ts commands after SDK CLI operations complete. */
     public setSdkCommandStatus(cmd: string, ok: boolean, message: string): void {
@@ -176,12 +175,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'showCopilotChatLogs':
                     vscode.commands.executeCommand('nowdev-ai-toolbox.showCopilotChatLogs');
-                    break;
-                case 'openArtifactState':
-                    await this._openArtifactStateFile();
-                    break;
-                case 'resetArtifactState':
-                    await this._resetArtifactStateFile();
                     break;
                 case 'browseFile': {
                     const uris = await vscode.window.showOpenDialog({
@@ -569,7 +562,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         aiConfigWatcher.onDidCreate(() => this._onConfigFileChanged());
 
         webviewView.onDidDispose(() => {
-            this._teardownArtifactWatcher();
             this._chatModelListener?.dispose();
             this._chatModelListener = undefined;
         });
@@ -592,7 +584,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         setTimeout(() => {
             this._onConfigFileChanged();
             this._updateStatus();
-            this._sendArtifacts();
         }, 200);
     }
 
@@ -633,18 +624,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         const fluentApp = this._readNowConfig();
 
         const docsRelease = this._allDocSources.productDocs.release ?? '';
-        const activeProfile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
+        const activeProfile = getProfileById(this._activeProfileId, this._customProfiles) ?? getProfileById(DEFAULT_PROFILE_ID)!;
         const hasCustomInstructions = Object.prototype.hasOwnProperty.call(this._profileInstructionsOverrides, this._activeProfileId);
         const currentInstructions = hasCustomInstructions
             ? this._profileInstructionsOverrides[this._activeProfileId]
             : activeProfile.profileInstructions;
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, allDocSources: this._allDocSources, devopsConfig: this._devopsConfig, guidelinesConfig: this._guidelinesConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: BUILT_IN_PROFILES.map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, allDocSources: this._allDocSources, devopsConfig: this._devopsConfig, guidelinesConfig: this._guidelinesConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: getAllProfiles(this._customProfiles).map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
     private _sendAgentData() {
         if (!this._view) { return; }
-        const profile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
+        const profile = getProfileById(this._activeProfileId, this._customProfiles) ?? getProfileById(DEFAULT_PROFILE_ID)!;
         const suppressedAgents = new Set(profile.suppressedAgents ?? []);
         const enrichedManifests = this._agentManifests.map(m => ({
             ...m,
@@ -746,47 +737,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         this._updateStatus();
     }
 
-    private _sendArtifacts() {
-        if (!this._view) { return; }
-        if (!this._artifactFilePath) {
-            this._view.webview.postMessage({ command: 'updateArtifacts', artifacts: [], sessionActive: false, errors: [] });
-            return;
-        }
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const result = readArtifactStateFile(this._artifactFilePath, workspaceRoot);
-        this._view.webview.postMessage({ command: 'updateArtifacts', artifacts: result.artifacts, sessionActive: result.sessionActive, errors: result.errors });
-    }
-
-    private async _openArtifactStateFile(): Promise<void> {
-        if (!this._artifactFilePath) {
-            vscode.window.showInformationMessage('Artifact state file has not been initialized yet.');
-            return;
-        }
-        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(this._artifactFilePath));
-        await vscode.window.showTextDocument(doc);
-    }
-
-    private async _resetArtifactStateFile(): Promise<void> {
-        if (!this._artifactFilePath) {
-            vscode.window.showInformationMessage('Artifact state file has not been initialized yet.');
-            return;
-        }
-        const confirmed = await vscode.window.showWarningMessage(
-            'Reset the current NowDev artifact state? This clears the session artifact registry but leaves generated files untouched.',
-            { modal: true },
-            'Reset Artifact State'
-        );
-        if (confirmed !== 'Reset Artifact State') { return; }
-        const document = {
-            version: 1 as const,
-            sessionId: `session-${Date.now().toString(36)}`,
-            updatedAt: new Date().toISOString(),
-            artifacts: [],
-        };
-        writeArtifactStateFile(this._artifactFilePath, document);
-        this._sendArtifacts();
-    }
-
     private _onConfigFileChanged(): void {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
@@ -869,8 +819,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 };
             }
 
+            // Load company-provided custom profiles (extension seam alongside the built-in profiles)
+            this._customProfiles = normalizeCustomProfiles(config.customProfiles);
+
             // Load active profile
-            if (typeof config.activeProfile === 'string' && getProfileById(config.activeProfile)) {
+            if (typeof config.activeProfile === 'string' && getProfileById(config.activeProfile, this._customProfiles)) {
                 this._activeProfileId = config.activeProfile;
             }
 
@@ -881,14 +834,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
             // Sync agents whenever config changes
             this._syncWorkspaceAgents();
-
-            const resolvedPath = resolveArtifactStatePath(workspaceFolders[0].uri.fsPath, config);
-            if (!resolvedPath) { return; }
-
-            // Only re-setup if the path actually changed
-            if (resolvedPath === this._artifactFilePath) { return; }
-
-            this._setupArtifactWatcher(resolvedPath);
         } catch (err) {
             console.error('Failed to read nowdev-ai-config.json:', err);
         }
@@ -926,7 +871,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             },
         };
 
-        const profile = getProfileById(this._activeProfileId) ?? getProfileById(DEFAULT_PROFILE_ID)!;
+        const profile = getProfileById(this._activeProfileId, this._customProfiles) ?? getProfileById(DEFAULT_PROFILE_ID)!;
         const effective = getEffectiveAgentConfig(profile, this._mcpIntegrationConfigs, this._profileInstructionsOverrides);
         const customInstructions = this._readCustomInstructionsFile();
         const agentGuidelines = this._formatAgentGuidelines();
@@ -1088,33 +1033,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         setDocsSyncTime(this._getDocsGlobalPath(), release, time);
     }
 
-    private _setupArtifactWatcher(resolvedPath: string): void {
-        this._teardownArtifactWatcher();
-        this._artifactFilePath = resolvedPath;
-
-        // Initial read
-        this._sendArtifacts();
-
-        // Use fs.watchFile (polling) — works even if file doesn't exist yet,
-        // handles files outside the workspace, reliable across platforms including WSL2
-        try {
-            fs.watchFile(resolvedPath, { interval: 2000 }, (curr, prev) => {
-                if (curr.mtimeMs !== prev.mtimeMs || curr.size !== prev.size) {
-                    this._sendArtifacts();
-                }
-            });
-        } catch (err) {
-            console.error('Failed to watch artifact file:', err);
-        }
-    }
-
-    private _teardownArtifactWatcher(): void {
-        if (this._artifactFilePath) {
-            fs.unwatchFile(this._artifactFilePath);
-        }
-        this._artifactFilePath = null;
-    }
-
     // ── Config helpers ─────────────────────────────────────────────
 
     private _readNowConfig(): FluentAppInfo | null {
@@ -1131,7 +1049,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
 
-        const artifactAbsolutePath = writeNowDevConfigFile(workspaceFolders[0].uri.fsPath, {
+        writeNowDevConfigFile(workspaceFolders[0].uri.fsPath, {
             settings,
             customInstructionsContent,
             fluentApp,
@@ -1145,11 +1063,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             agentOverrides: this._agentOverrides,
             activeProfileId: this._activeProfileId,
             profileInstructionsOverrides: this._profileInstructionsOverrides,
+            customProfiles: this._customProfiles,
         });
-
-        if (artifactAbsolutePath && this._artifactFilePath !== artifactAbsolutePath) {
-            this._setupArtifactWatcher(artifactAbsolutePath);
-        }
     }
 
     private _writeConnectionStatusToConfig(state: ConnectionState): void {
@@ -1237,6 +1152,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     private _getHtml(webview: vscode.Webview): string {
-        return buildWelcomeHtml(webview, this._extensionUri);
+        return buildWelcomeHtml(webview, this._extensionUri, this._extensionId);
     }
 }

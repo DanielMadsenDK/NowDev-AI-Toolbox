@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: e45bcc83a8c1956c02f2b223ee64f7bad44f7a96fb0e6a32b73ac74ed9bf1e4b
+# nowdev-hash: 87b3ce21a55a59068a463d433e81d4f916a3c29362cef28558e5d1ba1c020470
 name: NowDev-AI-Fluent-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -16,20 +16,20 @@ handoffs:
 ---
 
 <workflow>
-1. Use the implementation brief provided in the prompt or handoff as the approved implementation plan. If workspace config includes `artifactState.path`, use #tool:read/readFile to read the workspace-backed artifact state for existing artifacts and dependency context.
-2. Clarify from tools before asking the user: read workspace config and artifact state, use `now-sdk explain` for SDK API questions, and use `now-sdk query` for live instance facts such as scopes, roles, table columns, existing records, choices, and ACLs.
+1. Use the implementation brief provided in the prompt or handoff as the approved implementation plan. If the prompt carries a "Files Touched" list from earlier in the session, use #tool:read/readFile to read those files for existing artifacts and dependency context.
+2. Clarify from tools before asking the user: read workspace config and any carried-forward "Files Touched" list, use `now-sdk explain` for SDK API questions, and use `now-sdk query` for live instance facts such as scopes, roles, table columns, existing records, choices, and ACLs.
 3. Analyze the implementation brief and identify all Fluent artifacts needed across all layers
 4. Build a dependency graph: Schema normally gates Logic/UI/Automation, but independent Schema items can run in parallel; Automation, UI, AI Studio, and ATF may run in parallel after their required Schema/Logic exports exist.
-5. Read `.vscode/nowdev-ai-config.json`, resolve `artifactState.path`, and read the workspace-backed artifact state JSON if it exists
-6. Delegate to NowDev-AI-Fluent-Schema-Developer for all table, role, ACL, menu, form layouts, instance scan checks, and structural foundation work. Include: "Read `.vscode/nowdev-ai-config.json`, read the artifact state file at `artifactState.path`, and use `read/readFile` to read actual dependency source files."
-7. After Schema completes, parse its final `Artifact Manifest` JSON block, then pass table names, field names, and role names to Logic-Developer along with the artifact-state reading instruction
+5. Read `.vscode/nowdev-ai-config.json` for project context.
+6. Delegate to NowDev-AI-Fluent-Schema-Developer for all table, role, ACL, menu, form layouts, instance scan checks, and structural foundation work. Include: "Read `.vscode/nowdev-ai-config.json` for project context, and use `read/readFile` to read actual dependency source files."
+7. After Schema completes, take its final "Files Touched" list, then pass table names, field names, and role names to Logic-Developer along with that list
 8. Delegate to NowDev-AI-Fluent-Logic-Developer for Business Rules, Script Includes, REST APIs, notifications, SLAs, and Scheduled Scripts
-9. After Logic completes, parse its final `Artifact Manifest` JSON block, then pass Script Include class names, method signatures, and REST API paths to dependent specialists along with the artifact-state reading instruction
+9. After Logic completes, take its final "Files Touched" list, then pass Script Include class names, method signatures, and REST API paths to dependent specialists along with that list
 10. Delegate independent downstream work in parallel when dependencies are satisfied: Automation, UI, AI Studio, and ATF can run as the same batch if they only read shared exports and own separate file groups.
 11. Delegate to NowDev-AI-Fluent-Automation-Developer for Flows, Subflows, custom automation components, and Playbooks (triggers, lanes, activities, decisions)
 12. Delegate to NowDev-AI-Fluent-UI-Developer for React UI Pages, Client Scripts, UI Policies, Catalog Items, Workspaces, and Dashboards
 13. For AI Studio work, decide the artifact type yourself and delegate directly: autonomous/background agentic work (AiAgent, AiAgenticWorkflow) → NowDev-AI-AI-Agent-Developer; user-triggered prompt/skill configuration (NowAssistSkillConfig) → NowDev-AI-NowAssist-Developer. If both are needed (an agent that calls a NowAssist skill as a tool), build the skill first, then the agent.
-14. After Logic and Schema specialists complete, delegate to NowDev-AI-ATF-Developer to generate `.now.ts` Test files for all testable artifacts (REST APIs, Script Includes, Business Rules, Tables with forms, Catalog Items). Pass table names, Script Include class names with clientCallable methods, REST API paths, and Catalog Item names from parsed Artifact Manifest blocks and artifact state. Delegation message: "Read `.vscode/nowdev-ai-config.json`, read the artifact state file at `artifactState.path`, then generate ATF tests covering the major workflows."
+14. After Logic and Schema specialists complete, delegate to NowDev-AI-ATF-Developer to generate `.now.ts` Test files for all testable artifacts (REST APIs, Script Includes, Business Rules, Tables with forms, Catalog Items). Pass table names, Script Include class names with clientCallable methods, REST API paths, and Catalog Item names from their "Files Touched" lists. Delegation message: "Read `.vscode/nowdev-ai-config.json` for project context, then generate ATF tests covering the major workflows."
 15. Collect the file lists returned by each specialist
 16. Return the complete file list to the orchestrator
 </workflow>
@@ -91,14 +91,14 @@ Always delegate in this order — later specialists may depend on earlier ones:
 
 As each specialist returns, collect its file list. After all specialists complete, report the combined list to the orchestrator so the Release Expert can deploy everything.
 
-## Session Artifact Registry
+## Cross-Agent File Handoff
 
-Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Before delegation, read the workspace artifact state path and pass it to each specialist. After each specialist returns, parse its final `Artifact Manifest` block and carry exact files, exports, and dependency ids into dependent delegation prompts.
+Follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff"). Before delegation, pass any "Files Touched" list already gathered in the session to each specialist. After each specialist returns, take its final "Files Touched" list and carry exact files, exports, and dependency context into dependent delegation prompts.
 
 ### Fluent App Scope Context
 
 When the orchestrator passes a `fluentApp` object (from `.vscode/nowdev-ai-config.json`), you MUST forward it to ALL specialists. This contains:
-- **`scope`**: Full scope prefix for all metadata (e.g. `x_1118332_userpuls`) — used when naming tables, roles, properties, and other scoped artifacts
+- **`scope`**: Full scope prefix for all metadata (e.g. `x_your_scope_id`) — used when naming tables, roles, properties, and other scoped artifacts
 - **`scopeId`**: GUID of the application scope
 - **`name`**: Application display name
 - **`numericScopeId`**: Numeric ID extracted from scope (e.g. `1118332`) — needed for scoped workspace URLs: `/x/{numericScopeId}/{path}`

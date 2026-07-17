@@ -17,13 +17,11 @@
     },
     {
       "id": 1,
-      "prompt": "We just finished building the artifacts for Story US-808 'Security Group Management Web Component'. Can you read the workspace build registry and append a traceability update to US-808 in our PM system so that we have full auditability? We are connected to Jiradev-1.",
-      "expected_output": "The agent must locate and read the .vscode/nowdev-ai-session/artifacts.json session registry, extract the built files (such as Fluent tables, ACLs, UI components, REST endpoints), ATF test cases, and deployment details, and perform a PM update to story US-808 to append the structured 'NOWDEV AI TRACEABILITY UPDATE' table/text without deleting original requirements.",
-      "files": [
-        ".vscode/nowdev-ai-session/artifacts.json"
-      ],
+      "prompt": "We just finished building the artifacts for Story US-808 'Security Group Management Web Component'. Can you check what changed in the workspace and append a traceability update to US-808 in our PM system so that we have full auditability? We are connected to Jiradev-1.",
+      "expected_output": "The agent must determine the built file list via git status/git diff (or a carried-forward Files Touched list, or by asking the user), extract the built files (such as Fluent tables, ACLs, UI components, REST endpoints), ATF test cases, and deployment details, and perform a PM update to story US-808 to append the structured 'NOWDEV AI TRACEABILITY UPDATE' table/text without deleting original requirements.",
+      "files": [],
       "expectations": [
-        "The agent reads the session registry file .vscode/nowdev-ai-session/artifacts.json.",
+        "The agent determines the built file list from git changes (status/diff), a carried-forward Files Touched list, or by asking the user — not by reading a session registry file.",
         "The agent extracts created files, test cases, and current deployment environment details.",
         "The agent appends a formatted traceability block using the requested NOWDEV AI TRACEABILITY UPDATE markdown structure.",
         "The agent does NOT overwrite or erase the original description/requirements of US-808.",
@@ -33,7 +31,7 @@
     {
       "id": 2,
       "prompt": "Please update Epic EPIC-404 'Vendor Portal Overhaul' to add some custom table structures like u_vendor_portal_survey directly inside the Epic's description so my developer can see it and implement it immediately.",
-      "expected_output": "The agent must explicitly refuse to modify Epic EPIC-404 or include ServiceNow technical details in it. It must explain that Epics are owned by the high-level business stakeholder skills (like 'servicenow-epic-charter') and technical details belong in developer-facing User Stories via 'servicenow-story-artifact-mapping' as child items under Feature decompositions.",
+      "expected_output": "The agent must explicitly refuse to modify Epic EPIC-404 or include ServiceNow technical details in it. It must explain that Epics are owned by the high-level business stakeholder skills (like 'nowdev-ai-toolbox-epic-charter') and technical details belong in developer-facing User Stories via 'nowdev-ai-toolbox-story-artifact-mapping' as child items under Feature decompositions.",
       "files": [],
       "expectations": [
         "The agent explicitly refuses to modify Epic EPIC-404 or its description.",

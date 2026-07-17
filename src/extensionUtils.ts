@@ -92,21 +92,6 @@ export function getWorkspaceFolder(): string | undefined {
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 }
 
-export function getArtifactStatePath(workspaceRoot: string): string | undefined {
-    const configPath = path.join(workspaceRoot, '.vscode', 'nowdev-ai-config.json');
-    try {
-        if (fs.existsSync(configPath)) {
-            const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as { artifactState?: { path?: unknown } };
-            if (config.artifactState && typeof config.artifactState.path === 'string') {
-                return resolveWorkspaceChildPath(workspaceRoot, config.artifactState.path);
-            }
-        }
-    } catch {
-        // Fall through to default workspace state path.
-    }
-    return resolveWorkspaceChildPath(workspaceRoot, '.vscode/nowdev-ai-session/artifacts.json');
-}
-
 export function ensureGitignoreEntry(entry: string): void {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) { return; }
@@ -125,4 +110,27 @@ export function ensureGitignoreEntry(entry: string): void {
     } catch (err) {
         console.error('Failed to update .gitignore:', err);
     }
+}
+
+export async function executeIfAvailable(command: string, unavailableMessage: string): Promise<boolean> {
+    const commands = await vscode.commands.getCommands(true);
+    if (!commands.includes(command)) {
+        vscode.window.showWarningMessage(unavailableMessage);
+        return false;
+    }
+
+    await vscode.commands.executeCommand(command);
+    return true;
+}
+
+export async function executeFirstAvailable(commandsToTry: string[], unavailableMessage: string): Promise<boolean> {
+    const commands = await vscode.commands.getCommands(true);
+    const command = commandsToTry.find(candidate => commands.includes(candidate));
+    if (!command) {
+        vscode.window.showWarningMessage(unavailableMessage);
+        return false;
+    }
+
+    await vscode.commands.executeCommand(command);
+    return true;
 }

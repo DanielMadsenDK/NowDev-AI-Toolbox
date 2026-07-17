@@ -25,7 +25,6 @@ NowDev AI Toolbox is a VS Code extension (`publisher: DanielMadsenDK`, `name: no
 | `src/ToolScanner.ts` | Environment detection — scans for `node`, `npm`, `now-sdk`, and other CLI tools via `execSync`; returns `EnvironmentInfo` |
 | `src/MCPScanner.ts` | Detects MCP servers from settings plus workspace `.mcp.json` / legacy `.vscode/mcp.json` files |
 | `src/AuthAliasScanner.ts` | Parses `now-sdk auth --list` output for SDK alias management in the sidebar |
-| `src/ArtifactParser.ts` | Parses the session artifact registry markdown table from `/memories/session/artifacts.md` produced by AI agents |
 | `media/webview/main.js` | Webview JavaScript — exchanges messages with the extension host via `postMessage` |
 | `media/webview/styles.css` | Webview styles |
 

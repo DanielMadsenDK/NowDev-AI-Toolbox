@@ -132,18 +132,6 @@ export function renderHomeTab(): string {
                 </div>
             </div>
         </div>
-
-        <!-- Session Artifacts (shown only when artifacts exist) -->
-        <div id="artifactsSection" class="nd-hidden">
-            <div class="section-title artifacts-section-title" id="artifactsSectionHeader">
-                <span>Session Artifacts <span id="artifactCount" class="nd-pill"></span></span>
-                <div class="nd-btn-group">
-                    <button class="fix-btn" id="openArtifactState" title="Open the workspace artifact state JSON">Open State</button>
-                    <button class="fix-btn" id="resetArtifactState" title="Clear the current artifact registry without deleting generated files">Reset</button>
-                </div>
-            </div>
-            <div id="artifactsView" class="artifacts-home-body"></div>
-        </div>
     </div>`;
     }
 
@@ -510,14 +498,14 @@ export function renderDocsTab(): string {
     </div>`;
     }
 
-export function buildWelcomeHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
-        const ext = vscode.extensions.getExtension('DanielMadsenDK.nowdev-ai-toolbox');
+export function buildWelcomeHtml(webview: vscode.Webview, extensionUri: vscode.Uri, extensionId: string): string {
+        const ext = vscode.extensions.getExtension(extensionId);
         const version = ext?.packageJSON?.version ?? '0.0.0';
 
         const iconUri = webview.asWebviewUri(
             vscode.Uri.joinPath(extensionUri, 'media', 'agent-icon.svg')
         );
-        const cssFiles = ['base', 'layout', 'buttons', 'forms', 'tools-agents', 'artifacts', 'sdk-cards', 'instance', 'docs'];
+        const cssFiles = ['base', 'layout', 'buttons', 'forms', 'tools-agents', 'sdk-cards', 'instance', 'docs'];
         const cssLinks = cssFiles
             .map(name => `<link rel="stylesheet" href="${webview.asWebviewUri(
                 vscode.Uri.joinPath(extensionUri, 'media', 'webview', 'styles', `${name}.css`)

@@ -1,18 +1,7 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
-import { mergeArtifactManifestContent } from './ArtifactStateManager';
-import { getWorkspaceFolder, getArtifactStatePath, ensureGitignoreEntry } from './extensionUtils';
-import {
-    buildArtifactHookManifest,
-    buildArtifactMergeHookScript,
-    buildArtifactMergeShellWrapper,
-    buildArtifactMergePowerShellWrapper,
-    executeIfAvailable,
-    executeFirstAvailable,
-} from './artifactHook';
+import { ensureGitignoreEntry, executeIfAvailable, executeFirstAvailable } from './extensionUtils';
 import { registerInitFluentProject } from './commands/initFluentProject';
 import { registerSdkCommands } from './commands/sdkCommands';
 
@@ -21,9 +10,8 @@ import { registerSdkCommands } from './commands/sdkCommands';
 export function activate(context: vscode.ExtensionContext) {
     // Ensure sensitive/generated workspace files are listed in .gitignore
     ensureGitignoreEntry('.vscode/nowdev-ai-config.json');
-    ensureGitignoreEntry('.vscode/nowdev-ai-session/');
     // Register the sidebar welcome webview
-    const welcomeProvider = new WelcomeViewProvider(context.extensionUri);
+    const welcomeProvider = new WelcomeViewProvider(context.extensionUri, context.extension.id);
 
     // Scan for available tools/environment on activation (async; never blocks activation)
     void welcomeProvider.scanTools();
@@ -68,65 +56,6 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('nowdev-ai-toolbox.showAgentTopology', () => {
             showAgentTopologyPanel(welcomeProvider.getAgentManifests(), welcomeProvider.getAgentOverrides());
-        }),
-        vscode.commands.registerCommand('nowdev-ai-toolbox.mergeArtifactManifest', async () => {
-            const workspaceRoot = getWorkspaceFolder();
-            if (!workspaceRoot) {
-                vscode.window.showWarningMessage('Open a workspace before merging an Artifact Manifest.');
-                return;
-            }
-            const artifactStatePath = getArtifactStatePath(workspaceRoot);
-            if (!artifactStatePath) {
-                vscode.window.showWarningMessage('Artifact state path is not valid. Check .vscode/nowdev-ai-config.json.');
-                return;
-            }
-            const clipboard = (await vscode.env.clipboard.readText()).trim();
-            const input = clipboard.includes('Artifact Manifest')
-                ? clipboard
-                : await vscode.window.showInputBox({
-                    title: 'Merge Artifact Manifest',
-                    prompt: 'Paste an agent response containing an Artifact Manifest JSON block.',
-                    ignoreFocusOut: true,
-                });
-            if (!input) { return; }
-            const result = mergeArtifactManifestContent(artifactStatePath, input);
-            welcomeProvider.refreshStatus();
-            if (result.merged > 0) {
-                vscode.window.showInformationMessage(`Merged ${result.merged} artifact${result.merged === 1 ? '' : 's'} into the session artifact state.`);
-            } else {
-                vscode.window.showWarningMessage('No Artifact Manifest blocks were found to merge.');
-            }
-        }),
-        vscode.commands.registerCommand('nowdev-ai-toolbox.createHookTemplates', async () => {
-            const workspaceRoot = getWorkspaceFolder();
-            if (!workspaceRoot) {
-                vscode.window.showWarningMessage('Open a workspace before creating hook templates.');
-                return;
-            }
-            const hooksDir = path.join(workspaceRoot, '.github', 'hooks');
-            const scriptsDir = path.join(workspaceRoot, '.vscode', 'nowdev-ai-hooks');
-            fs.mkdirSync(hooksDir, { recursive: true });
-            fs.mkdirSync(scriptsDir, { recursive: true });
-            const hookPath = path.join(hooksDir, 'nowdev-artifact-state.json');
-            const jsScriptPath = path.join(scriptsDir, 'merge-artifact-manifest.js');
-            const shScriptPath = path.join(scriptsDir, 'merge-artifact-manifest.sh');
-            const psScriptPath = path.join(scriptsDir, 'merge-artifact-manifest.ps1');
-            if (!fs.existsSync(hookPath)) {
-                fs.writeFileSync(hookPath, buildArtifactHookManifest(), 'utf-8');
-            }
-            if (!fs.existsSync(jsScriptPath)) {
-                fs.writeFileSync(jsScriptPath, buildArtifactMergeHookScript(), 'utf-8');
-                fs.chmodSync(jsScriptPath, 0o755);
-            }
-            if (!fs.existsSync(shScriptPath)) {
-                fs.writeFileSync(shScriptPath, buildArtifactMergeShellWrapper(), 'utf-8');
-                fs.chmodSync(shScriptPath, 0o755);
-            }
-            if (!fs.existsSync(psScriptPath)) {
-                fs.writeFileSync(psScriptPath, buildArtifactMergePowerShellWrapper(), 'utf-8');
-            }
-            ensureGitignoreEntry('.vscode/nowdev-ai-hooks/');
-            vscode.window.showInformationMessage('Created optional hook templates. Review them before enabling or relying on Preview hooks.');
         }),
     );
 

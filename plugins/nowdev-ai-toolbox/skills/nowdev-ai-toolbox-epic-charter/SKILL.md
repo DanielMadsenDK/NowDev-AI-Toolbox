@@ -1,7 +1,7 @@
 ---
 name: nowdev-ai-toolbox-epic-charter
-context: fork
-user-invocable: false
+user-invocable: true
+disable-model-invocation: true
 description: Draft, create, or update the top-level Epic work item in the connected project-management MCP server (e.g. Jira, Azure DevOps) from a business initiative. Use this skill whenever a user describes a new strategic initiative, outlines a high-level project charter, outlines business goals, or asks to "create an Epic for X" or similar. This skill explicitly refuses to decompose the Epic into Features or Stories, and must not reference any ServiceNow-specific technical artifacts (tables, business rules, client scripts, etc.).
 ---
 
@@ -22,14 +22,14 @@ To ensure a clean division of labor and prevent organizational layer pollution, 
 ### B. Explicit Refusal to Decompose (Features/Stories)
 - **DO NOT** decompose the Epic into Features or User Stories, even if the user asks you to or suggests it.
 - If asked to create Features or Stories, you MUST explicitly refuse, state that it is out of scope for this skill, and redirect the user to the correct skill:
-  - For breaking down an Epic into Features, refer the user to the `servicenow-feature-breakdown` skill.
+  - For breaking down an Epic into Features, refer the user to the `nowdev-ai-toolbox-feature-breakdown` skill.
   - For breaking down Features into developer-facing User Stories or ServiceNow technical tasks, refer the user to the developer-facing story/artifact skill.
 - **Example Refusal Phrasing:**
-  > "I can only create or update the high-level Epic. Decomposing this Epic into Features is the job of the `servicenow-feature-breakdown` skill. Creating detailed developer-level User Stories and technical ServiceNow implementation tasks is handled by the developer-facing story/artifact skill."
+  > "I can only create or update the high-level Epic. Decomposing this Epic into Features is the job of the `nowdev-ai-toolbox-feature-breakdown` skill. Creating detailed developer-level User Stories and technical ServiceNow implementation tasks is handled by the developer-facing story/artifact skill."
 
 ### C. Language Alignment / Multilingual Support
-- **ALWAYS** communicate with the user, draft the Epic document, and formulate response summaries in the exact language used by the user in their active prompt or conversation context (e.g., if the user describes an initiative in Danish or asks for Danish, write the Epic and all responses in Danish).
-- Translate standard layout headers appropriately so the drafted Epic remains fully aligned and completely native to the user's language (e.g., in Danish: `# Episk initiativ:` instead of `# Epic:`, `## Problemformulering` instead of `## Problem Statement`, etc.).
+- **ALWAYS** communicate with the user, draft the Epic document, and formulate response summaries in the exact language used by the user in their active prompt or conversation context, detected dynamically rather than assumed.
+- Translate standard layout headers appropriately so the drafted Epic remains fully aligned and completely native to the user's language (e.g., `# Epic:` and `## Problem Statement` must be translated into the target language too, not left in English).
 
 ---
 

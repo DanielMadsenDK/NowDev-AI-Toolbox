@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 3bfb5ca1fe43217d62b58798035f6ad3540c16511ffc4aaeb3869748b16b4b0d
+# nowdev-hash: b55aae4f93a90d2f4287b9c1e0b76c63aa98a32513bc531d9214f1b41592f4ff
 name: NowDev-AI-Fluent-Reviewer
 user-invocable: false
 disable-model-invocation: false
@@ -138,10 +138,10 @@ List each artifact type found and which skill reference was consulted for it.
 Complete list of files reviewed.
 
 ### 7. **Dependency Validation:**
-Before performing dependency validation, read `agents/github-copilot/AGENT-PATTERNS.md` using #tool:read/readFile. If the file is not found or the section "Canonical: Session Artifact Registry" is absent, flag a Critical finding stating dependency validation could not be completed and list the missing dependency as the reason. Otherwise, follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry") for dependency validation:
-- Cross-reference each artifact's `dependsOn` entries with registry exports and actual dependency source files
+Before performing dependency validation, read `agents/github-copilot/AGENT-PATTERNS.md` using #tool:read/readFile. If the file is not found or the section "Canonical: Cross-Agent File Handoff" is absent, flag a Critical finding stating dependency validation could not be completed and list the missing dependency as the reason. Otherwise, follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff") for dependency validation:
+- Cross-reference each specialist's claimed exports (from its "Files Touched" list) with the actual dependency source files
 - Flag mismatches (wrong method name, missing parameters, referencing a non-existent table/field) as **Critical** findings
-- Flag any artifact still showing `in_progress` status — it may have incomplete exports
+- Flag any dependency the session's touched-files context marks as still in progress — it may have incomplete exports
 
 ### 8. **Next Steps:**
 - If status is PASS: state that the solution is ready for the user or next agent to deploy, and list the deployment commands to run: `now-sdk build && now-sdk install --auth <alias>` (do not execute these commands or make any file edits yourself)

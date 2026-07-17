@@ -1,20 +1,20 @@
 ---
 name: nowdev-ai-toolbox-story-artifact-mapping
-context: fork
-user-invocable: false
-description: Technical breakdown skill for mapping Features into developer-facing User Stories with ServiceNow Fluent artifacts. This skill explicitly triggers whenever a user references a Feature or Story ID (e.g., FEAT-123, US-456) and asks to plan, draft, map, outline, or implement it, or when they ask to "update traceability", "record what was built", "sync build artifacts to Jira/Azure DevOps", or "conclude development on Story X" after completing a build. It reads the local Session Artifact Registry to append actual build files, status, and test coverage to the User Stories. Keep this developer-facing mapping skill extremely focused on Fluent artifact generation and traceability.
+user-invocable: true
+disable-model-invocation: true
+description: Technical breakdown skill for mapping Features into developer-facing User Stories with ServiceNow Fluent artifacts. This skill explicitly triggers whenever a user references a Feature or Story ID (e.g., FEAT-123, US-456) and asks to plan, draft, map, outline, or implement it, or when they ask to "update traceability", "record what was built", "sync build artifacts to Jira/Azure DevOps", or "conclude development on Story X" after completing a build. It inspects the workspace's git changes to append actual build files, status, and test coverage to the User Stories. Keep this developer-facing mapping skill extremely focused on Fluent artifact generation and traceability.
 ---
 
 # ServiceNow Story Artifact Mapping & Traceability
 
-This skill maps business-oriented **Features** into detailed, developer-facing **User Stories** complete with ServiceNow Fluent technical artifacts, dependencies, and implementation-geared acceptance criteria. It also functions as the post-build feedback loop: updating those same User Stories with exact build traceability information from the session's workspace registry.
+This skill maps business-oriented **Features** into detailed, developer-facing **User Stories** complete with ServiceNow Fluent technical artifacts, dependencies, and implementation-geared acceptance criteria. It also functions as the post-build feedback loop: updating those same User Stories with exact build traceability information derived from the workspace's git changes.
 
 ---
 
 ## 1. Strict Boundaries & Scope
 
 To ensure clear ownership layers across Product Owner and Developer personas:
-- **NEVER create, modify, or update Epics or Features.** Epics are owned by the organizational enterprise skills (like `servicenow-epic-charter`), and Features are governed by Product Owner skills (like `servicenow-feature-breakdown`).
+- **NEVER create, modify, or update Epics or Features.** Epics are owned by the organizational enterprise skills (like `nowdev-ai-toolbox-epic-charter`), and Features are governed by Product Owner skills (like `nowdev-ai-toolbox-feature-breakdown`).
 - **ONLY create or update child User Stories.** All technical analyses and implementation specifications must be written inside of **User Stories** that are linked as children to their originating Feature.
 - If asked to modify an Epic or Feature, explicitly state that it is out of scope for this developer-facing skill, and redirect the user.
 - **Language Alignment / Multilingual Support:** Always communicate with the user, write story titles, draft story descriptions, formulate acceptance criteria, and output traceability summaries in the exact language used by the user in their active prompt or conversation context (e.g., if the user asks in Danish, translate all generated User Story text and agent responses to Danish). Keep programmatic system identifiers (like table names, React class handles, or `.now.ts` paths) in their natural code representation (usually English), but keep all human-facing context fully aligned with their preferred language.
@@ -73,18 +73,18 @@ Write objective criteria phrased in developer terms:
 
 ## 4. Workflow B: Post-Build Traceability Update (Post-Build)
 
-Once the toolbox's development agents (like `servicenow-fluent-sdk-dev` or others) have completed building the artifacts, re-invoking this skill allows you to map actual workspace outputs back to the story for complete auditable traceability.
+Once the toolbox's development agents (like `nowdev-ai-toolbox-fluent-development` or others) have completed building the artifacts, re-invoking this skill allows you to map actual workspace outputs back to the story for complete auditable traceability.
 
-### Step 4.1: Locate the Workspace Session Artifact Registry
-1. Parse [.vscode/nowdev-ai-config.json](.vscode/nowdev-ai-config.json) to find `artifactState.path`.
-2. Locate and read the Session Artifact Registry, which defaults to [.vscode/nowdev-ai-session/artifacts.json](.vscode/nowdev-ai-session/artifacts.json).
-3. If the manifest does not exist, look for any recently written files in `src/` or configuration files. Do not try to re-derive the built list from scratch if the registry is populated.
+### Step 4.1: Determine the Built File List
+1. Run `git status --porcelain` and `git diff --stat` (against the base branch, or since the session's first commit) to enumerate created/modified files in the workspace.
+2. If the delegating agent or coordinator carried forward a "Files Touched" list earlier in the session, prefer that list — it already has purpose and exports noted per file.
+3. If the workspace is not a git repository or no relevant changes are found, ask the user directly which files were built for this story, or scan `src/` and Fluent project folders for recently modified files as a last resort. Do not fabricate a file list.
 
-### Step 4.2: Extract Registry Details
-From the active session registry, gather:
+### Step 4.2: Extract Traceability Details
+From the built file list, gather:
 - **Built Files/Artifacts:** Exact paths of all created/updated Fluent `.now.ts` metadata, JavaScript logic, and components.
 - **Test Integrity:** Which ATF or unit tests have been written and run to cover these files.
-- **Deployment Status:** Where the build is currently deployed (e.g., local codebase, specific PDI, current Update Set, package status).
+- **Deployment Status:** Where the build is currently deployed (e.g., local codebase, specific PDI, current Update Set, package status) — ask the user if this isn't evident from the workspace.
 
 ### Step 4.3: Append Traceability Section
 Never overwrite or delete the original Story description or requirement specifications! Instead, generate a highly structured **traceability markdown update** and either append it to the bottom of the Story's description field or add it as a PM work item comment.
@@ -107,7 +107,7 @@ Use this identical Markdown template for the traceability summary:
 ### 🚀 Deployment & Integrity Status
 - **Current environment/PDI:** [PDI Target / instance, e.g., PDI-dev-12345]
   - **Build Status:** [Success/Failed/Pending]
-  - **Traceability Hash:** `[Unique session hash or deployment package reference]`
+  - **Traceability Reference:** `[git commit hash or deployment package reference]`
 ```
 
 ---

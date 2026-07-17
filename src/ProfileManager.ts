@@ -109,8 +109,54 @@ You are assisting a **Product Owner** — a business professional who manages re
     },
 ];
 
-export function getProfileById(id: string): ProfileDefinition | undefined {
-    return BUILT_IN_PROFILES.find(p => p.id === id);
+/**
+ * Validates and normalizes company-provided custom profiles read from
+ * `customProfiles` in nowdev-ai-config.json. Malformed entries (missing
+ * id/label) are dropped rather than crashing the sidebar.
+ */
+export function normalizeCustomProfiles(raw: unknown): ProfileDefinition[] {
+    if (!Array.isArray(raw)) { return []; }
+    const result: ProfileDefinition[] = [];
+    for (const entry of raw) {
+        if (!entry || typeof entry !== 'object') { continue; }
+        const record = entry as Record<string, unknown>;
+        const id = typeof record.id === 'string' ? record.id.trim() : '';
+        const label = typeof record.label === 'string' ? record.label.trim() : '';
+        if (!id || !label) { continue; }
+        result.push({
+            id,
+            label,
+            description: typeof record.description === 'string' ? record.description : '',
+            suppressedAgents: Array.isArray(record.suppressedAgents)
+                ? record.suppressedAgents.filter((a): a is string => typeof a === 'string')
+                : [],
+            mcpMethodOverrides: (record.mcpMethodOverrides && typeof record.mcpMethodOverrides === 'object')
+                ? record.mcpMethodOverrides as ProfileDefinition['mcpMethodOverrides']
+                : undefined,
+            profileInstructions: typeof record.profileInstructions === 'string' ? record.profileInstructions : '',
+        });
+    }
+    return result;
+}
+
+/**
+ * Merges the built-in profiles with company-provided custom profiles.
+ * A custom profile whose id collides with a built-in id is dropped —
+ * built-ins always win.
+ */
+export function getAllProfiles(customProfiles: ProfileDefinition[] = []): ProfileDefinition[] {
+    const builtInIds = new Set(BUILT_IN_PROFILES.map(p => p.id));
+    const seen = new Set(builtInIds);
+    const validCustom = customProfiles.filter(p => {
+        if (seen.has(p.id)) { return false; }
+        seen.add(p.id);
+        return true;
+    });
+    return [...BUILT_IN_PROFILES, ...validCustom];
+}
+
+export function getProfileById(id: string, customProfiles: ProfileDefinition[] = []): ProfileDefinition | undefined {
+    return getAllProfiles(customProfiles).find(p => p.id === id);
 }
 
 /**

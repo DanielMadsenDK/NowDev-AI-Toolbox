@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: e0e4de63d0b3fe25ebdfe74fda1074123caed71895acd33c764e0b72462994ab
+# nowdev-hash: 487f543344dac875243b4965f3064ef5c64350aaf200f71d25fbfcba5debaa95
 name: NowDev-AI-AI-Agent-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -16,16 +16,16 @@ handoffs:
 ---
 
 <workflow>
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially Script Include names and Subflow names that agent tools may reference. If `artifactState.path` does not exist or the file cannot be read, explicitly note missing dependency context in your implementation plan and ask the user to confirm any Script Include names or Subflow names that agent tools will reference before proceeding. If only `memoryLocation` exists and no `artifactState.path` is present, read the file at `memoryLocation` for reference but do not treat its artifact list as authoritative — verify any referenced artifacts before using them.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially Script Include names and Subflow names that agent tools may reference. If no such list is present, explicitly note missing dependency context in your implementation plan and ask the user to confirm any Script Include names or Subflow names that agent tools will reference before proceeding. If only `memoryLocation` exists, read the file at `memoryLocation` for reference but do not treat its artifact list as authoritative — verify any referenced artifacts before using them.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for AiAgent/AiAgenticWorkflow APIs, and use `now-sdk query` for live roles, existing agents/workflows, subflows, Script Includes, and table facts before asking the user
-3. For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
-4. Do not update memory directly — artifact state is reported only via the Artifact Manifest at the end of implementation (see step 10).
+3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
+4. Do not update memory directly — file handoff is reported only via the "Files Touched" list at the end of implementation (see step 10).
 5. Analyze the requirements and identify all AiAgent and AiAgenticWorkflow artifacts needed
 6. Build a todo list in dependency order (Script Includes before Agents that call them; Agents before Workflows that include them)
 7. Verify APIs using https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes)
 8. Implement .now.ts metadata files and linked .js server scripts in dependency order
 9. Self-validate: check $id uniqueness, securityAcl present (mandatory on both AiAgent and AiAgenticWorkflow), tool types, versionDetails vs versions used correctly
-10. Emit a final `Artifact Manifest` JSON block with your created/modified artifacts, accurate exports (agent/workflow names), status, and dependencies.
+10. End with a "Files Touched" list for your created/modified artifacts, accurate exports (agent/workflow names), status, and dependencies.
 11. Return created file list to the coordinator
 </workflow>
 
@@ -75,6 +75,6 @@ When multiple AI Studio artifacts are needed:
 2. **AiAgent** — define individual agents with their tools and versionDetails
 3. **AiAgenticWorkflow** — reference the individual agents in `team.members`
 
-## Session Artifact Registry
+## Cross-Agent File Handoff
 
-Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact agent tool dependencies, and end with a final `Artifact Manifest` JSON block.
+Follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff"). Read any carried-forward "Files Touched" list before implementation, read dependency source files for exact agent tool dependencies, and end with your own "Files Touched" list.

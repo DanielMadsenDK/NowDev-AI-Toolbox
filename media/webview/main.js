@@ -1,4 +1,4 @@
-// NowDev AI Toolbox — Sidebar Webview Script
+﻿// NowDev AI Toolbox — Sidebar Webview Script
 (function () {
     // @ts-ignore
     const vscode = acquireVsCodeApi();
@@ -162,15 +162,6 @@
     document.getElementById('showCopilotChatLogs').addEventListener('click', () => {
         vscode.postMessage({ command: 'showCopilotChatLogs' });
     });
-
-    document.getElementById('openArtifactState').addEventListener('click', () => {
-        vscode.postMessage({ command: 'openArtifactState' });
-    });
-
-    document.getElementById('resetArtifactState').addEventListener('click', () => {
-        vscode.postMessage({ command: 'resetArtifactState' });
-    });
-
 
     // ── SDK tab ───────────────────────────────────────────────────
 
@@ -338,9 +329,6 @@
                 break;
             case 'updateAgents':
                 renderAgentCards(msg.manifests, msg.overrides, msg.modelOptions || []);
-                break;
-            case 'updateArtifacts':
-                renderArtifacts(msg.artifacts, msg.sessionActive, msg.errors);
                 break;
             case 'updateSdkData':
                 renderAuthAliases(msg.authAliases);
@@ -877,177 +865,6 @@
                 vscode.postMessage({ command: 'openAgentFile', filename: btn.getAttribute('data-filename') });
             });
         });
-    }
-
-    // ── Artifact registry rendering ────────────────────────────────
-
-    let _currentArtifactFilter = 'active'; // default to showing active (non-done) artifacts
-    let _lastArtifacts = [];
-    let _lastSessionActive = false;
-    let _lastArtifactErrors = [];
-
-    function renderArtifacts(artifacts, sessionActive, errors) {
-        _lastArtifacts = artifacts || [];
-        _lastSessionActive = sessionActive;
-        _lastArtifactErrors = errors || [];
-        _renderArtifactsFiltered();
-    }
-
-    function _renderArtifactsFiltered() {
-        const container = document.getElementById('artifactsView');
-        const section   = document.getElementById('artifactsSection');
-        const pill      = document.getElementById('artifactCount');
-        if (!container) return;
-
-        const artifacts = _lastArtifacts;
-        const sessionActive = _lastSessionActive;
-        const artifactErrors = _lastArtifactErrors;
-        const hasArtifacts = sessionActive && artifacts && artifacts.length > 0;
-        const hasArtifactErrors = sessionActive && artifactErrors && artifactErrors.length > 0;
-
-        if (section) { section.classList.toggle('nd-hidden', !hasArtifacts && !hasArtifactErrors); }
-        if (pill) { pill.textContent = hasArtifacts ? String(artifacts.length) : ''; }
-
-        const artifactErrorHtml = hasArtifactErrors
-            ? '<div class="artifact-errors">' + artifactErrors.map(function (err) { return '<div>' + esc(err) + '</div>'; }).join('') + '</div>'
-            : '';
-
-        if (hasArtifactErrors && !hasArtifacts) {
-            container.innerHTML = artifactErrorHtml;
-            return;
-        }
-
-        if (!hasArtifacts) {
-            container.innerHTML = '';
-            return;
-        }
-
-        // Counts
-        const doneCount = artifacts.filter(a => isDone(a.status)).length;
-        const inProgressCount = artifacts.filter(a => isInProgress(a.status)).length;
-        const total = artifacts.length;
-        const activeCount = total - doneCount;
-        const dependencyEdges = artifacts.reduce(function (count, artifact) {
-            return count + getDependencyIds(artifact).length;
-        }, 0);
-        const missingSourceCount = artifacts.reduce(function (count, artifact) {
-            return count + getMissingFiles(artifact).length;
-        }, 0);
-
-        // Filter bar
-        let html = artifactErrorHtml + '<div class="artifact-actions">';
-        html += '<button class="fix-btn artifact-state-btn" id="openArtifactStateInline">Open State</button>';
-        html += '<button class="fix-btn artifact-state-btn" id="resetArtifactStateInline">Reset</button>';
-        html += '</div>';
-        html += '<div class="artifact-filters">';
-        html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'active' ? ' active' : '') + '" data-filter="active">Active (' + activeCount + ')</button>';
-        html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'all' ? ' active' : '') + '" data-filter="all">All (' + total + ')</button>';
-        html += '<button class="artifact-filter-btn' + (_currentArtifactFilter === 'done' ? ' active' : '') + '" data-filter="done">Done (' + doneCount + ')</button>';
-        html += '</div>';
-
-        // Summary
-        let summaryParts = [total + ' artifact' + (total !== 1 ? 's' : '')];
-        if (doneCount > 0) summaryParts.push(doneCount + ' done');
-        if (inProgressCount > 0) summaryParts.push(inProgressCount + ' in progress');
-        const remaining = total - doneCount - inProgressCount;
-        if (remaining > 0) summaryParts.push(remaining + ' other');
-        html += '<div class="artifacts-summary"><strong>' + summaryParts.join(' &middot; ') + '</strong></div>';
-        html += '<div class="artifact-graph-summary">';
-        html += '<span class="artifact-graph-pill">' + dependencyEdges + ' dependenc' + (dependencyEdges === 1 ? 'y' : 'ies') + '</span>';
-        html += '<span class="artifact-graph-pill' + (missingSourceCount > 0 ? ' is-warning' : '') + '">' + missingSourceCount + ' missing source file' + (missingSourceCount === 1 ? '' : 's') + '</span>';
-        html += '</div>';
-
-        // Filter artifacts
-        var filtered = artifacts;
-        if (_currentArtifactFilter === 'active') {
-            filtered = artifacts.filter(function (a) { return !isDone(a.status); });
-        } else if (_currentArtifactFilter === 'done') {
-            filtered = artifacts.filter(function (a) { return isDone(a.status); });
-        }
-
-        if (filtered.length === 0) {
-            html += '<div class="empty-state"><p>' +
-                (_currentArtifactFilter === 'active' ? 'All artifacts are done!' : 'No matching artifacts.') +
-                '</p></div>';
-        }
-
-        for (const a of filtered) {
-            var aIsDone = isDone(a.status);
-            var dotClass = aIsDone ? 'done' : isInProgress(a.status) ? 'progress' : isError(a.status) ? 'error' : 'unknown';
-            var statusLabel = esc(a.status.replace(/[\u2705\uD83C\uDFD7\uFE0F\u274C]/gu, '').trim() || a.status);
-
-            html += '<div class="artifact-card' + (aIsDone ? ' is-done' : '') + '">';
-            html += '<div class="artifact-card-header">';
-            html += '<span class="artifact-status"><span class="status-dot ' + dotClass + '"></span>' + statusLabel + '</span>';
-            if (a.agent) html += '<span class="artifact-agent">' + esc(a.agent) + '</span>';
-            html += '</div>';
-            html += '<div class="artifact-card-name">' + esc(a.name) + '</div>';
-            if (a.file) html += '<div class="artifact-card-file">' + esc(a.file) + '</div>';
-            html += '<div class="artifact-card-type">' + esc(a.type) + '</div>';
-
-            if ((a.exports && a.exports !== '-' && a.exports !== '\u2014') || (a.dependsOn && a.dependsOn !== '-' && a.dependsOn !== '\u2014')) {
-                html += '<div class="artifact-card-details">';
-                if (a.exports && a.exports !== '-' && a.exports !== '\u2014') {
-                    html += '<span class="artifact-detail"><span class="detail-label">Exports:</span> ' + esc(a.exports) + '</span>';
-                }
-                if (a.dependsOn && a.dependsOn !== '-' && a.dependsOn !== '\u2014') {
-                    html += '<span class="artifact-detail"><span class="detail-label">Depends on:</span> ' + esc(a.dependsOn) + '</span>';
-                }
-                html += '</div>';
-            }
-            var missingFiles = getMissingFiles(a);
-            if (missingFiles.length > 0) {
-                html += '<div class="artifact-source-warning"><span class="detail-label">Missing source:</span> ' + esc(missingFiles.join(', ')) + '</div>';
-            } else if (getFileList(a).length > 0) {
-                html += '<div class="artifact-source-ok">Source files verified</div>';
-            }
-            html += '</div>';
-        }
-        container.innerHTML = html;
-
-        // Bind filter buttons
-        container.querySelectorAll('.artifact-filter-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                _currentArtifactFilter = btn.dataset.filter;
-                _renderArtifactsFiltered();
-            });
-        });
-        var openStateBtn = document.getElementById('openArtifactStateInline');
-        if (openStateBtn) {
-            openStateBtn.addEventListener('click', function () { vscode.postMessage({ command: 'openArtifactState' }); });
-        }
-        var resetStateBtn = document.getElementById('resetArtifactStateInline');
-        if (resetStateBtn) {
-            resetStateBtn.addEventListener('click', function () { vscode.postMessage({ command: 'resetArtifactState' }); });
-        }
-    }
-
-    function isDone(s) { return /done|complete|\u2705/i.test(s); }
-    function isInProgress(s) { return /progress|building|\uD83C\uDFD7/i.test(s); }
-    function isError(s) { return /error|fail|\u274C/i.test(s); }
-
-    function getDependencyIds(artifact) {
-        if (Array.isArray(artifact.dependsOnIds)) {
-            return artifact.dependsOnIds.filter(Boolean);
-        }
-        if (typeof artifact.dependsOn === 'string') {
-            return artifact.dependsOn.split(',').map(function (item) { return item.trim(); }).filter(function (item) { return item && item !== '-' && item !== '\u2014'; });
-        }
-        return [];
-    }
-
-    function getFileList(artifact) {
-        if (Array.isArray(artifact.files)) {
-            return artifact.files.filter(Boolean);
-        }
-        if (typeof artifact.file === 'string') {
-            return artifact.file.split(',').map(function (item) { return item.trim(); }).filter(Boolean);
-        }
-        return [];
-    }
-
-    function getMissingFiles(artifact) {
-        return Array.isArray(artifact.missingFiles) ? artifact.missingFiles.filter(Boolean) : [];
     }
 
     // ── Work Item Integration rendering ────────────────────────────

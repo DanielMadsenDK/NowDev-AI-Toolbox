@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.7.7-blue)
+  ![Version](https://img.shields.io/badge/version-0.7.8-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.124+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -103,25 +103,21 @@ Once `now-sdk init` completes, the sidebar will automatically detect the new `no
 
 You can also use specialized agents directly for specific tasks, but starting with the orchestrator ensures proper planning and coordination.
 
-### Workspace Customizations and Artifact State
+### Workspace Customizations
 
 NowDev writes modern VS Code Copilot customization files into the workspace when agents are synced:
 
 | File location | Purpose |
 |---------------|---------|
 | `.github/agents/*.agent.md` | Generated custom agents for the active profile, tools, MCP servers, and enabled agent set |
-| `.github/instructions/nowdev-ai.instructions.md` | Workspace-wide NowDev context, artifact protocol, custom instructions, and selected instance guidelines |
+| `.github/instructions/nowdev-ai.instructions.md` | Workspace-wide NowDev context, cross-agent handoff protocol, custom instructions, and selected instance guidelines |
 | `.github/prompts/nowdev-*.prompt.md` | Slash prompts for starting, reviewing, and compacting NowDev sessions |
 
-Session artifacts are tracked in `.vscode/nowdev-ai-session/artifacts.json`, discovered through `.vscode/nowdev-ai-config.json` under `artifactState.path`. This file is the source of truth for cross-agent handoffs and survives chat context compaction better than a memory-only table. The sidebar summarizes artifact dependencies, reports missing source files, and includes actions to open or reset the artifact state without deleting generated source files.
+Cross-agent handoffs use a lightweight, in-context convention instead of a persisted file: specialists end each response with a "Files Touched" list (path, purpose, key exports), coordinators carry that list into subsequent delegation prompts, and reviewers always read the actual source files before trusting a claimed export. This keeps handoffs accurate without a separate state file to keep in sync.
 
 The Agents tab supports per-agent model overrides and role-aware model presets based on the chat models VS Code reports as available. Keep bundled agents mostly unpinned unless a team has a clear quality, latency, or cost reason to override them.
 
-Memory is optional. If Copilot memory is unavailable or disabled by an organization, NowDev still uses the workspace artifact state. The sidebar reports administrator-managed preview features without showing impossible fix buttons.
-
-Hooks are optional Preview functionality. Use **NowDev AI: Hooks: Create Optional Artifact Templates** to create reviewable `.github/hooks` templates for teams that want deterministic lifecycle automation. The generated template includes a Node-based Artifact Manifest merge script plus Windows and Linux/macOS wrapper commands, but hooks are not required for normal operation.
-
-If hooks are not enabled, agents still end with an `Artifact Manifest` JSON block. Copy an agent response and run **NowDev AI: Artifacts: Merge Manifest from Clipboard** to merge the manifest into the workspace artifact state.
+Memory is optional. If Copilot memory is unavailable or disabled by an organization, NowDev still coordinates handoffs through the in-context Files Touched protocol above. The sidebar reports administrator-managed preview features without showing impossible fix buttons.
 
 ### Example Usage
 Open GitHub Copilot Chat, select "NowDev AI Agent" from the agent dropdown, and type:

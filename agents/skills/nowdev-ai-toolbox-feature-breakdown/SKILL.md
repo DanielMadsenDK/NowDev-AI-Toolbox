@@ -1,6 +1,8 @@
 ---
 name: nowdev-ai-toolbox-feature-breakdown
-description: Decomposes a high-level Epic into a structured set of business-outcome Features using the connected project/work management MCP tools. Use this skill whenever the user has an Epic (referenced by ID or name) and wants to "break it down into features", "decompose the epic", "split it up", "plan features for this epic", or asks "what features would deliver this epic", or requests to organize business requirements for an Epic. This skill MUST be used for Product Owner tasks to manage work hierarchy conceptually and must not mention developer-facing concepts or create User Stories; if asked for ServiceNow technical design, defer to 'servicenow-instance-grounded-plan'.
+user-invocable: true
+disable-model-invocation: true
+description: Decomposes a high-level Epic into a structured set of business-outcome Features using the connected project/work management MCP tools. Use this skill whenever the user has an Epic (referenced by ID or name) and wants to "break it down into features", "decompose the epic", "split it up", "plan features for this epic", or asks "what features would deliver this epic", or requests to organize business requirements for an Epic. This skill MUST be used for Product Owner tasks to manage work hierarchy conceptually and must not mention developer-facing concepts or create User Stories; if asked for ServiceNow technical design, defer to 'nowdev-ai-toolbox-instance-grounded-plan'.
 ---
 
 # ServiceNow Feature Breakdown
@@ -12,10 +14,10 @@ This skill provides a structured workflow for a **Product Owner** to decompose a
 ## Core Guidelines
 
 1. **Product Owner Perspective & Language:** Maintain a business-centric, value-oriented perspective. Avoid all developer-centric technical terms, database schemas, scripts, flow names, or custom field mappings.
-2. **Explicitly NO ServiceNow Implementation Details:** Do not reference specific ServiceNow tables, business rules, client scripts, flows, or other system artifacts. If the user asks for technical implementation, designs, or data models, explicitly state that this is the job of the **developer-facing skill** and direct them to use **servicenow-instance-grounded-plan**.
+2. **Explicitly NO ServiceNow Implementation Details:** Do not reference specific ServiceNow tables, business rules, client scripts, flows, or other system artifacts. If the user asks for technical implementation, designs, or data models, explicitly state that this is the job of the **developer-facing skill** and direct them to use **nowdev-ai-toolbox-instance-grounded-plan**.
 3. **Features Only, No User Stories:** Focus strictly on decomposing the Epic into **Features** (increments of business capability/value). Do not create detailed User Stories during this workflow.
 4. **Always Ask for Confirmation:** Before creating, updating, or linking any items in the tracking tool, present your proposed Features to the user in a highly readable format and ask for explicit confirmation.
-5. **Language Alignment & Multilingual Support:** Always communicate with the user, write feature titles, draft outcome descriptions, and formulate acceptance criteria in the exact language used by the user in their active prompt or conversation context (e.g., if the user asks or communicates in Danish, translate all generated Feature text, S/M/L descriptors, and your responses to Danish).
+5. **Language Alignment & Multilingual Support:** Always communicate with the user, write feature titles, draft outcome descriptions, and formulate acceptance criteria in the exact language used by the user in their active prompt or conversation context, detected dynamically rather than assumed.
 
 ---
 

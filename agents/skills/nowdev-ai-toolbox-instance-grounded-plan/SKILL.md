@@ -1,6 +1,5 @@
 ---
 name: nowdev-ai-toolbox-instance-grounded-plan
-context: fork
 user-invocable: false
 description: Expert planning skill for producing structured ServiceNow implementation structures and plans. Use this skill whenever a user asks to plan, scope, outline, estimate, design, architect, or detail a new feature, or asks "what would it take to build X," or wants to list required artifacts for a ServiceNow enhancement. This skill must be used prior to story refinement to ground all entities, tables, fields, roles, scripts, and flows against the live ServiceNow instance using now-sdk query.
 ---

@@ -17,13 +17,13 @@
     {
       "id": 2,
       "prompt": "We have an existing Epic for the 'Unified Employee Onboarding' (Jira ID: PROJ-101). Please update this Epic to clarify that the target timeframe is now pushed to Q1 next year instead of Q1 this year, and add HR Director Jane Doe as an additional business sponsor. Also, could you go ahead and decompose this into some Features or User Stories, and maybe list what ServiceNow tables we will need, like u_onboarding_request?",
-      "expected_output": "The output must update the existing Epic PROJ-101 using the connected project management tool API. It must update the timeframe to Q1 next year and add Jane Doe as a business sponsor. Crucially, the agent must explicitly refuse to decompose the Epic into Features/Stories and refuse to reference ServiceNow tables, explaining that feature decomposition is the job of the 'servicenow-feature-breakdown' skill, and user stories / ServiceNow tasks are handled by the developer-facing story/artifact skill.",
+      "expected_output": "The output must update the existing Epic PROJ-101 using the connected project management tool API. It must update the timeframe to Q1 next year and add Jane Doe as a business sponsor. Crucially, the agent must explicitly refuse to decompose the Epic into Features/Stories and refuse to reference ServiceNow tables, explaining that feature decomposition is the job of the 'nowdev-ai-toolbox-feature-breakdown' skill, and user stories / ServiceNow tasks are handled by the developer-facing story/artifact skill.",
       "files": [],
       "expectations": [
         "The agent updates the Epic PROJ-101 in the project management tool (e.g. via update_issue or update_work_item).",
         "The draft updates the target timeframe to Q1 of next year and includes Jane Doe as a sponsor.",
         "The agent explicitly refuses to decompose the Epic into Features or Stories.",
-        "The agent explains that feature decomposition is the job of 'servicenow-feature-breakdown'.",
+        "The agent explains that feature decomposition is the job of 'nowdev-ai-toolbox-feature-breakdown'.",
         "The agent explicitly refuses to reference ServiceNow technical tables or files (like u_onboarding_request)."
       ]
     },

@@ -17,10 +17,10 @@ handoffs:
 
 <pre_implementation_checklist>
 These are persistent rules that apply throughout all numbered steps:
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json`, then read the artifact state file at `artifactState.path` if it exists to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference. If only `memoryLocation` exists, treat it as optional legacy context.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference. If only `memoryLocation` exists, treat it as optional legacy context.
 2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for NowAssistSkillConfig APIs, and use `now-sdk query` for live roles, existing skills, subflows, Script Includes, and target table facts before asking the user.
-3. **Read Dependency Sources**: For any dependencies with status ✅ Done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs.
-4. **Do not update memory directly**: After implementation, emit a final `Artifact Manifest` JSON block with your created/modified artifacts, exports, status, and dependencies.
+3. **Read Dependency Sources**: For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs.
+4. **Do not update memory directly**: After implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts.
 </pre_implementation_checklist>
 
 <workflow>
@@ -29,7 +29,7 @@ These are persistent rules that apply throughout all numbered steps:
 3. Verify APIs using {{SDK_DOCS_CONTEXT}}.
 4. Implement the NowAssistSkillConfig .now.ts file with exactly the arguments required by the SDK (verify with `now-sdk explain`). The baseline signature is (definition, promptConfig), but always confirm against live SDK docs before finalizing.
 5. Self-validate: securityControls present, all tools/inputs/outputs have $id, tool handles returned for p.tool.* access, promptState set on active version.
-6. Emit a final `Artifact Manifest` JSON block with accurate exports (skill names).
+6. End with a "Files Touched" list with accurate exports (skill names).
 7. Return created file list to the coordinator.
 </workflow>
 
@@ -62,6 +62,6 @@ You are a specialist in **ServiceNow NowAssist Skill configurations**. You imple
 |----------|-----------|---------------|
 | LLM-powered skill with tool graph and prompts | `NowAssistSkillConfig()` | `now-sdk explain --list nowassist` |
 
-## Session Artifact Registry
+## Cross-Agent File Handoff
 
-Follow the Session Artifact Registry protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Session Artifact Registry"). Read the workspace artifact state before implementation, read dependency source files for exact Now Assist skill/tool dependencies, and end with a final `Artifact Manifest` JSON block.
+Follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff"). Read any carried-forward "Files Touched" list before implementation, read dependency source files for exact Now Assist skill/tool dependencies, and end with your own "Files Touched" list.

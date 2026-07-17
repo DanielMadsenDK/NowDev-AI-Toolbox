@@ -1,7 +1,8 @@
 ---
 name: nowdev-ai-toolbox-release-notes
 context: fork
-user-invocable: false
+user-invocable: true
+disable-model-invocation: true
 description: Expert skill for retrieving, navigating, and summarizing ServiceNow release notes directly from the official ServiceNowDocs GitHub repository. Use this skill whenever a user asks about new features, changes, upgrades, deprecation, or bug fixes for any ServiceNow release (e.g., Australia, Yokohama, Xanadu, Zurich), even if they do not explicitly mention "release notes" or the GitHub repository. It must be leveraged when analyzing application updates or comparing platform features across family releases.
 ---
 

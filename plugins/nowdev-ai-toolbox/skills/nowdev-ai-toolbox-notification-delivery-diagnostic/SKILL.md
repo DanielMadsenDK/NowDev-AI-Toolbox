@@ -1,7 +1,6 @@
 ---
 name: nowdev-ai-toolbox-notification-delivery-diagnostic
-context: fork
-user-invocable: false
+user-invocable: true
 description: Systematically diagnoses and traces why a ServiceNow email, alert, notification, or message failed to deliver or send to a user. Make sure to use this skill whenever the user mentions that a "notification/email didn't send", "user didn't get an email", "why wasn't X notified", or wants to troubleshoot any kind of missing notification, dispatch failure, email bounce, preference exclusion, or event trigger issues of the notification delivery pipeline. It runs strictly read-only 'now-sdk query' commands against tables like sysevent, sysevent_email_action, sys_email, sys_email_log, cmn_notif_device, and sys_user to isolate and report the exact point of delivery failure.
 ---
 
