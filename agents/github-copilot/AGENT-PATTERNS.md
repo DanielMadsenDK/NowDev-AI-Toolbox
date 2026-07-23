@@ -17,16 +17,15 @@ The orchestrator's `<documentation>` block instructs: "When creating or editing 
 Use these as templates when creating or modifying agents:
 
 ### Orchestrator Agent (NowDev-AI)
-- **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
-- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
+- **Session and VS Code:** `vscode/memory`, `vscode/resolveMemoryFileUri`, `vscode/runCommand`, `vscode/askQuestions`, `vscode/toolSearch`
+- **Read:** `read/problems`, `read/readFile`, `read/viewImage`, `read/skill`, `read/terminalSelection`, `read/terminalLastCommand`, `read/getTaskOutput`
+- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`, `edit/rename`
 - **Agent Control:** `agent` (to invoke sub-agents)
 - **Knowledge:** Use `{{PRODUCT_DOCS_CONTEXT}}` / `{{SDK_DOCS_CONTEXT}}` tokens in the `<documentation>` block for doc access
 - **Search & Web:** `search`, `web`
 - **Tracking:** `todo`
-- **Visualization:** `vscode.mermaid-chat-features/renderMermaidDiagram` (for architecture)
-- **User Interaction:** `vscode/askQuestions`
-- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal` (for SDK discovery only)
-- **Browser (Instance Preview):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/clickElement`, `browser/typeInPage`, `browser/hoverElement`, `browser/dragElement`, `browser/navigatePage`, `browser/handleDialog`, `browser/runPlaywrightCode`
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/killTerminal`, `execute/runTask`, `execute/createAndRunTask`
+- **Browser (Instance Preview):** `browser`; constrain individual browser operations in the prompt
 
 ## Canonical: Tool-First Clarification
 
@@ -34,12 +33,16 @@ Agents should answer their own factual questions before asking the user. Ask the
 
 **Clarification order:**
 1. Workspace facts: read `.vscode/nowdev-ai-config.json`, `now.config.json`, package files, source files, and session memory.
-2. SDK/Fluent API facts: use `now-sdk explain` first (`--list`, `--peek`, or raw topic output when useful), then SDK llms.txt/docs only if explain does not cover the topic.
-3. Live instance facts: use `now-sdk query` for table metadata, sys_ids, roles, scopes, choices, ACLs, existing artifact collisions, and selected Knowledge Base guideline articles.
+2. SDK/Fluent API facts: load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the relevant installed SDK documentation topic, then use SDK llms.txt/docs only if that topic does not cover the question.
+3. Live instance facts: load `nowdev-ai-toolbox-servicenow-sdk` and retrieve bounded evidence for table metadata, sys_ids, roles, scopes, choices, ACLs, existing artifact collisions, and selected Knowledge Base guideline articles.
 4. Product docs: use configured MCP/doc sources or ServiceNow product llms.txt for platform/product behavior not covered by SDK CLI.
 5. User questions: ask only when tool results are missing, conflicting, risky, or require human intent.
 
-For `now-sdk` CLI mechanics — flag discovery, the `--peek`/`--format raw` discipline, and the full command surface beyond `explain`/`query` — see `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`.
+### SDK Authority Gate
+
+`nowdev-ai-toolbox-servicenow-sdk` is the sole authority for all `now-sdk` CLI mechanics. Any source agent that mentions SDK documentation lookup, live queries, authentication aliases, build, dependency synchronization, install, or another SDK operation must explicitly load or reference that skill before execution.
+
+Agent prompts may preserve operational intent, documentation topic IDs, target tables and fields, evidence requirements, approval gates, and stopping rules. They must not prescribe complete commands, command chains, flags, aliases, output formats, pagination, authentication setup, or retry syntax. Templates must use formulations such as "load `nowdev-ai-toolbox-servicenow-sdk` and retrieve topic `table-api`" or "use `nowdev-ai-toolbox-servicenow-sdk` to run the approved build/install operation."
 
 When invoking sub-agents, include the same clarification instruction and pass any discovered facts rather than asking downstream agents to rediscover them unnecessarily.
 
@@ -108,7 +111,7 @@ Agents should spend context only on information that changes the next decision o
 ### Documentation Token Policy
 
 - Include `{{PRODUCT_DOCS_CONTEXT}}` only in agents that verify ServiceNow platform behavior or release-specific APIs.
-- Include `{{FLUENT_SDK_EXPLAIN}}` in Fluent agents that need SDK signatures, metadata APIs, or build/deploy behavior. Add `{{SDK_DOCS_CONTEXT}}` only as supplemental context when `now-sdk explain` does not cover the question.
+- Include `{{FLUENT_SDK_EXPLAIN}}` in Fluent agents that need SDK signatures, metadata APIs, or build/deploy behavior. Require them to load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the relevant topic. Add `{{SDK_DOCS_CONTEXT}}` only as supplemental context when the installed SDK topic does not cover the question.
 - Include `{{CLASSIC_SCRIPTING_DOCS}}` only in Fluent agents and reviewers that need Glide/platform API verification for script bodies embedded in Fluent metadata.
 - Router-only agents should usually omit documentation tokens; they classify and delegate, they do not verify APIs.
 - Live instance query guidance belongs only with agents that can execute terminal commands and are expected to resolve instance facts.
@@ -128,20 +131,23 @@ Do not ask downstream agents to repeat broad discovery that the parent has alrea
 
 ## Canonical: Specialist Prompt Contract
 
-Specialist `.agent.md` files should stay lean. Put reusable examples, long API notes, pipeline templates, debugging playbooks, and release recipes in `agents/skills/`, `agents/exemplars/`, or external docs. For Fluent SDK APIs, prefer `now-sdk explain` over local reference docs. The agent prompt itself should contain only:
+Specialist `.agent.md` files should stay lean. Put reusable examples, long API notes, pipeline templates, debugging playbooks, and release recipes in `agents/skills/`, `agents/exemplars/`, or external docs. For Fluent SDK APIs, load `nowdev-ai-toolbox-servicenow-sdk` and retrieve installed SDK topics instead of relying on local reference docs. The agent prompt itself should contain only:
 
 - A role boundary: what the agent owns and what it must not do.
 - A short workflow: discovery, tool-first clarification, implementation or analysis, validation, and handoff.
 - Stopping rules: destructive actions, missing credentials, missing environment tools, or work outside the role.
-- Documentation pointers: `now-sdk explain`, `now-sdk query`, configured docs for supplemental context, relevant local guardrail skills, and exemplar file paths.
+- Documentation pointers: the `nowdev-ai-toolbox-servicenow-sdk` authority skill, relevant topic IDs, configured docs for supplemental context, local guardrail skills, and exemplar file paths.
 - Output contract: what the caller receives, including changed files, validation results, warnings, and next handoff.
 
-Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape, reference `now-sdk explain <topic> --format raw`; for `now-sdk` CLI mechanics and the full command surface, reference `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`; for NowDev-specific guardrails, prefer `agents/exemplars/` over duplicating the content in every specialist.
+Avoid embedding code samples unless they are tiny enough to prevent a repeated mistake and cannot reasonably live in a skill file. For Fluent SDK API shape and all `now-sdk` CLI mechanics, reference `nowdev-ai-toolbox-servicenow-sdk` and preserve only the required topic IDs; for NowDev-specific guardrails, prefer `agents/exemplars/` over duplicating the content in every specialist.
 
 ## Canonical: Agent Consolidation Policy
 
 Keep specialist agents available as implementation boundaries, but expose them through a smaller user-facing surface:
 
+- Default new reusable ServiceNow knowledge, query mechanics, diagnostics, validation, and playbooks to a skill instead of a new agent.
+- Add an agent only for a distinct ownership boundary, materially different permission/tool profile, persistent delegation role, or intentional user-facing entry point.
+- Keep bundled skills organization-neutral. Company-specific statuses, approvals, roles, naming, compliance, and business decisions belong in the consuming organization's repository or private plugin.
 - The primary user entry point is `NowDev AI Agent`.
 - Router/coordinator agents decide between bundles and specialists.
 - Optional specialist bundles are enabled as units in the extension UI.
@@ -149,46 +155,50 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - When a specialist mostly repeats shared rules, simplify the prompt and point to this file plus the relevant skill docs.
 
 ### Development Agents (Fluent specialists)
-- **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
-- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
+- **Session and VS Code:** `vscode/memory`, `vscode/resolveMemoryFileUri`, `vscode/runCommand`, `vscode/askQuestions`, `vscode/toolSearch`
+- **Read:** `read/problems`, `read/readFile`, `read/viewImage`, `read/skill`, `read/terminalSelection`, `read/terminalLastCommand`, `read/getTaskOutput`
+- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`, `edit/rename`
 - **Search:** `search`, `web`
 - **Knowledge:** Use doc tokens in `<documentation>` block (`{{CLASSIC_SCRIPTING_DOCS}}`, `{{SDK_DOCS_CONTEXT}}`, `{{PRODUCT_DOCS_CONTEXT}}`, `{{FLUENT_SDK_EXPLAIN}}` as applicable)
 - **Tracking:** `todo`
-- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/killTerminal`, `execute/runTask`, `execute/createAndRunTask`
 - **Handoff:** Include `handoffs` with "Back to Architect" label pointing to `NowDev AI Agent`
 - **Browser:** None — Fluent development specialists do not interact with the instance browser; the orchestrator and Debugger handle instance inspection.
 
 ### Reviewer Specialist (NowDev-AI-Fluent-Reviewer)
-- **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
+- **Session and VS Code:** `vscode/memory`, `vscode/resolveMemoryFileUri`, `vscode/runCommand`, `vscode/askQuestions`, `vscode/toolSearch`
+- **Read:** `read/problems`, `read/readFile`, `read/viewImage`, `read/skill`, `read/terminalLastCommand`
 - **Search:** `search`, `web`
 - **Knowledge:** Use doc tokens in `<documentation>` block
 - **Tracking:** `todo`
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/killTerminal`, `execute/runTask`, `execute/createAndRunTask` for read-only validation
 - **Memory:** optional legacy context only. Dependency validation uses the cross-agent file handoff protocol described in "Canonical: Cross-Agent File Handoff" below.
 - **NO write tools** (reviewers only analyze, never modify)
 - **NO browser tools** (no instance interaction)
 - **Handoff:** Include a "Back to Architect" handoff to `NowDev AI Agent`, plus a "Fix Issues — Fluent Developer" handoff to `NowDev-AI-Fluent-Developer`
 
 ### Debugger Agent (NowDev-AI-Debugger)
-- **User Interaction:** `vscode/askQuestions` (for Login Verification Checkpoint and clarifying questions)
-- **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
+- **Session and VS Code:** `vscode/memory`, `vscode/resolveMemoryFileUri`, `vscode/runCommand`, `vscode/askQuestions`, `vscode/toolSearch`
+- **Read:** `read/problems`, `read/readFile`, `read/viewImage`, `read/skill`, `read/terminalLastCommand`, `read/getTaskOutput`
 - **Search:** `search`, `web`
 - **Tracking:** `todo`
-- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask`
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/killTerminal`, `execute/runTask`, `execute/createAndRunTask`
 - **NO write tools** (debuggers only analyze, never implement fixes)
-- **Browser (Read-Only & Diagnostic):** `browser/openBrowserPage`, `browser/readPage`, `browser/screenshotPage`, `browser/handleDialog`, `browser/runPlaywrightCode` (for diagnostics only; no interactive tools like clickElement, typeInPage, hoverElement, dragElement)
+- **Browser (Read-Only & Diagnostic):** `browser`; the prompt must restrict usage to diagnostic operations
 - **Handoff:** Include handoff back to NowDev AI Agent
 
 ### Release Agent (NowDev-AI-Fluent-Release)
-- **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
+- **Session and VS Code:** `vscode/memory`, `vscode/resolveMemoryFileUri`, `vscode/runCommand`, `vscode/askQuestions`, `vscode/toolSearch`
+- **Read:** `read/problems`, `read/readFile`, `read/viewImage`, `read/skill`, `read/terminalSelection`, `read/terminalLastCommand`
 - **Search:** `search`, `web`
 - **Tracking:** `todo`
-- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/killTerminal`, `execute/createAndRunTask` (for `now-sdk build` and `now-sdk install`)
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/killTerminal`, `execute/runTask`, `execute/createAndRunTask` (for SDK build and install operations constructed by `nowdev-ai-toolbox-servicenow-sdk`)
 - **NO write tools** (deploys via the SDK; never edits application source)
 - **Handoff:** Include handoff back to NowDev AI Agent
 
 ### Refinement Agent (NowDev-AI-Refinement)
-- **Read:** `read/readFile`, `read/problems`
-- **User Interaction:** `vscode/askQuestions` (core tool — single batched prompt per round)
+- **Session and VS Code:** `vscode/memory`, `vscode/askQuestions`, `vscode/toolSearch`
+- **Read:** `read/problems`, `read/readFile`, `read/viewImage`, `read/skill`
 - **Search:** `search`, `web`
 - **Knowledge:** Use `{{PRODUCT_DOCS_CONTEXT}}` in `<documentation>` block to validate feasibility
 - **Tracking:** `todo`
@@ -199,13 +209,14 @@ Keep specialist agents available as implementation boundaries, but expose them t
 - **Invoked when:** User story or implementation request contains vague references (unnamed groups, unspecified URLs, implicit conditions, undefined tables or roles)
 
 ### ATF Developer Agent (NowDev-AI-ATF-Developer)
-- **Read:** `read/readFile`, `read/problems`, `read/terminalLastCommand`
-- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`
+- **Session and VS Code:** `vscode/memory`, `vscode/resolveMemoryFileUri`, `vscode/runCommand`, `vscode/askQuestions`, `vscode/toolSearch`
+- **Read:** `read/problems`, `read/readFile`, `read/viewImage`, `read/skill`, `read/terminalSelection`, `read/terminalLastCommand`, `read/getTaskOutput`
+- **Write:** `edit/createDirectory`, `edit/createFile`, `edit/editFiles`, `edit/rename`
 - **Search:** `search`, `web`
 - **Knowledge:** Use `{{FLUENT_SDK_EXPLAIN}}` and `{{SDK_DOCS_CONTEXT}}` in `<documentation>` block to verify ATF step APIs
 - **Tracking:** `todo`
 - **Memory:** optional legacy context only. Cross-agent handoff uses the protocol described in "Canonical: Cross-Agent File Handoff" below.
-- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/awaitTerminal`, `execute/killTerminal`, `execute/createAndRunTask` (for `now-sdk build` validation)
+- **Execution:** `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/killTerminal`, `execute/runTask`, `execute/createAndRunTask` (for SDK build validation constructed by `nowdev-ai-toolbox-servicenow-sdk`)
 - **Handoff:** Include handoff back to `NowDev-AI-Fluent-Developer`
 - **Invoked when:** Logic and Schema artifacts are complete and testable artifacts (REST APIs, Script Includes, Tables, Catalog Items) were generated in the session
 
@@ -417,14 +428,14 @@ All development agents MUST verify APIs before writing code. Include doc tokens 
 
 ```markdown
 <stopping_rules>
-STOP IMMEDIATELY if using training data for Fluent SDK APIs — verify with `now-sdk explain <topic> --format raw`
+STOP IMMEDIATELY if using training data for Fluent SDK APIs — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the required topic instead
 STOP IMMEDIATELY if using training data for Classic or platform APIs — verify with the configured product or scripting docs source
 STOP if todo plan not documented
 </stopping_rules>
 
 <documentation>
 {{FLUENT_SDK_EXPLAIN}}           <!-- always-on for Fluent SDK topics -->
-{{SDK_DOCS_CONTEXT}}             <!-- supplemental SDK docs only when now-sdk explain does not cover the topic -->
+{{SDK_DOCS_CONTEXT}}             <!-- supplemental SDK docs only when the installed SDK topic does not cover the question -->
 {{CLASSIC_SCRIPTING_DOCS}}       <!-- user-configured Classic API docs -->
 {{PRODUCT_DOCS_CONTEXT}}         <!-- user-configured general platform docs -->
 </documentation>
@@ -623,7 +634,7 @@ Present the solution plan in chat during the Planning Phase using this structure
 
 ## Success Criteria
 - [ ] All artifacts created and reviewed
-- [ ] Fluent SDK API usage verified with `now-sdk explain`; Classic/platform API usage verified with configured product or scripting docs
+- [ ] Fluent SDK API usage verified by loading `nowdev-ai-toolbox-servicenow-sdk` and retrieving the relevant topics; Classic/platform API usage verified with configured product or scripting docs
 - [ ] XML imports generated (if requested)
 ```
 
@@ -637,7 +648,7 @@ Use `browser/openBrowserPage` in two situations:
 
 ### Resolving the Instance URL
 
-1. Check `environment.availableTools` from `.vscode/nowdev-ai-config.json`. If `now-sdk` is listed, run `now-sdk auth --list` to list configured SDK endpoints.
+1. Check `environment.availableTools` from `.vscode/nowdev-ai-config.json`. If `now-sdk` is listed, load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the configured SDK endpoints using the skill's current mechanics.
 2. Evaluate the output:
    - **`default = Yes` entry**: use that entry's `host` as the base URL. Proceed to opening the browser.
    - **Multiple entries, no clear default**: use `askQuestions` to ask the user which instance to open.

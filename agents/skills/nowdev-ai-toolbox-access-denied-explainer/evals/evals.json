@@ -16,11 +16,12 @@
     },
     {
       "id": 2,
-      "prompt": "A user with only the 'itil' role is getting an 'access denied' error when trying to read rows from the 'sys_properties' table on our PDI setup. Can you explain why standard read operations on sys_properties are failing for them?",
+      "prompt": "A user with only the 'itil' role is getting an 'access denied' error when trying to read rows from the 'sys_properties' table on our connected development instance. Can you explain why standard read operations on sys_properties are failing for them?",
       "expected_output": "A detailed Access Diagnostic Report in Markdown format auditing sys_properties read ACL permissions, explaining that read permissions on sys_properties are restricted to admin/security admin roles and why the 'itil' role is insufficient.",
       "files": [],
       "expectations": [
         "The response utilizes the standardized 'Access Diagnostic Report' markdown layout.",
+        "The skill delegates all now-sdk CLI mechanics to nowdev-ai-toolbox-servicenow-sdk and supplies only read-only table, filter, field, and evidence intent.",
         "The report identifies that the user has only 'itil' role.",
         "The evaluation trace queries sys_security_acl and indicates that sys_properties read operations require administrative rights.",
         "The recommendations suggest granting a proper administrative role or modifying the specific ACL rule safely."

@@ -14,8 +14,8 @@ This skill coordinates drafting of customer/end-user-facing incident replies, up
 
 ### A. Strictly Read-Only Safeguard
 - **DO NOT** perform write operations or mutations on any ServiceNow records. Do not attempt to update the incident status, incident notes, or short/long descriptions on the instance.
-- **DO NOT** execute stateful commands (e.g., `now-sdk install`, `now-sdk build`).
-- **ONLY** use read-only search and query tools (`now-sdk query`, `now-sdk explain`).
+- **DO NOT** execute stateful SDK operations.
+- Use `now-sdk` only for read-only retrieval, and load `nowdev-ai-toolbox-servicenow-sdk` first. It is the sole authority for command construction, flags, authentication aliases, output handling, pagination, and CLI troubleshooting.
 - **ALWAYS** include an explicit notice at the bottom of the output reminding the user that this is a read-only chat skill and that they (or a separate write-capable execution pipeline) must copy and post the draft manually to the actual ServiceNow platform record.
 
 ### B. Language Alignment / Multilingual Support
@@ -29,10 +29,11 @@ This skill coordinates drafting of customer/end-user-facing incident replies, up
 
 ### Step 1: Detect Target Language & Retrieve Incident
 1. Read the user's prompt to determine the target language and locate the record reference (e.g., incident number `INC0010042` or a `sys_id`).
-2. Query the connected ServiceNow instance using `now-sdk query` to retrieve the key incident context.
+2. Ask the canonical SDK skill to retrieve the key incident context using this intent:
 
-**Incident Query Example:**
-`now-sdk query incident -q "number=INC0010042^ORsys_id=d629f604db59030064dd36cb7... " -f "number,short_description,description,work_notes" -o json --limit 1`
+| Table | Filter intent | Fields | Limit intent |
+|---|---|---|---|
+| `incident` | Exact incident number or exact `sys_id` supplied by the user | `number,short_description,description,work_notes` | One incident |
 
 ### Step 2: Extract Key Concepts & Construct Bilingual Query
 Extract the main issue topic from the retrieved incident `short_description` and `description` (e.g., "VPN login authentication failure"). To ensure successful discovery of knowledge articles regardless of the language they were written in, construct a bilingual query expansion pattern mirroring the exact approach from `kb-compliance-check`:
@@ -40,19 +41,17 @@ Extract the main issue topic from the retrieved incident `short_description` and
 2. **Translate to Target Language equivalents:** (e.g., in Spanish: `"autenticación"`, `"fallo de inicio de sesión"`; in French: `"authentification"`, `"échec de connexion"`).
 3. **Assemble Bilingual Encoded Query:** Join all English and Target Language terms under an `OR` (`^OR`) clause to search the Knowledge Base (`kb_knowledge`).
 
-### Step 3: Query the Knowledge Base (`kb_knowledge`)
-Search the instance's `kb_knowledge` table using the assembled bilingual encoded query targeting both `short_description` and `text` fields.
-
-**Knowledge Search Query Pattern:**
-`now-sdk query kb_knowledge -q "short_descriptionLIKE[EnglishTerm]^ORtextLIKE[EnglishTerm]^ORshort_descriptionLIKE[TargetTerm]^ORtextLIKE[TargetTerm]" -f "number,short_description,text,sys_id" -o json --limit 5`
-
-Ensure all query parameters are correctly single-quoted for the terminal shell to avoid shell argument parsing issues.
+### Step 3: Retrieve Knowledge Base Guidance (`kb_knowledge`)
+Ask the canonical SDK skill for a read-only search where `short_description` or `text` contains any English or target-language term. Request `number,short_description,text,sys_id` and limit intent to the five most relevant articles.
 
 ### Step 4: Search for Incident Precedent
 Perform a keyword-based similar-incident fallback query on the `incident` table using key terms from Step 2 to locate historical precedents that could guide the resolution draft.
 
-**Incident Past Precedent Query Pattern:**
-`now-sdk query incident -q "short_descriptionLIKE[Term]^ORdescriptionLIKE[Term]" -f "number,short_description,close_notes,sys_id" -o json --limit 5`
+Use this retrieval intent:
+
+| Table | Filter intent | Fields | Limit intent |
+|---|---|---|---|
+| `incident` | `short_description` or `description` contains the extracted issue terms | `number,short_description,close_notes,sys_id` | Five most relevant historical incidents |
 
 ### Step 5: Synthesize and Draft the Response
 1. **Analyze:** Combine the original incident details, retrieved KB instruction text, and resolution notes from similar incidents to draft an accurate response.

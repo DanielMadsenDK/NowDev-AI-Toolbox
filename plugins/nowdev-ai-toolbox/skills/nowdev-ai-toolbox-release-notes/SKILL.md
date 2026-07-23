@@ -48,6 +48,8 @@ Examples discovered in the Australia release:
 - **Portfolio Planning:** `portfolio-planning-rn.md`
 - **Incident Management:** `incident-management-rn.md`
 
+The `servicenow-sdk-rn.md` value above is only a release-note page identifier. If the resulting research leads to any `now-sdk` use, load `nowdev-ai-toolbox-servicenow-sdk`; it is the sole authority for CLI command construction and execution mechanics.
+
 ### Step 3: Fetch the Specific Target Page
 Fetch the deep link webpage associated with the target application to gather detailed feature highlights, changes, deprecation guidelines, and requirements.
 

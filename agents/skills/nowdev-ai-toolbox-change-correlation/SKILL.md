@@ -1,7 +1,7 @@
 ---
 name: nowdev-ai-toolbox-change-correlation
 user-invocable: true
-description: Surfaces and correlates recent configuration and code changes in a single live ServiceNow instance to explain a sudden regression ("this used to work"). Trigger this skill whenever a user mentions a regression or asks "what changed recently", "started failing after...", "did someone break this", "regression since last week", or says something was working but is now broken. The skill queries the Customer Update table ('sys_update_xml') using 'now-sdk query' over a target time window (default 7 days) and options like scope to group recent changes, map them into a chronological risk-annotated timeline, prioritize suspects related to the symptoms, and recommend verification steps.
+description: Surfaces and correlates recent configuration and code changes in a single live ServiceNow instance to explain a sudden regression ("this used to work"). Trigger this skill whenever a user mentions a regression or asks "what changed recently", "started failing after...", "did someone break this", "regression since last week", or says something was working but is now broken. The skill delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk`, then maps Customer Updates into a chronological, risk-annotated timeline.
 ---
 
 # ServiceNow Live Change Correlation & Regression Diagnosis
@@ -12,10 +12,11 @@ This skill provides a systematic and read-only workflow to surface, analyze, and
 
 ## Core Principles
 
-1. **Strictly Read-Only Safeguard:** Only use `now-sdk query` and `now-sdk explain` to fetch details. NEVER run any mutating, saving, build, install, or deploy commands inside this skill. NEVER edit, revert, or write any code or records directly on the instance. Only query, analyze, report, and recommend.
-2. **Time-Window Driven:** Focus specifically on a target time-window (e.g., the last 7 days, 24 hours, or a user-provided regression window) on a single instance to find when the issue was introduced.
-3. **Symptom-Implicated Prioritization:** Prioritize configuration updates that touch the same ServiceNow tables, script includes, business rules, or security components mentioned by the user or implicated by the regression symptom.
-4. **Scope Boundary & Environment Drift Deferral:** This skill is strictly designed for local, time-based change correlation on a SINGLE instance. If the user's inquiry asks to compare multiple environments, match configurations across separate instances, or check for missing deployment artifacts between instance environments (such as dev vs. prod), do not use this skill; instead, immediately defer to [agents/skills/nowdev-ai-toolbox-environment-drift-audit/SKILL.md](agents/skills/nowdev-ai-toolbox-environment-drift-audit/SKILL.md) and state this redirect to the user.
+1. **Strictly Read-Only Safeguard:** Use `now-sdk` only to fetch details. NEVER run any mutating, saving, build, install, or deploy operation inside this skill. NEVER edit, revert, or write any code or records directly on the instance. Only retrieve, analyze, report, and recommend.
+2. **SDK Authority:** Load `nowdev-ai-toolbox-servicenow-sdk` before using `now-sdk`; it is the sole authority for command construction, flags, authentication aliases, output handling, pagination, and CLI troubleshooting.
+3. **Time-Window Driven:** Focus specifically on a target time-window (e.g., the last 7 days, 24 hours, or a user-provided regression window) on a single instance to find when the issue was introduced.
+4. **Symptom-Implicated Prioritization:** Prioritize configuration updates that touch the same ServiceNow tables, script includes, business rules, or security components mentioned by the user or implicated by the regression symptom.
+5. **Scope Boundary & Environment Drift Deferral:** This skill is strictly designed for local, time-based change correlation on a SINGLE instance. If the user's inquiry asks to compare multiple environments, match configurations across separate instances, or check for missing deployment artifacts between instance environments (such as dev vs. prod), do not use this skill; instead, immediately defer to [agents/skills/nowdev-ai-toolbox-environment-drift-audit/SKILL.md](agents/skills/nowdev-ai-toolbox-environment-drift-audit/SKILL.md) and state this redirect to the user.
 
 ---
 
@@ -36,21 +37,21 @@ Analyze the conversation or prompt to identify:
 - **The symptom/error:** What is failing, which table is implicated (e.g., `incident`), or what function is throwing errors.
 - **The regression window:** When the failure started or how far back to look. Define an explicit start date (e.g., "since yesterday" or "regression since last week"). If no explicit timing is provided, use **7 days** as the default window.
 
-### Step 2: Detect Scope and Auth Alias
+### Step 2: Detect Scope and Target Instance
 1. Read the current scoped application's scope name (e.g., `x_abc_scope` or `x_123456_my_app`) from [now.config.json](now.config.json) or [package.json](package.json) in the workspace.
-2. Run `now-sdk auth --list` to determine the stored authentication credentials (alias names) and choose the appropriate active/default alias or the one specified by the user.
+2. Ask the canonical SDK skill to resolve available connections and select the user-specified target. If the target instance remains ambiguous, ask the user before retrieval.
 
 ### Step 3: Query recent Customer Updates
-Query the Customer Update table (`sys_update_xml`) using `now-sdk query`. Look up updates made during the target time window, filtering by the application scope if known.
+Ask `nowdev-ai-toolbox-servicenow-sdk` to perform the read-only retrieval described below.
 
-- **Table:** `sys_update_xml`
-- **Fields:** `sys_id,sys_updated_on,sys_updated_by,type,target_name,name,action,application,payload`
-- **ServiceNow Date/Time Helpers:** Apply standard encoded query date conditions:
+| Table | Filter intent | Fields | Limit intent |
+|---|---|---|---|
+| `sys_update_xml` | Records updated inside the target regression window; additionally match `application.scope=<scope_name>` when scope is known | `sys_id,sys_updated_on,sys_updated_by,type,target_name,name,action,application,payload` | Start bounded; paginate deliberately until the requested time window is covered, and report partial coverage |
+
+Use standard encoded-query date intent:
   - Last 7 days: `sys_updated_onONLast 7 days@javascript:gs.beginningOfLast7Days()@javascript:gs.endOfLast7Days()`
   - Last 24 hours: `sys_updated_onONToday@javascript:gs.beginningOfToday()@javascript:gs.endOfToday()`
   - Custom date range: `sys_updated_on>=javascript:gs.dateGenerate('YYYY-MM-DD','HH:MM:SS')`
-- **Scoped Query Example Cmd:**
-  `now-sdk query sys_update_xml -q "sys_updated_on>=javascript:gs.beginningOfLast7Days()^application.scope=<scope_name>" -f "sys_id,sys_updated_on,sys_updated_by,type,target_name,name,action,application,payload" -a <alias> -o json`
 
 ### Step 4: Group, Prioritize, and Risk-Annotate Changes
 Extract the JSON results and parse the records. For each record, analyze the fields and:

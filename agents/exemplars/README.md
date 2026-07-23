@@ -11,9 +11,11 @@ Each file here is the minimal "what good looks like" for a specific ServiceNow a
 | `fluent-business-rule.now.ts` | Fluent BusinessRule (function-accepting) | NowDev-AI-Fluent-Logic-Developer |
 | `atf-test-step.now.ts` | Fluent ATF Test + TestSuite | NowDev-AI-ATF-Developer |
 
-### API names added in SDK 4.8 (no exemplar files — use `now-sdk explain <topic>`)
+### API names added in SDK 4.8
 
-| API | Artifact Type | `now-sdk explain` topic | Agent Reference |
+Load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the listed installed-documentation topic before using these APIs. The SDK skill is the sole authority for `now-sdk` CLI mechanics.
+
+| API | Artifact Type | Installed-documentation topic | Agent Reference |
 |-----|--------------|------------------------|-----------------|
 | `PlaybookDefinition` | Playbook (triggers, lanes, activities, decisions) | `playbookdefinition-api`, `wfa-playbook-guide` | NowDev-AI-Fluent-Automation-Developer |
 | `RestMessage` | Outbound REST integration (sys_rest_message) | `restmessage-api` | NowDev-AI-Fluent-Schema-Developer |
@@ -31,12 +33,5 @@ Classic script bodies live inside Fluent artifacts (function-accepting APIs or `
 |------|--------------|-----------------|
 | `classic-business-rule.js` | Business Rule IIFE wrapper + Display Business Rule g_scratchpad | NowDev-AI-Fluent-Logic-Developer |
 | `classic-client-script.js` | onChange (isLoading guard + async GlideAjax) + onLoad (g_scratchpad) | NowDev-AI-Fluent-UI-Developer |
-
-## CI/CD Pipelines
-
-| File | Artifact Type | Agent Reference |
-|------|--------------|-----------------|
-| `github-actions-branch-per-env.yml` | GitHub Actions — branch-per-environment deploy | NowDev-AI-Pipeline-Expert |
-| `github-actions-trunk.yml` | GitHub Actions — trunk-based deploy (semver tags + dispatch) | NowDev-AI-Pipeline-Expert |
 
 **Keep these fresh.** A stale exemplar that agents copy from is worse than no exemplar. Update when SDK patterns or naming conventions change.

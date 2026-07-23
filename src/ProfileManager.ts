@@ -41,29 +41,27 @@ export const BUILT_IN_PROFILES: ProfileDefinition[] = [
     {
         id: 'developer',
         label: 'Developer',
-        description: 'Core ServiceNow development with advanced AI Studio and CI/CD specialists hidden until needed.',
+        description: 'Core ServiceNow development with advanced AI Studio specialists hidden until needed.',
         suppressedAgents: [
             'NowDev-AI-AI-Agent-Developer',
             'NowDev-AI-NowAssist-Developer',
-            'NowDev-AI-Pipeline-Expert',
         ],
         profileInstructions: '',
     },
     {
         id: 'advanced-developer',
         label: 'Advanced Developer',
-        description: 'All specialist bundles enabled, including AI Studio and CI/CD pipeline generation.',
+        description: 'All specialist bundles enabled, including AI Studio development.',
         suppressedAgents: [],
         profileInstructions: '',
     },
     {
         id: 'junior-developer',
         label: 'Junior Developer',
-        description: 'Core development with step-by-step educational explanations. Advanced AI Studio and CI/CD specialists are hidden.',
+        description: 'Core development with step-by-step educational explanations. Advanced AI Studio specialists are hidden.',
         suppressedAgents: [
             'NowDev-AI-AI-Agent-Developer',
             'NowDev-AI-NowAssist-Developer',
-            'NowDev-AI-Pipeline-Expert',
         ],
         profileInstructions: `## Junior Developer Mode
 
@@ -94,7 +92,6 @@ Produce full production-quality code — the explanations are additive, not a re
             'NowDev-AI-AI-Agent-Developer',
             'NowDev-AI-NowAssist-Developer',
             // Standalone agents not relevant for PO
-            'NowDev-AI-Pipeline-Expert',
             'NowDev-AI-Debugger',
         ],
         profileInstructions: `## Product Owner Communication Mode

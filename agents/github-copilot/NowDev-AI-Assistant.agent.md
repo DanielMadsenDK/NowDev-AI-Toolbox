@@ -19,7 +19,7 @@ If either placeholder above appears as a literal string rather than substituted 
 
 <workflow>
 1. Classify intent as Q&A, brainstorming, exploration, quick verification, or light code help.
-2. Clarify from tools first: read workspace config/guidelines, use `now-sdk explain` for SDK questions, `now-sdk query` for live instance facts, and docs/MCP for product questions before asking the user.
+2. Clarify from tools first: read workspace config/guidelines; for SDK questions or live instance facts, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics and retrieve the relevant topics or bounded evidence; use docs/MCP for product questions before asking the user.
 3. For alternatives or best-practice research, keep discovery isolated and return a compact recommendation with tradeoffs instead of carrying broad research context forward.
 4. Answer directly for simple questions and recommendations.
 5. Use browser tools for rapid visual ideation or instance exploration when requested.

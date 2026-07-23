@@ -1,18 +1,18 @@
 # Troubleshooting
 
-Supplementary NowDev troubleshooting notes only. Verify current API and build behavior with `now-sdk explain`, `now-sdk build`, and workspace schema/types before treating any item here as definitive.
+Supplementary NowDev troubleshooting notes only. Load `nowdev-ai-toolbox-servicenow-sdk` before using `now-sdk`; it is the sole authority for CLI mechanics. Ask it to retrieve relevant installed documentation and run the appropriate SDK build or dependency operation, then combine that evidence with workspace schema/types before treating any item here as definitive.
 
 ## Common Issues
 
 | Issue | Solution |
 |-------|----------|
 | **Duplicates on install** | Fix field mappings; use correct fields per `link_type`; use parent constant refs (`menu.$id` not `Now.ID[...]`) |
-| **Type errors** | Run `now-sdk dependencies`; check tsconfig references to `@types/servicenow` |
+| **Type errors** | Ask the canonical SDK skill to run the dependency operation; check tsconfig references to `@types/servicenow` |
 | **`referenceTable` required error** | `referenceTable` is **required** for `ReferenceColumn` and `ListColumn` — always provide it |
 | **Module not in navigator** | Verify `active: true`, correct `application` ref, proper `link_type`/`name`/`query` |
 | **Scripts not working** | Check `Now.include()` paths (relative to `.now.ts`); don't mix Fluent TypeScript with ServiceNow JS validation |
 | **Import errors** | Use `.js` extension for TS module imports; verify exports are named properly |
-| **`#now:` alias not found** | Add `"imports": { "#now:*": "./@types/servicenow/fluent/*/index.js" }` to `package.json`; run `now-sdk dependencies` |
+| **`#now:` alias not found** | Add `"imports": { "#now:*": "./@types/servicenow/fluent/*/index.js" }` to `package.json`; ask the canonical SDK skill to run the dependency operation |
 | **Build warnings** | Review `src/fluent/generated/keys.ts`; check for missing `$id` values |
 
 ---
@@ -31,7 +31,7 @@ This error means one or more of the required steps is missing. Check all four:
 
 ## React Build: TS2689 "Cannot extend an interface" / conflicting @types errors
 
-If `now-sdk build` fails with errors like `TS2689: Cannot extend an interface 'Electron.Event'` or similar errors from packages you didn't install, the cause is a **missing `tsconfig.json` in `src/client/`**.
+If the SDK build fails with errors like `TS2689: Cannot extend an interface 'Electron.Event'` or similar errors from packages you didn't install, the cause is a **missing `tsconfig.json` in `src/client/`**. Use `nowdev-ai-toolbox-servicenow-sdk` for the build invocation and failure classification.
 
 Without a `tsconfig.json`, the TypeScript compiler uses default options and picks up **every** `@types/*` package installed in `node_modules` — including packages like `@types/electron` that conflict with DOM types. This produces hard build failures.
 

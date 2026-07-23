@@ -22,8 +22,9 @@ This skill guides the process of finding and cross-checking generated or propose
 ## 1. Strictly Read-Only Safeguard & Language Alignment
 - **Strictly Read-Only:** This skill operates in a strictly **read-only** manner during the compliance audit.
   - **DO NOT** create, mutate, update, or delete any records on the ServiceNow instance.
-  - **DO NOT** run `now-sdk install`, `now-sdk build`, or change any local metadata files.
-  - **ONLY** use `now-sdk query` to retrieve existing KB articles and verify schema/conventions.
+  - **DO NOT** install, build, deploy, or change local metadata files.
+  - Use `now-sdk` only for read-only retrieval of existing KB articles and schema/conventions.
+  - Load `nowdev-ai-toolbox-servicenow-sdk` first; it is the sole authority for command construction, flags, authentication aliases, output handling, pagination, and CLI troubleshooting.
 - **Language Alignment & Multilingual Support:** Always communicate with the user, formulate feedback, and write the final audit reports in the **exact language used by the user** in their active prompt or conversation context, detected dynamically rather than assumed. Keep programmatic system identifiers (like table names, API paths, or code files) in their technical form, but wrap prose and analysis in the user's language.
 
 ---
@@ -39,20 +40,14 @@ Analyze the code, metadata representation, or implementation plan currently unde
    - Business Rules: English (`"business rule"`, `"scripting guidelines"`, `"recursive business rules"`) and the detected-language equivalents.
    - Client scripts: English (`"client script"`, `"GlideAjax"`, `"browser performance"`) and the detected-language equivalents.
 
-### Step 2: Query the Knowledge Base (`kb_knowledge`)
-Search the `kb_knowledge` table on the connected instance via `now-sdk query`.
-Since standard ServiceNow search might be keyword-based, use an encoded query (`-q`) looking at fields like `short_description` and `text`.
+### Step 2: Retrieve Knowledge Base Guidance (`kb_knowledge`)
+Ask `nowdev-ai-toolbox-servicenow-sdk` to perform this read-only retrieval:
 
-**Recommended Query Pattern:**
-Run `now-sdk query kb_knowledge -q "<query>"` with options `-f "number,short_description,text,sys_id" -o json --limit 10`.
+| Table | Filter intent | Fields | Limit intent |
+|---|---|---|---|
+| `kb_knowledge` | `short_description` or `text` contains any English or detected-language term for general standards, coding standards, naming conventions, forbidden patterns, and the specific artifact type | `number,short_description,text,sys_id` | Up to 10 relevant articles; start with 5 per general or artifact-specific term group |
 
-Construct an encoded query using `LIKE` or keywords that targets **both English and the detected local-language components** to ensure comprehensive discovery. For example:
-- Check for general development standards:
-  `now-sdk query kb_knowledge -q "short_descriptionLIKEdevelopment standards^ORtextLIKEdevelopment standards^ORshort_descriptionLIKEcoding standards^ORtextLIKEcoding standards^ORshort_descriptionLIKE[LocalizedTerm1]^ORtextLIKE[LocalizedTerm1]^ORshort_descriptionLIKE[LocalizedTerm2]^ORtextLIKE[LocalizedTerm2]" -f "number,short_description,text,sys_id" -o json --limit 5`
-- Check for specific artifact rules (e.g., Business Rules):
-  `now-sdk query kb_knowledge -q "short_descriptionLIKEbusiness rule^ORtextLIKEbusiness rule^ORshort_descriptionLIKE[LocalizedTerm]^ORtextLIKE[LocalizedTerm]^ORshort_descriptionLIKEscripting^ORtextLIKEscripting" -f "number,short_description,text,sys_id" -o json --limit 5`
-
-Ensure all query parameters are correctly single-quoted for the terminal shell, avoiding terminal parsing errors.
+Build the filter intent with `LIKE` conditions joined by OR across both fields and both languages. Keep the language expansion and artifact specificity; delegate encoded-query and shell mechanics to the canonical SDK skill.
 
 ### Step 3: Analyze KB Articles
 For the retrieved KB articles:

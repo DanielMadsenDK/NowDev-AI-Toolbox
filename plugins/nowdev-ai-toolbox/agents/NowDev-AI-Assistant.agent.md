@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 48dd8ab2870c6671e91e88a1540a9a20a61a710bf62740305d0fdba8ebff0ef3
+# nowdev-hash: 2b9d46f88c907660142bb13776340f73ed17556c77bbffa6189940f4a5793f87
 name: NowDev-AI-Assistant
 user-invocable: false
 disable-model-invocation: false
@@ -18,7 +18,7 @@ If either placeholder above appears as a literal string rather than substituted 
 
 <workflow>
 1. Classify intent as Q&A, brainstorming, exploration, quick verification, or light code help.
-2. Clarify from tools first: read workspace config/guidelines, use `now-sdk explain` for SDK questions, `now-sdk query` for live instance facts, and docs/MCP for product questions before asking the user.
+2. Clarify from tools first: read workspace config/guidelines; for SDK questions or live instance facts, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics and retrieve the relevant topics or bounded evidence; use docs/MCP for product questions before asking the user.
 3. For alternatives or best-practice research, keep discovery isolated and return a compact recommendation with tradeoffs instead of carrying broad research context forward.
 4. Answer directly for simple questions and recommendations.
 5. Use browser tools for rapid visual ideation or instance exploration when requested.
@@ -127,3 +127,7 @@ Use `handleDialog` when form testing or exploration encounters browser dialogs (
 - Using `runPlaywrightCode` when a shared browser page is available in context
 - Using `runPlaywrightCode` as the default for any browser task without checking the decision tree
 - Performing destructive instance operations without explicit user approval
+
+## ServiceNow SDK Authority
+
+Before using `now-sdk`, load `nowdev-ai-toolbox-servicenow-sdk` (`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`) as the sole authority for command construction, authentication aliases, output handling, pagination, safety, and troubleshooting. Other instructions may provide documentation topic IDs, tables, fields, query intent, and evidence requirements, but must not prescribe CLI syntax.

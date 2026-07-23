@@ -525,6 +525,8 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             }
         });
 
+        webviewView.webview.html = this._getHtml(webviewView.webview);
+
         vscode.workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration('nowdev-ai-toolbox.docsLocalPath')) {
                 this._syncWorkspaceAgents();
@@ -577,8 +579,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 setTimeout(() => this._updateStatus(), 100);
             }
         });
-
-        webviewView.webview.html = this._getHtml(webviewView.webview);
 
         // Initial data pushes — load config first so _selectedMcp is ready before _updateStatus
         setTimeout(() => {

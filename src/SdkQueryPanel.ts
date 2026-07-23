@@ -132,13 +132,13 @@ function formatSdkQueryError(output: string): string | undefined {
 // ── HTML templates ─────────────────────────────────────────────────────────────
 
 function loadingHtml(table: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
 <div class="loading">Querying <strong>${esc(table)}</strong>&hellip;</div>
 </body></html>`;
 }
 
 function errorHtml(msg: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
 <div class="error-msg">${esc(msg)}</div>
 </body></html>`;
 }

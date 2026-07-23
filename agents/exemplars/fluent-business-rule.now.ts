@@ -1,5 +1,5 @@
 // Canonical shape: Fluent SDK BusinessRule using ES module import (function-accepting API)
-// Reference: now-sdk explain module-guide --format raw
+// Verify topic module-guide through nowdev-ai-toolbox-servicenow-sdk.
 import '@servicenow/sdk/global';
 import { BusinessRule } from '@servicenow/sdk/core';
 import { gs } from '@servicenow/glide';

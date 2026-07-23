@@ -1,7 +1,7 @@
 ---
 name: nowdev-ai-toolbox-fluent-development
 user-invocable: false
-description: Navigation and NowDev-specific guardrails for ServiceNow Fluent SDK development. Use when a task involves Fluent `.now.ts` metadata, SDK project layout, NowDev agent handoffs, or local patterns that are not covered by `now-sdk explain`.
+description: Navigation and NowDev-specific guardrails for ServiceNow Fluent SDK development. Use when a task involves Fluent `.now.ts` metadata, SDK project layout, NowDev agent handoffs, or local patterns not covered by installed SDK documentation.
 ---
 
 # ServiceNow Fluent Development
@@ -10,11 +10,11 @@ Use this skill for NowDev workflow conventions around Fluent SDK projects. Do **
 
 ## Authoritative SDK Source
 
-For `now-sdk` command syntax, flags, and the `explain`/`query` discovery workflow, use `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` — the canonical CLI reference. This skill does not duplicate that mechanics.
+Load `nowdev-ai-toolbox-servicenow-sdk` before using `now-sdk`. It is the sole authority for CLI command construction, flags, documentation and query discovery, authentication, output handling, pagination, and troubleshooting; this skill does not duplicate those mechanics.
 
-Always verify current SDK API shape with `now-sdk explain <topic> --format raw` before writing or reviewing Fluent code. Installed SDK documentation always takes absolute precedence and is the sole authority on all SDK APIs; local pattern files or prior knowledge do not apply to SDK API syntax or shapes.
+Always ask the canonical SDK skill to retrieve the relevant installed documentation topic before writing or reviewing Fluent code. Installed SDK documentation takes absolute precedence and is the sole authority on all SDK APIs; local pattern files or prior knowledge do not apply to SDK API syntax or shapes.
 
-If `now-sdk explain` is unavailable or returns an error, halt and inform the user that SDK verification is required before proceeding. Do not fall back to local pattern docs or prior knowledge as a substitute for current SDK shape.
+If the canonical SDK skill cannot retrieve the installed documentation, halt and inform the user that SDK verification is required before proceeding. Let that skill classify the CLI failure; do not fall back to local pattern docs or prior knowledge as a substitute for current SDK shape.
 
 ## What This Skill Still Owns
 
@@ -25,21 +25,21 @@ If `now-sdk explain` is unavailable or returns an error, halt and inform the use
 
 ## Local Pattern Docs
 
-Use these local docs ONLY for workflows and patterns not covered by the SDK. Always prioritize the SDK `explain` guides, and consult these files only for the specific non-API topics they cover:
+Use these local docs ONLY for workflows and patterns not covered by the SDK. Always prioritize installed SDK guides retrieved by `nowdev-ai-toolbox-servicenow-sdk`, and consult these files only for the specific non-API topics they cover:
 
 | Need | Local Reference |
 |---|---|
 | Build/runtime troubleshooting workflow | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) |
 | Multi-agent handoff sequencing, artifact naming conventions, and NowDev-specific anti-patterns not addressable by SDK explain topics | [ADVANCED-PATTERNS.md](./ADVANCED-PATTERNS.md) |
 
-The following used to be local files but are now fully covered by the installed SDK's own docs — fetch these `explain` topics directly instead:
+The following used to be local files but are now fully covered by installed SDK documentation. Ask the canonical SDK skill to retrieve these topics:
 
 | Need | SDK Topic |
 |---|---|
-| JavaScript modules, module/string-only decision support | `now-sdk explain module-guide --format raw` |
-| Script Include bridges (module-to-Script Include pattern) | `now-sdk explain script-include-guide --format raw` |
-| `$override` risk policy and gotchas | `now-sdk explain override-guide --format raw` |
-| React UI Page build model, dirty state, service layer, CSS constraints | `now-sdk explain ui-page-patterns-guide --format raw` |
+| JavaScript modules, module/string-only decision support | `module-guide` |
+| Script Include bridges (module-to-Script Include pattern) | `script-include-guide` |
+| `$override` risk policy and gotchas | `override-guide` |
+| React UI Page build model, dirty state, service layer, CSS constraints | `ui-page-patterns-guide` |
 
 ## Agent Routing
 
@@ -57,12 +57,12 @@ The following used to be local files but are now fully covered by the installed 
 
 ## Persistent Guardrails
 
-- Verify current SDK shape with `now-sdk explain` before writing or reviewing code.
+- Verify current SDK shape through `nowdev-ai-toolbox-servicenow-sdk` before writing or reviewing code.
 - Use actual workspace facts: `now.config.json`, `.vscode/nowdev-ai-config.json`, generated schema types, and session artifact state.
 - Own metadata references should use exported constants such as `table.name` or `record.$id`; use `Now.ref()` for metadata outside the current application.
 - Use `Now.include()` for files only where the current SDK topic says the property accepts string content or file inclusion.
-- For module-vs-string decisions, first check the artifact-specific API topic; if unresolved, check `now-sdk explain module-guide --format raw`; use `now-sdk explain now-include-guide --format raw` only to confirm file-inclusion syntax. The artifact-specific topic takes precedence over the general guides.
-- Run the narrowest available validation after edits, usually `now-sdk build` for Fluent app changes.
+- For module-vs-string decisions, first ask the canonical SDK skill for the artifact-specific API topic; if unresolved, request topic `module-guide`, and use topic `now-include-guide` only to confirm file-inclusion syntax. The artifact-specific topic takes precedence over the general guides.
+- Run the narrowest available validation after edits, usually an SDK build for Fluent app changes. Delegate command construction and execution mechanics to `nowdev-ai-toolbox-servicenow-sdk`.
 
 ## Project Layout Convention
 
@@ -78,4 +78,4 @@ src/client/
 src/tests/
 ```
 
-Use this layout as a convention only; API correctness still comes from `now-sdk explain` and the current workspace.
+Use this layout as a convention only; API correctness still comes from installed documentation retrieved through `nowdev-ai-toolbox-servicenow-sdk` and the current workspace.

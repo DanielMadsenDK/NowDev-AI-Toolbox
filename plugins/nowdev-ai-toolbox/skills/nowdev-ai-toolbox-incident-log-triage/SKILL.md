@@ -1,68 +1,31 @@
 ---
 name: nowdev-ai-toolbox-incident-log-triage
 user-invocable: true
-description: Symptom-first root-cause triage when something in the live ServiceNow instance is broken or erroring and the user has no known file/script to point at. Make sure to use this skill whenever the user mentions "something is broken", "getting an error when I...", "why isn't X working", "something's wrong with the instance", "troubleshoot this incident/problem", "log triage", "instance triage", "integration error", or refers to any unexpected UI/session crash, background job exception, flow execution failure, or email delivery issue on the live instance. Strictly uses read-only queries with 'now-sdk query' across syslog, sys_email, sys_email_log, ecc_queue, sys_trigger, and sys_flow_context.
+description: Symptom-first root-cause triage when something in the live ServiceNow instance is broken or erroring and the user has no known file/script to point at. Use for unexpected UI/session crashes, background job exceptions, flow failures, email delivery issues, integration errors, and general instance triage. It delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk` across operational diagnostic tables.
 ---
 
 ## 🗺️ Core Principles
 
-1. **Strictly Read-Only Safeguard:** NEVER perform write, update, delete, or mutation commands on the ServiceNow instance. Only invoke `now-sdk query` or `now-sdk explain`. Do not install, reinstall, or build during log triage. Diagnose only — do not attempt to fix anything.
-2. **Symptom-to-Source Mapping:** Start with the reported behavior and an approximate timeframe. Construct queries across various operational database log tables to isolate the cause.
-3. **Language Alignment / Multilingual Support:** Always communicate with the user, draft the final Triage Report, and perform discussion in the exact language used by the user in the prompt or conversation. Keep technical system terms (table names like `sys_flow_context`, field names like `sys_id`, `state`, code snippets) in their exact technical/English form, but translate all report headings, descriptions, hypotheses, and next step lists (e.g. in French, use `# Verdict Global` instead of `# Overall Verdict`, `## Prochaines étapes` instead of `## Recommended Next Steps`, etc.).
+1. **Strictly Read-Only Safeguard:** NEVER perform write, update, delete, or mutation operations on the ServiceNow instance. Use `now-sdk` only for read-only retrieval. Do not install, reinstall, or build during log triage. Diagnose only.
+2. **SDK Authority:** Load `nowdev-ai-toolbox-servicenow-sdk` before using `now-sdk`; it is the sole authority for command construction, flags, authentication aliases, output handling, pagination, and CLI troubleshooting.
+3. **Symptom-to-Source Mapping:** Start with the reported behavior and an approximate timeframe. Construct query intent across operational database log tables to isolate the cause.
+4. **Language Alignment / Multilingual Support:** Always communicate with the user, draft the final Triage Report, and perform discussion in the exact language used by the user in the prompt or conversation. Keep technical system terms (table names like `sys_flow_context`, field names like `sys_id`, `state`, code snippets) in their exact technical/English form, but translate all report headings, descriptions, hypotheses, and next step lists.
 
 ---
 
 ## 🔎 The Diagnostic Sources & Live Field Schemas
 
-Use `now-sdk query <table>` with specific field filters and boundaries. Always keep queries scoped with a `--limit` (defaulting to 10–25 rows) to avoid excessive context consumption.
+Ask `nowdev-ai-toolbox-servicenow-sdk` to perform bounded, read-only retrievals selected by symptom. Keep the first pass within the reported time window and expand only when evidence requires it.
 
-### 1. System Logs (`syslog`)
-For system-level warnings, runtime errors, or script execution stack traces.
-- **Table Name:** `syslog`
-- **Critical Fields:** `sys_id`, `level`, `message`, `source`, `sys_id`, `sys_created_on`
-- **Query Command Template:**
-  ```bash
-  now-sdk query syslog -q "level=2^sys_created_on>=javascript:gs.minutesAgo(30)" -f "sys_id,level,source,message,sys_created_on" -l 20 -o json
-  ```
-  *(Note: `level=2` filters for Error status logs.)*
-
-### 2. Notification & Email Failures (`sys_email` and `sys_email_log`)
-For delivery issue isolation (failed SMTP states or missing event triggers).
-- **Core Email Table:** `sys_email`
-- **Critical Fields:** `sys_id`, `subject`, `type`, `recipients`, `notification_type`, `instance`, `sys_created_on`
-- **Email Log Table:** `sys_email_log` (links Event records and Notification rules to the generated emails)
-- **Critical Fields:** `sys_id`, `notification`, `event`, `email`, `sys_created_on`
-- **Query Command Template:**
-  ```bash
-  now-sdk query sys_email -q "typeINsend-failed,send-ignored^sys_created_on>=javascript:gs.hoursAgo(2)" -f "sys_id,subject,type,recipients,sys_created_on" -l 10 -o json
-  ```
-
-### 3. MID Server & Integration Errors (`ecc_queue`)
-For failed external integration calls, REST/SOAP messages, or MID Server errors.
-- **Table Name:** `ecc_queue`
-- **Critical Fields:** `sys_id`, `agent`, `topic`, `name`, `state`, `queue`, `error_string`, `sys_created_on`
-- **Query Command Template:**
-  ```bash
-  now-sdk query ecc_queue -q "queue=input^state=error^sys_created_on>=javascript:gs.hoursAgo(4)" -f "sys_id,agent,topic,name,state,queue,error_string,sys_created_on" -l 10 -o json
-  ```
-
-### 4. Scheduled Jobs / Trigger Engines (`sys_trigger` and `sysauto_script`)
-For scheduled job processing issues, script exceptions, or delayed runtimes.
-- **Execution Engine Table:** `sys_trigger`
-- **Critical Fields:** `sys_id`, `name`, `state`, `error_count`, `last_error`, `run_time`, `next_action`, `sys_updated_on`
-- **Query Command Template:**
-  ```bash
-  now-sdk query sys_trigger -q "state=error^ORerror_count>0" -f "sys_id,name,state,error_count,last_error,run_time,next_action" -l 15 -o json
-  ```
-
-### 5. Flow Designer & Actions (`sys_flow_context`)
-For failed flow executions, subprocess crashes, or action timeouts.
-- **Table Name:** `sys_flow_context`
-- **Critical Fields:** `sys_id`, `name`, `state`, `error_message`, `error_state`, `flow`, `sys_created_on`
-- **Query Command Template:**
-  ```bash
-  now-sdk query sys_flow_context -q "state=ERROR^ORerror_messageISNOTEMPTY" -f "sys_id,name,state,error_message,error_state,flow,sys_created_on" -l 15 -o json
-  ```
+| Table | Filter intent | Fields | Limit intent |
+|---|---|---|---|
+| `syslog` | Error-level records in the reported window; narrow by source or message terms when known | `sys_id,level,source,message,sys_created_on` | 20 newest relevant records |
+| `sys_email` | Failed or ignored sends in the reported window; narrow by recipient, target, or subject when known | `sys_id,subject,type,recipients,notification_type,instance,sys_created_on` | 10 newest relevant records |
+| `sys_email_log` | Email-log links for discovered event, notification, or email IDs | `sys_id,notification,event,email,sys_created_on` | 10 newest relevant records |
+| `ecc_queue` | Input or output records in error state during the reported integration window | `sys_id,agent,topic,name,state,queue,error_string,sys_created_on` | 10 newest relevant records |
+| `sys_trigger` | Error state or positive error count; narrow by job name when known | `sys_id,name,state,error_count,last_error,run_time,next_action,sys_updated_on` | 15 newest relevant records |
+| `sysauto_script` | Scheduled job definition for a discovered trigger or job name | `sys_id,name,active,run_type,run_time,script` | Only matching definitions |
+| `sys_flow_context` | Error state or populated error message in the reported window | `sys_id,name,state,error_message,error_state,flow,sys_created_on` | 15 newest relevant records |
 
 ---
 
@@ -72,11 +35,11 @@ Follow this sequence systematically:
 
 ### Step 1: Establish Symptom and Time Window
 1. Clarify what is misbehaving and identify the approximate timeframe (e.g. "it happened 10 minutes ago", "since yesterday afternoon").
-2. Check the active auth alias by calling `now-sdk auth --list`. Assure you query the correct target instance.
+2. Determine the target instance. Delegate connection discovery to the canonical SDK skill and ask the user if the target is ambiguous.
 
 ### Step 2: Formulate Read-Only Diagnostic Queries
 1. Translate the approximate timeframe into ServiceNow encoded query time parameters (e.g. `javascript:gs.minutesAgo(15)`, `javascript:gs.hoursAgo(2)`).
-2. Execute target `now-sdk query` commands across the relevant diagnostic tables described above based on the symptom sub-domain (e.g., if emails are failing, scan both `syslog` and `sys_email`/`sys_email_log`; if integrations are failing, scan `syslog` and `ecc_queue`).
+2. Ask the canonical SDK skill to execute the relevant read-only retrievals described above based on the symptom sub-domain.
 
 ### Step 3: Event Correlation and Analysis
 Compare output timestamps and correlate records matching the timeframe:
@@ -144,6 +107,6 @@ Based on the event correlation, some possible causes:
 ---
 
 ## 📋 Safety Check & Operational Guardrails
-- **NEVER** use write methods. Use `now-sdk query` to capture facts and diagnose.
+- **NEVER** use write methods. Use `now-sdk` only for read-only fact retrieval and diagnosis through `nowdev-ai-toolbox-servicenow-sdk`.
 - **Never guess fields**—rely only on the verified field schemas declared in Section 'The Diagnostic Sources & Live Field Schemas'.
-- **Gracefully handle missing credentials:** If `now-sdk auth --list` returns no alias or the target alias fails to connect, report the error, list the steps to configure the alias with `now-sdk auth --add`, and wait. Do not assume or guess.
+- **Gracefully handle unavailable connections:** Let the canonical SDK skill classify the failure, report the sanitized issue, and ask the user to configure or select a valid connection outside this skill. Do not provide authentication bootstrap mechanics or guess.

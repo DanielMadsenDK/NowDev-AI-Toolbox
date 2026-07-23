@@ -116,8 +116,12 @@ function copyDir(src, dest) {
 
 // ── Build ───────────────────────────────────────────────────────────────────
 function main() {
-    console.log('[build-plugin] Compiling extension sources (tsc)…');
-    execSync('npm run compile', { cwd: repoRoot, stdio: 'inherit' });
+    if (process.env.NOWDEV_SKIP_COMPILE !== '1') {
+        console.log('[build-plugin] Compiling extension sources (tsc)…');
+        execSync('npm run compile', { cwd: repoRoot, stdio: 'inherit' });
+    } else {
+        console.log('[build-plugin] Using precompiled extension sources…');
+    }
 
     const { loadAgentRegistry } = require(path.join(repoRoot, 'out', 'AgentRegistry.js'));
     const {

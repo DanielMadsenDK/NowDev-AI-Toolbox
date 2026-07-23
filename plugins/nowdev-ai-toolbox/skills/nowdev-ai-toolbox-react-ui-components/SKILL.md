@@ -307,6 +307,6 @@ Load the relevant reference file for detailed props, examples, and patterns:
 | Alert, Loader, ProgressBar, Tooltip, Heading, Badge, HighlightedValue, LabelValue, Avatar, Icon, Breadcrumbs, TemplateMessage | [FEEDBACK-DISPLAY-COMPONENTS.md](./FEEDBACK-DISPLAY-COMPONENTS.md) |
 | Full import list and event pattern cheatsheet | [COMPONENTS-REFERENCE.md](./COMPONENTS-REFERENCE.md) |
 | Horizon design tokens, custom component styling, theming | [STYLING.md](./STYLING.md) |
-| **Horizon Design System theming:** token categories, color roles, layout patterns, controls, dark mode | `now-sdk explain ui-page-theming-guide --format raw` |
-| **UI Page patterns:** dirty state management, field extraction, service layer, CSS constraints, build system | `now-sdk explain ui-page-patterns-guide --format raw` |
+| **Horizon Design System theming:** token categories, color roles, layout patterns, controls, dark mode | Ask `nowdev-ai-toolbox-servicenow-sdk`, the sole authority for `now-sdk` CLI mechanics, to retrieve topic `ui-page-theming-guide` |
+| **UI Page patterns:** dirty state management, field extraction, service layer, CSS constraints, build system | Ask `nowdev-ai-toolbox-servicenow-sdk` to retrieve topic `ui-page-patterns-guide` |
 | Complete working examples (form, list, dashboard, styled components, modal) | [EXAMPLES.md](./EXAMPLES.md) |

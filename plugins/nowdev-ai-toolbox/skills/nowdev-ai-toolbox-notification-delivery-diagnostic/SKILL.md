@@ -1,7 +1,7 @@
 ---
 name: nowdev-ai-toolbox-notification-delivery-diagnostic
 user-invocable: true
-description: Systematically diagnoses and traces why a ServiceNow email, alert, notification, or message failed to deliver or send to a user. Make sure to use this skill whenever the user mentions that a "notification/email didn't send", "user didn't get an email", "why wasn't X notified", or wants to troubleshoot any kind of missing notification, dispatch failure, email bounce, preference exclusion, or event trigger issues of the notification delivery pipeline. It runs strictly read-only 'now-sdk query' commands against tables like sysevent, sysevent_email_action, sys_email, sys_email_log, cmn_notif_device, and sys_user to isolate and report the exact point of delivery failure.
+description: Systematically diagnoses why a ServiceNow email, alert, notification, or message failed to reach a user. Use for missing notifications, dispatch failures, bounces, preference exclusions, or event trigger issues. It delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk` and traces the delivery pipeline.
 ---
 
 # ServiceNow Notification Delivery Diagnostic
@@ -12,25 +12,24 @@ This skill provides a systematic and comprehensive workflow to trace, diagnose, 
 
 ## Core Principles
 
-1. **Strictly Read-Only Safeguard:** NEVER perform write, update, execute, insert, or delete commands on any ServiceNow instance while using this skill. Do NOT trigger a new event or attempt to resend an email. Only query data using `now-sdk query` and inspect definition/schemas using `now-sdk explain`. Only diagnose.
-2. **Deterministic Step-by-Step Tracing:** Systematically query and verify each link in the notification delivery pipeline. No guessing.
-3. **Language Alignment / Multilingual Support:** ALWAYS communicate with the user, draft the final delivery trace report, and formulate recommended fixes in the **exact language actively used by the user** in their conversation context (e.g., if the user asks or communicates in Danish, translate the overall verdict, table headers, root cause analysis, and recommendation text into Danish). Programmatic system tokens (such as table names, field names, sys_ids, or code blocks) must remain in their original technical/English form, but all prose and headers must align to the active language.
+1. **Strictly Read-Only Safeguard:** NEVER perform write, update, execute, insert, or delete operations on any ServiceNow instance while using this skill. Do NOT trigger a new event or attempt to resend an email. Use `now-sdk` only for read-only retrieval and diagnosis.
+2. **SDK Authority:** Load `nowdev-ai-toolbox-servicenow-sdk` before using `now-sdk`; it is the sole authority for command construction, flags, authentication aliases, output handling, pagination, and CLI troubleshooting.
+3. **Deterministic Step-by-Step Tracing:** Systematically retrieve and verify each link in the notification delivery pipeline. No guessing.
+4. **Language Alignment / Multilingual Support:** ALWAYS communicate with the user, draft the final delivery trace report, and formulate recommended fixes in the exact language actively used by the user. Programmatic system tokens remain in their original technical form.
 
 ---
 
 ## The Diagnostic Pipeline & Workflow
 
-Trace delivery failures stage-by-stage using `now-sdk query` (always outputting `-o json` and limiting to 10-25 results by default to save token context).
+Ask `nowdev-ai-toolbox-servicenow-sdk` to perform bounded, read-only retrievals stage by stage using the specification below.
 
 ### Stage 1: Trigger / Event Generation (`sysevent`)
 Determine how the notification is triggered ("Generation type" in `sysevent_email_action` is either an insertion/update of a record or an explicit Event).
 - If triggered by an Event, verify that the event record was successfully generated in the `sysevent` table.
 - **Table:** `sysevent`
 - **Fields:** `sys_id,name,table,state,processed,user_id,parm1,parm2,sys_created_on`
-- **Example Command:**
-  ```bash
-  now-sdk query sysevent -q "name=incident.inserted^table=incident^ORDERBYdesc=sys_created_on" -l 5 -f "sys_id,name,table,state,processed,user_id,parm1,parm2,sys_created_on" -a PDI -o json
-  ```
+- **Filter intent:** Match the expected event name and source table or record, newest first.
+- **Limit intent:** Five newest matching events.
 - **Analysis:**
   - Did the event fire? If there is no matching record in `sysevent`, the trigger failed (meaning the Script Include, Business Rule, or Workflow that fires the event did not execute or had an error).
   - Verify that `state` holds a healthy processed status (e.g. `processed`). If the event is stuck in `ready` or ended in `error`, the system's event queue processor didn't execute it.
@@ -41,10 +40,8 @@ Determine how the notification is triggered ("Generation type" in `sysevent_emai
 Query the notification rule to verify active settings, conditions, and recipients.
 - **Table:** `sysevent_email_action`
 - **Fields:** `sys_id,name,active,generation_type,event_name,collection,condition,advanced_condition,recipient_users,recipient_groups,recipient_fields,event_parm_1,event_parm_2,send_self`
-- **Example Command:**
-  ```bash
-  now-sdk query sysevent_email_action -q "name=Incident Assigned^active=true" -l 1 -a PDI -o json
-  ```
+- **Filter intent:** Match the notification name or ID; include active state and trigger configuration.
+- **Limit intent:** One exact notification definition.
 - **Analysis:**
   - Is the notification record `active`? If `active=false`, the rule is disabled.
   - Review `collection` (table matches transaction table) and `generation_type` (ensuring it is set to `event` if triggered by an event, or `engine` if triggered by inserts/updates).
@@ -57,19 +54,15 @@ Query the notification rule to verify active settings, conditions, and recipient
 Look up if an email record was actually created because of the event/notification trigger. Service email logs link the Event, Notification, and Email tables together.
 - **Table:** `sys_email_log`
 - **Fields:** `sys_id,notification,email,event,sys_created_on`
-- **Example Command:**
-  ```bash
-  now-sdk query sys_email_log -q "event=<event_sys_id>" -l 5 -a PDI -o json
-  ```
+- **Filter intent:** Match the discovered event ID.
+- **Limit intent:** Five matching log links.
 - **Analysis:**
   - If a log entry exists, use the `email` field (which contains the `sys_id` of the `sys_email` record) to query the exact email.
   - If no log entry is found, query `sys_email` directly by using the expected recipient, subject, target table, or instance sys_id (the sys_id of the record like the specific incident):
 - **Table:** `sys_email`
 - **Fields:** `sys_id,subject,type,mailbox,recipients,state,user_id,target_table,instance,error_string,sys_created_on`
-- **Direct Query Example:**
-  ```bash
-  now-sdk query sys_email -q "target_table=incident^instance=<incident_sys_id>^ORDERBYdesc=sys_created_on" -l 5 -a PDI -o json
-  ```
+- **Filter intent:** Match target table and record ID, or expected recipient/subject when no event link exists; newest first.
+- **Limit intent:** Five newest candidate emails.
   - If NO `sys_email` was generated, the notification action rule was evaluated but did not result in an email (typically due to recipient list resolving to empty, unsubscribed preferences, or condition mismatch).
 
 ---
@@ -80,17 +73,8 @@ If no email was generated or if a recipient is missing from the list, check the 
   - **User:** `sys_user` (`sys_id,name,email,active,notification,locked_out`)
   - **Device (Primary Email/Push):** `cmn_notif_device` (`sys_id,user,name,type,email_address,active,primary_email`)
   - **Preferences (Sub/Un-sub):** `cmn_notif_message` (`sys_id,user,device,notification,active`)
-- **Example Commands:**
-  ```bash
-  # Check if recipient user is active and has notifications enabled
-  now-sdk query sys_user -q "sys_id=<user_sys_id>" -l 1 -a PDI -o json
-
-  # Check if the user has active primary notification devices
-  now-sdk query cmn_notif_device -q "user=<user_sys_id>^active=true" -l 5 -a PDI -o json
-
-  # Check if the user opted out / unsubscribed from this notification
-  now-sdk query cmn_notif_message -q "user=<user_sys_id>^notification=<notification_sys_id>" -l 5 -a PDI -o json
-  ```
+- **Filter intent:** Exact user ID for `sys_user`; active devices for that user in `cmn_notif_device`; user plus notification ID in `cmn_notif_message`.
+- **Limit intent:** One exact user and up to five matching device or preference records.
 - **Analysis:**
   - Is the user record `active=false` or `locked_out=true`?
   - Is `sys_user.notification` set to `1` (which represents "Disable")? (Standard is `2` for "Enable").

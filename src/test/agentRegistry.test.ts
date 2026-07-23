@@ -1,4 +1,5 @@
 import * as assert from 'node:assert/strict';
+import * as fs from 'node:fs';
 import { test } from 'node:test';
 import * as path from 'path';
 import { loadAgentRegistry } from '../AgentRegistry';
@@ -7,7 +8,9 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 
 test('loadAgentRegistry parses every bundled agent', () => {
     const manifests = loadAgentRegistry(repoRoot);
-    assert.ok(manifests.length >= 15, `expected at least 15 agents, got ${manifests.length}`);
+    const sourceAgentCount = fs.readdirSync(path.join(repoRoot, 'agents', 'github-copilot'))
+        .filter(file => file.endsWith('.agent.md')).length;
+    assert.equal(manifests.length, sourceAgentCount);
     for (const manifest of manifests) {
         assert.ok(manifest.name, `agent in ${manifest.filename} has no name`);
         assert.ok(manifest.filename.endsWith('.agent.md'));

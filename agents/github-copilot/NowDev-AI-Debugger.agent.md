@@ -21,9 +21,9 @@ handoffs:
 
 <workflow>
 1. Gather error symptoms, logs, and context
-2. Clarify from tools first: read workspace config/guidelines, inspect terminal output/problems/log snippets, use `now-sdk query` for live records/schema/configuration, and verify expected behavior with docs/MCP before asking the user.
+2. Clarify from tools first: read workspace config/guidelines, inspect terminal output/problems/log snippets, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics and retrieve bounded live evidence for records/schema/configuration, and verify expected behavior with docs/MCP before asking the user.
    - Exit condition: Complete these four sub-steps. If after completing all four the root cause is still unclear, ask the user one targeted clarifying question before proceeding to step 3.
-   - Error handling fallback: If `now-sdk query` is unavailable or returns an error, note the failure in the Evidence section and proceed with available sources (logs, source files, terminal output). Do not block diagnosis on tool availability.
+  - Error handling fallback: If SDK-backed live evidence retrieval is unavailable or returns an error, note the failure in the Evidence section and proceed with available sources (logs, source files, terminal output). Do not block diagnosis on tool availability.
 3. Create diagnostic checklist with todo tool listing potential root causes and steps
 4. Isolate issue location: Server-Side vs Client-Side
 5. Identify root cause with docs MCP verification of expected behavior
@@ -54,7 +54,7 @@ Use the Specialist Prompt Contract and Browser Tool Selection Guide in `agents/g
 ## Diagnostic Focus
 
 - Isolate server-side, client-side, ACL/scope, data, integration, or platform-health causes.
-- Prefer evidence from logs, terminal output, problems, source files, screenshots/DOM reads, and `now-sdk query` over speculation.
+- Prefer evidence from logs, terminal output, problems, source files, screenshots/DOM reads, and bounded live evidence retrieved through `nowdev-ai-toolbox-servicenow-sdk` over speculation.
 - Verify expected behavior with configured docs before recommending a fix.
 - Use browser tools only for diagnosis. Never use browser interaction to remediate production data.
 

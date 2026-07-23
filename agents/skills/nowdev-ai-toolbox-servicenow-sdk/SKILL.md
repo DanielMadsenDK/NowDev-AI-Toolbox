@@ -6,7 +6,9 @@ description: Canonical reference for running the now-sdk CLI directly — covers
 
 # now-sdk CLI Reference
 
-This skill owns `now-sdk` CLI command syntax and flag discipline. It does **not** own NowDev routing, agent handoffs, or workflow conventions — use `nowdev-ai-toolbox-fluent-development` for those.
+This skill is the **sole authority** for `now-sdk` command construction, subcommand and flag discovery, authentication-alias handling, output envelopes, pagination, error classification, secret handling, and mutation approval. Every agent or skill that invokes `now-sdk` must load this skill first and follow its current guidance. Other resources may own the business purpose, tables, fields, encoded-query intent, evidence requirements, interpretation, and documentation topic IDs, but must not duplicate complete commands or prescribe flags.
+
+This skill does **not** own NowDev routing, agent handoffs, domain workflows, or the meaning of retrieved evidence — use the relevant domain skill and `nowdev-ai-toolbox-fluent-development` for those concerns.
 
 `now-sdk` is a real CLI tool, already installed. Call it directly — never wrap it in `npx` and never assume it must be installed first.
 
@@ -61,7 +63,7 @@ Troubleshooting:
 
 ## Live instance queries (`query`)
 
-`query` is **read-only** — it never mutates instance data regardless of flags. Treat it as safe to call liberally for grounding: confirming an artifact doesn't already exist, checking real ACL/role state before a schema change, or pulling real reference data. Don't ask the user for permission before running it.
+`query` is **read-only** — it never mutates instance data regardless of flags. Read-only access can still expose sensitive or excessive data, so query only what the task requires. User approval is not normally required for a bounded, relevant query against an unambiguous target instance, but stop for clarification when the target, purpose, authorization, or data sensitivity is unclear.
 
 ```bash
 now-sdk query <table> -q '<encoded-query>' -o json
@@ -85,6 +87,10 @@ now-sdk explain encoded-query-guide --format raw
 
 **Be careful with what the result contains.** Some tables can return personally identifiable information, credentials, or other sensitive data (e.g. user records, HR cases, discovery credentials). Don't paste large sets of raw sensitive rows into a chat response — summarize, aggregate, or redact instead, and only show verbatim rows the user specifically asked to see.
 
+Use metadata-first discovery when the schema is uncertain: establish the table and field contract before reading business records. Never retrieve credential values, secrets, tokens, password fields, encryption material, or unrestricted journal content. For records containing PII, journals, email bodies, logs, HR/security data, or production identifiers, request only the minimum fields and rows, redact before reporting, and explain any residual sensitivity.
+
+Treat command output as an envelope, not just rows. Check command success, warnings, truncation, pagination/count metadata, and parseability before drawing conclusions. If the requested evidence spans more rows than one bounded response, paginate deliberately and record the coverage; never silently treat the first page as a complete population.
+
 - Other flags worth knowing exist (confirm exact names with `now-sdk query --help` before use): `--offset`, `--display-value`, `--no-count`, `--timeout`, `--view`, `--query-category`, `--query-no-domain`.
 - If `query` isn't recognized, don't jump straight to a version conclusion — first rule out a connectivity problem (see "Troubleshooting: connectivity vs. installation" below), since `query` needs to reach the instance and `explain` does not.
 
@@ -94,7 +100,7 @@ Every row below needs its own `--help` before use — this table is for orientat
 
 | Command | Purpose |
 |---|---|
-| `now-sdk auth` | Configure instance credentials: `--add`, `--delete`, `--list`, `--use`. Supports piping a password via stdin for non-interactive use. |
+| `now-sdk auth` | Inspect or configure instance credential aliases. Never request, echo, log, or route passwords, tokens, or other secrets through model-mediated input. |
 | `now-sdk init` | Scaffold a new Fluent app, apply a template, or convert a legacy scoped app into Fluent source. |
 | `now-sdk download <directory>` | Download application metadata from an instance into a local directory. |
 | `now-sdk build [source]` | Compile Fluent sources into app files and generate an installable package. |
@@ -104,9 +110,19 @@ Every row below needs its own `--help` before use — this table is for orientat
 | `now-sdk clean [source]` | Clean the build output directory. |
 | `now-sdk pack [source]` | Zip a built app into an installable artifact. |
 
-## Safety notes
+## Safety and approval
 
-Two commands in this CLI have irreversible or credential-affecting side effects — never run either without explicit user confirmation:
+Classify the intended operation before execution:
+
+| Operation class | Examples | Approval rule |
+|---|---|---|
+| Local read-only | Help, version, installed documentation | May run when relevant. |
+| Instance read-only | Bounded live queries, alias listing | May run when the target and authorization are clear; apply data-minimization rules. |
+| Local workspace mutation | Init, download, dependencies, transform, clean, pack, generated output | Requires an explicit user request for the task and normal workspace change safeguards. |
+| Instance mutation | Install or update | Requires explicit target-instance confirmation and user approval immediately before execution. |
+| Destructive or credential mutation | Reinstall, alias creation/change/deletion | Requires explicit approval for the exact action; never collect secrets through chat or model-mediated terminal input. |
+
+In particular, never run either of these without explicit user confirmation:
 
 - `now-sdk install --reinstall` / `-r` uninstalls and reinstalls the app on the instance; any instance-only metadata not present locally is lost.
 - `now-sdk auth --delete` removes a stored credential alias.
@@ -121,6 +137,8 @@ Two commands in this CLI have irreversible or credential-affecting side effects 
 
 - **Command not recognized at all** (shell reports "command not found" or similar) — a resolution problem. See "Resolving the command" above.
 - **Command is recognized but the call fails, times out, or returns an auth/connection error** — a connectivity or credentials problem, not a version problem. This is common in environments with a corporate proxy or SSL inspection — exactly the kind of environment that also disables `npx`. Don't assume the SDK is outdated in this case; check the alias with `now-sdk auth --list` and ask the user to confirm network access to the instance before troubleshooting further.
+
+Report failures using one of these categories so callers can respond consistently: command resolution, unsupported command/flag, authentication, authorization, connectivity/TLS/proxy, invalid query or schema, timeout, output parse failure, or partial/truncated result. Include the failed operation and sanitized error text, but never include credentials, tokens, cookies, or sensitive row data.
 
 ## If a command or flag isn't recognized
 

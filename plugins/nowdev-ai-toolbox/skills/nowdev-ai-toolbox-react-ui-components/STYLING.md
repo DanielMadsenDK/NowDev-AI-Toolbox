@@ -6,7 +6,8 @@ This file covers:
 - When to use tokens vs plain CSS
 
 For the current CSS/build model (whether CSS Modules, plain stylesheets, or another mechanism is
-supported), fetch `now-sdk explain ui-page-patterns-guide --format raw` first — this has changed
+supported), load `nowdev-ai-toolbox-servicenow-sdk`, the sole authority for `now-sdk` CLI mechanics,
+and ask it to retrieve topic `ui-page-patterns-guide` first — this has changed
 between SDK versions and is authoritative over anything below. Some `.module.css` filenames used
 as illustrative examples in this file assume CSS Modules support; if the installed SDK's build
 model doesn't support them, use the same class names and token values in a plain `.css` file
@@ -460,7 +461,7 @@ function Dashboard() {
 ## 5. CSS Bundling and Build Configuration
 
 Do not hand-write bundler config (Rollup, `now.prebuild.mjs`, or otherwise) for CSS output without
-first checking the current build model — `now-sdk explain ui-page-patterns-guide --format raw`
+first asking `nowdev-ai-toolbox-servicenow-sdk` to retrieve topic `ui-page-patterns-guide`. That topic
 documents exactly what the installed SDK's build system handles automatically versus what it
 forbids agents from configuring manually, and this is the authoritative source for CSS file
 placement, linking, and bundling behavior.

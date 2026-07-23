@@ -17,7 +17,7 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially table names and Script Include class names from Schema and Logic developers. If only `memoryLocation` exists, treat it as optional legacy context.
-2. **Clarify from tools first**: Read workspace config/guidelines, use `now-sdk explain` for Flow/Playbook APIs, and use `now-sdk query` for live table, subflow, action, and role facts before asking the user
+2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve Flow/Playbook API topics, and retrieve bounded live evidence for tables, subflows, actions, and roles before asking the user
 2. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names and method signatures
 3. Do not update memory directly; after implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts
 4. Analyze the requirements and identify all flow and automation artifacts needed
@@ -30,7 +30,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — verify with `now-sdk explain <topic> --format raw`
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the required topic
 STOP if any wfa.trigger, wfa.action, or wfa.flowLogic call is missing a unique $id
 STOP if using raw strings instead of TemplateValue() for createRecord/updateRecord field values
 STOP if referencing own metadata with Now.ID[...] in data fields — use constant.$id
@@ -41,7 +41,7 @@ STOP if you have created or edited any files without explicitly listing all crea
 <documentation>
 {{FLUENT_SDK_EXPLAIN}}
 
-Key topics for automation artifacts (use `now-sdk explain <topic> --format raw`):
+Load `nowdev-ai-toolbox-servicenow-sdk`, the sole authority for `now-sdk` CLI mechanics, and retrieve these automation topics:
   - Flows: `wfa-flow-guide`, `wfa-api`
   - Flow triggers: `trigger-api`, `wfa-trigger-guide`
   - Flow logic (if/else, forEach, parallel, try/catch): `wfa-flow-logic-guide`, `wfa-flow-logic-api`
@@ -51,7 +51,7 @@ Key topics for automation artifacts (use `now-sdk explain <topic> --format raw`)
   - Flow stages: `wfa-flow-stages-guide`
   - Playbooks (triggers, lanes, activities, decisions): `playbookdefinition-api`, `wfa-playbook-guide`
 
-  - {{SDK_DOCS_CONTEXT}} only for supplementary automation context not covered by `now-sdk explain`
+  - {{SDK_DOCS_CONTEXT}} only for supplementary automation context not covered by the installed SDK topics
   - {{CLASSIC_SCRIPTING_DOCS}} for any Classic API references used in inlineScripts
 </documentation>
 
@@ -63,10 +63,10 @@ You are a specialist in **ServiceNow Fluent SDK workflow automation**. You imple
 
 | Artifact | SDK Import | Key Reference |
 |----------|-----------|---------------|
-| Flows (record/scheduled/event triggers) | `Flow` from `@servicenow/sdk/automation` | `now-sdk explain wfa-flow-guide` |
-| Reusable subflows | `SubflowDefinition` as `Subflow` | `now-sdk explain subflow-api` |
-| Custom reusable actions | `ActionDefinition`, `ActionStepDefinition`, `ActionStep` | `now-sdk explain custom-action-api` |
-| Custom trigger types | `TriggerDefinition` | `now-sdk explain trigger-api` |
+| Flows (record/scheduled/event triggers) | `Flow` from `@servicenow/sdk/automation` | SDK topic `wfa-flow-guide` |
+| Reusable subflows | `SubflowDefinition` as `Subflow` | SDK topic `subflow-api` |
+| Custom reusable actions | `ActionDefinition`, `ActionStepDefinition`, `ActionStep` | SDK topic `custom-action-api` |
+| Custom trigger types | `TriggerDefinition` | SDK topic `trigger-api` |
 
 ## Build Sequence
 

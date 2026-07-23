@@ -47,7 +47,6 @@ sdk-core/
 .github/agents/NowDev-AI-Fluent-Schema-Developer.agent.md
 .github/agents/NowDev-AI-Fluent-UI-Developer.agent.md
 .github/agents/NowDev-AI-NowAssist-Developer.agent.md
-.github/agents/NowDev-AI-Pipeline-Expert.agent.md
 .github/agents/NowDev-AI-Refinement.agent.md
 .github/agents/NowDev-AI.agent.md
 .vscode/nowdev-ai-session/

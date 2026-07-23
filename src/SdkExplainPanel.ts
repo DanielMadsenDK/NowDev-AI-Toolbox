@@ -84,7 +84,7 @@ function multipleTopicsHtml(apiName: string, topics: Array<{ name: string; desc:
     const items = topics.map(t =>
                 `<li><div class="param-name"><a href="${explainCommandUri(t.name)}">${esc(t.name)}</a></div><div class="cont">${esc(t.desc)}</div></li>`
     ).join('');
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styles()}</head><body>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
 <div class="api-header">
   <div class="api-id">${esc(apiName)}</div>
   <div class="api-tags"><span class="tag">Multiple Matches</span></div>
@@ -105,13 +105,13 @@ function explainCommandUri(topicName: string): string {
 // ── HTML templates ─────────────────────────────────────────────────────────────
 
 function loadingHtml(apiName: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styles()}</head><body>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
 <div class="loading">Loading documentation for <strong>${esc(apiName)}</strong>&hellip;</div>
 </body></html>`;
 }
 
 function errorHtml(msg: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styles()}</head><body>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
 <div class="error-msg">${esc(msg)}</div>
 </body></html>`;
 }

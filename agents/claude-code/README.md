@@ -37,19 +37,13 @@ Skills are located in `agents/skills/` with the following domains:
 | `nowdev-ai-toolbox-react-ui-components` | @servicenow/react-components (Horizon) |
 | `nowdev-ai-toolbox-release-notes` | Retrieving ServiceNow release notes |
 
-Earlier releases bundled per-domain platform skills (business rules, client scripts, GlideRecord, and so on). Those were removed in favor of `now-sdk explain`, which documents the installed SDK version directly — use it for all Fluent SDK API reference.
+Earlier releases bundled per-domain platform skills (business rules, client scripts, GlideRecord, and so on). Those were removed in favor of installed SDK documentation. Load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the relevant topic for all Fluent SDK API reference.
 
 ### 3. Reference documentation
 
-For `now-sdk` CLI mechanics — flags, the `--peek`/`--format raw` discipline, safety notes, and the full command surface — read `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` before running any `now-sdk` command; it reflects the SDK installed in the target workspace and should not be restated from memory. As a starting point:
+`nowdev-ai-toolbox-servicenow-sdk` is the sole authority for `now-sdk` CLI mechanics, including command construction, flags, output handling, pagination, authentication aliases, safety, and troubleshooting. Load it before every SDK operation; these instructions retain only operational intent and topic IDs.
 
-```bash
-now-sdk explain --list <keyword>
-now-sdk explain <topic> --peek
-now-sdk explain <topic> --format raw
-```
-
-Local skills provide workflow conventions and ServiceNow platform patterns; `now-sdk explain` is the source of truth for Fluent SDK APIs and CLI behavior.
+Local skills provide workflow conventions and ServiceNow platform patterns; installed SDK documentation retrieved through `nowdev-ai-toolbox-servicenow-sdk` is the source of truth for Fluent SDK APIs, and the skill alone owns CLI behavior.
 
 ## Usage with Claude Code
 
@@ -57,6 +51,6 @@ When working on ServiceNow development tasks, Claude Code will:
 
 1. Read the relevant skill SKILL.md for the domain
 2. Follow the patterns and best practices documented
-3. Read `agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md` for Fluent SDK API and CLI accuracy
+3. Load `nowdev-ai-toolbox-servicenow-sdk` for Fluent SDK API accuracy and as the sole authority for CLI mechanics
 4. Use JavaScript modules as the preferred server-side pattern (for function-accepting APIs)
 5. Use `Now.include()` for string-only APIs (ClientScript, ScriptInclude, etc.)

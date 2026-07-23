@@ -1,7 +1,7 @@
 ---
 name: nowdev-ai-toolbox-environment-drift-audit
 user-invocable: true
-description: Safely and systematically audits configuration drift between two or more ServiceNow environments/instances (e.g., dev, test, prod) that share the same Fluent application scope. Use this skill whenever the user asks to "compare environments", "audit drift", "ensure environments match", "verify prod matches dev/test", "check for drift", or requests a "pre-deployment safety check" to validate that a target instance is currently aligned. It executes read-only JSON queries using the 'now-sdk query' CLI against each selected instance for Business Rules, ACLs, Roles, System Properties, Flows, and Scheduled Jobs, and aggregates differences into high, medium, and low risk categories.
+description: Safely and systematically audits configuration drift between two or more ServiceNow environments/instances that share the same Fluent application scope. Use this skill for environment comparison, drift audits, alignment checks, or pre-deployment safety checks. It delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk` and aggregates configuration differences into high, medium, and low risk categories.
 ---
 
 # ServiceNow Environment Drift Audit
@@ -12,9 +12,10 @@ This skill provides a systematic workflow to audit, analyze, and report configur
 
 ## Core Principles
 
-1. **Strictly Read-Only:** NEVER perform write, update, or delete commands on any ServiceNow instance while using this skill. Only use `now-sdk query`.
-2. **Deterministic Comparisons:** Compare configuration properties across instances using unique identifiers (`sys_id` for aligned Git/Fluent applications, or natural keys like `name` or `element` if sys_ids differ).
-3. **Risk-Aware Categorization:** Group all detected discrepancies strictly by their deployment risk levels: **HIGH**, **MEDIUM**, and **LOW**.
+1. **Strictly Read-Only:** NEVER perform write, update, or delete operations on any ServiceNow instance while using this skill. Use `now-sdk` only for read-only retrieval.
+2. **SDK Authority:** Load `nowdev-ai-toolbox-servicenow-sdk` before using `now-sdk`; it is the sole authority for command construction, flags, authentication aliases, output handling, pagination, and CLI troubleshooting.
+3. **Deterministic Comparisons:** Compare configuration properties across instances using unique identifiers (`sys_id` for aligned Git/Fluent applications, or natural keys like `name` or `element` if sys_ids differ).
+4. **Risk-Aware Categorization:** Group all detected discrepancies strictly by their deployment risk levels: **HIGH**, **MEDIUM**, and **LOW**.
 
 ---
 
@@ -22,64 +23,23 @@ This skill provides a systematic workflow to audit, analyze, and report configur
 
 Follow these steps precisely whenever triggered to audit drift:
 
-### Step 1: Detect Scope and Aliases
+### Step 1: Detect Scope and Target Instances
 1. Read `now.config.json` or `package.json` in the workspace to retrieve the current scoped application's scope name (e.g. `x_abc_scope` or `x_123456_my_app`).
-2. run `now-sdk auth --list` to determine the stored authentication credentials (alias names) on the machine.
-3. Identify the target aliases to compare:
-   - If the user specified aliases in their query (e.g. "audit drift between PDI and test"), use those.
-   - If not specified, examine matches between your available aliases and target environments, and prompt the user to confirm which aliases to compare (e.g. comparing dev, test, or prod).
+2. Ask the canonical SDK skill to resolve available connections.
+3. Identify the target instances to compare. Use user-specified targets; otherwise ask the user to confirm the intended environments before retrieval.
 
-### Step 2: Query Critical Configuration Tables
-Invoke `now-sdk query` in JSON output mode `-o json` using the discovered scope name against each selected instance. Query the tables and fields below:
+### Step 2: Retrieve Critical Configuration
+Ask `nowdev-ai-toolbox-servicenow-sdk` to perform the following read-only retrievals against every selected instance. Each retrieval must cover all records in scope; use deliberate pagination and report incomplete coverage.
 
-#### 1. Business Rules (`sys_script`)
-Queries Business Rules on all tables within the scope.
-- **Table:** `sys_script`
-- **Query:** `sys_scope.scope=<scope_name>`
-- **Fields:** `sys_id,name,active,table,when,action_insert,action_update,action_delete,script,condition,sys_updated_on,sys_updated_by`
-- **Cmd:** `now-sdk query sys_script -q "sys_scope.scope=<scope_name>" -f "sys_id,name,active,table,when,action_insert,action_update,action_delete,script,condition,sys_updated_on,sys_updated_by" -a <alias> -o json`
-
-#### 2. Access Control Lists (`sys_security_acl`)
-Queries security access control lists configured by the application.
-- **Table:** `sys_security_acl`
-- **Query:** `sys_scope.scope=<scope_name>`
-- **Fields:** `sys_id,name,operation,active,advanced,script,condition,sys_updated_on,sys_updated_by`
-- **Cmd:** `now-sdk query sys_security_acl -q "sys_scope.scope=<scope_name>" -f "sys_id,name,operation,active,advanced,script,condition,sys_updated_on,sys_updated_by" -a <alias> -o json`
-
-#### 3. ACL Role Assignments (`sys_security_acl_role`)
-Queries mapping between security roles and ACLs.
-- **Table:** `sys_security_acl_role`
-- **Query:** `sys_scope.scope=<scope_name>`
-- **Fields:** `sys_id,sys_security_acl,sys_user_role`
-- **Cmd:** `now-sdk query sys_security_acl_role -q "sys_scope.scope=<scope_name>" -f "sys_id,sys_security_acl,sys_user_role" -a <alias> -o json`
-
-#### 4. Custom Roles (`sys_user_role`)
-Queries custom application roles.
-- **Table:** `sys_user_role`
-- **Query:** `sys_scope.scope=<scope_name>`
-- **Fields:** `sys_id,name,description,sys_updated_on,sys_updated_by`
-- **Cmd:** `now-sdk query sys_user_role -q "sys_scope.scope=<scope_name>" -f "sys_id,name,description" -a <alias> -o json`
-
-#### 5. Selected System Properties (`sys_properties`)
-Queries application system properties.
-- **Table:** `sys_properties`
-- **Query:** `sys_scope.scope=<scope_name>`
-- **Fields:** `sys_id,name,suffix,value,type,write_roles,read_roles,description,sys_updated_on,sys_updated_by`
-- **Cmd:** `now-sdk query sys_properties -q "sys_scope.scope=<scope_name>" -f "sys_id,name,suffix,value,type,write_roles,read_roles,description,sys_updated_on,sys_updated_by" -a <alias> -o json`
-
-#### 6. Flow Designer Flows (`sys_hub_flow`)
-Queries Active/Inactive Flows in the application scope.
-- **Table:** `sys_hub_flow`
-- **Query:** `sys_scope.scope=<scope_name>`
-- **Fields:** `sys_id,name,active,category,sys_updated_on,sys_updated_by`
-- **Cmd:** `now-sdk query sys_hub_flow -q "sys_scope.scope=<scope_name>" -f "sys_id,name,active,category,sys_updated_on" -a <alias> -o json`
-
-#### 7. Scheduled Script Executions / Scheduled Jobs (`sysauto_script`)
-Queries Active/Inactive Scheduled Scripts.
-- **Table:** `sysauto_script`
-- **Query:** `sys_scope.scope=<scope_name>`
-- **Fields:** `sys_id,name,active,run_type,run_time,sys_updated_on,sys_updated_by`
-- **Cmd:** `now-sdk query sysauto_script -q "sys_scope.scope=<scope_name>" -f "sys_id,name,active,run_type,run_time,sys_updated_on" -a <alias> -o json`
+| Table | Filter intent | Fields | Limit intent |
+|---|---|---|---|
+| `sys_script` | `sys_scope.scope` equals the discovered application scope | `sys_id,name,active,table,when,action_insert,action_update,action_delete,script,condition,sys_updated_on,sys_updated_by` | Complete scoped population |
+| `sys_security_acl` | `sys_scope.scope` equals the discovered application scope | `sys_id,name,operation,active,advanced,script,condition,sys_updated_on,sys_updated_by` | Complete scoped population |
+| `sys_security_acl_role` | ACL belongs to the discovered application scope | `sys_id,sys_security_acl,sys_user_role` | Complete scoped population |
+| `sys_user_role` | `sys_scope.scope` equals the discovered application scope | `sys_id,name,description,sys_updated_on,sys_updated_by` | Complete scoped population |
+| `sys_properties` | `sys_scope.scope` equals the discovered application scope | `sys_id,name,suffix,value,type,write_roles,read_roles,description,sys_updated_on,sys_updated_by` | Complete scoped population |
+| `sys_hub_flow` | `sys_scope.scope` equals the discovered application scope | `sys_id,name,active,category,sys_updated_on,sys_updated_by` | Complete scoped population |
+| `sysauto_script` | `sys_scope.scope` equals the discovered application scope | `sys_id,name,active,run_type,run_time,sys_updated_on,sys_updated_by` | Complete scoped population |
 
 ---
 
@@ -168,8 +128,8 @@ Compile the comparison results into a structured Markdown format with tables. Al
 ---
 
 ## Summary of Guidelines for Agents Using This Skill
-- Do not run any command besides `now-sdk query`. No installs, no auth-add, no init, no deploy.
-- Always retrieve first which auth aliases are available on the user's host with `now-sdk auth --list`.
-- Use `--display-value false` or omit it when queries are large, but consider `--display-value true` / `--display-value all` if you need to resolve reference IDs like roles or ACLs into their natural display names easily.
+- Use `now-sdk` only for read-only retrieval; do not install, initialize, deploy, or mutate authentication. Delegate all mechanics to `nowdev-ai-toolbox-servicenow-sdk`.
+- Resolve target connections before retrieval and ask the user when the intended instances are ambiguous.
+- Request reference display values only when needed to interpret roles or ACLs; the canonical SDK skill determines output mechanics.
 - Compare with both `sys_id` and `name` as identifiers.
 - Ensure the overall verdict column is accurate and highlights the exact status.

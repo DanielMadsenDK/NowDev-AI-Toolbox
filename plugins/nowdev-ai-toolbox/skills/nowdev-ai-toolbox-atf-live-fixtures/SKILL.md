@@ -2,7 +2,7 @@
 name: nowdev-ai-toolbox-atf-live-fixtures
 context: fork
 user-invocable: false
-description: Formulate realistic, anonymized ServiceNow Automated Test Framework (ATF) test fixture/sample data grounded by live instance structures. Use this skill whenever an ATF test needs example, mock, or fixture data for specific ServiceNow tables, when a user asks to generate realistic test data from the live instance, or when reference sys_ids/choices are required for testing. This skill must use `now-sdk query` to retrieve metadata and live examples, and then meticulously redact any PII (names, emails, phone numbers, addresses, IP addresses, credentials) to ensure strict security compliance prior to generating mock fixture shapes.
+description: Formulate realistic, anonymized ServiceNow Automated Test Framework (ATF) test fixture/sample data grounded by live instance structures. Use this skill whenever an ATF test needs example, mock, or fixture data for specific ServiceNow tables, when a user asks to generate realistic test data from the live instance, or when reference sys_ids/choices are required for testing. This skill delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk`, then meticulously redacts PII before generating mock fixture shapes.
 ---
 
 # ServiceNow ATF Live Fixture Data Generator
@@ -25,15 +25,15 @@ You must actively apply this skill in the following scenarios:
 
 To understand the real data shape and prevent fictitious reference values, query the connected ServiceNow instance.
 
-### A. Execution Commands
-Always run queries through `now-sdk query` which is strictly read-only.
-```bash
-now-sdk query <table> -q '<encoded-query>' --limit 3 -o json -f <comma-separated-fields>
-```
+### A. Retrieval Specification
+Load `nowdev-ai-toolbox-servicenow-sdk` before using `now-sdk`; it is the sole authority for command construction, flags, authentication aliases, output handling, pagination, and CLI troubleshooting. Ask it to perform strictly read-only retrievals using this intent:
 
-- **Query Limits:** Always append `--limit 3` (or less) to limit data overhead and ensure optimal token usage.
-- **Select Specific Fields:** Use `-f` / `--fields` to request only relevant fields (e.g. `sys_id`, `short_description`, `assignment_group`, `caller_id`, `category`, `state`) to avoid massive payloads.
-- **Specify Auth Alias:** Always explicitly check active aliases (via `now-sdk auth --list`) and specify `-a <alias>` or `--auth <alias>` unless a default environment is explicitly understood.
+| Table | Filter intent | Fields | Limit intent |
+|---|---|---|---|
+| Target fixture table | Match a representative, non-sensitive record shape relevant to the requested test | Only fixture-relevant fields such as `sys_id`, `short_description`, `assignment_group`, `caller_id`, `category`, and `state` | At most three records; fewer when one record establishes the shape |
+| `sys_choice` | Match target table and element; exclude inactive choices | `name,element,value,label,inactive` | Only choices needed by the fixture |
+| `sys_dictionary` | Match target table and requested elements | `name,element,column_label,internal_type,reference,max_length` | Only fields used by the fixture |
+| Referenced table | Match active or otherwise valid records suitable for the reference field | `sys_id` plus the minimum fields needed to validate suitability | At most three candidates per reference |
 
 ### B. Discovering Field Metadata
 If choice-list options, target schemas, or dictionary choices are needed to build realistic data, query the system tables:
@@ -76,7 +76,7 @@ Always present the data with:
 Example fixture output structure:
 ```javascript
 // Generated Test Fixture for sys_user table (GROUNDED & SCRUBBED)
-// Source query: now-sdk query sys_user -q "active=true^employee_numberISNOTEMPTY" --limit 1
+// Grounding intent: one active sys_user record with an employee number
 const mockUserFixture = {
   sys_id: "0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d", // Real valid sys_id from instance to pass references
   first_name: "Mocked",                       // Scrubbed from real name

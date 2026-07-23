@@ -64,13 +64,13 @@ function capitalize(s: string): string {
 // ── HTML templates ─────────────────────────────────────────────────────────────
 
 function loadingHtml(label: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styles()}</head><body>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
 <div class="loading">Loading help for <strong>${esc(label)}</strong>&hellip;</div>
 </body></html>`;
 }
 
 function errorHtml(msg: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styles()}</head><body>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
 <div class="error-msg">${esc(msg)}</div>
 </body></html>`;
 }

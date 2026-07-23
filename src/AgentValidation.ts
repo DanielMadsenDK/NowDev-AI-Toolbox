@@ -57,6 +57,7 @@ export function validateAgents(extensionPath: string): AgentValidationResult {
     validateTopology(manifests, issues);
     validateBundledSkills(extensionPath, issues);
     validateContentReferences(extensionPath, manifests, issues);
+    validateSdkAuthority(extensionPath, issues);
 
     return { issues, agentCount: manifests.length };
 }
@@ -71,6 +72,10 @@ const CONTENT_SCAN_EXTENSIONS = new Set(['.md', '.ts']);
 const SKILL_PATH_PATTERN = /agents\/skills\/[A-Za-z0-9._-]+\/[A-Za-z0-9._\/-]*\.md/g;
 const AGENT_NAME_PATTERN = /NowDev-AI(?:-[A-Za-z]+)+/g;
 const AGENT_NAME_ALLOWLIST = new Set(['NowDev-AI-Toolbox']);
+const SDK_SKILL_NAME = 'nowdev-ai-toolbox-servicenow-sdk';
+const SDK_SKILL_FILE = 'agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md';
+const NOW_SDK_COMMAND = /\bnow-sdk\s+(?:auth|build|clean|dependencies|download|explain|init|install|pack|query|transform)\b/i;
+const NOW_SDK_LONG_FLAG = /(?:^|\s)--(?:auth|display-value|format|limit|no-count|offset|peek|query|query-category|query-no-domain|reinstall|timeout|view)(?:\s|[=<>`),]|$)/m;
 
 /**
  * Guards shipped content against reference rot: every `agents/skills/...` path
@@ -105,6 +110,55 @@ function validateContentReferences(extensionPath: string, manifests: AgentManife
             }
         }
     }
+}
+
+/**
+ * Keeps CLI mechanics centralized in the canonical SDK skill. Other shipped
+ * agents and skills may describe required tables, fields, evidence, and
+ * documentation topic IDs, but must delegate command construction to it.
+ */
+function validateSdkAuthority(extensionPath: string, issues: AgentValidationIssue[]): void {
+    const roots = [
+        path.join(extensionPath, 'agents', 'github-copilot'),
+        path.join(extensionPath, 'agents', 'skills'),
+        path.join(extensionPath, 'agents', 'claude-code'),
+        path.join(extensionPath, 'agents', 'exemplars'),
+        path.join(extensionPath, 'src', 'agentSync'),
+    ];
+
+    for (const root of roots) {
+        if (!fs.existsSync(root)) { continue; }
+        for (const file of listContentFiles(root)) {
+            const relativeFile = toPackagePath(path.relative(extensionPath, file));
+            if (relativeFile === SDK_SKILL_FILE) { continue; }
+
+            const content = fs.readFileSync(file, 'utf-8');
+            issues.push(...validateSdkAuthorityContent(content, relativeFile));
+        }
+    }
+}
+
+export function validateSdkAuthorityContent(content: string, file?: string): AgentValidationIssue[] {
+    if (!/\bnow-sdk\b/i.test(content)) { return []; }
+
+    const issues: AgentValidationIssue[] = [];
+    if (!content.includes(SDK_SKILL_NAME) && !content.includes(SDK_SKILL_FILE)) {
+        issues.push({
+            severity: 'error',
+            file,
+            message: `Content that uses now-sdk must delegate CLI mechanics to ${SDK_SKILL_NAME}.`,
+        });
+    }
+
+    if (NOW_SDK_COMMAND.test(content) || NOW_SDK_LONG_FLAG.test(content)) {
+        issues.push({
+            severity: 'error',
+            file,
+            message: `Only ${SDK_SKILL_NAME} may prescribe now-sdk commands or flags.`,
+        });
+    }
+
+    return issues;
 }
 
 function listContentFiles(dir: string): string[] {

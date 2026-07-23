@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "We need to write an ATF test that creates an incident with a realistic caller and assignment group. Please run a read-only query on our 'PDI' instance to fetch 1 active incident, extract its fields (sys_id, short_description, caller_id, assignment_group, priority), then generate a safe, scrubbed JS mock fixture object. Redact any potentially sensitive information (names, emails, company specifics) into generic test values, but preserve the valid sys_id references.",
-      "expected_output": "A secure JS fixture object for an incident table record, fully scrubbed of PII (e.g. caller_id named 'Mock User' or similar, description genericized), while keeping exact valid sys_ids for assignment_group and caller_id acquired from the 'PDI' instance via now-sdk query.",
+      "prompt": "We need to write an ATF test that creates an incident with a realistic caller and assignment group. Use our connected development instance to retrieve 1 active incident read-only, extract its fields (sys_id, short_description, caller_id, assignment_group, priority), then generate a safe, scrubbed JS mock fixture object. Redact any potentially sensitive information into generic test values, but preserve valid reference sys_ids.",
+      "expected_output": "A secure JS fixture object for an incident record, fully scrubbed of PII, while keeping valid sys_ids for assignment_group and caller_id acquired through read-only retrieval delegated to nowdev-ai-toolbox-servicenow-sdk.",
       "files": [],
       "assertions": [
         {
@@ -20,15 +20,15 @@
           "text": "No live/real user names or real employee emails retrieved from the instance are written into the final mock fixture code."
         },
         {
-          "name": "Read-Only-Query",
-          "text": "The agent performs the operation by executing a read-only `now-sdk query` command on the 'PDI' instance."
+          "name": "Canonical-SDK-Delegation",
+          "text": "The agent delegates now-sdk command construction, connection handling, output mechanics, and pagination to nowdev-ai-toolbox-servicenow-sdk while preserving the fixture retrieval intent."
         }
       ]
     },
     {
       "id": 2,
-      "prompt": "Our QA team is authoring tests for user profiles. Query the 'PDI' instance for 2 active records in the 'sys_user' table who have an email address populated. Provide a safely-redacted Javascript array of user fixtures containing their first name, last name, email, user_name, and sys_id. Ensure NO actual user names or real email addresses are committed to code.",
-      "expected_output": "A secure Javascript array containing 2 user profile object fixtures, each with completely redacted/mocked name, email, and user_name fields, while keeping the valid 32-character hexadecimal sys_id values returned by now-sdk query to maintain reference integrity in the tests.",
+      "prompt": "Our QA team is authoring tests for user profiles. Retrieve 2 active records from sys_user on the connected development instance where email is populated. Provide a safely-redacted JavaScript array containing first_name, last_name, email, user_name, and sys_id. Ensure no actual user names or real email addresses are committed to code.",
+      "expected_output": "A secure JavaScript array containing 2 user fixture objects with redacted names, emails, and user_names while keeping valid 32-character sys_ids returned through read-only retrieval delegated to nowdev-ai-toolbox-servicenow-sdk.",
       "files": [],
       "assertions": [
         {
@@ -41,11 +41,15 @@
         },
         {
           "name": "Meticulous-PII-Redaction",
-          "text": "All real user names, user_names, and actual emails retrieved from the PDI are fully cleaned and replaced with safe, mock placeholders in the @example.com domain."
+          "text": "All real user names, user_names, and actual emails retrieved from the instance are fully cleaned and replaced with safe mock placeholders in the @example.com domain."
         },
         {
           "name": "Valid-Reference-SysIds",
           "text": "The user fixture records preserve valid 32-character hexadecimal sys_id strings sourced directly from the instance query."
+        },
+        {
+          "name": "Canonical-SDK-Delegation",
+          "text": "The skill explicitly uses nowdev-ai-toolbox-servicenow-sdk as the sole authority for now-sdk CLI mechanics."
         }
       ]
     }

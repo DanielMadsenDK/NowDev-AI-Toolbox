@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.7.8-blue)
+  ![Version](https://img.shields.io/badge/version-0.7.9-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.124+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
@@ -27,8 +27,8 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 *   **Automated Governance**: A specialized reviewer agent inspects each artifact, dynamically selecting only the best-practice checks relevant to the artifact types actually present in the solution.
 *   **Multi-Tier Agent Architecture**: The orchestrator delegates to the Fluent Developer coordinator, which hands off to specialized sub-agents and the reviewer — agents calling agents — enabling deep, context-aware automation at every layer of the development workflow.
 *   **Interactive Workflow**: Uses interactive tools to clarify requirements and validate designs.
-*   **Live Instance Preview & Autonomous Verification**: Agents autonomously inspect your ServiceNow instance in real-time—capturing screenshots, reading form field state, validating form behavior, and detecting client-side issues without manual inspection. Perfect for post-deployment verification and debugging client-side problems.
-*   **Guided Copilot Setup**: The sidebar highlights the Project tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
+*   **On-Demand Instance Diagnostics**: Diagnostic agents can use available browser tools to inspect ServiceNow pages, capture screenshots, read visible state, and investigate client-side behavior when the task requires it. Verification is explicitly requested and tool-dependent; it does not run automatically in the background.
+*   **Guided Copilot Setup**: The sidebar highlights the Setup tab custom-instructions flow plus built-in chat logs and diagnostics so teams can configure and troubleshoot Copilot without leaving the extension.
 *   **Dynamic Agent Management**: Enable or disable individual agents and their tools directly from the sidebar. Hit Resync to instantly update your workspace agent configuration. MCP server detection is automatic.
 *   **Agent Topology Viewer**: Visual panel that renders the full agent hierarchy as a colour-coded tree — see which agents are active and how they relate at a glance.
 *   **User Profiles**: Switch between Developer, Advanced Developer, Junior Developer, and Product Owner profiles. Each profile controls which agents are visible, adjusts communication tone, and (for Junior Developer) adds step-by-step educational commentary to every response — all without changing any configuration files.
@@ -44,7 +44,7 @@ Developed using the **ServiceNow SDK** official documentation, the extension int
 
 ### Documentation Sources
 
-Agents use three knowledge channels, all configurable from the NowDev AI Toolbox sidebar:
+Agents use four knowledge channels, with supplemental sources configurable from the NowDev AI Toolbox sidebar:
 
 | Source | What it covers | Default |
 |--------|----------------|---------|
@@ -53,7 +53,9 @@ Agents use three knowledge channels, all configurable from the NowDev AI Toolbox
 | **Product llms.txt** | General ServiceNow platform docs | `https://www.servicenow.com/llms.txt` |
 | **MCP server** | Your own indexed sources (optional) | None |
 
-For Fluent SDK work, agents use `now-sdk explain --list <keyword>`, `now-sdk explain <topic> --peek`, and `now-sdk explain <topic> --format raw` before relying on local skills. Local skills now focus on Classic scripting, ServiceNow platform patterns, NowDev workflows, and small opinionated guardrails. To configure supplemental sources, open the NowDev AI Toolbox sidebar and expand **Documentation Sources**.
+The bundled `nowdev-ai-toolbox-servicenow-sdk` skill is the **sole authority for `now-sdk` command mechanics**. It owns command and flag discovery, authentication-alias handling, output envelopes, pagination, error classification, secret handling, and mutation approval. Other agents and skills define why data or documentation is needed and how results should be interpreted, but delegate command construction to the SDK skill instead of duplicating CLI instructions.
+
+For Fluent SDK work, the SDK skill discovers the installed CLI's current syntax and uses `now-sdk explain` to retrieve API documentation tied to that SDK version before agents rely on local guidance. Local skills focus on ServiceNow domains, NowDev workflows, interpretation, and small opinionated guardrails. To configure supplemental sources, open the **References** tab in the NowDev AI Toolbox sidebar.
 
 ### Connecting to Your ServiceNow Instance
 
@@ -149,7 +151,7 @@ The extension reads the file on every save, writes its content into `.vscode/now
 
 ### Instance-Backed Guidelines
 
-Teams can keep coding standards, review rules, and release policies in ServiceNow Knowledge Base articles. Use **Project → KB Guidelines…** or **Instance Browser → Guidelines** to find relevant `kb_knowledge` articles from the authenticated instance. Selected articles are saved in `.vscode/nowdev-ai-config.json` as guideline references and generated agents receive those references plus a `now-sdk query kb_knowledge` lookup command so they can fetch live article content when details are needed.
+Teams can keep coding standards, review rules, and release policies in ServiceNow Knowledge Base articles. Use **Setup → KB Guidelines…** or **Instance Browser → Guidelines** to find relevant `kb_knowledge` articles from the authenticated instance. Selected articles are saved in `.vscode/nowdev-ai-config.json` as guideline references. Generated agents receive those references and delegate live retrieval to the SDK skill when article content is needed.
 
 > **Note**: `.vscode/nowdev-ai-config.json` is auto-generated and is automatically added to `.gitignore`. It should not be committed to source control.
 
@@ -191,8 +193,8 @@ Switch profiles from the NowDev AI Toolbox sidebar to instantly reshape how ever
 
 | Profile | Who it's for | What changes |
 |---------|-------------|--------------|
-| **Developer** (default) | Experienced ServiceNow developers | Core development agent set; the AI Agent Studio, NowAssist, and Pipeline specialists are hidden |
-| **Advanced Developer** | Developers using the full platform surface | Every agent enabled, including AI Agent Studio, NowAssist, and Pipeline specialists |
+| **Developer** (default) | Experienced ServiceNow developers | Core development agent set; the AI Agent Studio and NowAssist specialists are hidden |
+| **Advanced Developer** | Developers using the full platform surface | Every bundled agent enabled, including the AI Agent Studio and NowAssist specialists |
 | **Junior Developer** | Developers learning ServiceNow | Same agent set as Developer, but every response adds step-by-step explanations, term definitions, pitfall callouts, and follow-up learning suggestions |
 | **Product Owner** | Business stakeholders managing requirements | Development agents hidden; discovery, refinement, and (when a work-item MCP server is configured) work-item management visible; plain-language communication, no code |
 
@@ -216,8 +218,6 @@ The extension provides a hierarchical system of AI agents spanning three tiers. 
 | NowDev-AI-Debugger | Debugging specialist — gathers symptoms, isolates root causes in server-side and client-side scripts, and produces a structured Diagnostic Results report before handing back to the Fluent Developer | Fluent-Developer |
 | NowDev-AI-Fluent-Reviewer | Reviews Fluent SDK artifacts against best practices and hands fixes back to the Fluent Developer | — |
 | NowDev-AI-Fluent-Release | Runs `now-sdk build` and `now-sdk install` for Fluent deployment | — |
-| NowDev-AI-Pipeline-Expert | CI/CD pipeline generator — creates GitHub Actions, Azure DevOps, and Jenkins pipeline YAML for Fluent SDK deployments; covers credential management, branch strategies, and multi-scope deployments | — |
-
 ### Tier 3 — Fluent Specialists (internal, invoked by the Fluent Developer only)
 
 | Agent | Coordinator | Description |
@@ -250,17 +250,18 @@ The extension integrates specialized AI agents directly into VS Code through Git
 |----------|-------|
 | Fluent SDK | Table + Role + ACL, ScriptInclude, BusinessRule, ATF Test |
 | Classic scripting | GlideRecord, Script Include, GlideAjax, Business Rule, Client Script |
-| CI/CD pipelines | GitHub Actions (4 strategies), Azure DevOps, branching strategy docs |
 
 ## Included Skills
 
-These best practice modules are now natively registered as Copilot Skills. Fluent SDK API details come from `now-sdk explain`; local skills provide Classic/platform guidance and NowDev-specific workflow patterns:
-- **ServiceNow Scripting**: Naming conventions, `GlideAggregate` vs `GlideRecord`, and forbidden patterns (`eval`).
-- **Business Rules**: Execution timing (`before`/`after`/`async`), recursion prevention, and IIFE wrapping.
-- **Client Scripts**: `GlideAjax` patterns, performance optimization, and `g_scratchpad` usage.
-- **Deployment**: Update Set hygiene, batching strategies, and XML migration rules.
-- **JavaScript Modules**: NowDev guardrails for module import/export patterns and Script Include bridging; verify SDK details with `now-sdk explain module-guide` and `now-sdk explain now-include-guide`.
-- **Fluent SDK Routing**: Agents map Tables, Catalog, Flows, UI Pages, Workspaces, AI Agent Studio, and more to the relevant `now-sdk explain` topics for the installed SDK.
+The extension currently registers 13 Copilot Skills. They are organized by responsibility instead of duplicating Fluent SDK API documentation:
+
+- **SDK and development**: Canonical `now-sdk` CLI authority, NowDev Fluent development routing and guardrails, and ServiceNow Horizon React components.
+- **Planning and test data**: Instance-grounded implementation planning and anonymized ATF fixture generation.
+- **Live diagnostics**: Access-denied analysis, incident/log triage, notification-delivery tracing, recent-change correlation, and cross-environment drift auditing.
+- **Governance and communication**: Knowledge Base compliance checks and multilingual incident responses.
+- **Platform awareness**: Official ServiceNow release-note retrieval and comparison.
+
+Domain skills own intent, evidence requirements, interpretation, and reporting. Whenever they need installed SDK documentation or live instance data, they delegate CLI mechanics to `nowdev-ai-toolbox-servicenow-sdk`.
 
 ### Agent Definitions
 Each AI agent is defined in declarative format:

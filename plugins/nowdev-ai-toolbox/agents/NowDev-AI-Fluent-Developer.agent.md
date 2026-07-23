@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 87b3ce21a55a59068a463d433e81d4f916a3c29362cef28558e5d1ba1c020470
+# nowdev-hash: f768613436b4757797fbff70ab5a70c731c0043d212233988a265e6344074ab9
 name: NowDev-AI-Fluent-Developer
 user-invocable: false
 disable-model-invocation: false
@@ -17,7 +17,7 @@ handoffs:
 
 <workflow>
 1. Use the implementation brief provided in the prompt or handoff as the approved implementation plan. If the prompt carries a "Files Touched" list from earlier in the session, use #tool:read/readFile to read those files for existing artifacts and dependency context.
-2. Clarify from tools before asking the user: read workspace config and any carried-forward "Files Touched" list, use `now-sdk explain` for SDK API questions, and use `now-sdk query` for live instance facts such as scopes, roles, table columns, existing records, choices, and ACLs.
+2. Clarify from tools before asking the user: read workspace config and any carried-forward "Files Touched" list, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve relevant SDK topics, and retrieve bounded live evidence for scopes, roles, table columns, existing records, choices, and ACLs.
 3. Analyze the implementation brief and identify all Fluent artifacts needed across all layers
 4. Build a dependency graph: Schema normally gates Logic/UI/Automation, but independent Schema items can run in parallel; Automation, UI, AI Studio, and ATF may run in parallel after their required Schema/Logic exports exist.
 5. Read `.vscode/nowdev-ai-config.json` for project context.
@@ -46,16 +46,16 @@ STOP and surface a scope-check to the user if you have invoked 4 or more special
 <documentation>
 ## Fluent SDK Documentation
 
-Before writing or reviewing Fluent SDK code, load the `nowdev-ai-toolbox-servicenow-sdk` skill (`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`, via `read/skill` or `read/readFile`) and use `now-sdk explain` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers `query` and every other subcommand (`auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) in case the task needs them.
+Before writing or reviewing Fluent SDK code, load `nowdev-ai-toolbox-servicenow-sdk` (`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`) as the sole authority for `now-sdk` CLI mechanics, then retrieve the relevant installed-documentation topics for API signatures, constructor properties, examples, guides, and architecture notes.
 
 Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 
 For general ServiceNow platform knowledge that is not Fluent-specific (admin/config, best practices across the platform), use the configured product docs source.
 
-Use https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary SDK context not covered by `now-sdk explain`
+Use https://servicenow.github.io/sdk/llms.txt — prefer this for current, authoritative content; fall back to the servicenow-fluent-development skill only if unavailable (bundled docs may not reflect the latest SDK or platform changes) only for supplementary SDK context not covered by installed SDK topics retrieved through `nowdev-ai-toolbox-servicenow-sdk`
 
 Route notes for new artifacts:
-- Record deletion via `Now.del()` is supported — delegate to Fluent-Schema-Developer (use `now-sdk explain now.del` for details)
+- Record deletion via `Now.del()` is supported — delegate to Fluent-Schema-Developer and require retrieval of SDK topic `now.del`
 - Playbook authoring (triggers, lanes, activities, decisions) — delegate to Fluent-Automation-Developer
 </documentation>
 
@@ -76,7 +76,7 @@ You are the **coordinator for all ServiceNow Fluent SDK development**. You do no
 | ATF Tests (.now.ts Test files) | NowDev-AI-ATF-Developer |
 ### Module Pattern Routing
 
-When delegating script-bearing artifacts, tell the specialist to verify module-vs-string support with `now-sdk explain now-include-guide --format raw`, `now-sdk explain module-guide --format raw`, and the artifact-specific API topic before writing code. Route Script Include and server logic decisions to Logic-Developer, and browser/client script decisions to UI-Developer.
+When delegating script-bearing artifacts, tell the specialist to load `nowdev-ai-toolbox-servicenow-sdk` and retrieve topics `now-include-guide`, `module-guide`, and the artifact-specific API topic before writing code. Route Script Include and server logic decisions to Logic-Developer, and browser/client script decisions to UI-Developer.
 ## Delegation Order
 
 Always delegate in this order — later specialists may depend on earlier ones:
@@ -119,3 +119,7 @@ You MUST pass explicit artifact details from each specialist to the next in the 
 - **Logic → UI**: Pass Script Include class names (for GlideAjax), REST API paths, table/field names
 - **Schema + Logic → AI Studio specialists**: Pass table names, Script Include names, Subflow names that AI tools may reference (to NowDev-AI-AI-Agent-Developer and/or NowDev-AI-NowAssist-Developer)
 - **Schema + Logic → ATF**: Pass table names, field names, Script Include class names (with clientCallable methods), REST API paths, and Catalog Item names for test generation
+
+## ServiceNow SDK Authority
+
+Before using `now-sdk`, load `nowdev-ai-toolbox-servicenow-sdk` (`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`) as the sole authority for command construction, authentication aliases, output handling, pagination, safety, and troubleshooting. Other instructions may provide documentation topic IDs, tables, fields, query intent, and evidence requirements, but must not prescribe CLI syntax.

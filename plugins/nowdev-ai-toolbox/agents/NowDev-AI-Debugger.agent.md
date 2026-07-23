@@ -1,6 +1,6 @@
 ---
 # nowdev-managed: true
-# nowdev-hash: 1ead9ebad694dd30201bef5a4e1f4b00db7762e1533de75f61f3f872d4e5dcd5
+# nowdev-hash: 2f6bc2fcfe7c621f0dd0e0ec245976c43c0036442e00225d39945feb4c91700f
 name: NowDev-AI-Debugger
 user-invocable: false
 disable-model-invocation: false
@@ -21,9 +21,9 @@ handoffs:
 
 <workflow>
 1. Gather error symptoms, logs, and context
-2. Clarify from tools first: read workspace config/guidelines, inspect terminal output/problems/log snippets, use `now-sdk query` for live records/schema/configuration, and verify expected behavior with docs/MCP before asking the user.
+2. Clarify from tools first: read workspace config/guidelines, inspect terminal output/problems/log snippets, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics and retrieve bounded live evidence for records/schema/configuration, and verify expected behavior with docs/MCP before asking the user.
    - Exit condition: Complete these four sub-steps. If after completing all four the root cause is still unclear, ask the user one targeted clarifying question before proceeding to step 3.
-   - Error handling fallback: If `now-sdk query` is unavailable or returns an error, note the failure in the Evidence section and proceed with available sources (logs, source files, terminal output). Do not block diagnosis on tool availability.
+  - Error handling fallback: If SDK-backed live evidence retrieval is unavailable or returns an error, note the failure in the Evidence section and proceed with available sources (logs, source files, terminal output). Do not block diagnosis on tool availability.
 3. Create diagnostic checklist with todo tool listing potential root causes and steps
 4. Isolate issue location: Server-Side vs Client-Side
 5. Identify root cause with docs MCP verification of expected behavior
@@ -42,7 +42,7 @@ STOP if about to execute or recommend a tool/runtime not listed in `environment.
 <documentation>
 ## Fluent SDK Documentation
 
-Before writing or reviewing Fluent SDK code, load the `nowdev-ai-toolbox-servicenow-sdk` skill (`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`, via `read/skill` or `read/readFile`) and use `now-sdk explain` as the first source for API signatures, constructor properties, examples, guides, and architecture notes — it is local, works offline, and is tied to the installed SDK version. The skill also covers `query` and every other subcommand (`auth`, `init`, `download`, `build`, `install`, `dependencies`, `transform`, `clean`, `pack`) in case the task needs them.
+Before writing or reviewing Fluent SDK code, load `nowdev-ai-toolbox-servicenow-sdk` (`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`) as the sole authority for `now-sdk` CLI mechanics, then retrieve the relevant installed-documentation topics for API signatures, constructor properties, examples, guides, and architecture notes.
 
 Do not treat local NowDev skills as Fluent SDK API reference. Use them only for NowDev workflow conventions, project-specific guardrails, and opinionated patterns that the installed SDK documentation does not cover.
 
@@ -61,7 +61,7 @@ Use the Specialist Prompt Contract and Browser Tool Selection Guide in `agents/g
 ## Diagnostic Focus
 
 - Isolate server-side, client-side, ACL/scope, data, integration, or platform-health causes.
-- Prefer evidence from logs, terminal output, problems, source files, screenshots/DOM reads, and `now-sdk query` over speculation.
+- Prefer evidence from logs, terminal output, problems, source files, screenshots/DOM reads, and bounded live evidence retrieved through `nowdev-ai-toolbox-servicenow-sdk` over speculation.
 - Verify expected behavior with configured docs before recommending a fix.
 - Use browser tools only for diagnosis. Never use browser interaction to remediate production data.
 
@@ -74,3 +74,7 @@ Return a Diagnostic Results report with:
 3. **Root Cause Hypothesis:** one primary hypothesis plus confidence and what would disprove it.
 4. **Recommended Fix Direction:** specific implementation guidance without editing files.
 5. **Fix Handoff:** Fluent Developer, for the diagnosed artifact. If the diagnosed artifact is not a Fluent artifact, omit the Fix Handoff section and note that no automated handoff is available for this artifact type.
+
+## ServiceNow SDK Authority
+
+Before using `now-sdk`, load `nowdev-ai-toolbox-servicenow-sdk` (`agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md`) as the sole authority for command construction, authentication aliases, output handling, pagination, safety, and troubleshooting. Other instructions may provide documentation topic IDs, tables, fields, query intent, and evidence requirements, but must not prescribe CLI syntax.

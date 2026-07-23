@@ -108,12 +108,5 @@ export const AGENT_TREE: AgentNode = {
             description: 'now-sdk build & install',
             children: [],
         },
-        {
-            id: 'NowDev-AI-Pipeline-Expert',
-            shortName: 'Pipeline Expert',
-            role: 'release',
-            description: 'CI/CD pipeline generation and release workflow automation',
-            children: [],
-        },
     ],
 };

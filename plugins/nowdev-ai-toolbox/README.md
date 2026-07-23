@@ -27,13 +27,11 @@ experience focused on a single entry point.
 ## Prerequisites
 
 - **GitHub Copilot CLI** (`copilot`) or the **GitHub Copilot desktop app**.
-- The **ServiceNow SDK** (`now-sdk`) installed and on your `PATH` for agents that
-  run SDK commands:
-  ```
-  npm install -g @servicenow/sdk
-  ```
-- A ServiceNow instance and credentials configured for `now-sdk` if you want the
-  agents to query live instance facts.
+- The **ServiceNow SDK** (`now-sdk`) available to agents that run SDK operations.
+  The bundled `nowdev-ai-toolbox-servicenow-sdk` skill is the sole authority for
+  CLI, installation, and authentication mechanics.
+- A ServiceNow instance connection configured through that skill if you want
+  agents to query live instance facts. Never provide credentials in chat.
 
 ## Install
 

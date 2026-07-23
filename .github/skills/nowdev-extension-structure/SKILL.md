@@ -7,8 +7,9 @@ description: Structural guide for the NowDev AI Toolbox VS Code extension TypeSc
 
 NowDev AI Toolbox is a VS Code extension (`publisher: DanielMadsenDK`, `name: nowdev-ai-toolbox`, version in `package.json`) that installs a sidebar webview and auto-configures VS Code settings to enable multi-tier Copilot agent routing.
 
-- Entry point: `src/extension.ts` → compiled to `out/extension.js`
-- Minimum VS Code: `^1.118.0`
+- Runtime entry point: `src/extension.ts` → bundled by esbuild to `dist/extension.js`
+- TypeScript validation output: `out/` (used by tests and agent validation)
+- Minimum VS Code: `^1.124.0`
 - Depends on: `github.copilot-chat`
 - Bundles `chatSkills` through `package.json`
 - Loads bundled agent templates from `agents/github-copilot/` and syncs workspace-ready agent files into `.github/agents/`
@@ -18,39 +19,46 @@ NowDev AI Toolbox is a VS Code extension (`publisher: DanielMadsenDK`, `name: no
 | File | Purpose |
 |------|---------|
 | `src/extension.ts` | Activation function — registers the sidebar, command palette commands, SDK helpers, and first-run VS Code setting defaults |
-| `src/WelcomeViewProvider.ts` | Sidebar webview host — renders Home / Project / SDK / Agents / Tools / Activity state, handles `postMessage` traffic, writes `.vscode/nowdev-ai-config.json`, and coordinates lazy tab data loading |
+| `src/WelcomeViewProvider.ts` | Sidebar coordinator — handles `postMessage` traffic, synchronization, scans, and lazy tab data loading |
+| `src/welcome/` | Welcome-view HTML, state types, configuration-file persistence, connection checks, and related helpers |
 | `src/AgentTopology.ts` | Static `AGENT_TREE` data structure — defines the agent hierarchy for display in the sidebar; must be kept in sync with agents in `agents/github-copilot/` |
 | `src/AgentRegistry.ts` | Parses bundled `.agent.md` files into `AgentManifest` objects used by the sidebar and sync pipeline |
-| `src/WorkspaceAgentManager.ts` | Writes generated `.github/agents/*.agent.md` files into the workspace, injects MCP tools/doc sources, applies per-agent overrides, and stamps managed hashes |
+| `src/WorkspaceAgentManager.ts` | Public sync facade; writes generated agents, instructions, and prompts while delegating shared logic to `src/agentSync/` |
+| `src/agentSync/` | Agent bundle constants, YAML/frontmatter transforms, documentation-token injection, sync types, and generated instruction/prompt content |
 | `src/ToolScanner.ts` | Environment detection — scans for `node`, `npm`, `now-sdk`, and other CLI tools via `execSync`; returns `EnvironmentInfo` |
 | `src/MCPScanner.ts` | Detects MCP servers from settings plus workspace `.mcp.json` / legacy `.vscode/mcp.json` files |
 | `src/AuthAliasScanner.ts` | Parses `now-sdk auth --list` output for SDK alias management in the sidebar |
 | `media/webview/main.js` | Webview JavaScript — exchanges messages with the extension host via `postMessage` |
-| `media/webview/styles.css` | Webview styles |
+| `media/webview/styles/` | Split webview stylesheets loaded by `src/welcome/welcomeHtml.ts` |
 
 ## Build Commands
 
 ```bash
 npm ci              # Install dependencies from package-lock.json (deterministic)
 npm run compile     # Compile TypeScript (tsc) — validates all types, outputs to out/
-npm run watch       # TypeScript watch mode during extension development
+npm run bundle      # Production bundle to dist/extension.js
+npm run watch       # esbuild watch mode for the runtime bundle
+npm run watch:tsc   # TypeScript watch mode
+npm test            # Compile and run tests from out/test/
+npm run validate:agents # Compile and validate agents, topology, and bundled skills
 ```
 
-There is currently no dedicated `npm run build` or `npm run package` script in `package.json`.
+`npm run build` aliases `npm run compile`. `vscode:prepublish` runs agent validation and then creates the production bundle.
 
 **Always run `npm run compile` after TypeScript changes to confirm compilation succeeds.**
 
 ## Webview Architecture
 
-`WelcomeViewProvider` exchanges messages with `media/webview/main.js`:
+`WelcomeViewProvider` and `src/welcome/welcomeHtml.ts` exchange messages with `media/webview/main.js`:
 
-- Extension → Webview: sends `EnvironmentInfo` and agent data as JSON
+- Extension → Webview: sends environment, project, SDK, documentation, and agent state as JSON
 - Webview → Extension: sends `{ command: 'fixSetting' | 'fixAllSettings' | 'toggleTool' | 'refreshStatus' | ... }`
 
 Webview assets in `media/webview/` are served via `localResourceRoots`.
 
 ### Lazy Loading Notes
 
+- The sidebar has Home, Setup, SDK & Instance, Agents, Environment, and References tabs
 - The sidebar retains webview state with `retainContextWhenHidden: true`
 - SDK-specific data such as auth aliases is lazy-loaded when the SDK tab is activated
 - Agent card data is pushed when the Agents tab is activated
@@ -62,32 +70,40 @@ Webview assets in `media/webview/` are served via `localResourceRoots`.
 
 | Setting | Value | Purpose |
 |---------|-------|---------|
-| `workbench.commandPalette.experimental.askChatLocation` | `chatView` | Opens Copilot questions in chat view |
 | `workbench.browser.enableChatTools` | `true` | Enables agentic browser tools (v1.110+) |
 | `chat.subagents.allowInvocationsFromSubagents` | `true` | Enables multi-tier agent routing |
-| `github.copilot.chat.tools.memory.enabled` | `true` | Persistent memory across sessions |
+| `github.copilot.chat.skillTool.enabled` | `true` | Isolates skill context (v1.118+) |
+| `github.copilot.chat.agent.backgroundTodoAgent.enabled` | `true` | Enables background todo tracking (v1.119+) |
+
+Memory is preview functionality and may be controlled by organization policy; the extension reports availability instead of force-enabling it.
 
 ## Project State Persistence
 
 `WelcomeViewProvider` writes `.vscode/nowdev-ai-config.json` as the workspace state file consumed by agents. It currently persists:
 
 - `instanceUrl`
-- `preferredDevelopmentStyle`
 - `customInstructions`
 - `fluentApp`
 - `environment`
 - `mcpIntegrations`
-- `mcpDocSources`
+- `mcpUserDismissed`
+- `mcpIntegrationConfigs`
+- `allDocSources`
+- `guidelines`
 - `agentOverrides`
+- `activeProfile`
+- `profileInstructionsOverrides`
+- `customProfiles`
 - `memoryLocation`
 - `devopsConfig`
+- `instanceConnection`
 
-The Project tab's custom-instructions flow uses the `nowdev-ai-toolbox.customInstructionsFile` setting. Do not document or add a separate workspace Copilot instructions file flow unless the product behavior changes first.
+The Setup tab's custom-instructions flow uses the `nowdev-ai-toolbox.customInstructionsFile` setting. Do not document or add a separate workspace Copilot instructions file flow unless the product behavior changes first.
 
 ## Common Patterns
 
 **Adding a new command:**
-1. Register in `extension.ts` inside `context.subscriptions.push(...)` using `vscode.commands.registerCommand`
+1. Register simple global commands in `extension.ts`, or add feature-specific commands under `src/commands/`
 2. Add the contribution entry to `package.json` under `contributes.commands`
 3. Optionally wire a trigger in `media/webview/main.js`
 
@@ -109,6 +125,7 @@ The Project tab's custom-instructions flow uses the `nowdev-ai-toolbox.customIns
 1. Create or update `agents/skills/<skill-name>/SKILL.md`
 2. Add the `SKILL.md` path to `package.json` under `contributes.chatSkills`
 3. Add any sibling reference docs only if the skill genuinely needs them
+4. Run `npm run validate:agents`
 
 ## TypeScript Config
 

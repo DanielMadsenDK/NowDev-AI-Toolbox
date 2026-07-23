@@ -2,7 +2,7 @@
   "name": "nowdev-ai-toolbox",
   "displayName": "NowDev AI Toolbox",
   "description": "ServiceNow AI Agents for VS Code Copilot",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "publisher": "DanielMadsenDK",
   "author": "Daniel Aagren Seehartrai Madsen",
   "license": "GPL-3.0-only",
@@ -324,12 +324,6 @@
         "path": "./agents/skills/nowdev-ai-toolbox-environment-drift-audit/SKILL.md"
       },
       {
-        "path": "./agents/skills/nowdev-ai-toolbox-epic-charter/SKILL.md"
-      },
-      {
-        "path": "./agents/skills/nowdev-ai-toolbox-feature-breakdown/SKILL.md"
-      },
-      {
         "path": "./agents/skills/nowdev-ai-toolbox-fluent-development/SKILL.md"
       },
       {
@@ -355,9 +349,6 @@
       },
       {
         "path": "./agents/skills/nowdev-ai-toolbox-servicenow-sdk/SKILL.md"
-      },
-      {
-        "path": "./agents/skills/nowdev-ai-toolbox-story-artifact-mapping/SKILL.md"
       }
     ]
   },
@@ -365,6 +356,7 @@
     "vscode:prepublish": "npm run validate:agents && npm run bundle",
     "bundle": "node esbuild.js --production",
     "build": "npm run compile",
+    "build:debug": "node scripts/build-debug.mjs",
     "build:plugin": "node scripts/build-plugin.mjs",
     "compile": "tsc -p ./",
     "validate:agents": "npm run compile && node out/AgentValidationCli.js",

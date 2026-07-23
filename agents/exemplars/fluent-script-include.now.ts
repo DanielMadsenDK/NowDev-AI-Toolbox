@@ -1,6 +1,6 @@
 // Canonical shape: Fluent SDK ScriptInclude with Now.include() bridge pattern
 // String-only API — must use Now.include(), NOT ES module import/export
-// Reference: now-sdk explain script-include-guide --format raw
+// Verify topic script-include-guide through nowdev-ai-toolbox-servicenow-sdk.
 import '@servicenow/sdk/global';
 import { ScriptInclude } from '@servicenow/sdk/core';
 

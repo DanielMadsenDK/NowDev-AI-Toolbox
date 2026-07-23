@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 - Dead `McpToolDiscovery.ts` module (unused MCP process-spawning surface).
+- Epic charter, feature breakdown, and story artifact mapping skills; work-item hierarchy and governance belong in organization-specific plugins.
 
 ### Internal
 - Extracted `nowdev-ai-config.json` / `now.config.json` file I/O into `src/welcome/configFile.ts` and GitHub docs helpers into `src/welcome/githubDocs.ts`, trimming `WelcomeViewProvider.ts` from ~1,500 to ~1,240 lines.
