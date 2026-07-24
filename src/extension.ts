@@ -64,56 +64,29 @@ export function activate(context: vscode.ExtensionContext) {
     registerInitFluentProject(context, welcomeProvider);
     registerSdkCommands(context, welcomeProvider);
 
-    // Enable agentic browser tools (v1.110+)
-    const browserConfig = vscode.workspace.getConfiguration('workbench.browser');
-    const chatToolsEnabled = browserConfig.get<boolean>('enableChatTools');
-
-    if (chatToolsEnabled !== true) {
-        browserConfig.update('enableChatTools', true, vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Enabled workbench.browser.enableChatTools setting');
-        }, (error: any) => {
-            console.error('Failed to enable workbench.browser.enableChatTools:', error);
-        });
-    }
-
-    // Enable sub-agent invocations from sub-agents (required for multi-tier agent routing)
-    const subagentsConfig = vscode.workspace.getConfiguration('chat.subagents');
-    const subagentsEnabled = subagentsConfig.get<boolean>('allowInvocationsFromSubagents');
-
-    if (subagentsEnabled !== true) {
-        subagentsConfig.update('allowInvocationsFromSubagents', true, vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Enabled chat.subagents.allowInvocationsFromSubagents setting');
-        }, (error: any) => {
-            console.error('Failed to enable chat.subagents.allowInvocationsFromSubagents:', error);
-        });
-    }
-
+    // One-time nudges enabling VS Code/Copilot Chat settings this extension depends on.
+    // Each is additive (never disables anything) and safe to re-check on every activation.
+    enableSettingIfDisabled('workbench.browser', 'enableChatTools'); // Agentic browser tools (v1.110+)
+    enableSettingIfDisabled('chat.subagents', 'allowInvocationsFromSubagents'); // Sub-agent invocations from sub-agents (multi-tier routing)
     // Memory is preview and may be disabled by organization policy. The sidebar
     // reports availability and offers enablement only when VS Code allows it.
-
-    // Enable dedicated skill context isolation (v1.118+) — prevents skill content flooding main agent context
-    const skillToolConfig = vscode.workspace.getConfiguration('github.copilot.chat');
-    if (skillToolConfig.get<boolean>('skillTool.enabled') !== true) {
-        skillToolConfig.update('skillTool.enabled', true, vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Enabled github.copilot.chat.skillTool.enabled');
-        }, (error: any) => {
-            console.error('Failed to enable skillTool:', error);
-        });
-    }
-
-    // Enable background todo agent (v1.119+) — offloads todo tracking from main model in multi-tier sessions
-    const todoAgentConfig = vscode.workspace.getConfiguration('github.copilot.chat.agent');
-    if (todoAgentConfig.get<boolean>('backgroundTodoAgent.enabled') !== true) {
-        todoAgentConfig.update('backgroundTodoAgent.enabled', true, vscode.ConfigurationTarget.Global).then(() => {
-            console.log('Enabled github.copilot.chat.agent.backgroundTodoAgent.enabled');
-        }, (error: any) => {
-            console.error('Failed to enable backgroundTodoAgent:', error);
-        });
-    }
+    enableSettingIfDisabled('github.copilot.chat', 'skillTool.enabled'); // Skill context isolation (v1.118+)
+    enableSettingIfDisabled('github.copilot.chat.agent', 'backgroundTodoAgent.enabled'); // Background todo agent (v1.119+)
 
     // Agents are delivered as generated .github/agents/*.agent.md files, synced
     // by WorkspaceAgentManager via the welcome view — no registration step here.
 
+}
+
+/** Sets a Global boolean setting to true if it isn't already, logging the outcome. */
+function enableSettingIfDisabled(section: string, key: string): void {
+    const config = vscode.workspace.getConfiguration(section);
+    if (config.get<boolean>(key) === true) { return; }
+    config.update(key, true, vscode.ConfigurationTarget.Global).then(() => {
+        console.log(`Enabled ${section}.${key} setting`);
+    }, (error: any) => {
+        console.error(`Failed to enable ${section}.${key}:`, error);
+    });
 }
 
 export function deactivate() {}

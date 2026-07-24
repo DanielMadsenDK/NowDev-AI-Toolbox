@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { WelcomeViewProvider } from '../WelcomeViewProvider';
-import { spawnNpm, spawnSdk } from '../SdkProcess';
+import { spawnNpm, spawnSdk, streamToChannel } from '../SdkProcess';
 import { scanAuthAliases } from '../AuthAliasScanner';
 
 export function registerInitFluentProject(context: vscode.ExtensionContext, welcomeProvider: WelcomeViewProvider): void {
@@ -144,48 +144,37 @@ export function registerInitFluentProject(context: vscode.ExtensionContext, welc
 
             fs.mkdirSync(resolvedTargetDir, { recursive: true });
 
-            const proc = spawnSdk(args, { cwd: resolvedTargetDir });
+            const code = await streamToChannel(spawnSdk(args, { cwd: resolvedTargetDir }), outputChannel);
 
-            proc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
-            proc.stderr.on('data', (data: Buffer) => outputChannel.append(data.toString()));
+            if (code === 0) {
+                outputChannel.appendLine('\n✓ Project initialised successfully.');
+                outputChannel.appendLine('\nRunning npm install...\n');
 
-            proc.on('close', (code: number | null) => {
-                if (code === 0) {
-                    outputChannel.appendLine('\n✓ Project initialised successfully.');
-                    outputChannel.appendLine('\nRunning npm install...\n');
-
-                    const npmProc = spawnNpm(['install'], { cwd: resolvedTargetDir });
-
-                    npmProc.stdout.on('data', (data: Buffer) => outputChannel.append(data.toString()));
-                    npmProc.stderr.on('data', (data: Buffer) => outputChannel.append(data.toString()));
-
-                    npmProc.on('close', (npmCode: number | null) => {
-                        if (npmCode === 0) {
-                            outputChannel.appendLine('\n✓ npm install completed. Project is ready.');
-                        } else {
-                            outputChannel.appendLine(`\n✗ npm install failed with exit code ${npmCode}.`);
-                            vscode.window.showWarningMessage(`npm install failed (exit code ${npmCode}). See the output channel for details.`);
-                        }
-                        welcomeProvider.refreshStatus();
-                        if (!isCurrentFolder) {
-                            vscode.window.showInformationMessage(
-                                `"${appName.trim()}" initialised in ${resolvedTargetDir}. Open the folder?`,
-                                'Open Folder',
-                                'Open in New Window'
-                            ).then((choice) => {
-                                if (choice === 'Open Folder') {
-                                    vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(resolvedTargetDir), false);
-                                } else if (choice === 'Open in New Window') {
-                                    vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(resolvedTargetDir), true);
-                                }
-                            });
+                const npmCode = await streamToChannel(spawnNpm(['install'], { cwd: resolvedTargetDir }), outputChannel);
+                if (npmCode === 0) {
+                    outputChannel.appendLine('\n✓ npm install completed. Project is ready.');
+                } else {
+                    outputChannel.appendLine(`\n✗ npm install failed with exit code ${npmCode}.`);
+                    vscode.window.showWarningMessage(`npm install failed (exit code ${npmCode}). See the output channel for details.`);
+                }
+                welcomeProvider.refreshStatus();
+                if (!isCurrentFolder) {
+                    vscode.window.showInformationMessage(
+                        `"${appName.trim()}" initialised in ${resolvedTargetDir}. Open the folder?`,
+                        'Open Folder',
+                        'Open in New Window'
+                    ).then((choice) => {
+                        if (choice === 'Open Folder') {
+                            vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(resolvedTargetDir), false);
+                        } else if (choice === 'Open in New Window') {
+                            vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(resolvedTargetDir), true);
                         }
                     });
-                } else {
-                    outputChannel.appendLine(`\n✗ now-sdk init failed with exit code ${code}.`);
-                    vscode.window.showErrorMessage(`now-sdk init failed (exit code ${code}). See the output channel for details.`);
                 }
-            });
+            } else {
+                outputChannel.appendLine(`\n✗ now-sdk init failed with exit code ${code}.`);
+                vscode.window.showErrorMessage(`now-sdk init failed (exit code ${code}). See the output channel for details.`);
+            }
         })
     );
 }

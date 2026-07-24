@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { spawnSdk } from './SdkProcess';
 import { getSharedPanelStyles } from './SharedPanelStyles';
+import { escapeHtml } from './htmlEscape';
+import { captureSdkOutput } from './extensionUtils';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
 
@@ -36,12 +37,11 @@ export function showSdkCommandHelpPanel(command: string): void {
     panel.onDidDispose(() => _panels.delete(key));
     panel.webview.html = loadingHtml(label);
 
-    const proc = spawnSdk([command, '--help'], { timeout: 10000 });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
-    proc.stderr.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
-    proc.on('close', () => {
+    void captureSdkOutput([command, '--help'], { timeout: 10000 }).then(({ stdout, stderr, code }) => {
+        if (code === -1) {
+            panel.webview.html = errorHtml(`Failed to run now-sdk. Make sure it is installed and accessible.`);
+            return;
+        }
         // Commander.js sends --help to stdout; some CLIs use stderr
         const output = (stdout || stderr || '').trim();
         if (!output) {
@@ -49,9 +49,6 @@ export function showSdkCommandHelpPanel(command: string): void {
             return;
         }
         panel.webview.html = renderHtml(label, command, output);
-    });
-    proc.on('error', () => {
-        panel.webview.html = errorHtml(`Failed to run now-sdk. Make sure it is installed and accessible.`);
     });
 }
 
@@ -65,13 +62,13 @@ function capitalize(s: string): string {
 
 function loadingHtml(label: string): string {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
-<div class="loading">Loading help for <strong>${esc(label)}</strong>&hellip;</div>
+<div class="loading">Loading help for <strong>${escapeHtml(label)}</strong>&hellip;</div>
 </body></html>`;
 }
 
 function errorHtml(msg: string): string {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
-<div class="error-msg">${esc(msg)}</div>
+<div class="error-msg">${escapeHtml(msg)}</div>
 </body></html>`;
 }
 
@@ -86,16 +83,6 @@ ${styles()}
 </head>
 <body>${body}</body>
 </html>`;
-}
-
-// ── Output parser ──────────────────────────────────────────────────────────────
-
-function esc(s: string): string {
-    return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }
 
 // ── Yargs-aware parser ────────────────────────────────────────────────────────
@@ -172,18 +159,18 @@ function collectItems(lines: string[], startI: number): { items: ParsedOption[];
 }
 
 function renderItem(item: ParsedOption): string {
-    const flagsHtml = esc(item.flags)
+    const flagsHtml = escapeHtml(item.flags)
         .replace(/(--?[\w-]+)/g, '<span class="pname">$1</span>')
         .replace(/(&lt;[\w-]+&gt;)/g, '<span class="ptype">$1</span>')
         .replace(/(\[(?!default)[\w|]+\])/g, '<span class="opt">$1</span>');
 
     let html = `<span class="flag-sig">${flagsHtml}</span>`;
     if (item.desc) {
-        html += `<span class="item-desc">${esc(item.desc)}</span>`;
+        html += `<span class="item-desc">${escapeHtml(item.desc)}</span>`;
     }
     const metaParts: string[] = [];
-    if (item.type) { metaParts.push(`<span class="type-badge">${esc(item.type)}</span>`); }
-    if (item.defaultVal) { metaParts.push(`<span class="default-badge">default: ${esc(item.defaultVal)}</span>`); }
+    if (item.type) { metaParts.push(`<span class="type-badge">${escapeHtml(item.type)}</span>`); }
+    if (item.defaultVal) { metaParts.push(`<span class="default-badge">default: ${escapeHtml(item.defaultVal)}</span>`); }
     if (metaParts.length) { html += `<div class="item-meta">${metaParts.join('')}</div>`; }
     return html;
 }
@@ -195,8 +182,8 @@ function convertToHtml(label: string, command: string, raw: string): string {
 
     // ── Header block ──────────────────────────────────────────────
     html += `<div class="api-header">`;
-    html += `<div class="api-id">now-sdk ${esc(command)}</div>`;
-    html += `<div class="api-tags"><span class="tag">CLI Command</span><span class="tag">${esc(label)}</span></div>`;
+    html += `<div class="api-id">now-sdk ${escapeHtml(command)}</div>`;
+    html += `<div class="api-tags"><span class="tag">CLI Command</span><span class="tag">${escapeHtml(label)}</span></div>`;
     html += `</div>`;
 
     // Skip leading blank lines
@@ -206,7 +193,7 @@ function convertToHtml(label: string, command: string, raw: string): string {
     if (i < lines.length) {
         const sig = lines[i].trim();
         if (sig && !isSectionHeader(sig)) {
-            html += `<div class="fn-sig"><span class="fn-kw">Usage</span> <span class="fn-name">${esc(sig)}</span></div>`;
+            html += `<div class="fn-sig"><span class="fn-kw">Usage</span> <span class="fn-name">${escapeHtml(sig)}</span></div>`;
             i++;
         }
     }
@@ -220,7 +207,7 @@ function convertToHtml(label: string, command: string, raw: string): string {
         i++;
     }
     if (desc) {
-        html += `<p class="cmd-desc">${esc(desc)}</p>`;
+        html += `<p class="cmd-desc">${escapeHtml(desc)}</p>`;
     }
 
     // ── Sections ──────────────────────────────────────────────────
@@ -230,7 +217,7 @@ function convertToHtml(label: string, command: string, raw: string): string {
 
         if (isSectionHeader(t)) {
             const title = t.replace(/:$/, '');
-            html += `<h2 class="sec-h">${esc(title)}</h2>`;
+            html += `<h2 class="sec-h">${escapeHtml(title)}</h2>`;
             i++;
             const { items, nextI } = collectItems(lines, i);
             i = nextI;
@@ -244,7 +231,7 @@ function convertToHtml(label: string, command: string, raw: string): string {
             continue;
         }
 
-        html += `<p>${esc(t)}</p>`;
+        html += `<p>${escapeHtml(t)}</p>`;
         i++;
     }
 

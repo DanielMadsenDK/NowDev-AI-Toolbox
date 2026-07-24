@@ -3,11 +3,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import { URL } from 'url';
-import { spawnSdk } from './SdkProcess';
+import { spawnSdk, SdkProcessOptions } from './SdkProcess';
 
-export function captureSdkOutput(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number | null }> {
+/** Runs now-sdk, collecting stdout/stderr into strings. Resolves (never rejects) with code -1 on spawn failure. */
+export function captureSdkOutput(args: string[], options: SdkProcessOptions = {}): Promise<{ stdout: string; stderr: string; code: number | null }> {
     return new Promise((resolve) => {
-        const proc = spawnSdk(args, { cwd });
+        const proc = spawnSdk(args, options);
         let stdout = '';
         let stderr = '';
         proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });

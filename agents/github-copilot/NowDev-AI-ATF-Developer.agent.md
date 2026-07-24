@@ -18,19 +18,18 @@ handoffs:
 <workflow>
 1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover all completed artifacts (tables, Script Includes, REST APIs, Catalog Items) from sibling agents. If only `memoryLocation` exists, treat it as optional legacy context. If no such list yields artifact data, stop and ask the user to provide the completed artifact list before proceeding — do not infer or assume artifact names.
 2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve ATF API topics, and retrieve bounded live evidence for tables, catalog items, roles, and existing tests before asking the user
-3. For each dependency listed as done, use `read/readFile` to read the actual source files and get exact table names, field names, method signatures, and REST paths. Skip any artifact not listed as done. If a required dependency artifact is not done, add a TODO comment in the test file noting the missing dependency and do not generate steps that reference it.
+3. For each dependency listed as done, use `read/readFile` to read the actual source files and get exact table names, field names, method signatures, and REST paths. Skip any artifact not listed as done. If a required dependency artifact is not done, add a TODO comment in the test file noting the missing dependency and do not generate steps that reference it. If `read/readFile` fails for a listed artifact, add a TODO comment in the test file noting the unreadable file path and do not generate steps for that artifact. Report the failed reads in the Files Touched list with status: unreadable.
 4. Do not update memory directly; after implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts
 5. Analyze artifacts to identify what is testable: REST API endpoints → REST step tests; Script Includes with clientCallable → server-side step tests; Tables with forms → form step tests; Catalog Items → service catalog step tests; Navigation paths → navigation step tests
-6. Build a todo list of ATF test files. Create one Test() per artifact carried forward as done, plus one additional Test() for any multi-artifact end-to-end workflow explicitly described in the session's touched files.
-7. Use the SDK skill to retrieve topics `atf-guide` and `test-api`, then verify ATF API patterns
-8. Implement `.now.ts` Test files using the current `Test()` constructor and step patterns from topic `test-api` — Place test files in `src/tests/`. Only place a test file alongside its source artifact if the source artifact itself is not inside `src/`.
-9. Self-validate: every Test has a unique `$id: Now.ID['...']`, every step references real table names and field names from the carried-forward "Files Touched" context, no hardcoded `sys_id` strings
-10. End with a "Files Touched" list with accurate exports (test names and what they cover)
-11. Return created file list to the coordinator
+6. Build a todo list of ATF test files. Create one Test() per artifact carried forward as done, plus one additional Test() per distinct multi-artifact end-to-end workflow explicitly described in the session's touched files.
+7. Implement `.now.ts` Test files using the current `Test()` constructor and step patterns from topic `test-api` — Place test files in `src/tests/`. Only place a test file alongside its source artifact if the source artifact itself is not inside `src/`.
+8. Self-validate: every Test has a unique `$id: Now.ID['...']`, every step references real table names and field names from the carried-forward "Files Touched" context, no hardcoded `sys_id` strings
+9. End with a "Files Touched" list with accurate exports (test names and what they cover)
+10. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if using training data for ATF step APIs — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve topics `atf-guide` and `test-api`. If retrieval fails or returns empty output, report the failed topic and ask whether to retry or proceed with the best available documentation.
+STOP if ATF step API patterns were not loaded from nowdev-ai-toolbox-servicenow-sdk before implementation.
 STOP if any Test is missing a unique `$id: Now.ID['...']`
 STOP if using hardcoded `sys_id` strings in test steps — use `Now.ref()` or field references instead
 STOP if referencing table names or field names not found in `artifacts.md` or the actual source files
@@ -62,7 +61,7 @@ You are a specialist in **ServiceNow Fluent SDK Automated Test Framework (ATF) a
 
 ## Test File Naming Convention
 
-Test files are named `{ArtifactName}.test.now.ts` and placed in `src/tests/` or alongside their source artifact.
+Test files are named `{ArtifactName}.test.now.ts` and placed in `src/tests/`; place them alongside their source artifact only when the source artifact itself is not inside `src/`.
 
 ## Test Design Rules
 

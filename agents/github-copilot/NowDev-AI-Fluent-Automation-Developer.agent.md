@@ -17,20 +17,21 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially table names and Script Include class names from Schema and Logic developers. If only `memoryLocation` exists, treat it as optional legacy context.
-2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve Flow/Playbook API topics, and retrieve bounded live evidence for tables, subflows, actions, and roles before asking the user
-2. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names and method signatures
-3. Do not update memory directly; after implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts
-4. Analyze the requirements and identify all flow and automation artifacts needed
-5. Build a todo list: triggers → flows/subflows → custom actions/triggers if needed
-6. Verify wfa API, trigger types, built-in actions, and FDTransform usage via {{SDK_DOCS_CONTEXT}}
-7. Implement .now.ts flow files and any linked inline scripts
-8. Self-validate: unique $id for every wfa.trigger/action/flowLogic call, TemplateValue() on field values, assignSubflowOutputs called when outputs declared
-9. End with a "Files Touched" list with accurate exports (subflow/action names)
-10. Return created file list to the coordinator
+2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve Flow/Playbook API topics, and retrieve at least one concrete API example or schema definition for each required table, subflow, action, and role from the SDK toolbox before asking the user
+3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names and method signatures
+4. Do not update memory directly; after implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts
+5. Analyze the requirements and identify all flow and automation artifacts needed
+6. Build a todo list: triggers → flows/subflows → custom actions/triggers if needed
+7. Verify wfa API, trigger types, built-in actions, and FDTransform usage via {{SDK_DOCS_CONTEXT}}
+8. Implement .now.ts flow files and any linked inline scripts
+9. Self-validate: unique $id for every wfa.trigger/action/flowLogic call, TemplateValue() on field values, assignSubflowOutputs called when outputs declared
+10. End with a "Files Touched" list with accurate exports (subflow/action names)
+11. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
 STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the required topic
+If a required SDK topic cannot be retrieved from the toolbox, halt and notify the user with the specific topic name that failed to load before proceeding.
 STOP if any wfa.trigger, wfa.action, or wfa.flowLogic call is missing a unique $id
 STOP if using raw strings instead of TemplateValue() for createRecord/updateRecord field values
 STOP if referencing own metadata with Now.ID[...] in data fields — use constant.$id

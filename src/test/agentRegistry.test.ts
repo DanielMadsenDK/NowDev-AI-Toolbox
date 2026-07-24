@@ -30,6 +30,20 @@ test('exactly one user-invocable orchestrator exists', () => {
     assert.equal(invocable[0].name, 'NowDev AI Agent');
 });
 
+test('internal agents are not user-invocable or automatically selected', () => {
+    const manifests = loadAgentRegistry(repoRoot);
+    const orchestrator = manifests.find(manifest => manifest.name === 'NowDev AI Agent');
+    assert.ok(orchestrator);
+    assert.equal(orchestrator.userInvocable, true);
+    assert.equal(orchestrator.disableModelInvocation, false);
+
+    for (const manifest of manifests) {
+        if (manifest === orchestrator) { continue; }
+        assert.equal(manifest.userInvocable, false, `${manifest.name} must remain internal`);
+        assert.equal(manifest.disableModelInvocation, true, `${manifest.name} must opt out of automatic selection`);
+    }
+});
+
 test('every subagent and handoff reference resolves to a bundled agent', () => {
     const manifests = loadAgentRegistry(repoRoot);
     const byName = new Set(manifests.map(m => m.name));

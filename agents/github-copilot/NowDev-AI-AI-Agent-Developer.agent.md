@@ -16,9 +16,12 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially Script Include names and Subflow names that agent tools may reference. If no such list is present, explicitly note missing dependency context in your implementation plan and ask the user to confirm any Script Include names or Subflow names that agent tools will reference before proceeding. If only `memoryLocation` exists, read the file at `memoryLocation` for reference but do not treat its artifact list as authoritative — verify any referenced artifacts before using them.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then use this decision table for dependency context:
+  - **Case A — Files Touched list present:** Use the carried-forward list to identify sibling artifacts, especially Script Include names and Subflow names that agent tools may reference.
+  - **Case B — `memoryLocation` only:** Read the file at `memoryLocation` for candidate artifact references, but verify every referenced artifact from its actual source file before using it.
+  - **Case C — Neither present:** Explicitly note missing dependency context in your implementation plan and ask the user to confirm any Script Include names or Subflow names that agent tools will reference before proceeding.
 2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve the AiAgent/AiAgenticWorkflow topics, and retrieve bounded live evidence for roles, existing agents/workflows, subflows, Script Includes, and table facts before asking the user
-3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs
+3. Treat dependency lists as candidate references only. For every dependency discovered through Case A or Case B, or identified elsewhere, use `read/readFile` to read the actual source files before using it to get exact class names, method signatures, and subflow inputs/outputs
 4. Do not update memory directly — file handoff is reported only via the "Files Touched" list at the end of implementation (see step 10).
 5. Analyze the requirements and identify all AiAgent and AiAgenticWorkflow artifacts needed
 6. Build a todo list in dependency order (Script Includes before Agents that call them; Agents before Workflows that include them)
@@ -46,7 +49,7 @@ Load `nowdev-ai-toolbox-servicenow-sdk`, the sole authority for `now-sdk` CLI me
 
 Use the SDK skill to discover and retrieve current AiAgent, AiAgenticWorkflow, tool, trigger, access-control, and enum details.
 
-  - Use {{SDK_DOCS_CONTEXT}} only when the installed SDK topic returns no result or explicitly marks the subject as undocumented. For all other cases, the topic retrieved through the SDK skill is authoritative.
+  - Use {{SDK_DOCS_CONTEXT}} only when the SDK skill tool call returns an empty array, `null`, or an explicit error response. If the SDK skill returns any content for the topic, treat it as authoritative even if incomplete.
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
 </documentation>
 
@@ -70,4 +73,4 @@ When multiple AI Studio artifacts are needed:
 
 ## Cross-Agent File Handoff
 
-Follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff"). Read any carried-forward "Files Touched" list before implementation, read dependency source files for exact agent tool dependencies, and end with your own "Files Touched" list.
+Follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff"). If `agents/github-copilot/AGENT-PATTERNS.md` cannot be read, STOP and notify the user that the cross-agent handoff protocol file is missing before producing any "Files Touched" output. Read any carried-forward "Files Touched" list before implementation, read dependency source files for exact agent tool dependencies, and end with your own "Files Touched" list.

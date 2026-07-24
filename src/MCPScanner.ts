@@ -49,6 +49,38 @@ function parseServerEntry(entry: Record<string, unknown>): McpServerConfig | und
     return undefined;
 }
 
+interface McpFileEntry {
+    folderPath: string;
+    filePath: string;
+    servers: Record<string, Record<string, unknown>>;
+}
+
+/**
+ * Reads and parses every workspace MCP config file (current `.mcp.json` plus
+ * legacy `.vscode/mcp.json`, across all workspace folders). Shared by
+ * getMcpServerConfig and scanMcpServers so the same files are read once.
+ */
+function readWorkspaceMcpFiles(): McpFileEntry[] {
+    const entries: McpFileEntry[] = [];
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) { return entries; }
+    for (const folder of workspaceFolders) {
+        const folderPath = folder.uri.fsPath;
+        for (const filePath of [
+            path.join(folderPath, '.mcp.json'),
+            path.join(folderPath, '.vscode', 'mcp.json'),
+        ]) {
+            try {
+                if (!fs.existsSync(filePath)) { continue; }
+                const data = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Record<string, unknown>;
+                const servers = (data['servers'] ?? {}) as Record<string, Record<string, unknown>>;
+                entries.push({ folderPath, filePath, servers });
+            } catch { /* ignore */ }
+        }
+    }
+    return entries;
+}
+
 /**
  * Returns the connection configuration for a named MCP server, or undefined
  * if the server is not found or its config cannot be parsed.
@@ -63,23 +95,10 @@ export function getMcpServerConfig(serverName: string): McpServerConfig | undefi
     }
 
     // 2. Workspace MCP files (.mcp.json and legacy .vscode/mcp.json)
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders) {
-        for (const folder of workspaceFolders) {
-            for (const mcpFile of [
-                path.join(folder.uri.fsPath, '.mcp.json'),
-                path.join(folder.uri.fsPath, '.vscode', 'mcp.json'),
-            ]) {
-                try {
-                    if (!fs.existsSync(mcpFile)) { continue; }
-                    const data = JSON.parse(fs.readFileSync(mcpFile, 'utf-8')) as Record<string, unknown>;
-                    const servers = (data['servers'] ?? {}) as Record<string, Record<string, unknown>>;
-                    if (servers[serverName]) {
-                        const cfg = parseServerEntry(servers[serverName]);
-                        if (cfg) { return cfg; }
-                    }
-                } catch { /* ignore */ }
-            }
+    for (const entry of readWorkspaceMcpFiles()) {
+        if (entry.servers[serverName]) {
+            const cfg = parseServerEntry(entry.servers[serverName]);
+            if (cfg) { return cfg; }
         }
     }
     return undefined;
@@ -112,34 +131,12 @@ export function scanMcpServers(): McpServer[] {
     // 2. Workspace MCP files.
     // Prefer the current `.mcp.json` location, then fall back to legacy
     // `.vscode/mcp.json` for backwards compatibility.
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders && workspaceFolders.length > 0) {
-        for (const folder of workspaceFolders) {
-            const folderPath = folder.uri.fsPath;
-            const fileCandidates = [
-                path.join(folderPath, '.mcp.json'),
-                path.join(folderPath, '.vscode', 'mcp.json'),
-            ];
-
-            for (const mcpJsonPath of fileCandidates) {
-                try {
-                    if (!fs.existsSync(mcpJsonPath)) {
-                        continue;
-                    }
-
-                    const raw = fs.readFileSync(mcpJsonPath, 'utf-8');
-                    const data = JSON.parse(raw) as Record<string, unknown>;
-                    const fileServers = (data['servers'] ?? {}) as Record<string, Record<string, unknown>>;
-                    for (const name of Object.keys(fileServers)) {
-                        if (!seen.has(name)) {
-                            seen.add(name);
-                            const srv = fileServers[name];
-                            servers.push({ name, source: 'file', type: srv['type'] as string | undefined, kind: parseServerEntry(srv)?.kind, path: path.relative(folderPath, mcpJsonPath).replace(/\\/g, '/') });
-                        }
-                    }
-                } catch {
-                    /* ignore parse/read errors */
-                }
+    for (const entry of readWorkspaceMcpFiles()) {
+        for (const name of Object.keys(entry.servers)) {
+            if (!seen.has(name)) {
+                seen.add(name);
+                const srv = entry.servers[name];
+                servers.push({ name, source: 'file', type: srv['type'] as string | undefined, kind: parseServerEntry(srv)?.kind, path: path.relative(entry.folderPath, entry.filePath).replace(/\\/g, '/') });
             }
         }
     }

@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { spawnSdk } from './SdkProcess';
 import { getSharedPanelStyles } from './SharedPanelStyles';
-import { convertToHtml, esc } from './SdkExplainRender';
+import { convertToHtml } from './SdkExplainRender';
+import { escapeHtml } from './htmlEscape';
+import { captureSdkOutput } from './extensionUtils';
 
 const _panels = new Map<string, vscode.WebviewPanel>();
 
@@ -38,12 +39,11 @@ export function showSdkExplainPanel(apiName: string): void {
 
     panel.webview.html = loadingHtml(apiName);
 
-    const proc = spawnSdk(['explain', apiName], { timeout: 15000 });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
-    proc.stderr.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
-    proc.on('close', () => {
+    void captureSdkOutput(['explain', apiName], { timeout: 15000 }).then(({ stdout, stderr, code }) => {
+        if (code === -1) {
+            panel.webview.html = errorHtml(`Failed to run now-sdk. Make sure it is installed and accessible.`);
+            return;
+        }
         const output = (stdout || stderr || '').trim();
         if (!output) {
             panel.webview.html = errorHtml(`No documentation found for "${apiName}". Check that the API name is correct and now-sdk is installed.`);
@@ -58,9 +58,6 @@ export function showSdkExplainPanel(apiName: string): void {
         }
 
         panel.webview.html = renderHtml(apiName, output);
-    });
-    proc.on('error', () => {
-        panel.webview.html = errorHtml(`Failed to run now-sdk. Make sure it is installed and accessible.`);
     });
 }
 
@@ -82,11 +79,11 @@ function parseMultipleTopics(output: string): Array<{ name: string; desc: string
 
 function multipleTopicsHtml(apiName: string, topics: Array<{ name: string; desc: string }>): string {
     const items = topics.map(t =>
-                `<li><div class="param-name"><a href="${explainCommandUri(t.name)}">${esc(t.name)}</a></div><div class="cont">${esc(t.desc)}</div></li>`
+                `<li><div class="param-name"><a href="${explainCommandUri(t.name)}">${escapeHtml(t.name)}</a></div><div class="cont">${escapeHtml(t.desc)}</div></li>`
     ).join('');
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
 <div class="api-header">
-  <div class="api-id">${esc(apiName)}</div>
+  <div class="api-id">${escapeHtml(apiName)}</div>
   <div class="api-tags"><span class="tag">Multiple Matches</span></div>
 </div>
 <h2 class="sec-h">Multiple matching topics</h2>
@@ -106,13 +103,13 @@ function explainCommandUri(topicName: string): string {
 
 function loadingHtml(apiName: string): string {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
-<div class="loading">Loading documentation for <strong>${esc(apiName)}</strong>&hellip;</div>
+<div class="loading">Loading documentation for <strong>${escapeHtml(apiName)}</strong>&hellip;</div>
 </body></html>`;
 }
 
 function errorHtml(msg: string): string {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">${styles()}</head><body>
-<div class="error-msg">${esc(msg)}</div>
+<div class="error-msg">${escapeHtml(msg)}</div>
 </body></html>`;
 }
 

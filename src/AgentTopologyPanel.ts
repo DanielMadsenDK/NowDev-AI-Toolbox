@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { AgentManifest } from './AgentRegistry';
 import { AgentOverride } from './WorkspaceAgentManager';
 import { css } from './AgentTopologyStyles';
+import { escapeHtml } from './htmlEscape';
 
 let _panel: vscode.WebviewPanel | undefined;
 
@@ -64,14 +65,6 @@ function buildTree(
 
 // ── HTML generation ────────────────────────────────────────────────────────────
 
-function esc(s: string): string {
-    return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
 type Role = 'orchestrator' | 'coordinator' | 'developer' | 'reviewer' | 'release' | 'support' | 'unknown';
 
 function inferRole(manifest: AgentManifest): Role {
@@ -101,14 +94,14 @@ function roleLabel(role: Role): string {
 function renderTier1Card(node: TreeNode): string {
     const role = inferRole(node.manifest);
     return `
-<div class="card card-orchestrator" title="${esc(node.manifest.description)}">
+<div class="card card-orchestrator" title="${escapeHtml(node.manifest.description)}">
     <div class="card-icon">&#xe9b0;</div>
-    <div class="card-name">${esc(node.manifest.shortName || node.manifest.name)}</div>
-    <div class="card-desc">${esc(node.manifest.description)}</div>
+    <div class="card-name">${escapeHtml(node.manifest.shortName || node.manifest.name)}</div>
+    <div class="card-desc">${escapeHtml(node.manifest.description)}</div>
     <div class="card-tags">
-        <span class="tag tag-${role}">${roleLabel(role)}</span>
-        <span class="tag tag-planning">Planning</span>
-        <span class="tag tag-delegation">Delegation</span>
+        <span class="topo-tag tag-${role}">${roleLabel(role)}</span>
+        <span class="topo-tag tag-planning">Planning</span>
+        <span class="topo-tag tag-delegation">Delegation</span>
     </div>
 </div>`;
 }
@@ -118,10 +111,10 @@ function renderTier2Card(node: TreeNode): string {
     const childCount = node.children.length;
     const childHint = childCount > 0 ? ` · ${childCount} sub-agent${childCount === 1 ? '' : 's'}` : '';
     return `
-<div class="card card-tier2 card-role-${role}" title="${esc(node.manifest.description)}">
+<div class="card card-tier2 card-role-${role}" title="${escapeHtml(node.manifest.description)}">
     <div class="card-icon-sm">${roleIcon(role)}</div>
-    <div class="card-name-sm">${esc(node.manifest.shortName || node.manifest.name)}</div>
-    <div class="card-sub">${esc(truncate(node.manifest.description, 60))}${esc(childHint)}</div>
+    <div class="card-name-sm">${escapeHtml(node.manifest.shortName || node.manifest.name)}</div>
+    <div class="card-sub">${escapeHtml(truncate(node.manifest.description, 60))}${escapeHtml(childHint)}</div>
 </div>`;
 }
 
@@ -134,10 +127,10 @@ function renderTier3Card(node: TreeNode): string {
         ? `<div class="t3-nested">${node.children.map(c => renderTier3Card(c)).join('')}</div>`
         : '';
     return `
-<div class="card card-tier3 card-role-${role}" title="${esc(node.manifest.description)}">
+<div class="card card-tier3 card-role-${role}" title="${escapeHtml(node.manifest.description)}">
     <div class="card-icon-sm">${roleIcon(role)}</div>
-    <div class="card-name-sm">${esc(node.manifest.shortName || node.manifest.name)}</div>
-    <div class="card-sub">${esc(truncate(node.manifest.description, 55))}${esc(childHint)}</div>
+    <div class="card-name-sm">${escapeHtml(node.manifest.shortName || node.manifest.name)}</div>
+    <div class="card-sub">${escapeHtml(truncate(node.manifest.description, 55))}${escapeHtml(childHint)}</div>
 </div>
 ${nested}`;
 }
@@ -190,7 +183,7 @@ function buildHtml(manifests: AgentManifest[], overrides: Record<string, AgentOv
     const tier2Html = tier2Nodes.map(n => renderTier2Card(n)).join('');
     const tier3Html = tier3Groups.map(g =>
         `<div class="t3-group">
-            <div class="t3-group-label">${esc((g.parent.manifest.shortName || g.parent.manifest.name).toUpperCase())}</div>
+            <div class="t3-group-label">${escapeHtml((g.parent.manifest.shortName || g.parent.manifest.name).toUpperCase())}</div>
             <div class="t3-group-cards">${g.nodes.map(n => renderTier3Card(n)).join('')}</div>
         </div>`
     ).join('');

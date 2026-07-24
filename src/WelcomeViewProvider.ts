@@ -4,15 +4,17 @@ import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
 import { scanMcpServers, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
-import { syncAllAgents, syncWorkspaceInstructionsFile, syncWorkspacePromptFiles, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, SERVICENOW_RELEASES, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
+import { syncAllAgents, syncWorkspaceInstructionsFile, syncWorkspacePromptFiles, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
 import { DEFAULT_PROFILE_ID, getProfileById, getAllProfiles, normalizeCustomProfiles, getEffectiveAgentConfig, ProfileDefinition } from './ProfileManager';
 import { scanAuthAliases, getCachedDefaultInstanceHost, AuthAlias } from './AuthAliasScanner';
 import { showSdkCommandHelpPanel } from './SdkCommandHelpPanel';
-import { SdkCommandStatus, InstallInfoState, ConnectionState, CheckChangesState, AvailableAgentModel, PrerequisiteStatusKind, PrerequisiteStatus, RequiredSetting, InspectWithPolicy } from './welcome/welcomeTypes';
-import { normalizeModelOverride, resolveInside, isSafeRelativePath, capitalize, AUTO_ENABLE_MCP_PATTERNS } from './welcome/welcomeUtils';
+import { SdkCommandStatus, InstallInfoState, ConnectionState, CheckChangesState, AvailableAgentModel } from './welcome/welcomeTypes';
+import { normalizeModelOverride, resolveInside, capitalize, AUTO_ENABLE_MCP_PATTERNS, withDefaultOverride, readTextFileSafe } from './welcome/welcomeUtils';
 import { buildWelcomeHtml } from './welcome/welcomeHtml';
-import { githubGetJson, githubGetRaw, getDocsSyncTime, setDocsSyncTime } from './welcome/githubDocs';
 import { readNowConfig, writeNowDevConfigFile, writeConnectionStatusToConfig, FluentAppInfo } from './welcome/configFile';
+import { DocsSyncController } from './welcome/docsSync';
+import { PrerequisiteChecker } from './welcome/prerequisites';
+import { applyModelPresets } from './welcome/modelPresets';
 
 export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'nowdev-ai-toolbox.welcome';
@@ -36,13 +38,18 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _activeProfileId: string = DEFAULT_PROFILE_ID;
     private _profileInstructionsOverrides: Record<string, string> = {};
     private _customProfiles: ProfileDefinition[] = [];
-    private _docsReleases: string[] = [...SERVICENOW_RELEASES];
-    private _docsDownloadStatus: { loading: boolean; downloaded?: number; total?: number; error?: string; cancelled?: boolean } = { loading: false };
-    private _policyBlockedSettings = new Set<string>();
-    private _abortDownload = false;
     private _statusUpdateTimer: NodeJS.Timeout | undefined;
     private _agentSyncTimer: NodeJS.Timeout | undefined;
     private _chatModelListener?: vscode.Disposable;
+    private readonly _prereqs = new PrerequisiteChecker();
+    private readonly _docsSync = new DocsSyncController({
+        getView: () => this._view,
+        getRelease: () => this._allDocSources.productDocs.release ?? '',
+        getDocsGlobalPath: () => this._getDocsGlobalPath(),
+        resolveDestPath: (release) => this._getResolvedDocsPath(release),
+        onStatusChanged: () => this._updateStatus(),
+        onDocsSynced: () => this._syncWorkspaceAgents(),
+    });
 
     constructor(private readonly _extensionUri: vscode.Uri, private readonly _extensionId: string) {}
 
@@ -157,11 +164,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (message) => {
             switch (message.command) {
                 case 'fixSetting':
-                    await this._fixSetting(message.key);
+                    await this._prereqs.fixSetting(message.key);
                     this._updateStatus();
                     break;
                 case 'fixAllSettings':
-                    await this._fixAllSettings();
+                    await this._prereqs.fixAllSettings();
                     this._updateStatus();
                     break;
                 case 'openCopilotChat':
@@ -215,8 +222,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                             this._mcpUserDismissed = [...this._mcpUserDismissed, mcpName];
                         }
                     }
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
+                    this._syncAndRefreshStatus();
                     break;
                 }
                 case 'updateMcpConfig': {
@@ -227,8 +233,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         ...this._mcpIntegrationConfigs,
                         [serverName]: { mode, allowedMethods: methods ?? [] },
                     };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
+                    this._syncAndRefreshStatus();
                     break;
                 }
                 case 'updateDocSource': {
@@ -239,8 +244,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                             ...this._allDocSources,
                             [category]: { ...this._allDocSources[category], ...patch },
                         };
-                        this._syncWorkspaceAgents();
-                        this._updateStatus();
+                        this._syncAndRefreshStatus();
                     }
                     break;
                 }
@@ -250,9 +254,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'setActiveProfile': {
                     this._activeProfileId = message.profileId as string;
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    this._sendAgentData();
+                    this._syncAndRefreshAgents();
                     break;
                 }
                 case 'saveProfileInstructions': {
@@ -260,28 +262,24 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         ...this._profileInstructionsOverrides,
                         [this._activeProfileId]: message.instructions as string,
                     };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
+                    this._syncAndRefreshStatus();
                     break;
                 }
                 case 'resetProfileInstructions': {
                     const updated = { ...this._profileInstructionsOverrides };
                     delete updated[this._activeProfileId];
                     this._profileInstructionsOverrides = updated;
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
+                    this._syncAndRefreshStatus();
                     break;
                 }
                 case 'updateDevopsEnabled': {
                     this._devopsConfig = { ...this._devopsConfig, enabled: message.enabled as boolean };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
+                    this._syncAndRefreshStatus();
                     break;
                 }
                 case 'updateDevopsMcp': {
                     this._devopsConfig = { ...this._devopsConfig, mcpServer: message.server as string };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
+                    this._syncAndRefreshStatus();
                     break;
                 }
                 case 'browseDevopsInstructionsFile': {
@@ -294,8 +292,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         try {
                             const content = fs.readFileSync(uris[0].fsPath, 'utf-8');
                             this._devopsConfig = { ...this._devopsConfig, customInstructions: content };
-                            this._syncWorkspaceAgents();
-                            this._updateStatus();
+                            this._syncAndRefreshStatus();
                             this._view?.webview.postMessage({ command: 'updateDevopsConfig', devopsConfig: this._devopsConfig });
                         } catch { /* ignore read errors */ }
                     }
@@ -303,8 +300,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                 }
                 case 'clearDevopsInstructions': {
                     this._devopsConfig = { ...this._devopsConfig, customInstructions: '' };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
+                    this._syncAndRefreshStatus();
                     this._view?.webview.postMessage({ command: 'updateDevopsConfig', devopsConfig: this._devopsConfig });
                     break;
                 }
@@ -315,12 +311,10 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     const bundleName = getAgentBundleName(agentName);
                     const agentsToToggle = bundleName ? AGENT_BUNDLES[bundleName] : [agentName];
                     for (const name of agentsToToggle) {
-                        const cur = this._agentOverrides[name] ?? { enabled: true, disabledTools: [] };
+                        const cur = withDefaultOverride(this._agentOverrides, name);
                         this._agentOverrides[name] = { ...cur, enabled: agentEnabled };
                     }
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    this._sendAgentData();
+                    this._syncAndRefreshAgents();
                     break;
                 }
                 case 'toggleBundle': {
@@ -329,31 +323,27 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     const members = AGENT_BUNDLES[bundleName];
                     if (!members) { break; }
                     for (const name of members) {
-                        const cur = this._agentOverrides[name] ?? { enabled: true, disabledTools: [] };
+                        const cur = withDefaultOverride(this._agentOverrides, name);
                         this._agentOverrides[name] = { ...cur, enabled: bundleEnabled };
                     }
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    this._sendAgentData();
+                    this._syncAndRefreshAgents();
                     break;
                 }
                 case 'toggleAgentTool': {
                     const agentName = message.agentName as string;
                     const toolName  = message.toolName  as string;
                     const toolOn    = message.enabled   as boolean;
-                    const curT = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
+                    const curT = withDefaultOverride(this._agentOverrides, agentName);
                     const dt = new Set(curT.disabledTools);
                     if (toolOn) { dt.delete(toolName); } else { dt.add(toolName); }
                     this._agentOverrides[agentName] = { ...curT, disabledTools: [...dt] };
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    this._sendAgentData();
+                    this._syncAndRefreshAgents();
                     break;
                 }
                 case 'updateAgentModel': {
                     const agentName = message.agentName as string;
                     const model = normalizeModelOverride(message.model);
-                    const cur: AgentOverride = this._agentOverrides[agentName] ?? { enabled: true, disabledTools: [] };
+                    const cur: AgentOverride = withDefaultOverride(this._agentOverrides, agentName);
                     if (model) {
                         this._agentOverrides[agentName] = { ...cur, model };
                     } else {
@@ -365,9 +355,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                             this._agentOverrides[agentName] = next;
                         }
                     }
-                    this._syncWorkspaceAgents();
-                    this._updateStatus();
-                    this._sendAgentData();
+                    this._syncAndRefreshAgents();
                     break;
                 }
                 case 'resyncAgents':
@@ -491,7 +479,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                         this._sendAgentData();
                     } else if (tab === 'docs' && !this._initializedTabs.has('docs')) {
                         this._initializedTabs.add('docs');
-                        this._fetchDocsReleasesFromGitHub().catch(() => {});
+                        this._docsSync.fetchReleasesFromGitHub().catch(() => {});
                     }
                     break;
                 }
@@ -511,15 +499,15 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 case 'syncProductDocs': {
-                    await this._downloadServiceNowDocs();
+                    await this._docsSync.downloadDocs();
                     break;
                 }
                 case 'cancelDocsDownload': {
-                    this._abortDownload = true;
+                    this._docsSync.requestCancel();
                     break;
                 }
                 case 'fetchDocsReleases': {
-                    await this._fetchDocsReleasesFromGitHub();
+                    await this._docsSync.fetchReleasesFromGitHub();
                     break;
                 }
             }
@@ -604,18 +592,11 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
     private _sendStatusNow() {
         if (!this._view) { return; }
 
-        const checks = this._getPrerequisiteStatuses();
+        const checks = this._prereqs.getStatuses();
 
         const toolboxConfig = vscode.workspace.getConfiguration('nowdev-ai-toolbox');
         const customInstructionsFile = toolboxConfig.get<string>('customInstructionsFile', '');
-        let customInstructionsContent = '';
-        if (customInstructionsFile) {
-            try {
-                customInstructionsContent = fs.readFileSync(customInstructionsFile, 'utf-8');
-            } catch (err) {
-                console.error('Failed to read custom instructions file:', err);
-            }
-        }
+        const customInstructionsContent = this._readCustomInstructionsFile();
         const settings = {
             instanceUrl: getCachedDefaultInstanceHost(),
             customInstructionsFile,
@@ -629,7 +610,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         const currentInstructions = hasCustomInstructions
             ? this._profileInstructionsOverrides[this._activeProfileId]
             : activeProfile.profileInstructions;
-        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, allDocSources: this._allDocSources, devopsConfig: this._devopsConfig, guidelinesConfig: this._guidelinesConfig, docsReleases: this._docsReleases, docsDownloadStatus: this._docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._getDocsSyncTime(docsRelease), profiles: getAllProfiles(this._customProfiles).map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
+        this._view.webview.postMessage({ command: 'updateStatus', checks, settings, fluentApp, environment: this._environmentInfo, sdkStatus: this._sdkStatus, mcpServers: this._mcpServers, selectedMcp: this._selectedMcp, mcpIntegrationConfigs: this._mcpIntegrationConfigs, allDocSources: this._allDocSources, devopsConfig: this._devopsConfig, guidelinesConfig: this._guidelinesConfig, docsReleases: this._docsSync.docsReleases, docsDownloadStatus: this._docsSync.docsDownloadStatus, docsGlobalPath: this._getDocsGlobalPath(), docsLastSynced: this._docsSync.getSyncTime(docsRelease), profiles: getAllProfiles(this._customProfiles).map(p => ({ id: p.id, label: p.label, description: p.description })), activeProfileId: this._activeProfileId, profileInstructions: currentInstructions, profileHasCustomInstructions: hasCustomInstructions });
         this._writeConfigFile(settings, customInstructionsContent, fluentApp);
     }
 
@@ -665,64 +646,13 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     private async _applyModelPresets(): Promise<void> {
         const modelOptions = await this._getAvailableAgentModels();
-        const strongModels = this._selectPreferredModels(modelOptions, [
-            /gpt-5/i,
-            /claude.*(opus|sonnet)/i,
-            /gemini.*2\.5.*pro/i,
-            /o[34]/i,
-        ]);
-        const fastModels = this._selectPreferredModels(modelOptions, [
-            /mini/i,
-            /flash/i,
-            /haiku/i,
-            /nano/i,
-        ]);
-
-        if (strongModels.length === 0 && fastModels.length === 0) {
+        const updated = applyModelPresets(this._agentManifests, this._agentOverrides, modelOptions);
+        if (updated === null) {
             vscode.window.showWarningMessage('No selectable chat models were reported by VS Code. Model presets were not applied.');
             return;
         }
-
-        const plannerReviewerModels = this._uniqueModels([...strongModels, ...fastModels]).slice(0, 1);
-        const routerModels = this._uniqueModels([...fastModels, ...strongModels]).slice(0, 1);
-        const plannerReviewerAgents = new Set([
-            'NowDev AI Agent',
-            'NowDev-AI-Refinement',
-            'NowDev-AI-Fluent-Reviewer',
-        ]);
-        const routerAgents = new Set([
-            'NowDev-AI-Fluent-Developer',
-        ]);
-
-        let updated = 0;
-        for (const manifest of this._agentManifests) {
-            const models = plannerReviewerAgents.has(manifest.name) ? plannerReviewerModels : routerAgents.has(manifest.name) ? routerModels : [];
-            if (models.length === 0) { continue; }
-            const cur = this._agentOverrides[manifest.name] ?? { enabled: true, disabledTools: [] };
-            this._agentOverrides[manifest.name] = { ...cur, model: models[0] };
-            updated++;
-        }
-
-        this._syncWorkspaceAgents();
-        this._updateStatus();
-        this._sendAgentData();
+        this._syncAndRefreshAgents();
         vscode.window.showInformationMessage(`Applied model presets to ${updated} agent${updated === 1 ? '' : 's'}.`);
-    }
-
-    private _selectPreferredModels(modelOptions: AvailableAgentModel[], patterns: RegExp[]): string[] {
-        const matches: string[] = [];
-        for (const pattern of patterns) {
-            for (const option of modelOptions) {
-                if (pattern.test(option.value) && !matches.includes(option.value)) {
-                    matches.push(option.value);
-                }
-            }
-        }
-        return matches;
-    }
-
-    private _uniqueModels(models: string[]): string[] {
-        return [...new Set(models.map(model => model.trim()).filter(Boolean))];
     }
 
     private _sendSdkData(forceRefresh = false): void {
@@ -839,6 +769,19 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    /** Re-syncs workspace agents and refreshes the Setup tab's status. */
+    private _syncAndRefreshStatus(): void {
+        this._syncWorkspaceAgents();
+        this._updateStatus();
+    }
+
+    /** Re-syncs workspace agents and refreshes both the Setup tab and the Agents tab. */
+    private _syncAndRefreshAgents(): void {
+        this._syncWorkspaceAgents();
+        this._updateStatus();
+        this._sendAgentData();
+    }
+
     private _syncWorkspaceAgents(immediate = false): void {
         if (!immediate) {
             if (this._agentSyncTimer) { clearTimeout(this._agentSyncTimer); }
@@ -867,7 +810,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             productDocs: {
                 ...this._allDocSources.productDocs,
                 localPath: this._getResolvedDocsPath(release),
-                lastSynced: this._getDocsSyncTime(release),
+                lastSynced: this._docsSync.getSyncTime(release),
             },
         };
 
@@ -919,100 +862,7 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
 
     private _readCustomInstructionsFile(): string {
         const customInstructionsFile = vscode.workspace.getConfiguration('nowdev-ai-toolbox').get<string>('customInstructionsFile', '');
-        if (!customInstructionsFile) { return ''; }
-        try {
-            return fs.readFileSync(customInstructionsFile, 'utf-8');
-        } catch (err) {
-            console.error('Failed to read custom instructions file:', err);
-            return '';
-        }
-    }
-
-    private async _fetchDocsReleasesFromGitHub(): Promise<void> {
-        try {
-            const branches = await githubGetJson<Array<{ name: string }>>('/repos/ServiceNow/ServiceNowDocs/branches?per_page=100');
-            if (!Array.isArray(branches)) { return; }
-            const releases = branches
-                .map(b => b.name)
-                .filter(n => n && n !== 'main' && n !== 'HEAD' && !/^v\d/.test(n))
-                .sort((a, b) => b.localeCompare(a));
-            if (releases.length > 0) {
-                this._docsReleases = releases;
-                if (this._view) { this._updateStatus(); }
-            }
-        } catch { /* silent fallback — keep hardcoded list */ }
-    }
-
-    private async _downloadServiceNowDocs(): Promise<void> {
-        const release = this._allDocSources.productDocs.release ?? '';
-        if (!release) {
-            vscode.window.showErrorMessage('Select a ServiceNow release before downloading.');
-            return;
-        }
-        const destPath = this._getResolvedDocsPath(release);
-        if (!destPath) {
-            vscode.window.showErrorMessage('Set a central docs folder in Settings before downloading.');
-            return;
-        }
-
-        this._abortDownload = false;
-        this._docsDownloadStatus = { loading: true };
-        this._updateStatus();
-
-        try {
-            // Fetch the git tree for the selected branch
-            const tree = await githubGetJson<{ tree: Array<{ type: string; path: string }> }>(
-                `/repos/ServiceNow/ServiceNowDocs/git/trees/${encodeURIComponent(release)}?recursive=1`
-            );
-
-            const mdFiles = (tree.tree ?? []).filter(
-                (item) => item.type === 'blob' && item.path.endsWith('.md') && isSafeRelativePath(item.path)
-            );
-            const total = mdFiles.length;
-
-            // Download in batches of 10, reporting progress after each batch
-            const batchSize = 10;
-            let downloaded = 0;
-            for (let i = 0; i < total; i += batchSize) {
-                if (this._abortDownload) { break; }
-                const batch = mdFiles.slice(i, i + batchSize);
-                await Promise.all(batch.map(async (item) => {
-                    const raw = await githubGetRaw(
-                        `/ServiceNow/ServiceNowDocs/${encodeURIComponent(release)}/${item.path}`
-                    );
-                    const dest = resolveInside(destPath, item.path);
-                    if (!dest) { return; }
-                    fs.mkdirSync(path.dirname(dest), { recursive: true });
-                    fs.writeFileSync(dest, raw, 'utf-8');
-                }));
-                downloaded = Math.min(i + batchSize, total);
-                this._view?.webview.postMessage({ command: 'docsProgress', downloaded, total });
-            }
-
-            if (this._abortDownload) {
-                this._docsDownloadStatus = { loading: false, cancelled: true, downloaded, total };
-                this._updateStatus();
-                return;
-            }
-
-            // Also try to fetch llms.txt from root of branch
-            try {
-                const llmsTxt = await githubGetRaw(
-                    `/ServiceNow/ServiceNowDocs/${encodeURIComponent(release)}/llms.txt`
-                );
-                fs.writeFileSync(path.join(destPath, 'llms.txt'), llmsTxt, 'utf-8');
-            } catch { /* llms.txt may not exist — not an error */ }
-
-            this._setDocsSyncTime(release, new Date().toISOString());
-            this._docsDownloadStatus = { loading: false };
-            this._syncWorkspaceAgents();
-            this._updateStatus();
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            this._docsDownloadStatus = { loading: false, error: msg };
-            this._updateStatus();
-            vscode.window.showErrorMessage(`Failed to download docs: ${msg}`);
-        }
+        return customInstructionsFile ? readTextFileSafe(customInstructionsFile) : '';
     }
 
     private _getDocsGlobalPath(): string {
@@ -1023,14 +873,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         const base = this._getDocsGlobalPath();
         if (!base || !release || !/^[\w .-]+$/.test(release)) { return ''; }
         return resolveInside(base, release) ?? '';
-    }
-
-    private _getDocsSyncTime(release: string): string {
-        return getDocsSyncTime(this._getDocsGlobalPath(), release);
-    }
-
-    private _setDocsSyncTime(release: string, time: string): void {
-        setDocsSyncTime(this._getDocsGlobalPath(), release, time);
     }
 
     // ── Config helpers ─────────────────────────────────────────────
@@ -1071,84 +913,6 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) { return; }
         writeConnectionStatusToConfig(workspaceFolders[0].uri.fsPath, state);
-    }
-
-    private _getRequiredSettings(): Record<string, RequiredSetting> {
-        return {
-            subAgents: { section: 'chat.subagents', prop: 'allowInvocationsFromSubagents', expected: true, label: 'Sub-agent invocations' },
-            memory: { section: 'github.copilot.chat.tools.memory', prop: 'enabled', expected: true, label: 'Memory tool', preview: true, optional: true },
-            customAgentHooks: { section: 'chat', prop: 'useCustomAgentHooks', expected: true, label: 'Agent-scoped hooks', preview: true, optional: true },
-            browserTools: { section: 'workbench.browser', prop: 'enableChatTools', expected: true, label: 'Browser tools' },
-        };
-    }
-
-    private _getPrerequisiteStatuses(): Record<string, PrerequisiteStatus> {
-        const statuses: Record<string, PrerequisiteStatus> = {};
-        for (const [id, setting] of Object.entries(this._getRequiredSettings())) {
-            statuses[id] = this._getPrerequisiteStatus(id, setting);
-        }
-        return statuses;
-    }
-
-    private _getPrerequisiteStatus(id: string, setting: RequiredSetting): PrerequisiteStatus {
-        const config = vscode.workspace.getConfiguration(setting.section);
-        const actual = config.get(setting.prop);
-        const ok = actual === setting.expected;
-        const inspect = config.inspect(setting.prop) as InspectWithPolicy | undefined;
-        const managedByPolicy = this._policyBlockedSettings.has(id) || (inspect?.policyValue !== undefined && inspect.policyValue !== setting.expected);
-        const status: PrerequisiteStatusKind = ok ? 'enabled' : managedByPolicy ? 'disabled-by-policy' : actual === undefined ? 'unknown' : 'disabled-by-user';
-        const fixable = !setting.optional && !ok && !managedByPolicy;
-        const message = ok
-            ? setting.optional ? 'Available.' : 'Configured.'
-            : managedByPolicy
-                ? 'Disabled or managed by your organization or administrator.'
-                : setting.optional
-                    ? 'Optional preview capability; the toolbox works without it.'
-                    : 'Can be enabled automatically for this user.';
-
-        return {
-            id,
-            label: setting.label,
-            setting: `${setting.section}.${setting.prop}`,
-            ok,
-            status,
-            fixable,
-            managedByPolicy,
-            preview: setting.preview,
-            optional: setting.optional,
-            message,
-        };
-    }
-
-    private async _fixSetting(key: string) {
-        const setting = this._getRequiredSettings()[key];
-        if (!setting) { return; }
-
-        const status = this._getPrerequisiteStatus(key, setting);
-        if (!status.fixable) {
-            if (status.managedByPolicy) {
-                vscode.window.showInformationMessage(`${status.label} is disabled by your organization or administrator.`);
-            }
-            return;
-        }
-
-        const config = vscode.workspace.getConfiguration(setting.section);
-        try {
-            await config.update(setting.prop, setting.expected, vscode.ConfigurationTarget.Global);
-        } catch (error) {
-            this._policyBlockedSettings.add(key);
-            console.warn(`NowDev AI Toolbox could not update ${status.setting}; it may be managed by policy.`, error);
-        }
-    }
-
-    private async _fixAllSettings() {
-        for (const key of Object.keys(this._getRequiredSettings())) {
-            const setting = this._getRequiredSettings()[key];
-            const status = this._getPrerequisiteStatus(key, setting);
-            if (status.fixable) {
-                await this._fixSetting(key);
-            }
-        }
     }
 
     private _getHtml(webview: vscode.Webview): string {

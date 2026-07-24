@@ -236,7 +236,7 @@ function validateInvocationControls(manifest: AgentManifest, issues: AgentValida
     }
 
     if (!manifest.disableModelInvocation) {
-        issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: 'Internal agents must set disable-model-invocation: true.' });
+        issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: 'Internal agents must set disable-model-invocation: true so they cannot bypass the orchestrator through automatic top-level selection. Explicit delegation through the agent tool and declared handoffs remains allowed.' });
     }
 
     const hasAgentTool = manifest.baseTools.includes('agent');

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getSharedPanelStyles } from './SharedPanelStyles';
 import { spawnSdk } from './SdkProcess';
+import { captureSdkOutput } from './extensionUtils';
 import { GuidelineArticleRef } from './WorkspaceAgentManager';
 import { scanAuthAliases } from './AuthAliasScanner';
 import {
@@ -386,50 +387,39 @@ class InstanceBrowserController {
         return workspaceFolder ? path.join(workspaceFolder, '.vscode', 'nowdev-ai-config.json') : undefined;
     }
 
-    private runQueryPage(table: string, options: SdkQueryOptions): Promise<{ records: Record<string, unknown>[]; hasMore: boolean; nextOffset: number | null }> {
-        return new Promise((resolve, reject) => {
-            if (!this.currentAlias) {
-                reject(new Error('No now-sdk auth alias selected.'));
-                return;
-            }
-            // --no-count skips the X-Total-Count header calculation for a faster
-            // response; we only ever use hasMore/nextOffset from the JSON envelope,
-            // which --no-count does not affect.
-            const args = ['query', table, '-o', 'json', '--auth', this.currentAlias, '--no-count'];
-            // now-sdk query requires --query even when there's no filter (an empty
-            // string is accepted; omitting the flag entirely errors with "Missing
-            // required argument: query").
-            args.push('--query', options.query ?? '');
-            if (options.fields?.length) { args.push('--fields', options.fields.join(',')); }
-            if (options.limit !== undefined) { args.push('--limit', String(options.limit)); }
-            if (options.offset !== undefined && options.offset > 0) { args.push('--offset', String(options.offset)); }
-            if (options.displayValue) { args.push('--display-value', options.displayValue); }
+    private async runQueryPage(table: string, options: SdkQueryOptions): Promise<{ records: Record<string, unknown>[]; hasMore: boolean; nextOffset: number | null }> {
+        if (!this.currentAlias) {
+            throw new Error('No now-sdk auth alias selected.');
+        }
+        // --no-count skips the X-Total-Count header calculation for a faster
+        // response; we only ever use hasMore/nextOffset from the JSON envelope,
+        // which --no-count does not affect.
+        const args = ['query', table, '-o', 'json', '--auth', this.currentAlias, '--no-count'];
+        // now-sdk query requires --query even when there's no filter (an empty
+        // string is accepted; omitting the flag entirely errors with "Missing
+        // required argument: query").
+        args.push('--query', options.query ?? '');
+        if (options.fields?.length) { args.push('--fields', options.fields.join(',')); }
+        if (options.limit !== undefined) { args.push('--limit', String(options.limit)); }
+        if (options.offset !== undefined && options.offset > 0) { args.push('--offset', String(options.offset)); }
+        if (options.displayValue) { args.push('--display-value', options.displayValue); }
 
-            const proc = spawnSdk(args, { timeout: 30000 });
-            let stdout = '';
-            let stderr = '';
-            proc.stdout.on('data', (data: Buffer) => { stdout += data.toString('utf-8'); });
-            proc.stderr.on('data', (data: Buffer) => { stderr += data.toString('utf-8'); });
-            proc.on('error', (err) => reject(err));
-            proc.on('close', (code) => {
-                const raw = stdout.trim();
-                const jsonStart = raw.indexOf('{');
-                if (code !== 0 || jsonStart < 0) {
-                    reject(new Error((stderr || stdout || `now-sdk query failed with exit ${code}`).trim()));
-                    return;
-                }
-                try {
-                    const envelope = JSON.parse(raw.slice(jsonStart)) as SdkQueryEnvelope;
-                    if (!envelope.ok) {
-                        reject(new Error(envelope.error?.message ?? 'now-sdk query returned ok:false'));
-                        return;
-                    }
-                    resolve({ records: envelope.records ?? [], hasMore: !!envelope.hasMore, nextOffset: envelope.nextOffset ?? null });
-                } catch (err: any) {
-                    reject(new Error(`Could not parse now-sdk query output: ${err?.message ?? err}`));
-                }
-            });
-        });
+        const { stdout, stderr, code } = await captureSdkOutput(args, { timeout: 30000 });
+        const raw = stdout.trim();
+        const jsonStart = raw.indexOf('{');
+        if (code !== 0 || jsonStart < 0) {
+            throw new Error((stderr || stdout || `now-sdk query failed with exit ${code}`).trim());
+        }
+        let envelope: SdkQueryEnvelope;
+        try {
+            envelope = JSON.parse(raw.slice(jsonStart)) as SdkQueryEnvelope;
+        } catch (err: any) {
+            throw new Error(`Could not parse now-sdk query output: ${err?.message ?? err}`);
+        }
+        if (!envelope.ok) {
+            throw new Error(envelope.error?.message ?? 'now-sdk query returned ok:false');
+        }
+        return { records: envelope.records ?? [], hasMore: !!envelope.hasMore, nextOffset: envelope.nextOffset ?? null };
     }
 
     private async runQuery(table: string, options: SdkQueryOptions): Promise<Record<string, unknown>[]> {

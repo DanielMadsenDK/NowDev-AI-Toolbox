@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { WelcomeViewProvider } from '../WelcomeViewProvider';
-import { spawnSdk } from '../SdkProcess';
+import { spawnSdk, streamToChannel } from '../SdkProcess';
 import { showSdkExplainPanel } from '../SdkExplainPanel';
 import { showSdkQueryPanel } from '../SdkQueryPanel';
 import { showInstanceBrowserPanel } from '../InstanceBrowserPanel';
@@ -88,27 +88,6 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
             spawnSdkCmd('Install', cmdArgs, cwd, 'install');
         }),
 
-        // Deploy (Build then Install)
-        vscode.commands.registerCommand('nowdev-ai-toolbox.sdkDeploy', async (args: { reinstall?: boolean; openBrowser?: boolean; auth?: string } = {}) => {
-            const cwd = getWorkspaceFolder();
-            if (!cwd) { vscode.window.showErrorMessage('No workspace folder open.'); return; }
-            welcomeProvider.setSdkCommandStatus('deploy', true, 'Building…');
-            const buildArgs = ['build', '.'];
-            if (args.auth) { buildArgs.push('--auth', args.auth); }
-            const buildOk = await spawnSdkCmd('Build', buildArgs, cwd, 'build');
-            if (!buildOk) {
-                welcomeProvider.setSdkCommandStatus('deploy', false, 'Deploy failed — Build error');
-                return;
-            }
-            welcomeProvider.setSdkCommandStatus('deploy', true, 'Build succeeded · Installing…');
-            const installArgs = ['install'];
-            if (args.reinstall) { installArgs.push('--reinstall'); }
-            if (args.openBrowser) { installArgs.push('--open-browser'); }
-            if (args.auth) { installArgs.push('--auth', args.auth); }
-            const installOk = await spawnSdkCmd('Install', installArgs, cwd, 'install');
-            welcomeProvider.setSdkCommandStatus('deploy', installOk, installOk ? 'Deployed successfully' : 'Deploy failed — Install error');
-        }),
-
         // Transform (with preview → virtual document; supports --from <path> for local XML)
         vscode.commands.registerCommand('nowdev-ai-toolbox.sdkTransform', async (args: { preview?: boolean; from?: string; pickFrom?: boolean; metadataFolder?: string } = {}) => {
             const cwd = getWorkspaceFolder();
@@ -144,7 +123,7 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
                 const chan = vscode.window.createOutputChannel('NowDev: Transform Preview');
                 chan.show(true);
                 chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
-                const result = await captureSdkOutput(cmdArgs, cwd);
+                const result = await captureSdkOutput(cmdArgs, { cwd });
                 const output = (result.stdout + result.stderr).trim();
                 chan.appendLine(output);
                 const ok = result.code === 0;
@@ -262,17 +241,13 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
                 chan.show(true);
                 chan.appendLine(`> now-sdk ${cmdArgs.join(' ')}\n`);
 
-                const proc = spawnSdk(cmdArgs);
-                proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
-                proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
-                proc.on('close', (code: number | null) => {
-                    if (code === 0) {
-                        chan.appendLine('\n✓ Auth alias added.');
-                        welcomeProvider.refreshAuthAliases();
-                    } else {
-                        chan.appendLine(`\n✗ Auth add failed (exit code ${code}).`);
-                    }
-                });
+                const code = await streamToChannel(spawnSdk(cmdArgs), chan);
+                if (code === 0) {
+                    chan.appendLine('\n✓ Auth alias added.');
+                    welcomeProvider.refreshAuthAliases();
+                } else {
+                    chan.appendLine(`\n✗ Auth add failed (exit code ${code}).`);
+                }
             }
         }),
 
@@ -288,17 +263,13 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
             const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Remove');
             chan.show(true);
             chan.appendLine(`> now-sdk auth --delete ${alias}\n`);
-            const proc = spawnSdk(['auth', '--delete', alias]);
-            proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
-            proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
-            proc.on('close', (code: number | null) => {
-                if (code === 0) {
-                    chan.appendLine('\n✓ Auth alias removed.');
-                    welcomeProvider.refreshAuthAliases();
-                } else {
-                    chan.appendLine(`\n✗ Auth remove failed (exit code ${code}).`);
-                }
-            });
+            const code = await streamToChannel(spawnSdk(['auth', '--delete', alias]), chan);
+            if (code === 0) {
+                chan.appendLine('\n✓ Auth alias removed.');
+                welcomeProvider.refreshAuthAliases();
+            } else {
+                chan.appendLine(`\n✗ Auth remove failed (exit code ${code}).`);
+            }
         }),
 
         // Install Info — last deployment status (no install)
@@ -308,7 +279,7 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
             welcomeProvider.setInstallInfo({ loading: true, ok: false, output: '', timestamp: new Date().toISOString() });
             const cmdArgs = ['install', '--info'];
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
-            const result = await captureSdkOutput(cmdArgs, cwd);
+            const result = await captureSdkOutput(cmdArgs, { cwd });
             const output = (result.stdout + result.stderr).trim();
             welcomeProvider.setInstallInfo({ loading: false, ok: result.code === 0, output, timestamp: new Date().toISOString() });
         }),
@@ -338,7 +309,7 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
             }
             const cmdArgs = ['download', tmpDir, '--incremental'];
             if (args.auth) { cmdArgs.push('--auth', args.auth); }
-            const result = await captureSdkOutput(cmdArgs, cwd);
+            const result = await captureSdkOutput(cmdArgs, { cwd });
             const files = listFilesRecursive(tmpDir);
             const count = files.length;
             try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
@@ -351,17 +322,13 @@ export function registerSdkCommands(context: vscode.ExtensionContext, welcomePro
             const chan = vscode.window.createOutputChannel('NowDev: SDK Auth Default');
             chan.show(true);
             chan.appendLine(`> now-sdk auth --use ${alias}\n`);
-            const proc = spawnSdk(['auth', '--use', alias]);
-            proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
-            proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
-            proc.on('close', (code: number | null) => {
-                if (code === 0) {
-                    chan.appendLine(`\n✓ "${alias}" set as default.`);
-                    welcomeProvider.refreshAuthAliases();
-                } else {
-                    chan.appendLine(`\n✗ Failed to set default (exit code ${code}).`);
-                }
-            });
+            const code = await streamToChannel(spawnSdk(['auth', '--use', alias]), chan);
+            if (code === 0) {
+                chan.appendLine(`\n✓ "${alias}" set as default.`);
+                welcomeProvider.refreshAuthAliases();
+            } else {
+                chan.appendLine(`\n✗ Failed to set default (exit code ${code}).`);
+            }
         }),
 
         vscode.commands.registerCommand('nowdev-ai-toolbox.openInstanceBrowser', (mode?: 'browse' | 'discover' | 'guidelines') => {

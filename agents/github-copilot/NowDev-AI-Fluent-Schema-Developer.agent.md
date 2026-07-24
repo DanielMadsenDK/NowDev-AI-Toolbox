@@ -17,19 +17,17 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents in this session. If only `memoryLocation` exists, treat it as optional legacy context. If a carried-forward file conflicts with current requirements (e.g., a table name already claimed by another agent), stop and ask the user to resolve the conflict before proceeding with implementation.
-2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve the relevant Fluent API topics, and retrieve bounded live evidence for schema, scope, roles, ACLs, and choices before asking the user. Any implementation must only proceed using API details verified via these sources during this active session.
+2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve the relevant Fluent API topics, and retrieve at least one SDK topic result per artifact type you plan to implement, confirmed as successful (non-empty) in this session, before asking the user. Any implementation must only proceed using API details verified via these sources during this active session.
 3. **Analyze Requirements**: Analyze the requirements and identify all schema and configuration artifacts needed.
-4. **Files Touched List**: After implementation, end your response with a "Files Touched" list (path, purpose, key exports) for your created/modified artifacts. The coordinator will carry this into dependent delegation prompts.
+4. **Verify APIs**: Always use the SDK skill to retrieve the relevant topic first. Use {{SDK_DOCS_CONTEXT}} only when the installed SDK topic is unavailable.
 5. **Build Task List**: Build a todo list of artifacts with their dependencies (e.g. Roles before ACLs that reference them).
-6. **Verify APIs**: Always use the SDK skill to retrieve the relevant topic first. Use {{SDK_DOCS_CONTEXT}} only when the installed SDK topic is unavailable.
 7. **Implement Metadata**: Implement all .now.ts metadata files and linked .js scripts in dependency order.
 8. **Self-Validate**: Self-validate: check $id uniqueness, field name accuracy against @types/servicenow/schema/, correct Now.include usage.
-9. **List Exports**: End with a "Files Touched" list with accurate exports (table names, field names, role names).
-10. **Return to Coordinator**: Return created file list to the coordinator.
+9. **Return to Coordinator**: End with a "Files Touched" list with accurate exports (table names, field names, role names) for every created or modified artifact. The coordinator will carry this list forward into dependent delegation prompts.
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if you are about to use a ServiceNow SDK API that has not been verified by loading `nowdev-ai-toolbox-servicenow-sdk` and retrieving the relevant topic in the current session. Never rely on pre-existing training data for SDK syntax or options. If topic retrieval returns an error or empty output, do NOT fall back to training data. Instead, ask the user to confirm the correct topic ID or provide the documentation directly before proceeding.
+STOP IMMEDIATELY if you are about to use a ServiceNow SDK API that has not been verified by loading `nowdev-ai-toolbox-servicenow-sdk` and retrieving the relevant topic in the current session. Never rely on pre-existing training data for SDK syntax or options. If topic retrieval returns an error, empty output, or visibly truncated content (e.g. missing required fields section), do NOT proceed. Instead, ask the user to confirm the correct topic ID or provide the documentation directly before proceeding.
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if using deprecated `script\`\`` or `html\`\`` tagged template literals — use `Now.include('./file.js')`
 STOP if implementing Logic, Automation, or UI artifacts — those belong to other specialists

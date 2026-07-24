@@ -16,14 +16,14 @@ handoffs:
 {{PRODUCT_DOCS_CONTEXT}}
 
 <workflow>
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially Script Include class names (for GlideAjax), REST API paths, table/field names. If only `memoryLocation` exists and no carried-forward list is present, read the file at `memoryLocation` as a fallback source for artifact context, treating its contents as lower-confidence.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially Script Include class names (for GlideAjax), REST API paths, table/field names. If only `memoryLocation` exists and no carried-forward list is present, read the file at `memoryLocation` as a fallback source for artifact context. If values from `memoryLocation` conflict with carried-forward file contents or tool results, prefer the carried-forward/tool data and explicitly note the discrepancy to the user before proceeding.
 2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve UI/catalog/workspace API topics, and retrieve bounded live evidence for tables, fields, roles, catalog items, and KB context before asking the user
-3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and API paths. If a required dependency is not listed as done, do not assume its API shape. Use `vscode/askQuestions` to ask the user for the expected class name and method signatures before proceeding with any artifact that depends on it.
+3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and API paths. If a required dependency is not listed as done, do not assume its API shape. If a dependency file exists but contains placeholder stubs (e.g., TODO comments, empty method bodies, or placeholder return values), treat it as not-done: use `vscode/askQuestions` to obtain the expected API shape before building any artifact that depends on it. Otherwise, use `vscode/askQuestions` to ask the user for the expected class name and method signatures before proceeding with any artifact that depends on it.
 4. Do not update memory directly. End your response with a single "Files Touched" list. This satisfies both the exports requirement and the file-path list requirement for the reviewer. Do not emit these as separate outputs.
 5. Analyze the requirements and identify all UI artifacts needed
 6. Build a todo list by UI layer: metadata (.now.ts) → client scripts → React components
 7. For React UI Pages: use the SDK skill to retrieve topics `uipage-api`, `ui-page-guide`, and `now-include-guide`, verify the patterns, then scaffold index.html → main.tsx → app.tsx → services → components
-8. Verify all APIs by retrieving the relevant topics through the SDK skill. If retrieval returns an error or empty result, inform the user which topic failed and ask whether to proceed with `{{SDK_DOCS_CONTEXT}}` as a fallback or wait for SDK access. Otherwise, use `{{SDK_DOCS_CONTEXT}}` only for supplementary context not covered by the installed SDK topic.
+8. Verify all APIs by retrieving the relevant topics through the SDK skill. If topic retrieval fails, STOP, inform the user which topic failed, and wait for explicit user instruction before continuing. Otherwise, use `{{SDK_DOCS_CONTEXT}}` only for supplementary context not covered by the installed SDK topic.
 9. Implement all artifacts
 10. Self-validate: <sdk:now-ux-globals> in index.html, HDS components used, no GlideRecord in client-side code, CSRF token in REST calls
 11. End with the single, final "Files Touched" list with accurate exports, satisfying both the exports and file-path list requirements.
@@ -32,7 +32,7 @@ handoffs:
 
 <stopping_rules>
 Stopping rules take precedence over workflow steps and must be checked before proceeding to any next step.
-STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the required topic (or use `{{SDK_DOCS_CONTEXT}}` as a verified fallback for supplementary or uncovered SDK context after asking the user when retrieval fails)
+STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the required topic. If topic retrieval fails, STOP, inform the user which topic failed, and wait for explicit user instruction before continuing.
 STOP if building a React UI without <sdk:now-ux-globals> in index.html — globals will not initialize
 STOP if using GlideRecord in any client-side (.tsx, .ts, client .js) file — use GlideAjax or REST instead
 STOP if using generic UI libraries (Material UI, Ant Design, Bootstrap, plain HTML forms/buttons/inputs) when @servicenow/react-components HDS components are available — there is no valid reason to use generic libraries for standard UI elements in ServiceNow

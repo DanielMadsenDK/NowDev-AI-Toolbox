@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
-import { spawnSdk } from './SdkProcess';
 import { getSharedPanelStyles } from './SharedPanelStyles';
 import { panelStyles } from './SdkQueryStyles';
+import { escapeHtml, escapeHtmlChar } from './htmlEscape';
+import { captureSdkOutput } from './extensionUtils';
 
 interface QueryParams {
     table: string;
@@ -80,14 +81,12 @@ export function showSdkQueryPanel(
     if (offset > 0)   { args.push('--offset', String(offset)); }
     if (displayValue) { args.push('--display-value', displayValue); }
 
-    const proc = spawnSdk(args, { timeout: 30000 });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
-    proc.stderr.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
-    proc.on('close', (code: number | null) => {
-         
-        const p = panel!;
+    const p = panel;
+    void captureSdkOutput(args, { timeout: 30000 }).then(({ stdout, stderr, code }) => {
+        if (code === -1) {
+            p.webview.html = errorHtml('Failed to run now-sdk. Make sure it is installed and accessible.');
+            return;
+        }
         const raw = stdout.trim();
         const combinedOutput = [stderr.trim(), raw].filter(Boolean).join('\n');
         const sdkError = formatSdkQueryError(combinedOutput);
@@ -116,10 +115,6 @@ export function showSdkQueryPanel(
         }
         p.webview.html = renderHtml(params, envelope);
     });
-    proc.on('error', () => {
-         
-        panel!.webview.html = errorHtml('Failed to run now-sdk. Make sure it is installed and accessible.');
-    });
 }
 
 function formatSdkQueryError(output: string): string | undefined {
@@ -133,13 +128,13 @@ function formatSdkQueryError(output: string): string | undefined {
 
 function loadingHtml(table: string): string {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
-<div class="loading">Querying <strong>${esc(table)}</strong>&hellip;</div>
+<div class="loading">Querying <strong>${escapeHtml(table)}</strong>&hellip;</div>
 </body></html>`;
 }
 
 function errorHtml(msg: string): string {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';"><style>${getSharedPanelStyles()}</style></head><body class="nd-transient-panel">
-<div class="error-msg">${esc(msg)}</div>
+<div class="error-msg">${escapeHtml(msg)}</div>
 </body></html>`;
 }
 
@@ -156,8 +151,8 @@ function renderHtml(params: QueryParams, envelope: QueryEnvelope): string {
     const columns = records.length > 0 ? Object.keys(records[0]) : [];
 
     const infoParts: string[] = [];
-    if (params.query)       { infoParts.push(esc(params.query)); }
-    if (params.fields)      { infoParts.push(`fields: ${esc(params.fields)}`); }
+    if (params.query)       { infoParts.push(escapeHtml(params.query)); }
+    if (params.fields)      { infoParts.push(`fields: ${escapeHtml(params.fields)}`); }
     if (params.displayValue && params.displayValue !== 'false') {
         infoParts.push(`display-value: ${params.displayValue}`);
     }
@@ -189,7 +184,7 @@ ${panelStyles()}
 <body>
 <div class="qr-header">
   <div class="api-header" style="margin:0;flex:1">
-    <div class="api-id">${esc(params.table)}</div>
+    <div class="api-id">${escapeHtml(params.table)}</div>
     <div class="api-tags">${countLabel}${pageLabel}</div>
   </div>
   <div class="view-toggle" role="tablist" aria-label="Query result views">
@@ -269,13 +264,13 @@ ${records.length === 0 ? '<div class="loading">No records found.</div>' : ''}
 
 function renderTable(columns: string[], records: Record<string, unknown>[]): string {
     const headers = columns.map(c =>
-        `<th>${esc(c)}</th>`
+        `<th>${escapeHtml(c)}</th>`
     ).join('');
     const rows = records.map(r => {
         const cells = columns.map(c => {
             const val = String(r[c] ?? '');
             const display = val.length > 100 ? val.slice(0, 100) + '…' : val;
-            return `<td title="${esc(val)}">${esc(display)}</td>`;
+            return `<td title="${escapeHtml(val)}">${escapeHtml(display)}</td>`;
         }).join('');
         return `<tr>${cells}</tr>`;
     }).join('');
@@ -300,9 +295,9 @@ function highlightJson(src: string): string {
             let k = j + 1;
             while (k < src.length && (src[k] === ' ' || src[k] === '\t')) { k++; }
             if (src[k] === ':') {
-                out += `<span class="hl-fn">${escStr(raw)}</span>`;
+                out += `<span class="hl-fn">${escapeHtml(raw)}</span>`;
             } else {
-                out += `<span class="hl-str">${escStr(raw)}</span>`;
+                out += `<span class="hl-str">${escapeHtml(raw)}</span>`;
             }
             i = j + 1;
             continue;
@@ -312,7 +307,7 @@ function highlightJson(src: string): string {
             let j = i;
             if (src[j] === '-') { j++; }
             while (j < src.length && /[\d.eE+\-]/.test(src[j])) { j++; }
-            out += `<span class="hl-num">${escStr(src.slice(i, j))}</span>`;
+            out += `<span class="hl-num">${escapeHtml(src.slice(i, j))}</span>`;
             i = j;
             continue;
         }
@@ -321,30 +316,8 @@ function highlightJson(src: string): string {
         if (src.startsWith('false', i)) { out += '<span class="hl-kw">false</span>'; i += 5; continue; }
         if (src.startsWith('null', i))  { out += '<span class="hl-kw">null</span>';  i += 4; continue; }
 
-        out += escRaw(ch);
+        out += escapeHtmlChar(ch);
         i++;
     }
     return out;
-}
-
-// ── Escaping helpers ───────────────────────────────────────────────────────────
-
-function esc(s: string): string {
-    return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-function escStr(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function escRaw(ch: string): string {
-    if (ch === '&') { return '&amp;'; }
-    if (ch === '<') { return '&lt;'; }
-    if (ch === '>') { return '&gt;'; }
-    if (ch === '"') { return '&quot;'; }
-    return ch;
 }

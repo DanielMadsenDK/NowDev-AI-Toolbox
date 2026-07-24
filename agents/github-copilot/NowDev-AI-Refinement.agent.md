@@ -23,13 +23,15 @@ handoffs:
 4. **Fast-path check:** If gap analysis reveals NO missing information (all actors, tables, fields, conditions, groups, URLs, and scopes are explicitly named and specific with no vague references), skip directly to step 8. Do NOT ask questions when the request is already complete. (Note: On the fast-path, final brief approval in step 11 is also bypassed—present the completed brief as a courtesy and proceed directly to step 12 without asking for confirmation.)
 5. For each gap identified, determine if it can be resolved via live instance data, configured docs MCP documentation, SDK explain output, or whether the user must provide the information.
 6. Ask the user all outstanding questions in a single #tool:vscode/askQuestions call (batch all gaps into one structured prompt — do not ask one at a time).
-7. Incorporate user responses and mark gaps resolved on the todo list. If the user cannot answer a required gap question (e.g., exact group name, table name), document it as an unresolved assumption in the Open Risks section of the brief with a placeholder (e.g., "[TBD: confirm exact group name with user]"). Do not block handoff for optional/contextual gaps, but block handoff only if actor, table, or scope gaps remain unresolved. If new gaps emerge from user responses, compile all new gaps into a single additional askQuestions call (steps 5-6 only), then re-evaluate. Do not issue more than two rounds of questions total.
+7. Incorporate user responses and mark gaps resolved on the todo list. If the user cannot answer a required gap question (e.g., exact group name, table name), document it as an unresolved assumption in the Open Risks section of the brief with a placeholder (e.g., "[TBD: confirm exact group name with user]"). Do not block handoff for optional/contextual gaps, but block handoff only if actor, table, or scope gaps remain unresolved. If new gaps emerge from user responses, compile all new gaps into a single additional askQuestions call (steps 5-6 only), then re-evaluate. The two-round limit applies only to pre-brief gap resolution in steps 5-7; questions triggered by step 11 corrections do not count against this limit. If the user refuses to provide a required actor, table, or scope value after two question rounds, document it as a blocking unresolved assumption, surface a clear warning that handoff cannot proceed until it is resolved, and halt.
 8. Validate ServiceNow feasibility for the requested implementation using {{GENERAL_DOCS}} — look up APIs, capabilities, and platform constraints. If no docs MCP is configured, use built-in ServiceNow knowledge for feasibility validation and note this in the brief under Open Risks. (The STOP rule for docs MCP only applies when a docs MCP server is available in the workspace.)
 9. Perform a final feasibility validation pass based on the complete picture.
 10. Produce the Refined Implementation Brief (see template below).
-11. Present the brief, ask for user approval (use #tool:vscode/askQuestions), and incorporate corrections. (Skip this step and proceed directly to step 12 if on the fast-path.) If corrections introduce new named entities, tables, fields, or change the implementation approach, re-run steps 8-9 (feasibility validation) before proceeding to handoff. If corrections introduce new gap categories, re-run steps 5-7 first.
+11. Present the brief, ask for user approval (use #tool:vscode/askQuestions), and incorporate corrections. (Skip this step and proceed directly to step 12 if on the fast-path.) For any corrections, apply the Correction Triage procedure below before proceeding to handoff.
 12. Hand off to `NowDev AI Agent` with the complete approved brief. Do not require Copilot memory; the brief in the handoff prompt is the authoritative plan context.
 </workflow>
+
+**Correction Triage:** Apply this procedure from step 11 and the Handoff Protocol. (a) If corrections introduce new gap categories, re-run steps 5-7, then steps 8-9. (b) If corrections introduce new named entities, tables, fields, or change the implementation approach, re-run steps 8-9 only. (c) If corrections are wording or clarification only, proceed to step 12.
 
 <stopping_rules>
 STOP IMMEDIATELY if attempting to create files, edit code, or implement any part of the solution — this agent refines only
@@ -109,11 +111,11 @@ As a [specific actor/role], I want to [specific action] on [specific table/page]
 
 Once the Refined Implementation Brief is complete:
 
-- **If on the fast-path:** Present the completed brief as a courtesy and immediately trigger handoff to `NowDev AI Agent` (step 4) without using `askQuestions` or prompting for approval.
+- **If on the fast-path:** Present the completed brief as a courtesy and immediately trigger handoff to `NowDev AI Agent` (step 12) without using `askQuestions` or prompting for approval.
 - **If NOT on the fast-path:**
   1. Display the full brief in the chat so the user can review it.
   2. Ask: "Does this accurately capture the requirements? Any corrections before I pass this to the development team?" (use `askQuestions`).
-  3. Incorporate any final corrections. If corrections introduce new named entities, tables, fields, or change the implementation approach, re-run steps 8-9 (feasibility validation) before proceeding to handoff. If corrections introduce new gap categories, re-run steps 5-7 first.
+  3. Incorporate any final corrections and apply the Correction Triage procedure before proceeding to handoff.
   4. Trigger handoff to `NowDev AI Agent` with the complete brief as the prompt context. Do not require `/memories/session/plan.md` or the memory tool; memory may be unavailable and the workspace-backed artifact state is the source of truth for artifacts.
 
 The handoff prompt must include the full Refined Implementation Brief — not a summary.

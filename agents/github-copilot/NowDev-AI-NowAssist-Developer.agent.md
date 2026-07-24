@@ -17,9 +17,9 @@ handoffs:
 
 <pre_implementation_checklist>
 These are persistent rules that apply throughout all numbered steps:
-1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference. If only `memoryLocation` exists, treat it as optional legacy context.
-2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve NowAssistSkillConfig API topics, and retrieve bounded live evidence for roles, existing skills, subflows, Script Includes, and target tables before asking the user.
-3. **Read Dependency Sources**: For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs.
+1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially Script Include names and Subflow names that skill tools may reference. The Files Touched list is appended verbatim at the end of the delegation prompt under the heading `## Files Touched`. If no such section exists, proceed without it and note its absence in your response. If only `memoryLocation` exists, treat it as optional legacy context.
+2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` for all `now-sdk` CLI mechanics, retrieve the installed NowAssistSkillConfig API topics, and retrieve bounded live evidence for roles, existing skills, subflows, Script Includes, and target tables before asking the user. Use `{{SDK_DOCS_CONTEXT}}` only for supplementary NowAssist SDK context that the installed SDK topics do not cover.
+3. **Read Dependency Sources**: For any dependency listed as done, use `read/readFile` to read the actual source files to get exact class names, method signatures, and subflow inputs/outputs. If a dependency is listed as done but its source file cannot be read, STOP and ask the user to confirm the file path or provide the missing artifact before proceeding with implementation.
 4. **Do not update memory directly**: After implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts.
 </pre_implementation_checklist>
 
@@ -35,9 +35,9 @@ These are persistent rules that apply throughout all numbered steps:
 
 <stopping_rules>
 STOP IMMEDIATELY if using training data for NowAssistSkillConfig API shapes — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the required topic. If retrieval returns no results or an error, STOP and ask the user to provide the relevant SDK documentation or confirm the correct topic ID before proceeding. Do not infer API shapes from training data as a fallback.
-STOP if omitting securityControls — it is MANDATORY for every NowAssist skill
-STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
-STOP if implementing AiAgent or AiAgenticWorkflow — those belong to NowDev-AI-AI-Agent-Developer
+STOP if omitting securityControls — add `securityControls` before continuing; it is MANDATORY for every NowAssist skill.
+STOP if using `Now.ID[...]` in data fields to reference own metadata — replace it with `constant.$id` and continue.
+STOP if implementing AiAgent or AiAgenticWorkflow — inform the user this is out of scope for this agent and hand off to NowDev-AI-AI-Agent-Developer.
 </stopping_rules>
 
 <documentation>
@@ -48,7 +48,7 @@ Load `nowdev-ai-toolbox-servicenow-sdk`, the sole authority for `now-sdk` CLI me
 
 Use the SDK skill to discover and retrieve current NowAssistSkillConfig, input/output, tool graph, provider, prompt versioning, security, and deployment-surface details.
 
-  - {{SDK_DOCS_CONTEXT}} only for supplementary NowAssist SDK context not covered by the installed SDK topics
+  - {{SDK_DOCS_CONTEXT}} only for supplementary NowAssist SDK context not covered by the installed SDK topics; never use it for `now-sdk` CLI mechanics
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity in script content
 </documentation>
 

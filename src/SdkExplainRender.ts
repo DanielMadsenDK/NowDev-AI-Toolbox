@@ -1,5 +1,7 @@
 // ── Syntax highlighter (runs in extension host — no webview scripts needed) ──────
 
+import { escapeHtml, escapeHtmlChar } from './htmlEscape';
+
 const JS_TS_KEYWORDS = new Set([
     'import','export','from','as','const','let','var','function','return',
     'class','extends','new','this','typeof','instanceof','if','else','for',
@@ -11,20 +13,8 @@ const JS_TS_KEYWORDS = new Set([
     'boolean','object','symbol','require','module','exports',
 ]);
 
-function escRaw(ch: string): string {
-    if (ch === '&') { return '&amp;'; }
-    if (ch === '<') { return '&lt;'; }
-    if (ch === '>') { return '&gt;'; }
-    if (ch === '"') { return '&quot;'; }
-    return ch;
-}
-
-function escStr(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 function sp(cls: string, content: string): string {
-    return `<span class="${cls}">${escStr(content)}</span>`;
+    return `<span class="${cls}">${escapeHtml(content)}</span>`;
 }
 
 function tokenizeJs(src: string): string {
@@ -83,7 +73,7 @@ function tokenizeJs(src: string): string {
             } else if (src[j] === '(') {
                 out += sp('hl-fn', word);
             } else {
-                out += escStr(word);
+                out += escapeHtml(word);
             }
             i = j; continue;
         }
@@ -94,7 +84,7 @@ function tokenizeJs(src: string): string {
             out += sp('hl-dec', src.slice(i, j));
             i = j; continue;
         }
-        out += escRaw(ch);
+        out += escapeHtmlChar(ch);
         i++;
     }
     return out;
@@ -107,42 +97,34 @@ function highlightCode(raw: string, lang: string): string {
     if (l === 'js' || l === 'javascript' || l === 'ts' || l === 'typescript') {
         return tokenizeJs(raw);
     }
-    return escStr(raw);
+    return escapeHtml(raw);
 }
 
 // ── Output parser ──────────────────────────────────────────────────────────────
 
-export function esc(s: string): string {
-    return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
 function formatPropLine(line: string): string {
     // Bare URL (e.g. the "See" section's reference links) — don't split on its colon
     if (/^https?:\/\//.test(line)) {
-        return `<a href="${esc(line)}">${esc(line)}</a>`;
+        return `<a href="${escapeHtml(line)}">${escapeHtml(line)}</a>`;
     }
     // "$id (required): string | number"
     const m = line.match(/^(\S+)\s+\((required|optional)\):\s*(.*)$/);
     if (m) {
         const cls = m[2] === 'required' ? 'req' : 'opt';
-        return `<span class="pname">${esc(m[1])}</span> <span class="${cls}">(${m[2]})</span><span class="ptype">: ${esc(m[3])}</span>`;
+        return `<span class="pname">${escapeHtml(m[1])}</span> <span class="${cls}">(${m[2]})</span><span class="ptype">: ${escapeHtml(m[3])}</span>`;
     }
     // "key: value"
     const kv = line.match(/^(\S+):\s*(.*)$/);
     if (kv) {
-        return `<span class="pname">${esc(kv[1])}</span><span class="ptype">: ${esc(kv[2])}</span>`;
+        return `<span class="pname">${escapeHtml(kv[1])}</span><span class="ptype">: ${escapeHtml(kv[2])}</span>`;
     }
-    return esc(line);
+    return escapeHtml(line);
 }
 
 // Renders a parameter's own type expression (e.g. `Acl<keyof Tables, 'record' | 'processor' | string>`)
 // as a code-styled line, highlighting quoted union members so long enum lists read like code.
 function formatTypeExpr(line: string): string {
-    return esc(line).replace(/'[^']*'/g, m => `<span class="hl-str">${m}</span>`);
+    return escapeHtml(line).replace(/'[^']*'/g, m => `<span class="hl-str">${m}</span>`);
 }
 
 function isTableSeparatorRow(line: string): boolean {
@@ -181,9 +163,9 @@ export function convertToHtml(raw: string): string {
 
     if (apiId || tags.length) {
         html += `<div class="api-header">`;
-        if (apiId) { html += `<div class="api-id">${esc(apiId)}</div>`; }
+        if (apiId) { html += `<div class="api-id">${escapeHtml(apiId)}</div>`; }
         if (tags.length) {
-            html += `<div class="api-tags">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`;
+            html += `<div class="api-tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>`;
         }
         html += `</div>`;
     }
@@ -211,7 +193,7 @@ export function convertToHtml(raw: string): string {
                 if (cl.trim() === '```') { break; }
                 code += cl + '\n';
             }
-            html += `<pre class="codeblock" data-lang="${esc(lang)}"><code>${highlightCode(code.trimEnd(), lang)}</code></pre>`;
+            html += `<pre class="codeblock" data-lang="${escapeHtml(lang)}"><code>${highlightCode(code.trimEnd(), lang)}</code></pre>`;
             if (inExamples) { exampleExpectTitle = true; }
             continue;
         }
@@ -226,9 +208,9 @@ export function convertToHtml(raw: string): string {
                 i++;
             }
             html += '<table class="nd-table"><thead><tr>'
-                + headerCells.map(c => `<th>${esc(c)}</th>`).join('')
+                + headerCells.map(c => `<th>${escapeHtml(c)}</th>`).join('')
                 + '</tr></thead><tbody>'
-                + rows.map(r => '<tr>' + r.map(c => `<td>${esc(c)}</td>`).join('') + '</tr>').join('')
+                + rows.map(r => '<tr>' + r.map(c => `<td>${escapeHtml(c)}</td>`).join('') + '</tr>').join('')
                 + '</tbody></table>';
             continue;
         }
@@ -240,14 +222,14 @@ export function convertToHtml(raw: string): string {
                 parts.push(lines[i].trim().replace(/^>\s?/, ''));
                 i++;
             }
-            html += `<div class="nd-callout">${esc(parts.join(' '))}</div>`;
+            html += `<div class="nd-callout">${escapeHtml(parts.join(' '))}</div>`;
             continue;
         }
 
         // ── Function signature ──
         if (line.startsWith('Function:')) {
             const sig = line.slice('Function:'.length).trim();
-            html += `<div class="fn-sig"><span class="fn-kw">Function</span> <span class="fn-name">${esc(sig)}</span></div>`;
+            html += `<div class="fn-sig"><span class="fn-kw">Function</span> <span class="fn-name">${escapeHtml(sig)}</span></div>`;
             continue;
         }
 
@@ -264,7 +246,7 @@ export function convertToHtml(raw: string): string {
         }
         if (line === 'Signature' || line === 'Usage' || line === 'See') {
             inParams = false; inExamples = false;
-            html += `<h2 class="sec-h">${esc(line)}</h2>`;
+            html += `<h2 class="sec-h">${escapeHtml(line)}</h2>`;
             continue;
         }
         if (line === 'Properties:') {
@@ -276,7 +258,7 @@ export function convertToHtml(raw: string): string {
             continue;
         }
         if (/^(When .+:|Otherwise:)$/.test(line)) {
-            html += `<div class="variant-cond">${esc(line)}</div>`;
+            html += `<div class="variant-cond">${escapeHtml(line)}</div>`;
             continue;
         }
 
@@ -304,7 +286,7 @@ export function convertToHtml(raw: string): string {
                     i++;
                     // Append continuation to last <li>
                     listHtml = listHtml.slice(0, listHtml.lastIndexOf('</li>'));
-                    listHtml += `<div class="cont">${esc(lt)}</div></li>`;
+                    listHtml += `<div class="cont">${escapeHtml(lt)}</div></li>`;
                 } else {
                     break;
                 }
@@ -318,17 +300,17 @@ export function convertToHtml(raw: string): string {
         if (inExamples) {
             // File label: no spaces, has a file extension
             if (!line.includes(' ') && /\.\w+$/.test(line)) {
-                html += `<div class="file-label">${esc(line)}</div>`;
+                html += `<div class="file-label">${escapeHtml(line)}</div>`;
                 exampleExpectTitle = false;
                 continue;
             }
             // First non-empty text after section header or code block = example title
             if (exampleExpectTitle) {
-                html += `<h3 class="ex-title">${esc(line)}</h3>`;
+                html += `<h3 class="ex-title">${escapeHtml(line)}</h3>`;
                 exampleExpectTitle = false;
                 continue;
             }
-            html += `<p>${esc(line)}</p>`;
+            html += `<p>${escapeHtml(line)}</p>`;
             continue;
         }
 
@@ -340,19 +322,19 @@ export function convertToHtml(raw: string): string {
                 continue;
             }
             if (paramLineIndex === 1) {
-                html += `<p class="param-desc">${esc(line)}</p>`;
+                html += `<p class="param-desc">${escapeHtml(line)}</p>`;
                 paramLineIndex = 2;
                 continue;
             }
             // Bare identifier with no active param context = a new top-level parameter name
             if (/^[$a-zA-Z_][\w$]*$/.test(line)) {
-                html += `<div class="param-name">${esc(line)}</div>`;
+                html += `<div class="param-name">${escapeHtml(line)}</div>`;
                 paramLineIndex = 0;
                 continue;
             }
         }
 
-        html += `<p>${esc(line)}</p>`;
+        html += `<p>${escapeHtml(line)}</p>`;
     }
 
     return html;

@@ -368,14 +368,13 @@
   "devDependencies": {
     "@types/node": "^18.x",
     "@types/vscode": "^1.110.0",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.1",
     "eslint": "^10.6.0",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.62.1"
   },
   "dependencies": {
-    "@vscode/vsce": "^3.9.2",
-    "vsce": "^2.15.0",
     "yaml": "^2.9.0"
   }
 }

@@ -142,8 +142,10 @@ body {
     flex-wrap: wrap;
 }
 
-/* Unified mint-family role tags — single product family, subtle role hue */
-.tag {
+/* Unified mint-family role tags — single product family, subtle role hue.
+   Named distinctly from the shared .tag/.nd-pill class (SharedPanelStyles)
+   so this topology-specific tuning doesn't rely on CSS load order to win. */
+.topo-tag {
     font-size: 10px;
     font-weight: 600;
     padding: 2px 8px;

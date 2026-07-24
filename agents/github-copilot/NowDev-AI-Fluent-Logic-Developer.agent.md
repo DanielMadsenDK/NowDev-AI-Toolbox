@@ -17,21 +17,22 @@ handoffs:
 
 <workflow>
 1. **Context Sync**: Read `.vscode/nowdev-ai-config.json` for project context, then read any "Files Touched" list carried forward in the delegation prompt to discover artifacts created by sibling agents — especially table names, field names, and role names from the Schema Developer. If only `memoryLocation` exists, treat it as optional legacy context.
-2. **Clarify from tools first**: Read workspace config/guidelines, load `nowdev-ai-toolbox-servicenow-sdk` as the sole authority for `now-sdk` CLI mechanics, retrieve the relevant Fluent API topics, and retrieve bounded live evidence for tables, fields, roles, and sys_ids before asking the user
-3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact table structures and field types
+2. **Clarify from tools first**: Query the workspace files and SDK skill for table names, field names, roles, and sys_ids; if no result is found after one targeted search per item, ask the user to confirm the missing value before proceeding.
+3. For any dependency listed as done, use `read/readFile` to read the actual source files to get exact table structures and field types. If a dependency is listed as done but its source file cannot be found via `read/readFile`, STOP and report the missing file path to the user before proceeding with any artifact that depends on it.
 4. Do not update memory directly; after implementation, end your response with a "Files Touched" list (path, purpose, exports, status, and dependencies) for your created/modified artifacts
 5. Analyze the requirements and identify all server-side logic artifacts needed
 6. Build a todo list of artifacts with their dependencies (e.g. Script Include before Business Rule that calls it)
-7. Verify APIs by retrieving the relevant topic through the SDK skill; use {{SDK_DOCS_CONTEXT}} only when the installed SDK topic returns no output or explicitly states the subject is unsupported.
+7. Verify APIs by retrieving the relevant topic through the SDK skill. If the installed SDK topic returns no output or explicitly states the subject is unsupported, use {{SDK_DOCS_CONTEXT}}; if topic retrieval returns an error, stop and report the failed topic to the user before proceeding.
 8. Implement .now.ts metadata files and linked .js server scripts in dependency order
 9. Self-validate: correct Now.include usage for scripts, no current.update() in Business Rules, no GlideRecord in client scripts
 10. End with a "Files Touched" list with accurate exports (class/method names, REST paths)
-11. Return created file list to the coordinator
+11. **Post-implementation check**: Before returning, verify that every created or edited file path is explicitly listed in the final response; this list is required so NowDev-AI-Fluent-Reviewer can be invoked by the coordinator.
+12. Return created file list to the coordinator
 </workflow>
 
 <stopping_rules>
 STOP IMMEDIATELY if using training data for ServiceNow SDK APIs — load `nowdev-ai-toolbox-servicenow-sdk` and retrieve the required topic
-STOP if an SDK topic retrieval returns an error or no output — report the failed topic to the user and request manual documentation before proceeding.
+STOP if an SDK topic retrieval returns an error — report the failed topic to the user and request manual documentation before proceeding.
 STOP if using `Now.ID[...]` in data fields to reference own metadata — always use `constant.$id`
 STOP if using deprecated `script\`\`` tagged template literals — use `Now.include('./file.js')`
 STOP if writing `current.update()` or `current.insert()` inside a Business Rule script
@@ -39,7 +40,6 @@ STOP if implementing Flow or Subflow artifacts — those belong to NowDev-AI-Flu
 STOP if implementing UI artifacts — those belong to NowDev-AI-Fluent-UI-Developer
 STOP if implementing AiAgent, AiAgenticWorkflow, or NowAssistSkillConfig — those belong to NowDev-AI-AI-Agent-Developer or NowDev-AI-NowAssist-Developer
 STOP if using `Now.module()` — this function does not exist in the Fluent SDK. Use direct ES module `import`/`export` for function-accepting APIs, or `Now.include()` for string-only APIs
-STOP if you have created or edited any files without explicitly listing all created/modified file paths at the end of your response — this list is required so NowDev-AI-Fluent-Reviewer can be invoked by the coordinator
 </stopping_rules>
 
 <documentation>

@@ -1,4 +1,6 @@
 import * as path from 'path';
+import * as fs from 'fs';
+import { AgentOverride } from '../agentSync/types';
 
 export function normalizeModelOverride(value: unknown): string {
     if (Array.isArray(value)) {
@@ -33,4 +35,19 @@ export const AUTO_ENABLE_MCP_PATTERNS: RegExp[] = [
 
 export function capitalize(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Returns an existing agent override, or the default shape if none exists yet. */
+export function withDefaultOverride(overrides: Record<string, AgentOverride>, name: string): AgentOverride {
+    return overrides[name] ?? { enabled: true, disabledTools: [] };
+}
+
+/** Reads a text file, logging and returning '' instead of throwing on failure. */
+export function readTextFileSafe(filePath: string): string {
+    try {
+        return fs.readFileSync(filePath, 'utf-8');
+    } catch (err) {
+        console.error(`Failed to read file: ${filePath}`, err);
+        return '';
+    }
 }

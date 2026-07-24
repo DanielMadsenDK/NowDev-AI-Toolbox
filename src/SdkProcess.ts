@@ -1,6 +1,7 @@
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as vscode from 'vscode';
 
 export interface SdkProcessOptions {
     cwd?: string;
@@ -216,6 +217,15 @@ export function spawnSdk(args: string[], options: SdkProcessOptions = {}): cp.Ch
     // Close stdin immediately so the CLI sees EOF and proceeds.
     proc.stdin.end();
     return proc;
+}
+
+/** Streams a spawned process's stdout/stderr live into an output channel, resolving with its exit code. */
+export function streamToChannel(proc: cp.ChildProcessWithoutNullStreams, chan: vscode.OutputChannel): Promise<number | null> {
+    return new Promise((resolve) => {
+        proc.stdout.on('data', (d: Buffer) => chan.append(d.toString()));
+        proc.stderr.on('data', (d: Buffer) => chan.append(d.toString()));
+        proc.on('close', (code: number | null) => resolve(code));
+    });
 }
 
 export function spawnNpm(args: string[], options: SdkProcessOptions = {}): cp.ChildProcessWithoutNullStreams {

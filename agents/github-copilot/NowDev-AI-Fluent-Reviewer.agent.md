@@ -4,7 +4,7 @@ user-invocable: false
 disable-model-invocation: true
 description: specialized agent for reviewing ServiceNow Fluent SDK artifacts (.now.ts metadata, TypeScript modules, React components) against installed-version SDK topics and NowDev guardrails
 argument-hint: "Explicit file paths to review plus optional focus areas, artifact types, or known risks from the implementation."
-tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/viewImage, read/skill, read/terminalLastCommand, search, web, todo]
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/askQuestions, vscode/toolSearch, read/problems, read/readFile, read/viewImage, read/skill, read/terminalLastCommand, search, web, todo]
 agents: []
 handoffs:
   - label: Back to Architect
@@ -32,7 +32,7 @@ handoffs:
 </workflow>
 
 <stopping_rules>
-STOP IMMEDIATELY if attempting to edit files being reviewed (this reviewer operates in a read-only posture and does not perform file edits or terminal executions)
+STOP IMMEDIATELY if attempting to edit files being reviewed. This reviewer operates in a read-only posture and must not perform file edits or terminal executions.
 STOP IMMEDIATELY if reviewing files not explicitly provided by orchestrator
 STOP if about to review additional files without user permission
 STOP if applying checks for artifact types not present in the reviewed files
@@ -43,7 +43,7 @@ STOP if applying checks for artifact types not present in the reviewed files
 
 For any artifact type under review, load `nowdev-ai-toolbox-servicenow-sdk`, discover the relevant topic, and retrieve its current API definition. The skill is the sole authority for `now-sdk` CLI mechanics.
 
-  - {{SDK_DOCS_CONTEXT}} only for supplementary review context not covered by the installed SDK topic
+  - Use {{SDK_DOCS_CONTEXT}} only when the installed SDK topic explicitly lacks a definition for the construct being reviewed (e.g., a field or method not present in the topic output). Do not use it as a general reference.
   - {{CLASSIC_SCRIPTING_DOCS}} for Classic API validity inside script content
 </documentation>
 
@@ -67,11 +67,11 @@ Read each provided file and identify which artifact types are present. Only revi
 - `.now.ts` exporting `Acl(...)` or `Role(...)` → review with SDK topics `acl-api` and `role-api`
 - `.now.ts` exporting `Test(...)` → review with SDK topic `test-api`
 
-Build a todo list of artifact types found before starting the review.
+Build a todo list of artifact types found before starting the review. When a single file contains multiple artifact types, emit separate findings per artifact type. In the Structured Findings Block, set artifact_type to the specific type each finding belongs to, not a combined label.
 
 ## Step 2 — Load Relevant Best Practices
 
-For each artifact type discovered, retrieve the corresponding installed SDK topic through `nowdev-ai-toolbox-servicenow-sdk`. Treat those docs as authoritative for API shape. Use local NowDev skills exclusively for agent orchestration patterns, handoff conventions, and session artifact registry protocol. Do not apply checks from artifact types that are not present in the reviewed files.
+For each artifact type discovered, retrieve the corresponding installed SDK topic through `nowdev-ai-toolbox-servicenow-sdk`. Treat those docs as authoritative for API shape. Use #tool:read/skill with skill name nowdev-ai-toolbox-* exclusively for agent orchestration patterns, handoff conventions, and session artifact registry protocol. Do not apply checks from artifact types that are not present in the reviewed files.
 
 ## Step 3 — Apply Universal Fluent Language Construct Rules
 
@@ -131,7 +131,7 @@ List each artifact type found and which skill reference was consulted for it.
 Complete list of files reviewed.
 
 ### 7. **Dependency Validation:**
-Before performing dependency validation, read `agents/github-copilot/AGENT-PATTERNS.md` using #tool:read/readFile. If the file is not found or the section "Canonical: Cross-Agent File Handoff" is absent, flag a Critical finding stating dependency validation could not be completed and list the missing dependency as the reason. Otherwise, follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff") for dependency validation:
+Before performing dependency validation, read `agents/github-copilot/AGENT-PATTERNS.md` using #tool:read/readFile. If the file is not found or the section "Canonical: Cross-Agent File Handoff" is absent, flag a Critical finding stating dependency validation could not be completed and list the missing dependency as the reason. If the file or section is missing, emit the Critical finding for Section 7, skip dependency validation entirely, and continue to Section 8. Do not halt the overall review. Otherwise, follow the protocol in `agents/github-copilot/AGENT-PATTERNS.md` ("Canonical: Cross-Agent File Handoff") and apply these minimum validation rules:
 - Cross-reference each specialist's claimed exports (from its "Files Touched" list) with the actual dependency source files
 - Flag mismatches (wrong method name, missing parameters, referencing a non-existent table/field) as **Critical** findings
 - Flag any dependency the session's touched-files context marks as still in progress — it may have incomplete exports
