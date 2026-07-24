@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { WelcomeViewProvider } from './WelcomeViewProvider';
 import { showAgentTopologyPanel } from './AgentTopologyPanel';
-import { ensureGitignoreEntry, executeIfAvailable, executeFirstAvailable } from './extensionUtils';
+import { ensureGitignoreEntry, ensureWorktreeIncludeFiles, executeIfAvailable, executeFirstAvailable } from './extensionUtils';
 import { registerInitFluentProject } from './commands/initFluentProject';
 import { registerSdkCommands } from './commands/sdkCommands';
 
@@ -10,6 +10,8 @@ import { registerSdkCommands } from './commands/sdkCommands';
 export function activate(context: vscode.ExtensionContext) {
     // Ensure sensitive/generated workspace files are listed in .gitignore
     ensureGitignoreEntry('.vscode/nowdev-ai-config.json');
+    // Ensure generated agents/instructions/prompts/config survive VS Code worktree creation
+    ensureWorktreeIncludeFiles();
     // Register the sidebar welcome webview
     const welcomeProvider = new WelcomeViewProvider(context.extensionUri, context.extension.id);
 

@@ -112,6 +112,43 @@ export function ensureGitignoreEntry(entry: string): void {
     }
 }
 
+/**
+ * Ensures VS Code's `git.worktreeIncludeFiles` setting covers every path this
+ * extension generates and gitignores, so that creating a worktree via VS
+ * Code's Source Control > Worktrees UI copies the generated agents,
+ * instructions, prompts, and personal config into the new worktree instead
+ * of leaving it empty. Updates the Global (user) setting, consistent with
+ * this extension's other one-time settings nudges — Workspace-scoped writes
+ * require an open, trusted folder and are unreliable in edge cases (no
+ * folder open, untrusted workspace), while Global always applies. Merges
+ * with whatever the user already has configured rather than overwriting it.
+ */
+export function ensureWorktreeIncludeFiles(): void {
+    const requiredEntries = [
+        '.github/agents/**',
+        '.github/instructions/**',
+        '.github/prompts/**',
+        '.vscode/nowdev-ai-config.json',
+    ];
+
+    try {
+        const gitConfig = vscode.workspace.getConfiguration('git');
+        const current = gitConfig.get<string[]>('worktreeIncludeFiles', []);
+        const merged = Array.from(new Set([...current, ...requiredEntries]));
+
+        if (merged.length === current.length && requiredEntries.every(entry => current.includes(entry))) {
+            return;
+        }
+
+        gitConfig.update('worktreeIncludeFiles', merged, vscode.ConfigurationTarget.Global).then(
+            () => { console.log('Updated git.worktreeIncludeFiles setting'); },
+            (error: any) => { console.error('Failed to update git.worktreeIncludeFiles:', error); }
+        );
+    } catch (err) {
+        console.error('Failed to update git.worktreeIncludeFiles:', err);
+    }
+}
+
 export async function executeIfAvailable(command: string, unavailableMessage: string): Promise<boolean> {
     const commands = await vscode.commands.getCommands(true);
     if (!commands.includes(command)) {

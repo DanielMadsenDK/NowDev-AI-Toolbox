@@ -374,6 +374,8 @@
     "typescript-eslint": "^8.62.1"
   },
   "dependencies": {
+    "@vscode/vsce": "^3.9.2",
+    "vsce": "^2.15.0",
     "yaml": "^2.9.0"
   }
 }
