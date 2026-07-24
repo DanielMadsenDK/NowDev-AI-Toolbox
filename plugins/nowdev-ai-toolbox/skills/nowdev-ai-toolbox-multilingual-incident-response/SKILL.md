@@ -2,6 +2,7 @@
 name: nowdev-ai-toolbox-multilingual-incident-response
 user-invocable: true
 description: 'Draft customer/end-user-facing incident updates and KB-linked replies in the user''s target language. ALWAYS use this skill whenever the user asks to "draft a response to this incident", "write an update for the customer/requester", "reply to this ticket in [language]", or "close this incident with a customer-facing note", even if they do not explicitly ask for multilingual support or KB integration.'
+argument-hint: "[incident] [target language]"
 ---
 
 # ServiceNow Multilingual Incident Response & KB-Linked Drafter

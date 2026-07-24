@@ -40,9 +40,37 @@ now-sdk <subcommand> --help
 
 Never guess a flag name. Flags differ per subcommand and guessing produces silent errors or wrong results.
 
+## Required documentation orientation (Fluent projects)
+
+Condition: the current or an ancestor directory contains `now.config.json` (same signal as `package.json` for an npm project — walk up from cwd; treat each `now.config.json` found as its own distinct Fluent project, not a nested copy of another).
+
+When this condition holds, run this orientation before any other `now-sdk explain` lookups in that project. Installed docs are versioned together with the `@servicenow/sdk` version pinned per-project, so orientation done for one project does not transfer to another — re-run it for every distinct `now.config.json` touched, even within the same conversation.
+
+1. Run both list calls, unfiltered:
+
+   ```bash
+   now-sdk explain quickstart --list --format raw
+   now-sdk explain fluent-language --list --format raw
+   ```
+
+   Both are required — `fluent-language` topics are not a subset of `quickstart` topics.
+
+2. Read every topic returned by both lists, in full, plus the `keys-file` topic by name (it isn't reliably tagged into either list). Skip the normal peek-first rule below for these specific topics — they're already pre-scoped by category, so peeking first is a redundant round trip, not a safety step:
+
+   ```bash
+   now-sdk explain <topic> --format raw
+   now-sdk explain keys-file --format raw
+   ```
+
+3. Treat this content as required working knowledge for the rest of that project's session. Don't re-derive Fluent conventions from guesswork once they're covered here — this includes the safety-critical rule that a `Table()` / `BusinessRule()` / `Record()` definition must never be deleted from a `.now.ts` file without confirming with the user first (the deletion may need to propagate as an upgrade-time delete via `keys.ts`, which reading the code alone won't reveal). If unsure later, re-check with `--peek` rather than trusting memory:
+
+   ```bash
+   now-sdk explain <topic> --peek --format raw
+   ```
+
 ## Documentation lookup (`explain`)
 
-`now-sdk explain` displays installed SDK documentation for a topic and runs entirely offline against the locally installed SDK — no network call, no proxy concerns. Never open a full topic before previewing it — full topics can be long and burn context for no reason.
+`now-sdk explain` displays installed SDK documentation for a topic and runs entirely offline against the locally installed SDK — no network call, no proxy concerns. Never open a full topic before previewing it, except the mandatory orientation topics above — those are pre-scoped and meant to be read directly.
 
 Discovery sequence:
 
@@ -90,6 +118,8 @@ now-sdk explain encoded-query-guide --format raw
 Use metadata-first discovery when the schema is uncertain: establish the table and field contract before reading business records. Never retrieve credential values, secrets, tokens, password fields, encryption material, or unrestricted journal content. For records containing PII, journals, email bodies, logs, HR/security data, or production identifiers, request only the minimum fields and rows, redact before reporting, and explain any residual sensitivity.
 
 Treat command output as an envelope, not just rows. Check command success, warnings, truncation, pagination/count metadata, and parseability before drawing conclusions. If the requested evidence spans more rows than one bounded response, paginate deliberately and record the coverage; never silently treat the first page as a complete population.
+
+Unlike the Fluent orientation docs above, `query` output is live instance data, not documentation — do not retain it as project knowledge the way orientation topics are retained. Treat it as scoped to the current task only.
 
 - Other flags worth knowing exist (confirm exact names with `now-sdk query --help` before use): `--offset`, `--display-value`, `--no-count`, `--timeout`, `--view`, `--query-category`, `--query-no-domain`.
 - If `query` isn't recognized, don't jump straight to a version conclusion — first rule out a connectivity problem (see "Troubleshooting: connectivity vs. installation" below), since `query` needs to reach the instance and `explain` does not.

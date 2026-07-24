@@ -2,6 +2,7 @@
 name: nowdev-ai-toolbox-notification-delivery-diagnostic
 user-invocable: true
 description: Systematically diagnoses why a ServiceNow email, alert, notification, or message failed to reach a user. Use for missing notifications, dispatch failures, bounces, preference exclusions, or event trigger issues. It delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk` and traces the delivery pipeline.
+argument-hint: "[recipient] [notification or event]"
 ---
 
 # ServiceNow Notification Delivery Diagnostic

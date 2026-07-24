@@ -2,6 +2,7 @@
 name: nowdev-ai-toolbox-change-correlation
 user-invocable: true
 description: Surfaces and correlates recent configuration and code changes in a single live ServiceNow instance to explain a sudden regression ("this used to work"). Trigger this skill whenever a user mentions a regression or asks "what changed recently", "started failing after...", "did someone break this", "regression since last week", or says something was working but is now broken. The skill delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk`, then maps Customer Updates into a chronological, risk-annotated timeline.
+argument-hint: "[symptom] [since when]"
 ---
 
 # ServiceNow Live Change Correlation & Regression Diagnosis

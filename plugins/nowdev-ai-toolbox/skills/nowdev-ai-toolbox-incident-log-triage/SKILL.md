@@ -2,6 +2,7 @@
 name: nowdev-ai-toolbox-incident-log-triage
 user-invocable: true
 description: Symptom-first root-cause triage when something in the live ServiceNow instance is broken or erroring and the user has no known file/script to point at. Use for unexpected UI/session crashes, background job exceptions, flow failures, email delivery issues, integration errors, and general instance triage. It delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk` across operational diagnostic tables.
+argument-hint: "[symptom] [approximate timeframe]"
 ---
 
 ## 🗺️ Core Principles

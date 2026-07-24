@@ -3,6 +3,7 @@ name: nowdev-ai-toolbox-kb-compliance-check
 user-invocable: true
 disable-model-invocation: true
 description: 'Review and cross-check generated ServiceNow artifacts and code against relevant connected instance Knowledge Base articles for organizational guidelines, development standards, and forbidden patterns. Use this skill when the user asks "does this follow our documented guidelines?", "check compliance", "verify against our KB standards", "audit against KB", or during a code review when checking compliance of any ServiceNow scripts, tables, flows, or other elements.'
+argument-hint: "[artifact or file to check]"
 ---
 
 # ServiceNow KB Compliance Checker

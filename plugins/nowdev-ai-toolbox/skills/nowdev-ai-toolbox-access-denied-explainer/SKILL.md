@@ -2,6 +2,7 @@
 name: nowdev-ai-toolbox-access-denied-explainer
 user-invocable: true
 description: Explains exactly why a ServiceNow user lacks access or permissions to view/edit a record, view/modify a field, or execute an action/UI Action, and provides a precise remedy. Triggers when the user mentions "I can't see/edit X", "insufficient rights", "why is this field read-only", "access denied", "user can't run this action/UI action", "ACL failure", "no write access", "cannot view", or similar permission and access restriction issues. It uses read-only `now-sdk` retrieval delegated to `nowdev-ai-toolbox-servicenow-sdk` to trace ACL evaluations and identify failing roles or conditions.
+argument-hint: "[table.field] [user] [operation]"
 ---
 
 # ServiceNow Access Denied Explainer
