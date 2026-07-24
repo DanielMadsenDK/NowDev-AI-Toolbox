@@ -63,6 +63,7 @@ The following used to be local files but are now fully covered by installed SDK 
 - Use `Now.include()` for files only where the current SDK topic says the property accepts string content or file inclusion.
 - For module-vs-string decisions, first ask the canonical SDK skill for the artifact-specific API topic; if unresolved, request topic `module-guide`, and use topic `now-include-guide` only to confirm file-inclusion syntax. The artifact-specific topic takes precedence over the general guides.
 - Run the narrowest available validation after edits, usually an SDK build for Fluent app changes. Delegate command construction and execution mechanics to `nowdev-ai-toolbox-servicenow-sdk`.
+- Never delete a `Table()` / `BusinessRule()` / `Record()` definition from a `.now.ts` file without confirming with the user first — the deletion may need to propagate as an upgrade-time delete via `keys.ts`, which the code alone can't reveal. See the required Fluent orientation (`keys-file` topic) in `nowdev-ai-toolbox-servicenow-sdk`.
 
 ## Project Layout Convention
 

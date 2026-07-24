@@ -2,6 +2,7 @@
 name: nowdev-ai-toolbox-environment-drift-audit
 user-invocable: true
 description: Safely and systematically audits configuration drift between two or more ServiceNow environments/instances that share the same Fluent application scope. Use this skill for environment comparison, drift audits, alignment checks, or pre-deployment safety checks. It delegates read-only `now-sdk` retrieval to `nowdev-ai-toolbox-servicenow-sdk` and aggregates configuration differences into high, medium, and low risk categories.
+argument-hint: "[instance-a] [instance-b] [scope]"
 ---
 
 # ServiceNow Environment Drift Audit
