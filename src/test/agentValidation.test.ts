@@ -2,9 +2,14 @@ import * as assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import { test } from 'node:test';
 import * as path from 'path';
-import { validateAgents, validateSdkAuthorityContent } from '../AgentValidation';
+import { AgentValidationIssue, validateAgents, validateSdkAuthorityContent, validateSkillLoaderAccess } from '../AgentValidation';
+import { AgentManifest } from '../AgentRegistry';
 
 const repoRoot = path.resolve(__dirname, '..', '..');
+
+function manifestWithTools(baseTools: string[]): AgentManifest {
+    return { filename: 'Fake.agent.md', name: 'Fake', baseTools } as AgentManifest;
+}
 
 test('bundled agents and shipped content pass validation with zero errors', () => {
     const result = validateAgents(repoRoot);
@@ -45,4 +50,19 @@ test('SDK authority does not treat unrelated short flags as CLI mechanics', () =
         'Load nowdev-ai-toolbox-servicenow-sdk before use. Copy the directory with cp -r.'
     );
     assert.deepEqual(issues, []);
+});
+
+test('skill loader guard flags agents that cannot load skills', () => {
+    const issues: AgentValidationIssue[] = [];
+    validateSkillLoaderAccess(manifestWithTools(['search', 'edit/editFiles', 'web']), issues);
+    assert.equal(issues.length, 1);
+    assert.match(issues[0].message, /able to load skills/);
+});
+
+test('skill loader guard accepts the granular tool and the read tool set', () => {
+    for (const tools of [['read/skill', 'search'], ['read', 'search'], []]) {
+        const issues: AgentValidationIssue[] = [];
+        validateSkillLoaderAccess(manifestWithTools(tools), issues);
+        assert.deepEqual(issues, [], `unexpected issue for tools: ${JSON.stringify(tools)}`);
+    }
 });

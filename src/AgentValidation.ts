@@ -35,6 +35,11 @@ const NO_WRITE_AGENT_PATTERNS = [
     /Refinement$/,
 ];
 
+// Skill descriptions are injected into every agent prompt, but the tool that
+// actually loads a SKILL.md lives in the `read` tool set. An agent missing both
+// forms sees skills it can never load and wastes a turn delegating elsewhere.
+const SKILL_LOADER_TOOLS = ['read', 'read/skill'];
+
 interface ChatSkillContribution {
     path?: unknown;
     when?: unknown;
@@ -49,6 +54,7 @@ export function validateAgents(extensionPath: string): AgentValidationResult {
         validateRequiredFrontmatter(manifest, issues);
         validateInvocationControls(manifest, issues);
         validateToolBoundaries(manifest, issues);
+        validateSkillLoaderAccess(manifest, issues);
         validateModernAgentMetadata(manifest, issues);
     }
 
@@ -257,6 +263,19 @@ function validateToolBoundaries(manifest: AgentManifest, issues: AgentValidation
     const writeTools = manifest.baseTools.filter(tool => WRITE_TOOLS.has(tool));
     if (writeTools.length > 0) {
         issues.push({ severity: 'error', file: manifest.filename, agent: manifest.name, message: `This agent should not have write tools: ${writeTools.join(', ')}.` });
+    }
+}
+
+export function validateSkillLoaderAccess(manifest: AgentManifest, issues: AgentValidationIssue[]): void {
+    if (manifest.baseTools.length === 0) { return; }
+
+    if (!manifest.baseTools.some(tool => SKILL_LOADER_TOOLS.includes(tool))) {
+        issues.push({
+            severity: 'error',
+            file: manifest.filename,
+            agent: manifest.name,
+            message: `Agents must be able to load skills: add ${SKILL_LOADER_TOOLS.map(tool => `\`${tool}\``).join(' or ')} to the tools list.`,
+        });
     }
 }
 
