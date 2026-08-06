@@ -1147,7 +1147,8 @@
             list.innerHTML =
                 '<div class="field-desc" style="font-style:italic;">' +
                 'No MCP servers detected. Add servers via the Extensions view ' +
-                '<code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.' +
+                '<code>@mcp</code>, in workspace <code>.mcp.json</code>, in an installed agent plugin, ' +
+                'or in legacy <code>.vscode/mcp.json</code>.' +
                 '</div>';
             renderOnboardingSummary();
             return;
@@ -1158,7 +1159,9 @@
         var html = servers.map(function (s) {
             var isChecked = selected.indexOf(s.name) >= 0;
             var checked = isChecked ? 'checked' : '';
-            var sourceLabel = s.source === 'file' ? (s.path || 'mcp.json') : 'settings';
+            var sourceLabel = s.source === 'file' ? (s.path || 'mcp.json')
+                : s.source === 'plugin' ? ('plugin: ' + (s.path || 'unknown'))
+                : 'settings';
             var sourceBadge = '<span class="auth-alias-default-badge">' + esc(sourceLabel) + '</span>';
             var typeHint = s.type ? ' <span class="tool-version">' + esc(s.type) + '</span>' : '';
             var kindHint = s.kind ? ' <span class="tool-version">' + esc(s.kind) + '</span>' : '';

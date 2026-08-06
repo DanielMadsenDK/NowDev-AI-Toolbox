@@ -5,7 +5,7 @@
 
 <div align="center">
 
-  ![Version](https://img.shields.io/badge/version-0.7.9-blue)
+  ![Version](https://img.shields.io/badge/version-0.8.0-blue)
   ![VS Code](https://img.shields.io/badge/VS%20Code-1.124+-blue)
   ![Platform](https://img.shields.io/badge/Platform-ServiceNow-293E40)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)

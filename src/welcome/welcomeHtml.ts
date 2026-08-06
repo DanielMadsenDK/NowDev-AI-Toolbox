@@ -210,7 +210,7 @@ export function renderProjectTab(): string {
                 <button class="fix-btn" id="rescanMcp" title="Re-scan for available MCP servers">Rescan</button>
             </div>
             <div class="field-desc nd-mb-2">
-                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, or in legacy <code>.vscode/mcp.json</code>.
+                Select MCP servers to expose as agent tools. Agent files are kept in sync automatically. Add servers via the Extensions view <code>@mcp</code>, in workspace <code>.mcp.json</code>, in an installed agent plugin, or in legacy <code>.vscode/mcp.json</code>.
             </div>
             <div id="mcpServersList">
                 <div class="field-desc nd-placeholder">Scanning&hellip;</div>

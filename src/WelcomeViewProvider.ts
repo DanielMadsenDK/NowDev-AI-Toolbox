@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { scanEnvironment, EnvironmentInfo } from './ToolScanner';
-import { scanMcpServers, McpServer } from './MCPScanner';
+import { scanMcpServers, getAgentPluginRoots, McpServer } from './MCPScanner';
 import { loadAgentRegistry, AgentManifest } from './AgentRegistry';
 import { syncAllAgents, syncWorkspaceInstructionsFile, syncWorkspacePromptFiles, AgentOverride, McpIntegrationConfig, DocSource, AllDocSources, DEFAULT_ALL_DOC_SOURCES, DevOpsConfig, DEFAULT_DEVOPS_CONFIG, LOCKED_AGENT_NAMES, AGENT_BUNDLES, getAgentBundleName, GuidelinesConfig } from './WorkspaceAgentManager';
 import { DEFAULT_PROFILE_ID, getProfileById, getAllProfiles, normalizeCustomProfiles, getEffectiveAgentConfig, ProfileDefinition } from './ProfileManager';
@@ -535,6 +535,14 @@ export class WelcomeViewProvider implements vscode.WebviewViewProvider {
             vscode.workspace.createFileSystemWatcher('**/.mcp.json'),
             vscode.workspace.createFileSystemWatcher('**/.vscode/mcp.json'),
         ];
+        // Agent plugins live outside the workspace, so they need their own watchers.
+        for (const root of getAgentPluginRoots()) {
+            const rootUri = vscode.Uri.file(root);
+            mcpJsonWatchers.push(
+                vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(rootUri, 'installed.json')),
+                vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(rootUri, '**/.mcp.json')),
+            );
+        }
         const refreshMcpServers = () => {
             this._mcpServers = scanMcpServers();
             if (this._applyAutoEnableMcp()) { this._syncWorkspaceAgents(); }
